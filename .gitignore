@@ -1,0 +1,5 @@
+Generated/
+*.xcodeproj/
+*.xcresult/
+build.log
+.DS_Store

@@ -31,6 +31,15 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["تجربة Office"].waitForExistence(timeout: 10))
         let media = app.buttons["officeMedia"]
         XCTAssertTrue(media.waitForExistence(timeout: 15))
+        let loading = app.staticTexts["LOADING"]
+        if loading.waitForExistence(timeout: 3) {
+            let finished = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: loading)
+            XCTAssertEqual(XCTWaiter.wait(for: [finished], timeout: 30), .completed)
+        }
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "OfficeAccessibility"
+        hierarchy.lifetime = .keepAlways
+        add(hierarchy)
         let preview = XCTAttachment(screenshot: app.screenshot())
         preview.name = "OfficePreview"
         preview.lifetime = .keepAlways

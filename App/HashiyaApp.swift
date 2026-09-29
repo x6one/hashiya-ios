@@ -107,25 +107,50 @@ struct LibraryScreen: View {
 struct DocumentScreen: View {
     let note: Notebook
     let root: URL
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var drawing = false
     @State private var margin = ""
     @State private var showMargin = true
+    @State private var showCompactMargin = false
+    @State private var saveError: String?
+    private var marginEditor: some View {
+        VStack(alignment: .leading) {
+            Text("على الهامش").font(.headline)
+            TextEditor(text: $margin).scrollContentBackground(.hidden)
+                .accessibilityLabel("نص الحاشية")
+        }.padding(20).background(Color(red: 0.98, green: 0.98, blue: 0.95))
+    }
     var body: some View {
         HStack(spacing: 0) {
             NativePDF(url: root.appendingPathComponent(note.file), storage: root.appendingPathComponent(note.id.uuidString), drawing: drawing)
-            if showMargin {
-                VStack(alignment: .leading) {
-                    Text("على الهامش").font(.headline)
-                    TextEditor(text: $margin).scrollContentBackground(.hidden)
-                        .onChange(of: margin) { _, value in try? value.write(to: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), atomically: true, encoding: .utf8) }
-                    Text("يمكن استخدام Scribble هنا").font(.caption).foregroundStyle(.secondary)
-                }.padding(20).frame(width: 240).background(Color(red: 0.98, green: 0.98, blue: 0.95))
+            if showMargin && sizeClass == .regular {
+                marginEditor.frame(width: 240)
             }
         }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
-            .toolbar { Button(drawing ? "قراءة" : "قلم", systemImage: drawing ? "hand.draw" : "pencil.tip") { drawing.toggle() }; Button("الحاشية", systemImage: "sidebar.right") { showMargin.toggle() } }
+            .toolbar {
+                Button(drawing ? "قراءة" : "قلم", systemImage: drawing ? "hand.draw" : "pencil.tip") { drawing.toggle() }
+                Button("الحاشية", systemImage: "sidebar.right") {
+                    if sizeClass == .compact { showCompactMargin = true }
+                    else { showMargin.toggle() }
+                }.accessibilityIdentifier("marginButton")
+            }
+            .sheet(isPresented: $showCompactMargin) {
+                NavigationStack {
+                    marginEditor.navigationTitle("الحاشية")
+                        .toolbar { Button("تم") { showCompactMargin = false } }
+                }.environment(\.layoutDirection, .rightToLeft)
+            }
+            .onChange(of: margin) { _, value in
+                do { try value.write(to: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), atomically: true, encoding: .utf8) }
+                catch { saveError = error.localizedDescription }
+            }
+            .alert("تعذّر حفظ الحاشية", isPresented: Binding(get: {saveError != nil}, set: {if !$0 {saveError = nil}})) {
+                Button("حسناً") { saveError = nil }
+            } message: { Text(saveError ?? "") }
             .onAppear { margin = (try? String(contentsOf: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), encoding: .utf8)) ?? "" }
     }
 }
+
 struct NativePDF: UIViewRepresentable {
     let url: URL
     let storage: URL

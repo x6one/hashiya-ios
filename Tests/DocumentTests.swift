@@ -49,5 +49,13 @@ final class OfficeImportTests: XCTestCase {
         let duration = try await asset.load(.duration)
         XCTAssertTrue(playable)
         XCTAssertGreaterThan(CMTimeGetSeconds(duration), 1)
+        let tracks = try await asset.loadTracks(withMediaType: .video)
+        let track = try XCTUnwrap(tracks.first)
+        let reader = try AVAssetReader(asset: asset)
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
+        reader.add(output)
+        XCTAssertTrue(reader.startReading())
+        XCTAssertNotNil(output.copyNextSampleBuffer(), "The extracted video must decode a real frame")
+        reader.cancelReading()
     }
 }

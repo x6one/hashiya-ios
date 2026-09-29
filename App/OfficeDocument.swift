@@ -133,11 +133,22 @@ struct MediaPlayerScreen: View {
     let item: EmbeddedMedia
     @Environment(\.dismiss) private var dismiss
     @State private var player: AVPlayer?
+    @State private var playbackError: String?
     var body: some View {
         NavigationStack {
-            VideoPlayer(player: player).navigationTitle(item.name)
+            VStack {
+                VideoPlayer(player: player)
+                if let playbackError { Text(playbackError).foregroundStyle(.red).padding() }
+            }.navigationTitle(item.name)
                 .toolbar { Button("تم") { dismiss() } }
-                .onAppear { player = AVPlayer(url: item.url) }
+                .task {
+                    do {
+                        let asset = AVURLAsset(url: item.url)
+                        guard try await asset.load(.isPlayable) else { throw DocumentImportError.unsupported }
+                        player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+                        player?.play()
+                    } catch { playbackError = "تعذّر تشغيل هذا الترميز على الجهاز: " + error.localizedDescription }
+                }
                 .onDisappear { player?.pause(); player = nil }
         }
     }

@@ -18,4 +18,30 @@ final class LaunchTests: XCTestCase {
         document.lifetime = .keepAlways
         add(document)
     }
+
+    func testOfficePreviewAndEmbeddedMedia() {
+        let app = XCUIApplication()
+        app.launch()
+        let importButton = app.buttons["importOfficeDemo"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 15))
+        importButton.tap()
+        let card = app.staticTexts["تجربة Office"].firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        XCTAssertTrue(app.navigationBars["تجربة Office"].waitForExistence(timeout: 10))
+        let media = app.buttons["officeMedia"]
+        XCTAssertTrue(media.waitForExistence(timeout: 15))
+        let preview = XCTAttachment(screenshot: app.screenshot())
+        preview.name = "OfficePreview"
+        preview.lifetime = .keepAlways
+        add(preview)
+        media.tap()
+        let video = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", ".mp4")).firstMatch
+        XCTAssertTrue(video.waitForExistence(timeout: 20))
+        video.tap()
+        let playback = XCTAttachment(screenshot: app.screenshot())
+        playback.name = "EmbeddedVideo"
+        playback.lifetime = .keepAlways
+        add(playback)
+    }
 }

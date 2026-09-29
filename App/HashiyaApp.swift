@@ -3,6 +3,7 @@ import PDFKit
 import PencilKit
 import UniformTypeIdentifiers
 import UIKit
+import ZIPFoundation
 
 @main struct HashiyaApp: App {
     @StateObject private var library = LibraryStore()
@@ -20,26 +21,44 @@ struct Notebook: Identifiable, Codable, Hashable {
     @Published var notebooks: [Notebook] = []
     @Published var error: String?
     let root: URL
-    init() {
-        root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    init(root directory: URL? = nil, seedDemo: Bool = true) {
+        root = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             let file = root.appendingPathComponent("library.json")
             if FileManager.default.fileExists(atPath: file.path) { notebooks = try JSONDecoder().decode([Notebook].self, from: Data(contentsOf: file)) }
-            else if let demo = Bundle.main.url(forResource: "english", withExtension: "pdf") { try importPDF(demo, title: "ملف التجربة") }
+            else if seedDemo, let demo = Bundle.main.url(forResource: "english", withExtension: "pdf") { try importPDF(demo, title: "ملف التجربة") }
         } catch { self.error = error.localizedDescription }
     }
     func save() {
         do { try JSONEncoder().encode(notebooks).write(to: root.appendingPathComponent("library.json"), options: .atomic) }
         catch { self.error = error.localizedDescription }
     }
-    func importPDF(_ source: URL, title: String? = nil) throws {
+    func importPDF(_ source: URL, title: String? = nil) throws { try importDocument(source, title: title) }
+    func importDocument(_ source: URL, title: String? = nil) throws {
         let granted = source.startAccessingSecurityScopedResource()
         defer { if granted { source.stopAccessingSecurityScopedResource() } }
-        guard PDFDocument(url: source) != nil else { throw CocoaError(.fileReadCorruptFile) }
-        let name = UUID().uuidString + ".pdf"
-        try FileManager.default.copyItem(at: source, to: root.appendingPathComponent(name))
-        notebooks.insert(Notebook(title: title ?? source.deletingPathExtension().lastPathComponent, file: name), at: 0)
-        save()
+        let ext = source.pathExtension.lowercased()
+        guard ["pdf", "pptx", "docx", "xlsx", "ppt", "doc", "xls"].contains(ext) else { throw DocumentImportError.unsupported }
+        let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size > 0 else { throw DocumentImportError.damaged }
+        guard size <= 128 * 1024 * 1024 else { throw DocumentImportError.tooLarge }
+        if ext == "pdf" {
+            guard let pdf = PDFDocument(url: source), !pdf.isLocked, pdf.pageCount > 0 else { throw DocumentImportError.damaged }
+        } else if ["pptx", "docx", "xlsx"].contains(ext) {
+            let archive = try Archive(url: source, accessMode: .read)
+            let required = ["pptx": "ppt/presentation.xml", "docx": "word/document.xml", "xlsx": "xl/workbook.xml"][ext]!
+            guard archive["[Content_Types].xml"] != nil, archive[required] != nil else { throw DocumentImportError.damaged }
+        }
+        let name = UUID().uuidString + "." + ext
+        let target = root.appendingPathComponent(name)
+        try FileManager.default.copyItem(at: source, to: target)
+        var updated = notebooks
+        updated.insert(Notebook(title: title ?? source.deletingPathExtension().lastPathComponent, file: name), at: 0)
+        do {
+            try JSONEncoder().encode(updated).write(to: root.appendingPathComponent("library.json"), options: .atomic)
+            notebooks = updated
+        } catch { try? FileManager.default.removeItem(at: target); throw error }
     }
     func create(_ title: String) {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 650, height: 900))
@@ -73,7 +92,10 @@ struct LibraryScreen: View {
                     }.padding(.vertical, 20)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 235), spacing: 22)], spacing: 22) {
                         ForEach(store.notebooks.filter { $0.trashed == showTrash && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) }) { note in
-                            NavigationLink { DocumentScreen(note: note, root: store.root) } label: {
+                            NavigationLink {
+                                if note.file.lowercased().hasSuffix(".pdf") { DocumentScreen(note: note, root: store.root) }
+                                else { OfficeDocumentScreen(note: note, root: store.root) }
+                            } label: {
                                 VStack(alignment: .leading, spacing: 15) {
                                     Image(systemName: "book.closed").font(.system(size: 36)).padding(.bottom, 20)
                                     Text(note.title).font(.title3.weight(.medium)).lineLimit(2)
@@ -94,10 +116,14 @@ struct LibraryScreen: View {
                         Button { showTrash.toggle() } label: { Image(systemName: showTrash ? "books.vertical" : "trash") }
                         Button("استيراد", systemImage: "square.and.arrow.down") { importing = true }
                         Button("دفتر جديد", systemImage: "plus") { creating = true }
+                        Button("تجربة Office", systemImage: "doc.richtext") {
+                            do { if let url = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") { try store.importDocument(url, title: "تجربة Office") } }
+                            catch { store.error = error.localizedDescription }
+                        }.accessibilityIdentifier("importOfficeDemo")
                     }
                 }
-                .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf]) { result in
-                    do { try store.importPDF(result.get()) } catch { store.error = error.localizedDescription }
+                .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf] + ["pptx", "docx", "xlsx", "ppt", "doc", "xls"].compactMap { UTType(filenameExtension: $0) }) { result in
+                    do { try store.importDocument(result.get()) } catch { store.error = error.localizedDescription }
                 }
                 .alert("دفتر جديد", isPresented: $creating) { TextField("الاسم", text: $title); Button("إنشاء") { store.create(title.isEmpty ? "دفتر جديد" : title) }; Button("إلغاء", role: .cancel) {} }
                 .alert("تعذّر إكمال العملية", isPresented: Binding(get: {store.error != nil}, set: {if !$0 {store.error = nil}})) { Button("حسناً") {store.error = nil} } message: { Text(store.error ?? "") }

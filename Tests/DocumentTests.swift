@@ -1,5 +1,7 @@
 import XCTest
 import PDFKit
+import AVFoundation
+import QuickLook
 @testable import Hashiya
 
 final class DocumentTests: XCTestCase {
@@ -10,5 +12,42 @@ final class DocumentTests: XCTestCase {
         XCTAssertGreaterThan(document.pageCount, 0)
         let page = try XCTUnwrap(document.page(at: 0))
         XCTAssertGreaterThan(page.bounds(for: .mediaBox).width, 0)
+    }
+}
+
+final class OfficeImportTests: XCTestCase {
+    @MainActor func testImportPreservesOriginalAndSurvivesReload() throws {
+        let source = try XCTUnwrap(Bundle(for: LibraryStore.self).url(forResource: "office-demo", withExtension: "pptx"))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LibraryStore(root: root, seedDemo: false)
+        try store.importDocument(source)
+        let note = try XCTUnwrap(store.notebooks.first)
+        let saved = root.appendingPathComponent(note.file)
+        XCTAssertEqual(try Data(contentsOf: source), try Data(contentsOf: saved))
+        XCTAssertTrue(QLPreviewController.canPreview(saved as NSURL))
+        XCTAssertEqual(LibraryStore(root: root, seedDemo: false).notebooks, store.notebooks)
+    }
+    @MainActor func testCorruptOfficeDoesNotCreateNotebook() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LibraryStore(root: root, seedDemo: false)
+        let bad = root.appendingPathComponent("broken.pptx")
+        try Data("not an office archive".utf8).write(to: bad)
+        XCTAssertThrowsError(try store.importDocument(bad))
+        XCTAssertTrue(store.notebooks.isEmpty)
+    }
+    @MainActor func testEmbeddedVideoCanBePlayed() async throws {
+        let source = try XCTUnwrap(Bundle(for: LibraryStore.self).url(forResource: "office-demo", withExtension: "pptx"))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let media = try OfficeMedia.extract(from: source, into: root)
+        XCTAssertEqual(media.count, 1)
+        let item = try XCTUnwrap(media.first)
+        let asset = AVURLAsset(url: item.url)
+        let playable = try await asset.load(.isPlayable)
+        let duration = try await asset.load(.duration)
+        XCTAssertTrue(playable)
+        XCTAssertGreaterThan(CMTimeGetSeconds(duration), 1)
     }
 }

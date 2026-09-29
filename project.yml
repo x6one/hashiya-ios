@@ -9,11 +9,17 @@ settings:
     TARGETED_DEVICE_FAMILY: '1,2'
     MARKETING_VERSION: '0.1.0'
     CURRENT_PROJECT_VERSION: '1'
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    revision: 02b6abe5f6eef7e3cbd5f247c5cc24e246efcfe0
 targets:
   Hashiya:
     type: application
     platform: iOS
     sources: [App]
+    dependencies:
+      - package: ZIPFoundation
     info:
       path: Generated/Info.plist
       properties:

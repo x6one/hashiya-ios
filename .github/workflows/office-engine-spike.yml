@@ -1,0 +1,57 @@
+name: Local Office engine feasibility
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: office-engine-spike
+  cancel-in-progress: false
+jobs:
+  ios-engine:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Check out pinned official Collabora sources
+        uses: actions/checkout@v4
+        with:
+          repository: CollaboraOnline/online.mirror
+          ref: 124ecf55b0f0969b7859d2f803f0bc3a0049a4dc
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install build prerequisites
+        run: |
+          brew install autoconf automake libtool pkg-config bison gperf nasm
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/office-python"
+          "$RUNNER_TEMP/office-python/bin/pip" install polib lxml
+          echo "$RUNNER_TEMP/office-python/bin" >> "$GITHUB_PATH"
+      - name: Record SDK and source
+        run: |
+          mkdir -p diagnostics
+          git rev-parse HEAD > diagnostics/source.txt
+          xcodebuild -version > diagnostics/xcode.txt
+          xcrun --sdk iphoneos --show-sdk-version > diagnostics/sdk.txt
+          df -h > diagnostics/disk.txt
+      - name: Configure the native iOS engine
+        working-directory: engine
+        run: |
+          set -o pipefail
+          ./autogen.sh --with-distro=CPiOS --with-lang=en-US --without-java --without-help --without-myspell-dicts --with-parallelism=2 2>&1 | tee ../diagnostics/configure.log
+      - name: Build arm64 engine archives
+        working-directory: engine
+        run: |
+          set -o pipefail
+          make -j2 2>&1 | tee ../diagnostics/build.log
+          test -s workdir/CustomTarget/ios/ios-all-static-libs.list
+          cp workdir/CustomTarget/ios/ios-all-static-libs.list ../diagnostics/
+          find instdir workdir -name '*.a' -exec ls -lh {} + > ../diagnostics/archives.txt
+      - name: Save diagnostics, never a release IPA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-office-engine-diagnostics
+          path: |
+            diagnostics/
+            engine/config.log
+            engine/autogen.log
+          retention-days: 7

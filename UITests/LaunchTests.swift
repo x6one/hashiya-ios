@@ -1,6 +1,38 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
+    func testTouchInkPersistsAfterRelaunch() {
+        let app = XCUIApplication()
+        app.launch()
+        let demo = app.staticTexts["ملف التجربة"].firstMatch
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        demo.tap()
+        let inkTool = app.buttons["inkTool"]
+        XCTAssertTrue(inkTool.waitForExistence(timeout: 10))
+        inkTool.tap()
+        let canvas = app.otherElements["inkCanvas-0"]
+        XCTAssertTrue(canvas.waitForExistence(timeout: 10))
+        let initial = Int(canvas.value as? String ?? "") ?? 0
+        let start = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.35))
+        let end = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.45))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (Int(canvas.value as? String ?? "") ?? 0) > initial
+        }, object: canvas)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "A real touch gesture must create ink")
+        let count = canvas.value as? String
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "TouchInk"
+        shot.lifetime = .keepAlways
+        add(shot)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        demo.tap()
+        XCTAssertTrue(canvas.waitForExistence(timeout: 10))
+        XCTAssertEqual(canvas.value as? String, count, "Ink must survive a real app relaunch")
+    }
+
     func testActualDocumentPickerImportsPDF() {
         let app = XCUIApplication()
         app.launchArguments = ["--test-file-picker"]

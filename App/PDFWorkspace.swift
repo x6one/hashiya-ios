@@ -105,6 +105,7 @@ struct DocumentScreen: View {
     let root: URL
     @StateObject private var workspace: PDFWorkspace
     @State private var pageNumber = "1"
+    @FocusState private var pageFocused: Bool
     @State private var showNotes = false
     @State private var showAudio = false
     @State private var margin = ""
@@ -114,9 +115,9 @@ struct DocumentScreen: View {
             NativePDF(workspace: workspace)
             HStack {
                 Button("السابق", systemImage: "chevron.right") { workspace.jump(workspace.page - 1) }.labelStyle(.iconOnly).disabled(workspace.page <= 1)
-                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 55).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber")
+                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 55).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
                 Text("من \(workspace.document.pageCount)").font(.caption)
-                Button("اذهب") { workspace.jump(Int(pageNumber) ?? 0) }.accessibilityIdentifier("goToPage")
+                Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.accessibilityIdentifier("goToPage")
                 Button("التالي", systemImage: "chevron.left") { workspace.jump(workspace.page + 1) }.labelStyle(.iconOnly).disabled(workspace.page >= workspace.document.pageCount)
                 Spacer(minLength: 4)
                 Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly)
@@ -125,7 +126,7 @@ struct DocumentScreen: View {
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button(workspace.tool == .ink ? "قراءة" : "قلم", systemImage: workspace.tool == .ink ? "hand.draw" : "pencil.tip") { workspace.tool = workspace.tool == .ink ? .read : .ink }
-                    Button("نص", systemImage: "textformat") { workspace.tool = .text }.tint(workspace.tool == .text ? .orange : nil).accessibilityIdentifier("textTool")
+                    Button("نص", systemImage: "textformat") { pageFocused = false; workspace.tool = .text }.tint(workspace.tool == .text ? .orange : nil).accessibilityIdentifier("textTool")
                     Menu {
                         Button("الحاشية", systemImage: "note.text") { showNotes = true }
                         Button("تسجيلات الصفحة", systemImage: "mic") { showAudio = true }

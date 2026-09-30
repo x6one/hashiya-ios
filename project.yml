@@ -24,6 +24,8 @@ targets:
       path: Generated/Info.plist
       properties:
         CFBundleDisplayName: حاشية
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSMicrophoneUsageDescription: تسجيل ملاحظاتك الصوتية وربطها بصفحات الدراسة.
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true

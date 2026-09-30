@@ -6,7 +6,7 @@ struct AppEntrance: View {
     @State private var drawn = false
     var body: some View {
         ZStack {
-            LibraryScreen().accessibilityHidden(showing)
+            if !showing { LibraryScreen().transition(.opacity) }
             if showing {
                 ZStack {
                     Color(red: 0.975, green: 0.97, blue: 0.95).ignoresSafeArea()

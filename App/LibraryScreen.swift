@@ -139,6 +139,10 @@ struct LibraryScreen: View {
                 let target = folder.appendingPathComponent("Picker-fixture.pdf")
                 if !FileManager.default.fileExists(atPath: target.path) { try? FileManager.default.copyItem(at: source, to: target) }
             }
+            if let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {
+                let target = folder.appendingPathComponent("Picker-office.pptx")
+                if !FileManager.default.fileExists(atPath: target.path) { try? FileManager.default.copyItem(at: source, to: target) }
+            }
             return folder
         }
         #endif

@@ -4,6 +4,8 @@ final class LaunchTests: XCTestCase {
     func testLibraryLaunchAndDocumentOpen() {
         let app = XCUIApplication()
         app.launch()
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
         XCTAssertTrue(app.navigationBars["حاشية"].waitForExistence(timeout: 15))
@@ -24,6 +26,8 @@ final class LaunchTests: XCTestCase {
     func testOfficePreviewAndEmbeddedMedia() {
         let app = XCUIApplication()
         app.launch()
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
         app.buttons["libraryMenu"].tap()
@@ -62,6 +66,8 @@ final class LaunchTests: XCTestCase {
     func testPageJumpAndTextEditor() {
         let app = XCUIApplication()
         app.launch()
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let demo = app.staticTexts["ملف التجربة"].firstMatch
         XCTAssertTrue(demo.waitForExistence(timeout: 15))
         demo.tap()
@@ -83,3 +89,4 @@ final class LaunchTests: XCTestCase {
         add(screenshot)
     }
 }
+

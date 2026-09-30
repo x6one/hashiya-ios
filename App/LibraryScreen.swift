@@ -13,6 +13,7 @@ struct LibraryScreen: View {
     @State private var renaming: Notebook?
     @State private var deleting: Notebook?
     @State private var managing = false
+    @State private var showingActions = false
     private var filtered: [Notebook] {
         store.notebooks.filter { $0.trashed == showTrash && (section == nil || showTrash || $0.section == section) && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) }
     }
@@ -75,15 +76,20 @@ struct LibraryScreen: View {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("استيراد", systemImage: "square.and.arrow.down") { importing = true }
                         Button("دفتر جديد", systemImage: "plus") { title = "دفتر جديد"; creating = true }
-                        Menu {
-                            Button(showTrash ? "المكتبة" : "المحذوفات", systemImage: "trash") { showTrash.toggle() }
-                            Button("إدارة الأقسام", systemImage: "folder") { managing = true }
-                            Button("تجربة Office", systemImage: "doc.richtext") {
-                                do { if let url = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") { try store.importDocument(url, title: "تجربة Office") } }
-                                catch { store.error = error.localizedDescription }
-                            }.accessibilityIdentifier("importOfficeDemo")
-                        } label: { Image(systemName: "ellipsis.circle") }.accessibilityIdentifier("libraryMenu")
+                        Button { showingActions = true } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }.accessibilityLabel("خيارات المكتبة").accessibilityIdentifier("libraryMenu")
+
                     }
+                }
+                .confirmationDialog("خيارات المكتبة", isPresented: $showingActions, titleVisibility: .visible) {
+                    Button(showTrash ? "المكتبة" : "المحذوفات") { showTrash.toggle() }
+                    Button("إدارة الأقسام") { managing = true }
+                    Button("تجربة Office") {
+                        do { if let url = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") { try store.importDocument(url, title: "تجربة Office") } }
+                        catch { store.error = error.localizedDescription }
+                    }.accessibilityIdentifier("importOfficeDemo")
+                    Button("إلغاء", role: .cancel) {}
                 }
                 .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf] + ["pptx", "docx", "xlsx", "ppt", "doc", "xls"].compactMap { UTType(filenameExtension: $0) }) { result in
                     do { try store.importDocument(result.get()) } catch { store.error = error.localizedDescription }

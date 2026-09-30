@@ -31,7 +31,7 @@ final class LaunchTests: XCTestCase {
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
         app.buttons["libraryMenu"].tap()
-        let importButton = app.buttons["importOfficeDemo"]
+        let importButton = app.buttons["تجربة Office"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
         let card = app.staticTexts["تجربة Office"].firstMatch
@@ -74,7 +74,8 @@ final class LaunchTests: XCTestCase {
         let page = app.textFields["pageNumber"]
         XCTAssertTrue(page.waitForExistence(timeout: 10))
         page.tap()
-        page.typeText(XCUIKeyboardKey.delete.rawValue + "2")
+        page.typeText("2")
+        XCTAssertEqual(page.value as? String, "2")
         app.buttons["goToPage"].tap()
         app.buttons["textTool"].tap()
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
@@ -89,4 +90,3 @@ final class LaunchTests: XCTestCase {
         add(screenshot)
     }
 }
-

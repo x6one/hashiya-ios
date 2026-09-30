@@ -135,6 +135,10 @@ struct DocumentScreen: View {
                 }
             }
             .overlay(alignment: .top) { if workspace.tool == .text { Text("المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله.").font(.caption).padding(10).background(.regularMaterial, in: Capsule()).padding(8).allowsHitTesting(false) } }
+            .onChange(of: pageFocused) { _, focused in
+                if focused { pageNumber = "" }
+                else if pageNumber.isEmpty { pageNumber = String(workspace.page) }
+            }
             .onChange(of: workspace.page) { _, page in pageNumber = String(page) }
             .sheet(item: $workspace.editing) { item in TextEditorSheet(item: item, save: workspace.saveText) }
             .sheet(isPresented: $showAudio) { PageAudioScreen(folder: root.appendingPathComponent(note.id.uuidString + "-audio").appendingPathComponent(String(workspace.page))) }

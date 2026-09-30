@@ -8,17 +8,13 @@ final class LaunchTests: XCTestCase {
         let importButton = app.buttons["importDocument"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
-        let file = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Picker-fixture")).firstMatch
-        if !file.waitForExistence(timeout: 20) {
-            let folder = app.staticTexts["ImportTest"].firstMatch
-            XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
-            folder.tap()
-        }
+        let file = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Picker-fixture")).firstMatch
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: file)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 25), .completed, app.debugDescription)
         let pickerShot = XCTAttachment(screenshot: app.screenshot())
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways
         add(pickerShot)
-        XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
         file.tap()
         let status = app.staticTexts["importStatus"]
         XCTAssertTrue(status.waitForExistence(timeout: 15))

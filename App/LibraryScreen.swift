@@ -134,7 +134,7 @@ struct LibraryScreen: View {
     private var pickerDirectory: URL? {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--test-file-picker") {
-            let folder = store.root.appendingPathComponent("ImportTest")
+            let folder = store.root
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             if let source = Bundle.main.url(forResource: "english", withExtension: "pdf") {
                 let target = folder.appendingPathComponent("Picker-fixture.pdf")

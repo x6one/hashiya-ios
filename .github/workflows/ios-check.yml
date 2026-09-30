@@ -56,6 +56,7 @@ jobs:
           path: |
             build.log
             Screenshots/*.png
+            Screenshots/*.mp4
             Screenshots/*.txt
             Screenshots/*.json
           retention-days: 7

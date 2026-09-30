@@ -59,6 +59,8 @@ jobs:
           retention-days: 7
 
   device-package:
+    # A device package is a candidate only after both simulator suites pass.
+    needs: test
     runs-on: macos-15
     timeout-minutes: 20
     steps:

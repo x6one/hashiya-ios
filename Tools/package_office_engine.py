@@ -44,7 +44,7 @@ def package(engine: Path, output: Path) -> Path:
             binaries.add(binary)
     if not binaries:
         raise ValueError("Empty native linker manifest")
-    # Do not silently retain macOS or simulator libraries as device libraries.
+    # Check architecture here. Platform, linkage and runtime are separate gates.
     for binary in sorted(binaries):
         subprocess.run(["xcrun", "lipo", "-verify_arch", "arm64", str(binary)], check=True)
     source = subprocess.check_output(["git", "-C", str(engine), "rev-parse", "HEAD"], text=True).strip()
@@ -55,8 +55,10 @@ def package(engine: Path, output: Path) -> Path:
         target = output / "link-inputs" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(binary, target)
+        with target.open("rb") as file:
+            digest = hashlib.file_digest(file, "sha256").hexdigest()
         records.append({"path": target.relative_to(output).as_posix(), "bytes": target.stat().st_size,
-                        "sha256": hashlib.file_digest(target.open("rb"), "sha256").hexdigest()})
+                        "sha256": digest})
     shutil.copytree(resources, output / "resources")
     shutil.copytree(engine / "include/COKit", output / "include/COKit")
     shutil.copy2(generated / "native-code.h", output / "native-code.h")

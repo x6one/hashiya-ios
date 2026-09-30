@@ -58,7 +58,8 @@ final class LaunchTests: XCTestCase {
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways
         add(pickerShot)
-        file.tap()
+        // Hit the document thumbnail rather than the grid cell's empty gutter.
+        file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
         let status = app.staticTexts["importStatus"]
         XCTAssertTrue(status.waitForExistence(timeout: 15))
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)

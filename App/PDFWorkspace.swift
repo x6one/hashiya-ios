@@ -206,9 +206,13 @@ struct NativePDF: UIViewRepresentable {
     @ObservedObject var workspace: PDFWorkspace
     func makeCoordinator() -> Coordinator { Coordinator(workspace: workspace) }
     func makeUIView(context: Context) -> PDFView {
-        let view = PDFView(); view.document = workspace.document; view.autoScales = true; view.displayMode = .singlePageContinuous
+        let view = PDFView()
+        // Register the overlay provider before PDFKit creates visible page views.
+        // Assigning it after the document can leave the first page without ink.
+        workspace.view = view
+        view.pageOverlayViewProvider = context.coordinator
+        view.document = workspace.document; view.autoScales = true; view.displayMode = .singlePageContinuous
         view.backgroundColor = UIColor(red: 0.92, green: 0.94, blue: 0.92, alpha: 1)
-        view.pageOverlayViewProvider = context.coordinator; workspace.view = view
         let double = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.doubleTap(_:))); double.numberOfTapsRequired = 2
         let single = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tap(_:))); single.require(toFail: double)
         let hold = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.hold(_:)))

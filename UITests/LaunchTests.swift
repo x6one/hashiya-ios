@@ -58,4 +58,28 @@ final class LaunchTests: XCTestCase {
         playback.lifetime = .keepAlways
         add(playback)
     }
+
+    func testPageJumpAndTextEditor() {
+        let app = XCUIApplication()
+        app.launch()
+        let demo = app.staticTexts["ملف التجربة"].firstMatch
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        demo.tap()
+        let page = app.textFields["pageNumber"]
+        XCTAssertTrue(page.waitForExistence(timeout: 10))
+        page.tap()
+        page.typeText(XCUIKeyboardKey.delete.rawValue + "2")
+        app.buttons["goToPage"].tap()
+        app.buttons["textTool"].tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+        let editor = app.textViews["annotationText"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.tap(); editor.typeText("Study note")
+        app.buttons["saveAnnotation"].tap()
+        XCTAssertTrue(app.buttons["textTool"].waitForExistence(timeout: 10))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "TextAnnotation"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
 }

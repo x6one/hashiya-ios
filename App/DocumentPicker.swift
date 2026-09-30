@@ -1,30 +1,53 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Import a private copy. File providers may report generic UTIs for Office
-/// documents, so selection is broad and content validation happens afterwards.
+/// Present Files as a UIKit modal, rather than embedding its remote controller
+/// as a SwiftUI child. Files owns the presentation, coordinate space and dismissal.
 struct DocumentPicker: UIViewControllerRepresentable {
     let directory: URL?
     let completed: ([URL]) -> Void
     let cancelled: () -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(completed: completed, cancelled: cancelled) }
-    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
-        picker.delegate = context.coordinator
-        picker.allowsMultipleSelection = false
-        picker.shouldShowFileExtensions = true
-        picker.directoryURL = directory
-        return picker
+    func makeUIViewController(context: Context) -> Presenter {
+        Presenter(directory: directory, completed: completed, cancelled: cancelled)
     }
-    func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) {}
-    final class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let completed: ([URL]) -> Void
-        let cancelled: () -> Void
-        init(completed: @escaping ([URL]) -> Void, cancelled: @escaping () -> Void) {
-            self.completed = completed; self.cancelled = cancelled
+    func updateUIViewController(_ controller: Presenter, context: Context) {
+        controller.completed = completed
+        controller.cancelled = cancelled
+    }
+
+    final class Presenter: UIViewController, UIDocumentPickerDelegate {
+        let directory: URL?
+        var completed: ([URL]) -> Void
+        var cancelled: () -> Void
+        private var presentedPicker = false
+
+        init(directory: URL?, completed: @escaping ([URL]) -> Void, cancelled: @escaping () -> Void) {
+            self.directory = directory
+            self.completed = completed
+            self.cancelled = cancelled
+            super.init(nibName: nil, bundle: nil)
         }
-        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { completed(urls) }
+        required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+        override func viewDidLoad() {
+            super.viewDidLoad()
+            view.backgroundColor = .systemBackground
+        }
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            guard !presentedPicker else { return }
+            presentedPicker = true
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
+            picker.delegate = self
+            picker.allowsMultipleSelection = false
+            picker.shouldShowFileExtensions = true
+            picker.directoryURL = directory
+            picker.modalPresentationStyle = .fullScreen
+            present(picker, animated: true)
+        }
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            completed(urls)
+        }
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { cancelled() }
     }
 }

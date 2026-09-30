@@ -119,16 +119,9 @@ struct DocumentScreen: View {
     init(note: Notebook, root: URL) { self.note = note; self.root = root; _workspace = StateObject(wrappedValue: PDFWorkspace(note: note, root: root)) }
     var body: some View {
         VStack(spacing: 0) {
+            if workspace.tool == .ink { pageControls }
             NativePDF(workspace: workspace)
-            HStack {
-                Button("السابق", systemImage: "chevron.right") { workspace.jump(workspace.page - 1) }.labelStyle(.iconOnly).disabled(workspace.page <= 1)
-                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 55).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
-                Text("من \(workspace.document.pageCount)").font(.caption)
-                Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.accessibilityIdentifier("goToPage")
-                Button("التالي", systemImage: "chevron.left") { workspace.jump(workspace.page + 1) }.labelStyle(.iconOnly).disabled(workspace.page >= workspace.document.pageCount)
-                Spacer(minLength: 4)
-                Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly)
-            }.padding(12).background(.ultraThinMaterial)
+            if workspace.tool != .ink { pageControls }
         }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
@@ -160,6 +153,17 @@ struct DocumentScreen: View {
                 do { try value.write(to: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), atomically: true, encoding: .utf8) } catch { workspace.error = error.localizedDescription }
             }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { workspace.error != nil }, set: { if !$0 { workspace.error = nil } })) { Button("حسناً") { workspace.error = nil } } message: { Text(workspace.error ?? "") }
+    }
+    private var pageControls: some View {
+        HStack {
+                Button("السابق", systemImage: "chevron.right") { workspace.jump(workspace.page - 1) }.labelStyle(.iconOnly).disabled(workspace.page <= 1)
+                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 55).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
+                Text("من \(workspace.document.pageCount)").font(.caption)
+                Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.accessibilityIdentifier("goToPage")
+                Button("التالي", systemImage: "chevron.left") { workspace.jump(workspace.page + 1) }.labelStyle(.iconOnly).disabled(workspace.page >= workspace.document.pageCount)
+                Spacer(minLength: 4)
+                Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly)
+            }.padding(12).background(.ultraThinMaterial)
     }
 }
 struct TextEditorSheet: View {

@@ -95,7 +95,7 @@ struct LibraryScreen: View {
                     }.accessibilityIdentifier("importOfficeDemo")
                     Button("إلغاء", role: .cancel) {}
                 }
-                .sheet(isPresented: $importing) {
+                .fullScreenCover(isPresented: $importing) {
                     DocumentPicker(directory: pickerDirectory, completed: { urls in
                         if let url = urls.first { finishPicking(url) }
                         importing = false
@@ -103,6 +103,7 @@ struct LibraryScreen: View {
                     // The remote Files UI manages its own localization. Do not
                     // mirror its UIKit host with our forced Arabic app layout.
                     .environment(\.layoutDirection, .leftToRight)
+                    .interactiveDismissDisabled()
                 }
                 .safeAreaInset(edge: .bottom) {
                     if let importMessage {

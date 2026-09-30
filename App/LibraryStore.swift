@@ -76,25 +76,24 @@ import ZIPFoundation
     }
     func importPDF(_ source: URL, title: String? = nil) throws { try importDocument(source, title: title) }
     func importDocument(_ source: URL, title: String? = nil, section: String? = nil) throws {
-        let granted = source.startAccessingSecurityScopedResource()
-        defer { if granted { source.stopAccessingSecurityScopedResource() } }
-        let ext = source.pathExtension.lowercased()
-        guard ["pdf", "pptx", "docx", "xlsx", "ppt", "doc", "xls"].contains(ext) else { throw DocumentImportError.unsupported }
-        let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard size > 0 else { throw DocumentImportError.damaged }
-        guard size <= 128 * 1024 * 1024 else { throw DocumentImportError.tooLarge }
-        if ext == "pdf" {
-            guard let pdf = PDFDocument(url: source), !pdf.isLocked, pdf.pageCount > 0 else { throw DocumentImportError.damaged }
-        } else if ["pptx", "docx", "xlsx"].contains(ext) {
-            let archive = try Archive(url: source, accessMode: .read)
-            let required = ["pptx": "ppt/presentation.xml", "docx": "word/document.xml", "xlsx": "xl/workbook.xml"][ext]!
-            guard archive["[Content_Types].xml"] != nil, archive[required] != nil else { throw DocumentImportError.damaged }
-        }
-        let name = UUID().uuidString + "." + ext
+        let snapshot = try DocumentImport.prepare(source)
+        defer { snapshot.discard() }
+        try acceptImport(snapshot, title: title, section: section)
+    }
+    func importDocumentAsync(_ source: URL, section: String? = nil) async throws {
+        let snapshot = try await Task.detached(priority: .userInitiated) {
+            try DocumentImport.prepare(source)
+        }.value
+        defer { snapshot.discard() }
+        try Task.checkCancellation()
+        try acceptImport(snapshot, title: nil, section: section)
+    }
+    private func acceptImport(_ snapshot: ImportedDocument, title: String?, section: String?) throws {
+        let name = UUID().uuidString + "." + snapshot.url.pathExtension
         let target = root.appendingPathComponent(name)
-        try FileManager.default.copyItem(at: source, to: target)
+        try FileManager.default.moveItem(at: snapshot.url, to: target)
         var updated = notebooks
-        var note = Notebook(title: title ?? source.deletingPathExtension().lastPathComponent, file: name)
+        var note = Notebook(title: title ?? snapshot.title, file: name)
         note.section = section.flatMap { sections.contains($0) ? $0 : nil } ?? "مكتبتي"
         updated.insert(note, at: 0)
         do {

@@ -95,7 +95,7 @@ struct LibraryScreen: View {
                     }.accessibilityIdentifier("importOfficeDemo")
                     Button("إلغاء", role: .cancel) {}
                 }
-                .fullScreenCover(isPresented: $importing) {
+                .sheet(isPresented: $importing) {
                     DocumentPicker(directory: pickerDirectory, completed: { urls in
                         if let url = urls.first { finishPicking(url) }
                         importing = false
@@ -103,7 +103,6 @@ struct LibraryScreen: View {
                     // The remote Files UI manages its own localization. Do not
                     // mirror its UIKit host with our forced Arabic app layout.
                     .environment(\.layoutDirection, .leftToRight)
-                    .ignoresSafeArea()
                     .interactiveDismissDisabled()
                 }
                 .safeAreaInset(edge: .bottom) {
@@ -151,12 +150,13 @@ struct LibraryScreen: View {
         return nil
     }
     private func finishPicking(_ url: URL) {
+        guard !importingFile else { return }
         importingFile = true
         importMessage = "جارٍ استيراد الملف…"
         Task { @MainActor in
             defer { importingFile = false }
             do {
-                try store.importDocument(url, section: section)
+                try await store.importDocumentAsync(url, section: section)
                 showTrash = false; query = ""
                 importMessage = "تم استيراد " + url.deletingPathExtension().lastPathComponent
             } catch {

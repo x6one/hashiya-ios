@@ -60,8 +60,8 @@ final class LaunchTests: XCTestCase {
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways
         add(pickerShot)
-        // Use the named Files element so XCTest resolves the remote UI hit point.
-        file.staticTexts[name].tap()
+        // Select the document cell, as in the previously passing Files test.
+        file.tap()
         let status = app.staticTexts["importStatus"]
         guard status.waitForExistence(timeout: 20) else {
             XCTFail("Files did not complete the selection: " + app.debugDescription)

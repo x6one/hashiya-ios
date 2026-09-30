@@ -37,7 +37,9 @@ struct DocumentPicker: UIViewControllerRepresentable {
             super.viewDidAppear(animated)
             guard !presentedPicker else { return }
             presentedPicker = true
-            let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
+            // Obtain a security-scoped source URL; LibraryStore owns the private
+            // copy. This avoids requiring Files to duplicate the document first.
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: false)
             picker.delegate = self
             picker.allowsMultipleSelection = false
             picker.shouldShowFileExtensions = true

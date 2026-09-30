@@ -63,7 +63,10 @@ final class LaunchTests: XCTestCase {
         // Use the named Files element so XCTest resolves the remote UI hit point.
         file.staticTexts[name].tap()
         let status = app.staticTexts["importStatus"]
-        XCTAssertTrue(status.waitForExistence(timeout: 15))
+        guard status.waitForExistence(timeout: 20) else {
+            XCTFail("Files did not complete the selection: " + app.debugDescription)
+            return
+        }
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)
         let card = app.staticTexts[name].firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))

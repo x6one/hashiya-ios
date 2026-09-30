@@ -39,7 +39,9 @@ jobs:
       - name: Build and test
         run: |
           set -o pipefail
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Export UI screenshots
         if: always()
         run: |

@@ -9,7 +9,7 @@ concurrency:
 jobs:
   ios-engine:
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 240
     steps:
       - name: Check out pinned official Collabora sources
         uses: actions/checkout@v4
@@ -33,19 +33,50 @@ jobs:
           xcodebuild -version > diagnostics/xcode.txt
           xcrun --sdk iphoneos --show-sdk-version > diagnostics/sdk.txt
           df -h > diagnostics/disk.txt
+      - name: Choose checkpoint key
+        id: checkpoint-key
+        run: |
+          SDK_ID=$(xcodebuild -version | shasum -a 256 | cut -c1-12)
+          echo "prefix=native-ios-124ecf55b0f0969b-v2-$SDK_ID-" >> "$GITHUB_OUTPUT"
+      - name: Restore engine build checkpoint
+        uses: actions/cache/restore@v4
+        with:
+          path: engine
+          key: ${{ steps.checkpoint-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ steps.checkpoint-key.outputs.prefix }}
       - name: Configure the native iOS engine
+        if: ${{ hashFiles('engine/config_host.mk') == '' }}
         working-directory: engine
         run: |
           set -o pipefail
-          ./autogen.sh --with-distro=CPiOS --with-lang=en-US --without-java --without-help --without-myspell-dicts --with-parallelism=2 2>&1 | tee ../diagnostics/configure.log
+          ./autogen.sh --with-distro=CPiOS --with-lang=en-US --without-java --without-help --without-myspell-dicts --disable-symbols --with-parallelism=4 2>&1 | tee ../diagnostics/configure.log
       - name: Build arm64 engine archives
+        timeout-minutes: 210
         working-directory: engine
         run: |
           set -o pipefail
-          make -j2 2>&1 | tee ../diagnostics/build.log
+          make -j4 2>&1 | tee ../diagnostics/build.log
           test -s workdir/CustomTarget/ios/ios-all-static-libs.list
           cp workdir/CustomTarget/ios/ios-all-static-libs.list ../diagnostics/
           find instdir workdir -name '*.a' -exec ls -lh {} + > ../diagnostics/archives.txt
+      - name: Measure build checkpoint
+        if: always()
+        id: checkpoint-size
+        run: |
+          if [ -d engine/workdir ]; then
+            CHECKPOINT_KB=$(du -sk engine | cut -f1)
+            echo "$CHECKPOINT_KB" > diagnostics/checkpoint-size-kb.txt
+            # Keep below GitHub's default repository cache allowance.
+            if [ "$CHECKPOINT_KB" -lt 8388608 ]; then
+              echo "save=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - name: Save resumable build checkpoint
+        if: ${{ always() && steps.checkpoint-size.outputs.save == 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: engine
+          key: ${{ steps.checkpoint-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
       - name: Save diagnostics, never a release IPA
         if: always()
         uses: actions/upload-artifact@v4

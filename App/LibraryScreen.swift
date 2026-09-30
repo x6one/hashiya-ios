@@ -103,6 +103,7 @@ struct LibraryScreen: View {
                     // The remote Files UI manages its own localization. Do not
                     // mirror its UIKit host with our forced Arabic app layout.
                     .environment(\.layoutDirection, .leftToRight)
+                    .ignoresSafeArea()
                     .interactiveDismissDisabled()
                 }
                 .safeAreaInset(edge: .bottom) {

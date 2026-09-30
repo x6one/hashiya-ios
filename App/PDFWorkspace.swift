@@ -23,6 +23,7 @@ struct PageText: Codable, Identifiable {
     let textURL: URL
     @Published var tool: Tool = .read
     @Published var page = 1
+    @Published var inkStrokeCount = 0
     @Published var editing: PageText?
     @Published var error: String?
     @Published var exported: URL?
@@ -36,7 +37,13 @@ struct PageText: Codable, Identifiable {
             try FileManager.default.createDirectory(at: storage, withIntermediateDirectories: true)
             if FileManager.default.fileExists(atPath: textURL.path) { texts = try JSONDecoder().decode([PageText].self, from: Data(contentsOf: textURL)) }
             for item in texts { install(item) }
+            inkStrokeCount = savedInkCount(on: 0)
         } catch { self.error = error.localizedDescription }
+    }
+    func savedInkCount(on index: Int) -> Int {
+        guard let data = try? Data(contentsOf: storage.appendingPathComponent("\(index).drawing")),
+              let drawing = try? PKDrawing(data: data) else { return 0 }
+        return drawing.strokes.count
     }
     private func install(_ item: PageText) {
         guard let page = document.page(at: item.page) else { return }
@@ -125,7 +132,7 @@ struct DocumentScreen: View {
         }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    Button(workspace.tool == .ink ? "قراءة" : "قلم", systemImage: workspace.tool == .ink ? "hand.draw" : "pencil.tip") { workspace.tool = workspace.tool == .ink ? .read : .ink }.accessibilityIdentifier("inkTool")
+                    Button(workspace.tool == .ink ? "قراءة" : "قلم", systemImage: workspace.tool == .ink ? "hand.draw" : "pencil.tip") { workspace.tool = workspace.tool == .ink ? .read : .ink }.accessibilityIdentifier("inkTool").accessibilityValue(String(workspace.inkStrokeCount))
                     Button("نص", systemImage: "textformat") { pageFocused = false; workspace.tool = .text }.tint(workspace.tool == .text ? .orange : nil).accessibilityIdentifier("textTool")
                     Menu {
                         Button("الحاشية", systemImage: "note.text") { showNotes = true }
@@ -228,6 +235,7 @@ struct NativePDF: UIViewRepresentable {
         @objc func pageChanged() {
             guard let view = workspace.view, let page = view.currentPage else { return }
             workspace.page = workspace.document.index(for: page) + 1
+            workspace.inkStrokeCount = canvases[workspace.page - 1]?.drawing.strokes.count ?? workspace.savedInkCount(on: workspace.page - 1)
             if enabled { activateCurrentCanvas() }
         }
         @objc func tap(_ gesture: UITapGestureRecognizer) { guard workspace.tool == .text, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: true) }
@@ -296,7 +304,10 @@ struct NativePDF: UIViewRepresentable {
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
-            do { try canvas.drawing.dataRepresentation().write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic) }
+            do {
+                try canvas.drawing.dataRepresentation().write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic)
+                if canvas.tag == workspace.page - 1 { workspace.inkStrokeCount = canvas.drawing.strokes.count }
+            }
             catch { workspace.error = error.localizedDescription }
         }
     }

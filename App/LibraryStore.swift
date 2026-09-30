@@ -75,7 +75,7 @@ import ZIPFoundation
         catch { self.error = error.localizedDescription }
     }
     func importPDF(_ source: URL, title: String? = nil) throws { try importDocument(source, title: title) }
-    func importDocument(_ source: URL, title: String? = nil) throws {
+    func importDocument(_ source: URL, title: String? = nil, section: String? = nil) throws {
         let granted = source.startAccessingSecurityScopedResource()
         defer { if granted { source.stopAccessingSecurityScopedResource() } }
         let ext = source.pathExtension.lowercased()
@@ -94,13 +94,15 @@ import ZIPFoundation
         let target = root.appendingPathComponent(name)
         try FileManager.default.copyItem(at: source, to: target)
         var updated = notebooks
-        updated.insert(Notebook(title: title ?? source.deletingPathExtension().lastPathComponent, file: name), at: 0)
+        var note = Notebook(title: title ?? source.deletingPathExtension().lastPathComponent, file: name)
+        note.section = section.flatMap { sections.contains($0) ? $0 : nil } ?? "مكتبتي"
+        updated.insert(note, at: 0)
         do {
             try JSONEncoder().encode(updated).write(to: root.appendingPathComponent("library.json"), options: .atomic)
             notebooks = updated
         } catch { try? FileManager.default.removeItem(at: target); throw error }
     }
-    func create(_ title: String) {
+    func create(_ title: String, section: String? = nil) {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 650, height: 900))
         let data = renderer.pdfData { ctx in
             ctx.beginPage()
@@ -110,7 +112,17 @@ import ZIPFoundation
             for y in stride(from: 70, through: 850, by: 30) { ctx.cgContext.move(to: CGPoint(x: 40, y: CGFloat(y))); ctx.cgContext.addLine(to: CGPoint(x: 610, y: CGFloat(y))) }
             ctx.cgContext.strokePath()
         }
-        do { let name = UUID().uuidString + ".pdf"; try data.write(to: root.appendingPathComponent(name), options: .atomic); notebooks.insert(Notebook(title: title, file: name), at: 0); save() }
+        do {
+            let name = UUID().uuidString + ".pdf"
+            let url = root.appendingPathComponent(name)
+            try data.write(to: url, options: .atomic)
+            var note = Notebook(title: title, file: name)
+            note.section = section.flatMap { sections.contains($0) ? $0 : nil } ?? "مكتبتي"
+            var updated = notebooks
+            updated.insert(note, at: 0)
+            do { try persist(updated); notebooks = updated }
+            catch { try? FileManager.default.removeItem(at: url); throw error }
+        }
         catch { self.error = error.localizedDescription }
     }
 }

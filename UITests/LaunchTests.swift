@@ -1,6 +1,35 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
+    func testActualDocumentPickerImportsPDF() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-file-picker"]
+        app.launch()
+        let importButton = app.buttons["importDocument"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 15))
+        importButton.tap()
+        let file = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Picker-fixture")).firstMatch
+        XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
+        file.tap()
+        let status = app.staticTexts["importStatus"]
+        XCTAssertTrue(status.waitForExistence(timeout: 15))
+        XCTAssertTrue(status.label.contains("تم استيراد"), status.label)
+        let card = app.staticTexts["Picker-fixture"].firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        XCTAssertTrue(app.buttons["textTool"].waitForExistence(timeout: 10))
+    }
+
+    func testCreateNotebookFromLibrary() {
+        let app = XCUIApplication()
+        app.launch()
+        let create = app.buttons["createNotebook"]
+        XCTAssertTrue(create.waitForExistence(timeout: 15))
+        create.tap()
+        app.alerts.buttons["إنشاء"].tap()
+        XCTAssertTrue(app.staticTexts["دفتر جديد"].firstMatch.waitForExistence(timeout: 10))
+    }
+
     func testLibraryLaunchAndDocumentOpen() {
         let app = XCUIApplication()
         app.launch()

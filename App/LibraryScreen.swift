@@ -14,6 +14,9 @@ struct LibraryScreen: View {
     @State private var deleting: Notebook?
     @State private var managing = false
     @State private var showingActions = false
+    @State private var pendingImport: URL?
+    @State private var importMessage: String?
+    @State private var importingFile = false
     private var filtered: [Notebook] {
         store.notebooks.filter { $0.trashed == showTrash && (section == nil || showTrash || $0.section == section) && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) }
     }
@@ -75,7 +78,9 @@ struct LibraryScreen: View {
                 .toolbar {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("استيراد", systemImage: "square.and.arrow.down") { importing = true }
+                            .accessibilityIdentifier("importDocument").disabled(importingFile)
                         Button("دفتر جديد", systemImage: "plus") { title = "دفتر جديد"; creating = true }
+                            .accessibilityIdentifier("createNotebook")
                         Button { showingActions = true } label: {
                             Image(systemName: "ellipsis.circle")
                         }.accessibilityLabel("خيارات المكتبة").accessibilityIdentifier("libraryMenu")
@@ -86,15 +91,28 @@ struct LibraryScreen: View {
                     Button(showTrash ? "المكتبة" : "المحذوفات") { showTrash.toggle() }
                     Button("إدارة الأقسام") { managing = true }
                     Button("تجربة Office") {
-                        do { if let url = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") { try store.importDocument(url, title: "تجربة Office") } }
+                        do { if let url = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") { try store.importDocument(url, title: "تجربة Office", section: section) } }
                         catch { store.error = error.localizedDescription }
                     }.accessibilityIdentifier("importOfficeDemo")
                     Button("إلغاء", role: .cancel) {}
                 }
-                .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf] + ["pptx", "docx", "xlsx", "ppt", "doc", "xls"].compactMap { UTType(filenameExtension: $0) }) { result in
-                    do { try store.importDocument(result.get()) } catch { store.error = error.localizedDescription }
+                .sheet(isPresented: $importing, onDismiss: finishPicking) {
+                    DocumentPicker(directory: pickerDirectory, completed: { urls in
+                        pendingImport = urls.first
+                        importing = false
+                    }, cancelled: { importing = false })
                 }
-                .alert("دفتر جديد", isPresented: $creating) { TextField("الاسم", text: $title); Button("إنشاء") { store.create(title.isEmpty ? "دفتر جديد" : title) }; Button("إلغاء", role: .cancel) {} }
+                .safeAreaInset(edge: .bottom) {
+                    if let importMessage {
+                        Text(importMessage).font(.callout).padding(12).frame(maxWidth: .infinity)
+                            .background(.regularMaterial).accessibilityIdentifier("importStatus")
+                    }
+                }
+                .onOpenURL { url in pendingImport = url; finishPicking() }
+                .onChange(of: store.sections) { _, sections in
+                    if let section, !sections.contains(section) { self.section = nil }
+                }
+                .alert("دفتر جديد", isPresented: $creating) { TextField("الاسم", text: $title); Button("إنشاء") { store.create(title.isEmpty ? "دفتر جديد" : title, section: section); query = ""; showTrash = false }; Button("إلغاء", role: .cancel) {} }
                 .alert("تسمية الملف", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
                     TextField("الاسم", text: $title)
                     Button("حفظ") { if let note = renaming, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { store.change(note.id) { $0.title = title } }; renaming = nil }
@@ -110,6 +128,37 @@ struct LibraryScreen: View {
                 .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
         }.tint(Color(red: 0.26, green: 0.42, blue: 0.53)).environment(\.layoutDirection, .rightToLeft)
     }
+    private var pickerDirectory: URL? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-file-picker") {
+            let folder = store.root.appendingPathComponent("ImportTest")
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            if let source = Bundle.main.url(forResource: "english", withExtension: "pdf") {
+                let target = folder.appendingPathComponent("Picker-fixture.pdf")
+                if !FileManager.default.fileExists(atPath: target.path) { try? FileManager.default.copyItem(at: source, to: target) }
+            }
+            return folder
+        }
+        #endif
+        return nil
+    }
+    private func finishPicking() {
+        guard let url = pendingImport else { return }
+        pendingImport = nil
+        importingFile = true
+        importMessage = "جارٍ استيراد الملف…"
+        Task { @MainActor in
+            defer { importingFile = false }
+            do {
+                try store.importDocument(url, section: section)
+                showTrash = false; query = ""
+                importMessage = "تم استيراد " + url.deletingPathExtension().lastPathComponent
+            } catch {
+                importMessage = "لم يتم الاستيراد: " + error.localizedDescription
+            }
+        }
+    }
+
 }
 struct SectionsScreen: View {
     @EnvironmentObject private var store: LibraryStore

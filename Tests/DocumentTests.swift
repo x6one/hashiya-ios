@@ -61,6 +61,19 @@ final class OfficeImportTests: XCTestCase {
 }
 
 final class LibraryMutationTests: XCTestCase {
+    @MainActor func testNewDocumentsUseSelectedSection() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LibraryStore(root: root, seedDemo: false)
+        store.addSection("الجامعة")
+        store.create("محاضرة", section: "الجامعة")
+        let source = try XCTUnwrap(Bundle(for: LibraryStore.self).url(forResource: "english", withExtension: "pdf"))
+        try store.importDocument(source, section: "الجامعة")
+        let restored = LibraryStore(root: root, seedDemo: false)
+        XCTAssertEqual(restored.notebooks.count, 2)
+        XCTAssertTrue(restored.notebooks.allSatisfy { $0.section == "الجامعة" })
+    }
+
     @MainActor func testSectionsMoveAndPermanentDeletion() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

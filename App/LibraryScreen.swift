@@ -101,6 +101,9 @@ struct LibraryScreen: View {
                         pendingImport = urls.first
                         importing = false
                     }, cancelled: { importing = false })
+                    // The remote Files UI manages its own localization. Do not
+                    // mirror its UIKit host with our forced Arabic app layout.
+                    .environment(\.layoutDirection, .leftToRight)
                 }
                 .safeAreaInset(edge: .bottom) {
                     if let importMessage {

@@ -14,6 +14,10 @@ final class LaunchTests: XCTestCase {
             XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
             folder.tap()
         }
+        let pickerShot = XCTAttachment(screenshot: app.screenshot())
+        pickerShot.name = "NativeFilePicker"
+        pickerShot.lifetime = .keepAlways
+        add(pickerShot)
         XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
         file.tap()
         let status = app.staticTexts["importStatus"]

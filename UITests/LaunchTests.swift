@@ -22,6 +22,8 @@ final class LaunchTests: XCTestCase {
             (Int(inkTool.value as? String ?? "") ?? 0) > initial
         }, object: inkTool)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "A real touch gesture must create ink")
+        XCTAssertTrue(app.textFields["pageNumber"].isHittable, "Page navigation must remain accessible while drawing")
+        XCTAssertTrue(app.buttons["goToPage"].isHittable)
         let count = inkTool.value as? String
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "TouchInk"

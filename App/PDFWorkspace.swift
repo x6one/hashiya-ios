@@ -125,7 +125,7 @@ struct DocumentScreen: View {
         }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    Button(workspace.tool == .ink ? "قراءة" : "قلم", systemImage: workspace.tool == .ink ? "hand.draw" : "pencil.tip") { workspace.tool = workspace.tool == .ink ? .read : .ink }
+                    Button(workspace.tool == .ink ? "قراءة" : "قلم", systemImage: workspace.tool == .ink ? "hand.draw" : "pencil.tip") { workspace.tool = workspace.tool == .ink ? .read : .ink }.accessibilityIdentifier("inkTool")
                     Button("نص", systemImage: "textformat") { pageFocused = false; workspace.tool = .text }.tint(workspace.tool == .text ? .orange : nil).accessibilityIdentifier("textTool")
                     Menu {
                         Button("الحاشية", systemImage: "note.text") { showNotes = true }
@@ -225,7 +225,11 @@ struct NativePDF: UIViewRepresentable {
         var dragOrigin: CGPoint?
         init(workspace: PDFWorkspace) { self.workspace = workspace }
         deinit { NotificationCenter.default.removeObserver(self) }
-        @objc func pageChanged() { guard let view = workspace.view, let page = view.currentPage else { return }; workspace.page = workspace.document.index(for: page) + 1 }
+        @objc func pageChanged() {
+            guard let view = workspace.view, let page = view.currentPage else { return }
+            workspace.page = workspace.document.index(for: page) + 1
+            if enabled { activateCurrentCanvas() }
+        }
         @objc func tap(_ gesture: UITapGestureRecognizer) { guard workspace.tool == .text, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: true) }
         @objc func doubleTap(_ gesture: UITapGestureRecognizer) { guard workspace.tool != .ink, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
         @objc func hold(_ gesture: UILongPressGestureRecognizer) { guard gesture.state == .began, workspace.tool != .ink, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
@@ -258,21 +262,40 @@ struct NativePDF: UIViewRepresentable {
             if gesture.state == .cancelled || gesture.state == .failed { if let original = dragging { workspace.previewPosition(original) }; dragging = nil; dragOrigin = nil }
         }
         func setDrawing(_ value: Bool) {
+            workspace.view?.isInMarkupMode = value
             guard enabled != value else { return }; enabled = value
-            for canvas in canvases.values { canvas.isUserInteractionEnabled = value; picker.setVisible(value, forFirstResponder: canvas) }
-            if value { canvases.values.first?.becomeFirstResponder() } else { for canvas in canvases.values { canvas.resignFirstResponder() } }
+            for canvas in canvases.values {
+                canvas.isUserInteractionEnabled = value
+                if !value { picker.setVisible(false, forFirstResponder: canvas); canvas.resignFirstResponder() }
+            }
+            if value { activateCurrentCanvas() }
+        }
+        private func activateCurrentCanvas() {
+            guard let view = workspace.view, let page = view.currentPage,
+                  let canvas = canvases[workspace.document.index(for: page)], canvas.window != nil else { return }
+            canvas.becomeFirstResponder()
+            picker.setVisible(true, forFirstResponder: canvas)
         }
         func pdfView(_ view: PDFView, overlayViewFor page: PDFPage) -> UIView? {
             let index = workspace.document.index(for: page)
             if let canvas = canvases[index] { return canvas }
             let canvas = PKCanvasView(frame: page.bounds(for: .mediaBox))
             canvas.backgroundColor = .clear; canvas.isOpaque = false; canvas.drawingPolicy = .anyInput; canvas.delegate = self; canvas.tag = index; canvas.isUserInteractionEnabled = enabled
+            canvas.isScrollEnabled = false
+            canvas.accessibilityIdentifier = "inkCanvas-\(index)"
+            canvas.isAccessibilityElement = true
+            canvas.accessibilityLabel = "مساحة القلم، عدد الخطوط"
             canvas.tool = PKInkingTool(.pen, color: .darkGray, width: 3)
             if let data = try? Data(contentsOf: workspace.storage.appendingPathComponent("\(index).drawing")), let ink = try? PKDrawing(data: data) { canvas.drawing = ink }
-            canvases[index] = canvas; picker.addObserver(canvas); picker.setVisible(enabled, forFirstResponder: canvas)
+            canvas.accessibilityValue = String(canvas.drawing.strokes.count)
+            canvases[index] = canvas; picker.addObserver(canvas)
             return canvas
         }
+        func pdfView(_ view: PDFView, willDisplayOverlayView overlayView: UIView, for page: PDFPage) {
+            if enabled { activateCurrentCanvas() }
+        }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
+            canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             do { try canvas.drawing.dataRepresentation().write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic) }
             catch { workspace.error = error.localizedDescription }
         }

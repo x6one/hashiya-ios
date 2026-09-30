@@ -37,13 +37,21 @@ final class LaunchTests: XCTestCase {
     }
 
     func testActualDocumentPickerImportsPDF() {
+        verifyPickerImport(name: "Picker-fixture", editor: "textTool")
+    }
+
+    func testActualDocumentPickerImportsPowerPoint() {
+        verifyPickerImport(name: "Picker-office", editor: "officeMedia")
+    }
+
+    private func verifyPickerImport(name: String, editor: String) {
         let app = XCUIApplication()
         app.launchArguments = ["--test-file-picker"]
         app.launch()
         let importButton = app.buttons["importDocument"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
-        let file = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Picker-fixture")).firstMatch
+        let file = app.cells.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: file)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 25), .completed, app.debugDescription)
         let pickerShot = XCTAttachment(screenshot: app.screenshot())
@@ -54,10 +62,10 @@ final class LaunchTests: XCTestCase {
         let status = app.staticTexts["importStatus"]
         XCTAssertTrue(status.waitForExistence(timeout: 15))
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)
-        let card = app.staticTexts["Picker-fixture"].firstMatch
+        let card = app.staticTexts[name].firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
-        XCTAssertTrue(app.buttons["textTool"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons[editor].waitForExistence(timeout: 10))
     }
 
     func testCreateNotebookFromLibrary() {

@@ -14,7 +14,6 @@ struct LibraryScreen: View {
     @State private var deleting: Notebook?
     @State private var managing = false
     @State private var showingActions = false
-    @State private var pendingImport: URL?
     @State private var importMessage: String?
     @State private var importingFile = false
     private var filtered: [Notebook] {
@@ -96,9 +95,9 @@ struct LibraryScreen: View {
                     }.accessibilityIdentifier("importOfficeDemo")
                     Button("إلغاء", role: .cancel) {}
                 }
-                .sheet(isPresented: $importing, onDismiss: finishPicking) {
+                .sheet(isPresented: $importing) {
                     DocumentPicker(directory: pickerDirectory, completed: { urls in
-                        pendingImport = urls.first
+                        if let url = urls.first { finishPicking(url) }
                         importing = false
                     }, cancelled: { importing = false })
                     // The remote Files UI manages its own localization. Do not
@@ -111,7 +110,7 @@ struct LibraryScreen: View {
                             .background(.regularMaterial).accessibilityIdentifier("importStatus")
                     }
                 }
-                .onOpenURL { url in pendingImport = url; finishPicking() }
+                .onOpenURL { url in finishPicking(url) }
                 .onChange(of: store.sections) { _, sections in
                     if let section, !sections.contains(section) { self.section = nil }
                 }
@@ -145,9 +144,7 @@ struct LibraryScreen: View {
         #endif
         return nil
     }
-    private func finishPicking() {
-        guard let url = pendingImport else { return }
-        pendingImport = nil
+    private func finishPicking(_ url: URL) {
         importingFile = true
         importMessage = "جارٍ استيراد الملف…"
         Task { @MainActor in

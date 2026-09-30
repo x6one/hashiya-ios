@@ -56,3 +56,32 @@ jobs:
             build.log
             Screenshots
           retention-days: 7
+
+  device-package:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build unsigned device app
+        run: |
+          set -o pipefail
+          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath DeviceBuild CODE_SIGNING_ALLOWED=NO build | tee device-build.log
+      - name: Package for external signing
+        run: |
+          mkdir -p Payload
+          cp -R DeviceBuild/Build/Products/Release-iphoneos/Hashiya.app Payload/
+          zip -qry Hashiya-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hashiya-device-unsigned
+          path: Hashiya-unsigned.ipa
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: device-build-log
+          path: device-build.log

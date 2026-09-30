@@ -59,3 +59,50 @@ final class OfficeImportTests: XCTestCase {
         reader.cancelReading()
     }
 }
+
+final class LibraryMutationTests: XCTestCase {
+    @MainActor func testSectionsMoveAndPermanentDeletion() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LibraryStore(root: root, seedDemo: false)
+        let source = try XCTUnwrap(Bundle(for: LibraryStore.self).url(forResource: "english", withExtension: "pdf"))
+        try store.importDocument(source)
+        let note = try XCTUnwrap(store.notebooks.first)
+        store.addSection("الجامعة")
+        store.change(note.id) { $0.section = "الجامعة" }
+        store.deleteSection("الجامعة")
+        XCTAssertEqual(store.notebooks.first?.section, "مكتبتي")
+        XCTAssertFalse(LibraryStore(root: root, seedDemo: false).sections.contains("الجامعة"))
+        store.permanentlyDelete(note)
+        XCTAssertEqual(store.notebooks.count, 1, "Live documents cannot be permanently deleted")
+        let audio = root.appendingPathComponent(note.id.uuidString + "-audio")
+        try FileManager.default.createDirectory(at: audio, withIntermediateDirectories: true)
+        try Data([1, 2, 3]).write(to: audio.appendingPathComponent("test.m4a"))
+        store.change(note.id) { $0.trashed = true }
+        store.permanentlyDelete(try XCTUnwrap(store.notebooks.first))
+        XCTAssertTrue(store.notebooks.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent(note.file).path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path))
+        XCTAssertTrue(LibraryStore(root: root, seedDemo: false).notebooks.isEmpty)
+    }
+    @MainActor func testTextEditsPersistAndExport() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LibraryStore(root: root, seedDemo: false)
+        try store.importDocument(try XCTUnwrap(Bundle(for: LibraryStore.self).url(forResource: "english", withExtension: "pdf")))
+        let note = try XCTUnwrap(store.notebooks.first)
+        let editor = PDFWorkspace(note: note, root: root)
+        var text = PageText(page: 0, text: "حاشية عربية", x: 50, y: 50)
+        editor.saveText(text); text.text = "Edited note"; editor.saveText(text)
+        let reopened = PDFWorkspace(note: note, root: root)
+        XCTAssertEqual(reopened.texts.count, 1)
+        XCTAssertEqual(reopened.texts.first?.text, "Edited note")
+        reopened.export()
+        let output = try XCTUnwrap(reopened.exported)
+        defer { try? FileManager.default.removeItem(at: output) }
+        XCTAssertEqual(PDFDocument(url: output)?.pageCount, reopened.document.pageCount)
+        XCTAssertNil(reopened.error)
+        text.text = ""; reopened.saveText(text)
+        XCTAssertTrue(PDFWorkspace(note: note, root: root).texts.isEmpty)
+    }
+}

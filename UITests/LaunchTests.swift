@@ -4,6 +4,8 @@ final class LaunchTests: XCTestCase {
     func testLibraryLaunchAndDocumentOpen() {
         let app = XCUIApplication()
         app.launch()
+        let opening = app.otherElements["openingAnimation"]
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
         XCTAssertTrue(app.navigationBars["حاشية"].waitForExistence(timeout: 15))
         let demo = app.staticTexts["ملف التجربة"].firstMatch
         XCTAssertTrue(demo.waitForExistence(timeout: 10))
@@ -22,6 +24,9 @@ final class LaunchTests: XCTestCase {
     func testOfficePreviewAndEmbeddedMedia() {
         let app = XCUIApplication()
         app.launch()
+        let opening = app.otherElements["openingAnimation"]
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
+        app.buttons["libraryMenu"].tap()
         let importButton = app.buttons["importOfficeDemo"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()

@@ -207,6 +207,9 @@ struct NativePDF: UIViewRepresentable {
         let hold = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.hold(_:)))
         let secondary = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.doubleTap(_:))); secondary.buttonMaskRequired = .secondary
         let drag = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.drag(_:))); drag.delegate = context.coordinator
+        for recognizer in [single, double, hold, secondary] {
+            recognizer.delegate = context.coordinator
+        }
         view.addGestureRecognizer(single); view.addGestureRecognizer(double); view.addGestureRecognizer(hold); view.addGestureRecognizer(secondary); view.addGestureRecognizer(drag)
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged), name: .PDFViewPageChanged, object: view)
         view.accessibilityIdentifier = "pdfCanvas"
@@ -226,7 +229,15 @@ struct NativePDF: UIViewRepresentable {
         @objc func tap(_ gesture: UITapGestureRecognizer) { guard workspace.tool == .text, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: true) }
         @objc func doubleTap(_ gesture: UITapGestureRecognizer) { guard workspace.tool != .ink, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
         @objc func hold(_ gesture: UILongPressGestureRecognizer) { guard gesture.state == .began, workspace.tool != .ink, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            // PDFKit has its own taps for selection. They must not consume our
+            // text annotation taps. Panning and drawing remain exclusive.
+            workspace.tool != .ink &&
+                !(gestureRecognizer is UIPanGestureRecognizer) &&
+                !(otherGestureRecognizer is UIPanGestureRecognizer)
+        }
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard gestureRecognizer is UIPanGestureRecognizer else { return workspace.tool != .ink }
             guard workspace.tool == .text, let view = workspace.view,
                   let page = view.page(for: gestureRecognizer.location(in: view), nearest: false),
                   let annotation = page.annotation(at: view.convert(gestureRecognizer.location(in: view), to: page)),

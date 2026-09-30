@@ -79,6 +79,10 @@ final class LaunchTests: XCTestCase {
         app.buttons["goToPage"].tap()
         app.buttons["textTool"].tap()
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+        let tapped = XCTAttachment(screenshot: app.screenshot())
+        tapped.name = "AfterTextTap"
+        tapped.lifetime = .keepAlways
+        add(tapped)
         let editor = app.textViews["annotationText"]
         XCTAssertTrue(editor.waitForExistence(timeout: 10))
         editor.tap(); editor.typeText("Study note")

@@ -3,16 +3,10 @@ import XCTest
 final class LaunchTests: XCTestCase {
     private static var externalFixturesPrepared = false
 
-    private func prepareExternalFixtures(in app: XCUIApplication, reopening: Bool = false) -> Bool {
+    private func prepareExternalFixtures(in app: XCUIApplication) -> Bool {
         if Self.externalFixturesPrepared { return true }
-        if reopening {
-            let again = app.buttons["fixtureExportAgain"]
-            guard again.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
-            again.tap()
-        } else {
-            app.launchArguments = ["--test-export-fixtures"]
-            app.launch()
-        }
+        app.launchArguments = ["--test-export-fixtures"]
+        app.launch()
         let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
         let browse = app.buttons["Browse"].firstMatch
         let loaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -25,50 +19,9 @@ final class LaunchTests: XCTestCase {
         guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
         let locationFrame = location.frame
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
-        let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")).firstMatch
-        let folderExists = reopening ? folder.waitForExistence(timeout: 30) : folder.exists
-        if !folderExists {
-            guard !reopening else { XCTFail("Files did not retain its new folder: " + app.debugDescription); return false }
-            // The iPad export bar exposes New Folder directly. On compact
-            // layouts it belongs to the content menu, not sidebar More.
-            let newFolder = app.buttons["New Folder"].firstMatch
-            if !newFolder.exists {
-                let toolbar = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-                let more = toolbar.buttons.matching(NSPredicate(format: "identifier == %@ OR identifier BEGINSWITH %@ OR label == %@",
-                    "OverflowBarButtonItem", "DOC.itemCollectionMenuButton.", "More")).firstMatch
-                guard more.waitForExistence(timeout: 15) else {
-                    XCTFail("Files content menu did not load: " + app.debugDescription); return false
-                }
-                more.tap()
-            }
-            guard newFolder.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
-            newFolder.tap()
-            // iOS 26 creates the folder immediately, with its name selected
-            // in an inline TextView rather than a modal TextField.
-            let name = app.textViews["DOC.inlineRenameField"]
-            guard name.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
-            name.typeText("Tayya-test-files")
-            // Complete folder setup by closing this export presentation.
-            // A new presentation must then find Files' persisted folder.
-            let cancel = app.buttons["Cancel"].firstMatch
-            guard cancel.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
-            let frame = cancel.frame
-            app.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
-            let cancelled = XCTNSPredicateExpectation(predicate: NSPredicate(format:
-                "exists == true AND label == %@", "Export cancelled"), object: app.staticTexts["fixtureExportStatus"])
-            guard XCTWaiter.wait(for: [cancelled], timeout: 60) == .completed else {
-                XCTFail("Files did not close folder setup: " + app.debugDescription); return false
-            }
-            return prepareExternalFixtures(in: app, reopening: true)
-        }
-        if folder.waitForExistence(timeout: 5) {
-            let folderFrame = folder.frame
-            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()
-        } else {
-            let opened = app.otherElements.matching(NSPredicate(format: "identifier CONTAINS %@", "Title: Tayya-test-files")).firstMatch
-            guard opened.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
-        }
+        // Save directly in Files' writable On My device root. Creating and
+        // renaming a folder is unrelated to importing documents and stalls
+        // inline editing in the iOS 26 simulator. Files still owns this export.
         let save = app.buttons["Save"].firstMatch
         guard save.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: save)
@@ -176,13 +129,14 @@ final class LaunchTests: XCTestCase {
             guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
             let locationFrame = location.frame
             app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
-            let folderPredicate = appOwned
-                ? NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "طَيّة", "Hashiya")
-                : NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")
-            let folder = app.cells.matching(folderPredicate).firstMatch
-            guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
-            let folderFrame = folder.frame
-            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()
+            if appOwned {
+                let folder = app.cells.matching(NSPredicate(format:
+                    "label CONTAINS %@ OR label CONTAINS %@", "طَيّة", "Hashiya")).firstMatch
+                guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
+                let frame = folder.frame
+                app.coordinate(withNormalizedOffset: .zero)
+                    .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
+            }
         }
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: file)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 25), .completed, app.debugDescription)
@@ -213,13 +167,13 @@ final class LaunchTests: XCTestCase {
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
         // Single selection delivers on the row tap; no second Open action.
-        let status = app.staticTexts["importStatus"]
-        // One native predicate avoids repeated cross-process snapshots from
-        // a block predicate; the failure hierarchy showed success already.
-        let completed = XCTNSPredicateExpectation(predicate: NSPredicate(format:
-            "exists == true AND (label CONTAINS %@ OR label CONTAINS %@)",
-            "تم استيراد", "لم يتم الاستيراد"), object: status)
-        guard XCTWaiter.wait(for: [completed], timeout: 60) == .completed else {
+        let status = app.staticTexts.matching(NSPredicate(format:
+            "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",
+            "importStatus", "تم استيراد", "لم يتم الاستيراد")).firstMatch
+        // A cold Documents service may delay accessibility snapshots after
+        // it has already delivered the URL. Wait for the real library result,
+        // then assert the success message and open the imported document.
+        guard status.waitForExistence(timeout: 120) else {
             XCTFail("Files did not deliver the selected document: " + app.debugDescription); return
         }
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)

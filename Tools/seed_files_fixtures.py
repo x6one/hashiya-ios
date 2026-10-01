@@ -1,4 +1,4 @@
-"""Start Files; XCTest creates its folder and exports fixtures through native UI.
+"""Start Files; XCTest exports fixtures through native UI to On My device.
 
 The native Save operation creates provider-owned document IDs. Host-side byte
 verification runs after the real Files import tests, never imports into the app.
@@ -20,9 +20,9 @@ row = next(line for line in groups.splitlines() if "group.com.apple.FileProvider
 match = re.search(r"(/.*)$", row)
 if not match:
     raise RuntimeError("Files LocalStorage container path was not returned")
-folder = Path(match.group(1).strip()) / "File Provider Storage" / "Tayya-test-files"
+folder = Path(match.group(1).strip()) / "File Provider Storage"
 if not verify:
-    print("Files provider started; XCTest must create its folder and export fixtures through native UI", flush=True)
+    print("Files provider started; XCTest must export fixtures to On My device through native UI", flush=True)
 else:
     for name, target in [("english.pdf", "Picker-fixture.pdf"), ("office-demo.pptx", "Picker-office.pptx")]:
         sources = list(Path("App").rglob(name))

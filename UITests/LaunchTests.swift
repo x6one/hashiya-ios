@@ -21,22 +21,32 @@ final class LaunchTests: XCTestCase {
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
         let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")).firstMatch
         if !folder.exists {
-            // The iPad sidebar has a separate More menu for locations.
-            // This identifier belongs to the observed content toolbar.
-            let contentMenu = app.buttons["OverflowBarButtonItem"]
-            let more = contentMenu.exists ? contentMenu : app.buttons["More"].firstMatch
-            guard more.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+            // The sidebar's More menu edits locations. Create the folder
+            // from the content navigation bar on both device families.
+            let toolbar = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
+            let more = toolbar.buttons.matching(NSPredicate(format: "identifier == %@ OR identifier BEGINSWITH %@ OR label == %@",
+                "OverflowBarButtonItem", "DOC.itemCollectionMenuButton.", "More")).firstMatch
+            guard more.waitForExistence(timeout: 15) else {
+                XCTFail("Files content menu did not load: " + app.debugDescription); return false
+            }
             more.tap()
             let newFolder = app.buttons["New Folder"].firstMatch
             guard newFolder.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
             newFolder.tap()
-            let name = app.textFields.firstMatch
-            guard name.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
-            // Files focuses the folder name and selects its default text.
+            // iOS 26 creates the folder immediately, with its name selected
+            // in an inline TextView rather than a modal TextField.
+            let name = app.textViews["DOC.inlineRenameField"]
+            guard name.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
             name.typeText("Tayya-test-files")
-            let create = app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Create", "Done")).firstMatch
-            guard create.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
-            create.tap()
+            let done = app.buttons["Done"].firstMatch
+            let returnKey = app.buttons["Return"].firstMatch
+            if done.exists { done.tap() }
+            else if returnKey.exists { returnKey.tap() }
+            else { name.typeText("\n") }
+            let committed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: name)
+            guard XCTWaiter.wait(for: [committed], timeout: 15) == .completed else {
+                XCTFail("Files did not commit the folder name: " + app.debugDescription); return false
+            }
         }
         if folder.waitForExistence(timeout: 5) {
             let folderFrame = folder.frame

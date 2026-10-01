@@ -22,5 +22,10 @@
     "ASC_ISSUER_ID"
   ],
   "signed_archive_verified": false,
-  "blocker": "One-time API key downloads did not produce a file or download event in the cloud browser. No further keys should be generated automatically."
+  "blocker": "One-time API key downloads did not produce a file or download event in the cloud browser. No further keys should be generated automatically.",
+  "verification_source": "004e93129402707adf4a358cb34c5ea5d55b0346",
+  "preflight_run": 36924021211,
+  "archive_only_run": 36924238214,
+  "archive_only_requested": true,
+  "publish_requested_in_workflow": false
 }

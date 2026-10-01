@@ -223,3 +223,5 @@
 - Workflow supports sign_archive=true, publish_to_apple=false using only three signing secrets. This generates an App Store signed inspection IPA without uploading. Publishing still requires all six secrets and completed audits. No signed archive has passed macOS verification yet.
 - Simulator selection prefers current iPhone Pro Max / iPad Pro 13 for real Store captures. Prior 48 tests passed at d18cc32; the changed source needs a new run.
 - App Store signed IPAs require Apple processing and TestFlight/App Store distribution, and are not directly installable. No review submission or publication is claimed.
+
+Checkpoint saved remotely at 004e93129402707adf4a358cb34c5ea5d55b0346. Fresh preflight: 36924021211. Manual signing-only build: 36924238214 (publish_to_apple=false). The redundant unsigned push run 36924021370 was requested to cancel. Results are pending; no Apple upload is claimed.

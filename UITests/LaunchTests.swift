@@ -1,15 +1,10 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
-    private static var externalFixturesPrepared = false
-
-    private func prepareExternalFixtures(in app: XCUIApplication) -> Bool {
-        if Self.externalFixturesPrepared { return true }
-        for office in [false, true] {
-            guard exportExternalFixture(in: app, office: office) else { return false }
-        }
-        Self.externalFixturesPrepared = true
-        return true
+    private func prepareExternalFixture(in app: XCUIApplication, name: String) -> Bool {
+        // Create the provider-owned fixture immediately before its import,
+        // without retaining it across unrelated PDF picker sessions.
+        exportExternalFixture(in: app, office: name == "Picker-office")
     }
 
     private func exportExternalFixture(in app: XCUIApplication, office: Bool) -> Bool {
@@ -111,7 +106,7 @@ final class LaunchTests: XCTestCase {
 
     private func verifyPickerImport(name: String, editor: String, appOwned: Bool = false) {
         let app = XCUIApplication()
-        if !appOwned && !prepareExternalFixtures(in: app) { return }
+        if !appOwned && !prepareExternalFixture(in: app, name: name) { return }
         app.launchArguments = appOwned ? ["--test-app-owned-picker"] : []
         app.launch()
         let importButton = app.buttons["importDocument"]

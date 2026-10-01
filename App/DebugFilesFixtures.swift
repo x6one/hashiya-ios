@@ -18,9 +18,8 @@ struct DebugFilesFixtures: View {
                     let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                     var urls: [URL] = []
-                    // Export one document per native Save operation. iPadOS
-                    // 26.2 can leave the second item of a batch with a visible
-                    // row but an unresolvable LocalStorage provider ID.
+                    // Export one document through Files immediately before
+                    // its import test, preserving a real provider-owned URL.
                     let fixture = ProcessInfo.processInfo.arguments.contains("--test-export-office")
                         ? ("office-demo", "pptx", "Picker-office.pptx")
                         : ("english", "pdf", "Picker-fixture.pdf")

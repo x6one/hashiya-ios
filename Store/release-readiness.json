@@ -1,0 +1,5 @@
+{
+  "privacy_audit_complete": false,
+  "encryption_classification_complete": false,
+  "note": "Do not set these gates true until the native engine API usage and encryption classification are documented and included in the source that CI builds."
+}

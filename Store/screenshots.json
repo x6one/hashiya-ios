@@ -1,0 +1,50 @@
+[
+  {
+    "file": "Store/Screenshots/iPhone-6.3/Document.png",
+    "source_run": 36895436984,
+    "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+    "source_attachment": "4308B76E-A737-4BD6-9841-84B134CA5A02.png",
+    "device": "iPhone 17 Pro",
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPhone-6.3/TextAnnotation.png",
+    "source_run": 36895436984,
+    "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+    "source_attachment": "0D2D7629-23C8-4C24-AF4F-56909EBECADF.png",
+    "device": "iPhone 17 Pro",
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPhone-6.3/TouchInk.png",
+    "source_run": 36895436984,
+    "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+    "source_attachment": "2287925B-17FC-42E3-9C74-4F938E3D1295.png",
+    "device": "iPhone 17 Pro",
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPad-13/Document.png",
+    "source_run": 36895436984,
+    "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+    "source_attachment": "FC969A5A-3EF6-4238-904A-2A2E05651B70.png",
+    "device": "iPad Pro 13-inch (M5)",
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPad-13/TextAnnotation.png",
+    "source_run": 36895436984,
+    "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+    "source_attachment": "6B5F4FFE-3D32-44C3-A617-7188127C17FE.png",
+    "device": "iPad Pro 13-inch (M5)",
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPad-13/TouchInk.png",
+    "source_run": 36895436984,
+    "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+    "source_attachment": "2FB81C4A-319C-4552-B1CD-7A2E810064E9.png",
+    "device": "iPad Pro 13-inch (M5)",
+    "ui_modified": false
+  }
+]

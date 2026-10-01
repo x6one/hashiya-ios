@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main, 'work/native-link-probe']
-    paths: ['Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
+    paths: ['App/**', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
 permissions:
   contents: read
   actions: read

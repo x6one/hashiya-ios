@@ -48,6 +48,10 @@ jobs:
           if [ -d TestResults.xcresult ]; then
             xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Screenshots
           fi
+      - name: Retain simulator document provider diagnostics
+        if: failure()
+        run: |
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --info --debug --predicate 'process == "Hashiya" OR subsystem BEGINSWITH "com.apple.FileProvider" OR process CONTAINS "DocumentManager" OR process CONTAINS "fileprovider"' > file-provider.log 2>&1 || true
       - name: Save diagnostics and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,6 +59,7 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
+            file-provider.log
             Screenshots/
           retention-days: 7
 

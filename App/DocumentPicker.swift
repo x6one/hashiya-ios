@@ -4,19 +4,28 @@ import UniformTypeIdentifiers
 /// Present one system picker. LibraryStore coordinates and retains a private
 /// copy of the selected security-scoped document.
 struct DocumentPicker: UIViewControllerRepresentable {
-    // Composite Office content need not conform to public.data. Validation of
-    // the private snapshot still limits what can enter the library.
-    static let contentTypes: [UTType] = [.pdf, .content, .data]
+    // Ask Files for the system types of the supported extensions themselves.
+    // Composite Office types must not depend on a broad data/content filter.
+    static let contentTypes: [UTType] = ["pdf", "pptx", "docx", "xlsx", "ppt", "doc", "xls"]
+        .compactMap { UTType(filenameExtension: $0) }
     let directory: URL?
     let completed: ([URL]) -> Void
     let cancelled: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(completed: completed, cancelled: cancelled) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // Hashiya imports an independent document, rather than editing a
-        // provider-owned file in place. Let Files materialize that import copy
-        // before delivering the URL, including composite Office documents.
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: true)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-file-picker") {
+            NSLog("Hashiya Files allowed types: %@", Self.contentTypes.map(\.identifier).joined(separator: ","))
+            for name in ["Picker-fixture.pdf", "Picker-office.pptx"] {
+                if let url = directory?.appendingPathComponent(name),
+                   let values = try? url.resourceValues(forKeys: [.typeIdentifierKey]) {
+                    NSLog("Hashiya Files fixture %@ type: %@", name, values.typeIdentifier ?? "missing")
+                }
+            }
+        }
+        #endif
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: false)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
@@ -30,7 +39,12 @@ struct DocumentPicker: UIViewControllerRepresentable {
         init(completed: @escaping ([URL]) -> Void, cancelled: @escaping () -> Void) {
             self.completed = completed; self.cancelled = cancelled
         }
-        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { completed(urls) }
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-file-picker") { NSLog("Hashiya Files delegate picked %ld documents", urls.count) }
+            #endif
+            completed(urls)
+        }
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { cancelled() }
     }
 }

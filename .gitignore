@@ -3,3 +3,5 @@ Generated/
 *.xcresult/
 build.log
 .DS_Store
+NativeOfficeProject.yml
+NativeDeviceBuild/

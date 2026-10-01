@@ -80,15 +80,17 @@ import ZIPFoundation
         defer { snapshot.discard() }
         try acceptImport(snapshot, title: title, section: section)
     }
-    func importDocumentAsync(_ source: URL, section: String? = nil) async throws {
+    @discardableResult
+    func importDocumentAsync(_ source: URL, title: String? = nil, section: String? = nil) async throws -> Notebook {
         let snapshot = try await Task.detached(priority: .userInitiated) {
             try DocumentImport.prepare(source)
         }.value
         defer { snapshot.discard() }
         try Task.checkCancellation()
-        try acceptImport(snapshot, title: nil, section: section)
+        return try acceptImport(snapshot, title: title, section: section)
     }
-    private func acceptImport(_ snapshot: ImportedDocument, title: String?, section: String?) throws {
+    @discardableResult
+    private func acceptImport(_ snapshot: ImportedDocument, title: String?, section: String?) throws -> Notebook {
         let name = UUID().uuidString + "." + snapshot.url.pathExtension
         let target = root.appendingPathComponent(name)
         try FileManager.default.moveItem(at: snapshot.url, to: target)
@@ -100,6 +102,7 @@ import ZIPFoundation
             try JSONEncoder().encode(updated).write(to: root.appendingPathComponent("library.json"), options: .atomic)
             notebooks = updated
         } catch { try? FileManager.default.removeItem(at: target); throw error }
+        return note
     }
     func create(_ title: String, section: String? = nil) {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 650, height: 900))

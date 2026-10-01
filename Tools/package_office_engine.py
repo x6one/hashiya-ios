@@ -12,6 +12,9 @@ import subprocess
 import tarfile
 from pathlib import Path
 
+NSS_COLLISIONS = ["CMAC_Init", "CMAC_Update", "HMAC_Init", "HMAC_Update", "MD5_Update",
+                  "SHA1_Update", "SHA224_Update", "SHA256_Update", "SHA384_Update", "SHA512_Update"]
+
 
 def package(engine: Path, output: Path) -> Path:
     engine = engine.resolve(strict=True)
@@ -55,19 +58,38 @@ def package(engine: Path, output: Path) -> Path:
         target = output / "link-inputs" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(binary, target)
+        # NSS and OpenSSL use these names for different APIs. Rename both
+        # definitions and references within NSS; never suppress linker errors
+        # or allow one crypto implementation to bind to the other's functions.
+        if "nss" in relative.parts:
+            renamed = target.with_name(target.name + ".namespaced")
+            flags = [f"--redefine-sym=_{name}=_HashiyaNSS_{name}" for name in NSS_COLLISIONS]
+            subprocess.run(["llvm-objcopy", *flags, str(target), str(renamed)], check=True)
+            renamed.replace(target)
+            subprocess.run(["xcrun", "lipo", str(target), "-verify_arch", "arm64"], check=True)
         with target.open("rb") as file:
             digest = hashlib.file_digest(file, "sha256").hexdigest()
         records.append({"path": target.relative_to(output).as_posix(), "bytes": target.stat().st_size,
                         "sha256": digest})
     shutil.copytree(resources, output / "resources")
     shutil.copytree(engine / "include/COKit", output / "include/COKit")
+    # native-code.h needs the exact feature configuration used for these
+    # archives, not configuration guessed by the consuming application.
+    for name in ["config_crypto.h", "config_features.h", "config_fuzzers.h", "config_locales.h"]:
+        shutil.copy2(engine / "config_host" / name, output / "include" / name)
+    mapping = output / "include/osl/detail"
+    mapping.mkdir(parents=True)
+    shutil.copy2(engine / "include/osl/detail/component-mapping.h", mapping)
     shutil.copy2(generated / "native-code.h", output / "native-code.h")
     for pattern in ["COPYING*", "LICENSE*", "README.license"]:
         for path in engine.glob(pattern):
             if path.is_file():
                 shutil.copy2(path, output / path.name)
+    notices = engine / "instdir/share/readme"
+    if notices.is_dir():
+        shutil.copytree(notices, output / "notices")
     (output / "manifest.json").write_text(json.dumps({"source": source, "platform": "iphoneos",
-        "architecture": "arm64", "inputs": records}, indent=2) + "\n")
+        "architecture": "arm64", "nss_symbol_namespace": NSS_COLLISIONS, "inputs": records}, indent=2) + "\n")
     (output / "README.txt").write_text("Internal arm64 device-engine linking candidate.\n"
         "Not an IPA, not an XCFramework, not runtime-validated.\n"
         "Resources, bootstrap/service factories, system frameworks and COKit initialization still need integration.\n"

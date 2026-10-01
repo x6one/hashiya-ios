@@ -13,7 +13,10 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(completed: completed, cancelled: cancelled) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: false)
+        // Hashiya imports an independent document, rather than editing a
+        // provider-owned file in place. Let Files materialize that import copy
+        // before delivering the URL, including composite Office documents.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: true)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true

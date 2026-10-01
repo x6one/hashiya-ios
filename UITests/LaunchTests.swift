@@ -5,7 +5,15 @@ final class LaunchTests: XCTestCase {
 
     private func prepareExternalFixtures(in app: XCUIApplication) -> Bool {
         if Self.externalFixturesPrepared { return true }
-        app.launchArguments = ["--test-export-fixtures"]
+        for office in [false, true] {
+            guard exportExternalFixture(in: app, office: office) else { return false }
+        }
+        Self.externalFixturesPrepared = true
+        return true
+    }
+
+    private func exportExternalFixture(in app: XCUIApplication, office: Bool) -> Bool {
+        app.launchArguments = ["--test-export-fixtures"] + (office ? ["--test-export-office"] : [])
         app.launch()
         let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
         let browse = app.buttons["Browse"].firstMatch
@@ -26,7 +34,7 @@ final class LaunchTests: XCTestCase {
         guard save.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: save)
         guard XCTWaiter.wait(for: [enabled], timeout: 15) == .completed else {
-            XCTFail("Files must enable saving both staged fixtures: " + app.debugDescription); return false
+            XCTFail("Files must enable saving the staged fixture: " + app.debugDescription); return false
         }
         save.tap()
         let status = app.staticTexts["fixtureExportStatus"]
@@ -35,7 +43,6 @@ final class LaunchTests: XCTestCase {
         guard XCTWaiter.wait(for: [saved], timeout: 25) == .completed else {
             XCTFail("Files export did not complete: " + app.debugDescription); return false
         }
-        Self.externalFixturesPrepared = true
         app.terminate()
         return true
     }

@@ -18,7 +18,13 @@ struct DebugFilesFixtures: View {
                     let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                     var urls: [URL] = []
-                    for (name, ext, target) in [("english", "pdf", "Picker-fixture.pdf"), ("office-demo", "pptx", "Picker-office.pptx")] {
+                    // Export one document per native Save operation. iPadOS
+                    // 26.2 can leave the second item of a batch with a visible
+                    // row but an unresolvable LocalStorage provider ID.
+                    let fixture = ProcessInfo.processInfo.arguments.contains("--test-export-office")
+                        ? ("office-demo", "pptx", "Picker-office.pptx")
+                        : ("english", "pdf", "Picker-fixture.pdf")
+                    for (name, ext, target) in [fixture] {
                         guard let source = Bundle.main.url(forResource: name, withExtension: ext) else {
                             throw CocoaError(.fileNoSuchFile)
                         }
@@ -44,8 +50,8 @@ private struct FixturesExporter: UIViewControllerRepresentable {
     let finished: ([URL]) -> Void
     func makeCoordinator() -> DocumentPicker.Coordinator { .init(finished: finished) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        precondition(urls.count == 2 && urls.allSatisfy { FileManager.default.fileExists(atPath: $0.path) },
-            "Export setup requires both staged fixtures")
+        precondition(urls.count == 1 && urls.allSatisfy { FileManager.default.fileExists(atPath: $0.path) },
+            "Export setup requires one staged fixture")
         let controller = UIDocumentPickerViewController(forExporting: urls, asCopy: true)
         controller.delegate = context.coordinator
         return controller

@@ -22,13 +22,13 @@ struct LibraryScreen: View {
     var body: some View {
         NavigationStack { libraryPresentation }
             .tint(TayyaTheme.ink).environment(\.layoutDirection, .rightToLeft)
-            // Keep the importer's host outside the forced Arabic content layout.
-            // Files owns its localization and presentation lifecycle.
-            .fileImporter(isPresented: $importing, allowedContentTypes: DocumentPicker.contentTypes) { result in
-                switch result {
-                case .success(let url): finishPicking([url])
-                case .failure(let error): importMessage = "لم يتم الاستيراد: " + error.localizedDescription
-                }
+            // Files owns localization. Its host is outside the forced Arabic
+            // content layout, with a single native presentation lifecycle.
+            .sheet(isPresented: $importing) {
+                DocumentPicker { urls in
+                    importing = false
+                    finishPicking(urls)
+                }.ignoresSafeArea()
             }
     }
     private var libraryPresentation: some View {
@@ -146,7 +146,11 @@ struct LibraryScreen: View {
             var failures: [String] = []
             let destination = section
             for url in urls {
-                do { try await store.importDocumentAsync(url, section: destination); imported += 1 }
+                do {
+                    try await store.importDocumentAsync(url, section: destination)
+                    DocumentPicker.discardIncomingCopy(url)
+                    imported += 1
+                }
                 catch { failures.append(url.lastPathComponent + ": " + error.localizedDescription) }
             }
             if imported > 0 { showTrash = false; query = "" }

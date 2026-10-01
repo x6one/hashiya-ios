@@ -4,7 +4,7 @@ final class LaunchTests: XCTestCase {
     func testTouchInkPersistsAfterRelaunch() {
         let app = XCUIApplication()
         app.launch()
-        let demo = app.staticTexts["ملف التجربة"].firstMatch
+        let demo = visibleLibraryDocument("ملف التجربة", in: app)
         XCTAssertTrue(demo.waitForExistence(timeout: 15))
         demo.tap()
         let inkTool = app.buttons["inkTool"]
@@ -31,11 +31,25 @@ final class LaunchTests: XCTestCase {
         add(shot)
         app.terminate()
         app.launch()
-        XCTAssertTrue(demo.waitForExistence(timeout: 15))
-        demo.tap()
+        let reopened = visibleLibraryDocument("ملف التجربة", in: app)
+        XCTAssertTrue(reopened.waitForExistence(timeout: 15))
+        reopened.tap()
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
         XCTAssertTrue(inkTool.waitForExistence(timeout: 10))
         XCTAssertEqual(inkTool.value as? String, count, "Ink must survive a real app relaunch")
+    }
+
+    private func visibleLibraryDocument(_ title: String, in app: XCUIApplication) -> XCUIElement {
+        XCTAssertTrue(app.buttons["libraryMenu"].waitForExistence(timeout: 15))
+        let document = app.staticTexts[title].firstMatch
+        // Imports add real cards. LazyVGrid instantiates visible rows only;
+        // reach the document through the same scrolling a user performs.
+        for _ in 0..<6 {
+            if document.exists && document.isHittable { return document }
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTFail("Library document was not reachable: " + title + "\n" + app.debugDescription)
+        return document
     }
 
     func testActualDocumentPickerImportsPDF() {
@@ -136,7 +150,7 @@ final class LaunchTests: XCTestCase {
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
         XCTAssertTrue(app.navigationBars["طَيّة"].waitForExistence(timeout: 15))
-        let demo = app.staticTexts["ملف التجربة"].firstMatch
+        let demo = visibleLibraryDocument("ملف التجربة", in: app)
         XCTAssertTrue(demo.waitForExistence(timeout: 10))
         let library = XCTAttachment(screenshot: app.screenshot())
         library.name = "Library"
@@ -188,7 +202,7 @@ final class LaunchTests: XCTestCase {
         app.launch()
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
-        let demo = app.staticTexts["ملف التجربة"].firstMatch
+        let demo = visibleLibraryDocument("ملف التجربة", in: app)
         XCTAssertTrue(demo.waitForExistence(timeout: 15))
         demo.tap()
         let page = app.textFields["pageNumber"]

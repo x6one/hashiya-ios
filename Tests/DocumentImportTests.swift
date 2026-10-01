@@ -59,4 +59,21 @@ final class DocumentImportTests: XCTestCase {
         }
         XCTAssertEqual(try fm.contentsOfDirectory(atPath: root.path), ["broken.pdf"])
     }
+    @MainActor func testIncomingCleanupNeverDeletesAnExternalInboxFile() throws {
+        let fm = FileManager.default
+        let external = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("Inbox")
+        let ownInbox = fm.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Inbox")
+        try fm.createDirectory(at: external, withIntermediateDirectories: true)
+        try fm.createDirectory(at: ownInbox, withIntermediateDirectories: true)
+        let outside = external.appendingPathComponent("original.pdf")
+        let incoming = ownInbox.appendingPathComponent(UUID().uuidString + ".pdf")
+        defer { try? fm.removeItem(at: external.deletingLastPathComponent()); try? fm.removeItem(at: incoming) }
+        let bytes = Data("incoming fixture".utf8)
+        try bytes.write(to: outside); try bytes.write(to: incoming)
+        DocumentPicker.discardIncomingCopy(outside)
+        XCTAssertEqual(try Data(contentsOf: outside), bytes)
+        DocumentPicker.discardIncomingCopy(incoming)
+        XCTAssertFalse(fm.fileExists(atPath: incoming.path))
+    }
+
 }

@@ -20,11 +20,37 @@ final class LaunchTests: XCTestCase {
         let locationFrame = location.frame
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
         let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")).firstMatch
-        guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
-        let folderFrame = folder.frame
-        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()
+        if !folder.exists {
+            // The iPad sidebar has a separate More menu for locations.
+            // This identifier belongs to the observed content toolbar.
+            let contentMenu = app.buttons["OverflowBarButtonItem"]
+            let more = contentMenu.exists ? contentMenu : app.buttons["More"].firstMatch
+            guard more.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+            more.tap()
+            let newFolder = app.buttons["New Folder"].firstMatch
+            guard newFolder.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
+            newFolder.tap()
+            let name = app.textFields.firstMatch
+            guard name.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
+            // Files focuses the folder name and selects its default text.
+            name.typeText("Tayya-test-files")
+            let create = app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Create", "Done")).firstMatch
+            guard create.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
+            create.tap()
+        }
+        if folder.waitForExistence(timeout: 5) {
+            let folderFrame = folder.frame
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()
+        } else {
+            let opened = app.otherElements.matching(NSPredicate(format: "identifier CONTAINS %@", "Title: Tayya-test-files")).firstMatch
+            guard opened.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
+        }
         let save = app.buttons["Save"].firstMatch
         guard save.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: save)
+        guard XCTWaiter.wait(for: [enabled], timeout: 15) == .completed else {
+            XCTFail("Files must enable saving both staged fixtures: " + app.debugDescription); return false
+        }
         save.tap()
         let status = app.staticTexts["fixtureExportStatus"]
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in

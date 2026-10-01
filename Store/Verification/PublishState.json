@@ -1,0 +1,13 @@
+{
+  "app": "طَيّة — Tayya",
+  "checked_on": "2026-10-02",
+  "testflight": "No Builds (verified directly)",
+  "app_store_submission": "Not submitted by this workflow; fresh Distribution status could not be confirmed after session returned to login",
+  "verified_signed_ipa_available": false,
+  "delivered_ipa_signing": "Unsigned; not directly installable",
+  "verification": {
+    "iPhone": "passed",
+    "iPad": "failed",
+    "signed_build": "stopped at preflight before signing"
+  }
+}

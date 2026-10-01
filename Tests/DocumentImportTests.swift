@@ -1,7 +1,14 @@
 import XCTest
+import UniformTypeIdentifiers
 @testable import Hashiya
 
 final class DocumentImportTests: XCTestCase {
+    @MainActor func testPickerAllowsSystemTypesForSupportedDocuments() throws {
+        for ext in ["pdf", "pptx", "docx", "xlsx", "ppt", "doc", "xls"] {
+            let type = try XCTUnwrap(UTType(filenameExtension: ext))
+            XCTAssertTrue(DocumentPicker.contentTypes.contains { type.conforms(to: $0) }, type.identifier)
+        }
+    }
     @MainActor func testAsyncImportRetainsOriginalAndReloadsPrivateCopy() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

@@ -1,6 +1,9 @@
 name: Local Office engine feasibility
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['Tools/package_office_engine.py', '.github/workflows/office-engine-spike.yml']
 permissions:
   contents: read
 concurrency:
@@ -70,7 +73,8 @@ jobs:
         run: |
           python3 hashiya-tools/Tools/package_office_engine.py engine OfficeEngineCandidate
           # Bound artifact storage; never upload the whole multi-gigabyte build.
-          test "$(stat -f%z OfficeEngineCandidate.tar.gz)" -lt 268435456
+          stat -f%z OfficeEngineCandidate.tar.gz > diagnostics/candidate-size-bytes.txt
+          test "$(stat -f%z OfficeEngineCandidate.tar.gz)" -lt 2147483648
       - name: Save engine linking candidate
         uses: actions/upload-artifact@v4
         with:

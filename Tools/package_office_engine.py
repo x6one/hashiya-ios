@@ -46,7 +46,7 @@ def package(engine: Path, output: Path) -> Path:
         raise ValueError("Empty native linker manifest")
     # Check architecture here. Platform, linkage and runtime are separate gates.
     for binary in sorted(binaries):
-        subprocess.run(["xcrun", "lipo", "-verify_arch", "arm64", str(binary)], check=True)
+        subprocess.run(["xcrun", "lipo", str(binary), "-verify_arch", "arm64"], check=True)
     source = subprocess.check_output(["git", "-C", str(engine), "rev-parse", "HEAD"], text=True).strip()
     output.mkdir(parents=True)
     records = []

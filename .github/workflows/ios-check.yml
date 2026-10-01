@@ -88,7 +88,7 @@ jobs:
           app = Path('Payload/Hashiya.app')
           info = plistlib.loads((app / 'Info.plist').read_bytes())
           executable = app / info['CFBundleExecutable']
-          subprocess.run(['xcrun', 'lipo', '-verify_arch', 'arm64', str(executable)], check=True)
+          subprocess.run(['xcrun', 'lipo', str(executable), '-verify_arch', 'arm64'], check=True)
           result = subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], capture_output=True, text=True)
           report = {
               'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],

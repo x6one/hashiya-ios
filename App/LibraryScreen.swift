@@ -24,15 +24,15 @@ struct LibraryScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(showTrash ? "المحذوفات" : "فكرة جديدة؟").font(.largeTitle.weight(.semibold))
-                        Text(showTrash ? "استعد ملفاتك أو احذفها نهائيًا." : "اترك لأفكارك حاشية.").foregroundStyle(.secondary)
+                        Text(showTrash ? "المحذوفات" : "صفحاتك، بطريقتك.").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
+                        Text(showTrash ? "استعد ملفاتك أو احذفها نهائيًا." : "اقرأ، دوّن، واترك أثر فكرتك.").foregroundStyle(.secondary)
                     }.padding(.vertical, 18)
                     if !showTrash {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
                                 Button("الكل") { section = nil }.buttonStyle(.bordered)
                                 ForEach(store.sections, id: \.self) { name in
-                                    Button(name) { section = name }.buttonStyle(.bordered).tint(section == name ? .blue : .gray)
+                                    Button(name) { section = name }.buttonStyle(.bordered).tint(section == name ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55))
                                 }
                             }
                         }
@@ -42,11 +42,10 @@ struct LibraryScreen: View {
                         ForEach(filtered) { note in
                             VStack(alignment: .leading, spacing: 0) {
                                 NavigationLink {
-                                    if note.file.lowercased().hasSuffix(".pdf") { DocumentScreen(note: note, root: store.root) }
-                                    else { OfficeDocumentScreen(note: note, store: store) }
+                                    NotebookScreen(id: note.id, store: store)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 14) {
-                                        Image(systemName: note.favorite ? "star.fill" : "book.closed").font(.system(size: 32)).padding(.bottom, 10)
+                                        HStack { Image(systemName: note.file.lowercased().hasSuffix(".pdf") ? "doc.richtext" : "doc.text").font(.system(size: 30, weight: .light)); Spacer(); if note.favorite { Image(systemName: "star.fill").foregroundStyle(TayyaTheme.fold).font(.caption) } }.padding(.bottom, 10)
                                         Text(note.title).font(.title3.weight(.medium)).lineLimit(2)
                                         Text(note.section + " · " + (note.file as NSString).pathExtension.uppercased()).font(.caption).foregroundStyle(.secondary)
                                     }.frame(maxWidth: .infinity, minHeight: 140, alignment: .leading).padding(22)
@@ -58,22 +57,22 @@ struct LibraryScreen: View {
                                         Spacer()
                                         Button("حذف نهائي", role: .destructive) { deleting = note }
                                     } else {
-                                        Button("نقل") { moving = note }
+                                        Button("نقل") { moving = note }.frame(minHeight: 44)
                                         Spacer()
                                         Menu {
                                             Button("تسمية") { title = note.title; renaming = note }
                                             Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة") { store.change(note.id) { $0.favorite.toggle() } }
                                             Button("نقل للمحذوفات", role: .destructive) { store.change(note.id) { $0.trashed = true } }
-                                        } label: { Image(systemName: "ellipsis").frame(width: 44, height: 30) }.accessibilityLabel("خيارات " + note.title)
+                                        } label: { Image(systemName: "ellipsis").frame(width: 44, height: 44) }.accessibilityLabel("خيارات " + note.title)
                                     }
                                 }.font(.subheadline).padding(.horizontal, 20).padding(.vertical, 10)
-                            }.background(.white, in: RoundedRectangle(cornerRadius: 20))
+                            }.background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 18)).overlay { RoundedRectangle(cornerRadius: 18).strokeBorder(TayyaTheme.ink.opacity(0.08)) }
                         }
                     }
                     Text("By Ahmad Al-awi").font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 24)
                 }.padding(24)
-            }.background(Color(red: 0.965, green: 0.964, blue: 0.943))
-                .navigationTitle("حاشية").searchable(text: $query, prompt: "ابحث في دفاترك")
+            }.background(TayyaTheme.paper)
+                .navigationTitle("طَيّة").searchable(text: $query, prompt: "ابحث في دفاترك")
                 .toolbar {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("استيراد", systemImage: "square.and.arrow.down") { importing = true }
@@ -89,15 +88,11 @@ struct LibraryScreen: View {
                 .confirmationDialog("خيارات المكتبة", isPresented: $showingActions, titleVisibility: .visible) {
                     Button(showTrash ? "المكتبة" : "المحذوفات") { showTrash.toggle() }
                     Button("إدارة الأقسام") { managing = true }
-                    Button("تجربة Office") {
-                        do { if let url = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") { try store.importDocument(url, title: "تجربة Office", section: section) } }
-                        catch { store.error = error.localizedDescription }
-                    }.accessibilityIdentifier("importOfficeDemo")
                     Button("إلغاء", role: .cancel) {}
                 }
                 .sheet(isPresented: $importing) {
                     DocumentPicker(directory: pickerDirectory, completed: { urls in
-                        if let url = urls.first { finishPicking(url) }
+                        finishPicking(urls)
                         importing = false
                     }, cancelled: { importing = false })
                     // The remote Files UI manages its own localization. Do not
@@ -111,7 +106,7 @@ struct LibraryScreen: View {
                             .background(.regularMaterial).accessibilityIdentifier("importStatus")
                     }
                 }
-                .onOpenURL { url in finishPicking(url) }
+                .onOpenURL { url in importing = false; finishPicking([url]) }
                 .onChange(of: store.sections) { _, sections in
                     if let section, !sections.contains(section) { self.section = nil }
                 }
@@ -129,7 +124,7 @@ struct LibraryScreen: View {
                 }
                 .sheet(isPresented: $managing) { SectionsScreen().environmentObject(store) }
                 .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
-        }.tint(Color(red: 0.26, green: 0.42, blue: 0.53)).environment(\.layoutDirection, .rightToLeft)
+        }.tint(TayyaTheme.ink).environment(\.layoutDirection, .rightToLeft)
     }
     private var pickerDirectory: URL? {
         #if DEBUG
@@ -149,19 +144,26 @@ struct LibraryScreen: View {
         #endif
         return nil
     }
-    private func finishPicking(_ url: URL) {
-        guard !importingFile else { return }
+    private func finishPicking(_ urls: [URL]) {
+        guard !importingFile, !urls.isEmpty else { return }
         importingFile = true
         importMessage = "جارٍ استيراد الملف…"
         Task { @MainActor in
             defer { importingFile = false }
-            do {
-                try await store.importDocumentAsync(url, section: section)
-                showTrash = false; query = ""
-                importMessage = "تم استيراد " + url.deletingPathExtension().lastPathComponent
-            } catch {
-                importMessage = "لم يتم الاستيراد: " + error.localizedDescription
+            var imported = 0
+            var failures: [String] = []
+            let destination = section
+            for url in urls {
+                do { try await store.importDocumentAsync(url, section: destination); imported += 1 }
+                catch { failures.append(url.lastPathComponent + ": " + error.localizedDescription) }
             }
+            if imported > 0 { showTrash = false; query = "" }
+            if failures.isEmpty {
+                importMessage = urls.count == 1 ? "تم استيراد " + urls[0].deletingPathExtension().lastPathComponent : "تم استيراد \(imported) ملفات"
+            } else {
+                importMessage = (imported > 0 ? "تم استيراد \(imported). " : "") + "لم يتم الاستيراد: " + failures.joined(separator: "\n")
+            }
+
         }
     }
 

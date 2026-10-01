@@ -82,11 +82,17 @@ final class LaunchTests: XCTestCase {
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
-        let status = app.staticTexts["importStatus"]
-        guard status.waitForExistence(timeout: 20) else {
-            XCTFail("Files did not complete the selection: " + app.debugDescription)
-            return
+        // Copy-mode multi-selection uses Files' explicit final action.
+        let open = app.buttons["Open"].firstMatch
+        guard open.waitForExistence(timeout: 10), open.isEnabled else {
+            XCTFail("Files must enable Open after selection: " + app.debugDescription); return
         }
+        open.tap()
+        let status = app.staticTexts["importStatus"]
+        let completed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            status.exists && (status.label.contains("تم استيراد") || status.label.contains("لم يتم الاستيراد"))
+        }, object: status)
+        XCTAssertEqual(XCTWaiter.wait(for: [completed], timeout: 25), .completed, app.debugDescription)
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)
         let card = app.staticTexts[name].firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))
@@ -111,7 +117,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
-        XCTAssertTrue(app.navigationBars["حاشية"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["طَيّة"].waitForExistence(timeout: 15))
         let demo = app.staticTexts["ملف التجربة"].firstMatch
         XCTAssertTrue(demo.waitForExistence(timeout: 10))
         let library = XCTAttachment(screenshot: app.screenshot())
@@ -128,19 +134,12 @@ final class LaunchTests: XCTestCase {
 
     func testOfficePreviewAndEmbeddedMedia() {
         let app = XCUIApplication()
+        app.launchArguments = ["--test-office-preview"]
         app.launch()
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
-        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
-        let opening = app.otherElements["openingAnimation"]
-        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
-        app.buttons["libraryMenu"].tap()
-        let importButton = app.buttons["تجربة Office"]
-        XCTAssertTrue(importButton.waitForExistence(timeout: 15))
-        importButton.tap()
-        let card = app.staticTexts["تجربة Office"].firstMatch
+        let card = app.staticTexts["ملف Office للاختبار"].firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
-        XCTAssertTrue(app.navigationBars["تجربة Office"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["ملف Office للاختبار"].waitForExistence(timeout: 10))
         let media = app.buttons["officeMedia"]
         XCTAssertTrue(media.waitForExistence(timeout: 15))
         let loading = app.staticTexts["LOADING"]

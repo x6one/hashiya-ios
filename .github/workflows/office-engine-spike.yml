@@ -109,7 +109,7 @@ jobs:
       - name: Save native Office IPA and signing evidence
         uses: actions/upload-artifact@v4
         with:
-          name: Hashiya-native-office-unsigned
+          name: Tayya-native-office-unsigned
           path: NativeOfficePackage/*
           retention-days: 14
       - name: Measure build checkpoint

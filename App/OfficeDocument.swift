@@ -3,8 +3,8 @@ import QuickLook
 import AVKit
 import ZIPFoundation
 
-// Original Office bytes are retained. Preview is experimental: it is not a
-// conversion to editable PDF, and does not promise PowerPoint transitions.
+// Office preview and embedded media remain available until the user converts
+// the library item to a static PDF. External originals are never modified.
 enum DocumentImportError: LocalizedError {
     case unsupported, tooLarge, damaged, mediaLimit
     var errorDescription: String? {
@@ -82,6 +82,18 @@ struct OfficePreview: UIViewControllerRepresentable {
         func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem { url as NSURL }
     }
 }
+/// Resolve by identity so conversion updates this route directly to the PDF editor.
+struct NotebookScreen: View {
+    let id: UUID
+    @ObservedObject var store: LibraryStore
+    var body: some View {
+        if let note = store.notebooks.first(where: { $0.id == id }) {
+            if (note.file as NSString).pathExtension.lowercased() == "pdf" {
+                DocumentScreen(note: note, root: store.root)
+            } else { OfficeDocumentScreen(note: note, store: store) }
+        } else { ContentUnavailableView("الملف غير موجود", systemImage: "doc.questionmark") }
+    }
+}
 struct OfficeDocumentScreen: View {
     let note: Notebook
     @ObservedObject var store: LibraryStore
@@ -89,28 +101,34 @@ struct OfficeDocumentScreen: View {
     @State private var showMedia = false
     @State private var converting = false
     @State private var conversionError: String?
-    @State private var converted: Notebook?
-    @State private var showConverted = false
     var body: some View {
         VStack(spacing: 0) {
-            Text(OfficeConversion.available
-                 ? "الأصل محفوظ · أنشئ نسخة PDF ثابتة للقلم والنص · التحويل المحلي تجريبي"
-                 : "معاينة Office تجريبية · الأصل محفوظ · التعليق على Office غير متاح بعد")
-                .font(.caption).foregroundStyle(.secondary).padding(10)
-            if converting { ProgressView("إنشاء نسخة PDF…").padding(8) }
+            VStack(alignment: .leading, spacing: 12) {
+                Label("للكتابة والتعليق على هذا الملف، حوّله إلى PDF", systemImage: "pencil.tip.crop.circle")
+                    .font(.headline)
+                if OfficeConversion.available {
+                    Button(action: convert) {
+                        HStack {
+                            if converting { ProgressView().tint(.white) }
+                            Text(converting ? "جارٍ التحويل…" : "تحويل إلى PDF والكتابة")
+                            Spacer(minLength: 8)
+                            Image(systemName: "arrow.left")
+                        }.padding(.vertical, 8)
+                    }.buttonStyle(.borderedProminent).disabled(converting)
+                        .accessibilityIdentifier("convertOfficePDF")
+                    Text("يستبدل الملف في مكتبتك. الأصل في تطبيق الملفات يبقى محفوظًا.")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("التحويل المحلي متاح في نسخة الجهاز المزوّدة بمحرك Office.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }.padding(18).background(TayyaTheme.surface)
             OfficePreview(url: root.appendingPathComponent(note.file))
         }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 Button("وسائط الملف", systemImage: "play.rectangle") { showMedia = true }.accessibilityIdentifier("officeMedia")
-                if OfficeConversion.available {
-                    Button("نسخة PDF للقلم", systemImage: "doc.badge.plus") { convert() }
-                        .disabled(converting).accessibilityIdentifier("convertOfficePDF")
-                }
             }
             .sheet(isPresented: $showMedia) { OfficeMediaScreen(source: root.appendingPathComponent(note.file)) }
-            .navigationDestination(isPresented: $showConverted) {
-                if let converted { DocumentScreen(note: converted, root: root) }
-            }
             .alert("تعذّر تحويل المستند", isPresented: Binding(get: { conversionError != nil }, set: { if !$0 { conversionError = nil } })) {
                 Button("حسناً") { conversionError = nil }
             } message: { Text(conversionError ?? "") }
@@ -123,8 +141,7 @@ struct OfficeDocumentScreen: View {
             do {
                 let pdf = try await OfficeConversion.convert(root.appendingPathComponent(note.file))
                 defer { try? FileManager.default.removeItem(at: pdf.deletingLastPathComponent()) }
-                converted = try await store.importDocumentAsync(pdf, title: note.title + " — PDF", section: note.section)
-                showConverted = converted != nil
+                try await store.replaceOfficeWithPDF(note.id, source: pdf)
             } catch { conversionError = error.localizedDescription }
         }
     }

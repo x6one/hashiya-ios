@@ -1,7 +1,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Present one system picker. LibraryStore coordinates and retains a private
+/// Copy-mode selection ends with the native Open button, including one file.
+/// LibraryStore coordinates and retains a private
 /// copy of the selected security-scoped document.
 struct DocumentPicker: UIViewControllerRepresentable {
     // Ask Files for the system types of the supported extensions themselves.
@@ -25,9 +26,9 @@ struct DocumentPicker: UIViewControllerRepresentable {
             }
         }
         #endif
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: false)
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: true)
         picker.delegate = context.coordinator
-        picker.allowsMultipleSelection = false
+        picker.allowsMultipleSelection = true
         picker.shouldShowFileExtensions = true
         picker.directoryURL = directory
         return picker

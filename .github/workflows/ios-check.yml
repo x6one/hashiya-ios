@@ -28,13 +28,16 @@ jobs:
           DEVICE_FAMILY: ${{ matrix.family }}
         run: |
           python3 - <<'PY'
-          import json, os, subprocess
+          import json, os, re, subprocess
+          subprocess.run(["xcodebuild", "-version"], check=True)
           devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
-          matching = [d for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          matching.sort(key=lambda row: row[0], reverse=True)
           if not matching:
               raise SystemExit('Required simulator family is unavailable')
+          print('Simulator:', matching[0][1], matching[0][2]['name'])
           with open(os.environ['GITHUB_ENV'], 'a') as out:
-              out.write('SIMULATOR_ID=' + matching[0]['udid'] + '\n')
+              out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
           PY
       - name: Build and test
         run: |

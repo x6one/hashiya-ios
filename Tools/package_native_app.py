@@ -32,11 +32,11 @@ def package(app: Path, output: Path) -> None:
     payload = output / "Payload"
     payload.mkdir()
     shutil.copytree(app, payload / "Hashiya.app")
-    name = "Hashiya-native-office-unsigned.ipa"
+    name = "Tayya-native-office-unsigned.ipa"
     subprocess.run(["zip", "-qry", name, "Payload"], cwd=output, check=True)
     with (output / name).open("rb") as file:
         sha = hashlib.file_digest(file, "sha256").hexdigest()
-    (output / "Hashiya-native-office.sha256").write_text(sha + "  " + name + "\n")
+    (output / "Tayya-native-office.sha256").write_text(sha + "  " + name + "\n")
     signature = subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], capture_output=True, text=True)
     identity = subprocess.run(["codesign", "-dv", "--verbose=4", str(app)], capture_output=True, text=True)
     report = {"commit": os.environ["GITHUB_SHA"], "run": os.environ["GITHUB_RUN_ID"],
@@ -50,7 +50,7 @@ def package(app: Path, output: Path) -> None:
         "engine_source": json.loads((app / "OfficeEngineNotices/engine-manifest.json").read_text())["source"],
         "installation": "Requires external signing with a valid certificate and provisioning profile. Not directly installable.",
         "sha256": sha}
-    (output / "Hashiya-native-office-signing.json").write_text(json.dumps(report, indent=2) + "\n")
+    (output / "Tayya-native-office-signing.json").write_text(json.dumps(report, indent=2) + "\n")
     shutil.rmtree(payload)
 
 

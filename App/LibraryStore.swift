@@ -15,7 +15,46 @@ import ZIPFoundation
             if let data = try? Data(contentsOf: sectionFile) { sections = try JSONDecoder().decode([String].self, from: data) }
             if FileManager.default.fileExists(atPath: file.path) { notebooks = try JSONDecoder().decode([Notebook].self, from: Data(contentsOf: file)) }
             else if seedDemo, let demo = Bundle.main.url(forResource: "english", withExtension: "pdf") { try importPDF(demo, title: "ملف التجربة") }
+            try removeBundledOfficeDemo()
         } catch { self.error = error.localizedDescription }
+    }
+    /// Remove only the obsolete bundled demo, never a user's similarly named file.
+    private func removeBundledOfficeDemo() throws {
+        guard let fixture = Bundle.main.url(forResource: "office-demo", withExtension: "pptx"),
+              let bytes = try? Data(contentsOf: fixture) else { return }
+        let demos = notebooks.filter {
+            $0.title == "تجربة Office" && (try? Data(contentsOf: root.appendingPathComponent($0.file))) == bytes
+        }
+        guard !demos.isEmpty else { return }
+        let ids = Set(demos.map(\.id))
+        let remaining = notebooks.filter { !ids.contains($0.id) }
+        try persist(remaining)
+        notebooks = remaining
+        for demo in demos { try? FileManager.default.removeItem(at: root.appendingPathComponent(demo.file)) }
+    }
+    /// Validate first, persist a single replacement, then retire our Office copy.
+    /// The source outside the app is never deleted, and a failed save keeps Office.
+    @discardableResult
+    func replaceOfficeWithPDF(_ id: UUID, source: URL) async throws -> Notebook {
+        guard source.pathExtension.lowercased() == "pdf",
+              let original = notebooks.first(where: { $0.id == id && !$0.trashed }),
+              (original.file as NSString).pathExtension.lowercased() != "pdf" else { throw DocumentImportError.unsupported }
+        let snapshot = try await Task.detached(priority: .userInitiated) { try DocumentImport.prepare(source) }.value
+        defer { snapshot.discard() }
+        try Task.checkCancellation()
+        var updated = notebooks
+        guard let index = updated.firstIndex(where: { $0.id == id && $0.file == original.file && !$0.trashed }) else {
+            throw DocumentImportError.unsupported
+        }
+        let name = UUID().uuidString + ".pdf"
+        let target = root.appendingPathComponent(name)
+        try FileManager.default.moveItem(at: snapshot.url, to: target)
+        updated[index].file = name
+        do { try persist(updated) }
+        catch { try? FileManager.default.removeItem(at: target); throw error }
+        notebooks = updated
+        try? FileManager.default.removeItem(at: root.appendingPathComponent(original.file))
+        return updated[index]
     }
     func change(_ id: UUID, _ mutation: (inout Notebook) -> Void) {
         var updated = notebooks

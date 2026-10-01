@@ -2,8 +2,8 @@ name: Local Office engine feasibility
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths: ['Tools/package_office_engine.py', '.github/workflows/office-engine-spike.yml']
+    branches: [main, 'work/native-link-probe']
+    paths: ['Tools/package_office_engine.py', 'Tools/link_office_engine.py', '.github/workflows/office-engine-spike.yml']
 permissions:
   contents: read
 concurrency:
@@ -81,6 +81,11 @@ jobs:
           name: office-engine-arm64-linking-candidate
           path: OfficeEngineCandidate.tar.gz
           retention-days: 3
+      - name: Link COKit and PDF export for an iOS device
+        run: |
+          set -o pipefail
+          cp OfficeEngineCandidate/manifest.json diagnostics/engine-manifest.json
+          python3 hashiya-tools/Tools/link_office_engine.py OfficeEngineCandidate diagnostics/link-probe 2>&1 | tee diagnostics/link-probe.log
       - name: Measure build checkpoint
         if: always()
         id: checkpoint-size

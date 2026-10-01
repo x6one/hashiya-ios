@@ -61,11 +61,21 @@ def package(engine: Path, output: Path) -> Path:
                         "sha256": digest})
     shutil.copytree(resources, output / "resources")
     shutil.copytree(engine / "include/COKit", output / "include/COKit")
+    # native-code.h needs the exact feature configuration used for these
+    # archives, not configuration guessed by the consuming application.
+    for name in ["config_crypto.h", "config_features.h", "config_fuzzers.h", "config_locales.h"]:
+        shutil.copy2(engine / "config_host" / name, output / "include" / name)
+    mapping = output / "include/osl/detail"
+    mapping.mkdir(parents=True)
+    shutil.copy2(engine / "include/osl/detail/component-mapping.h", mapping)
     shutil.copy2(generated / "native-code.h", output / "native-code.h")
     for pattern in ["COPYING*", "LICENSE*", "README.license"]:
         for path in engine.glob(pattern):
             if path.is_file():
                 shutil.copy2(path, output / path.name)
+    notices = engine / "instdir/share/readme"
+    if notices.is_dir():
+        shutil.copytree(notices, output / "notices")
     (output / "manifest.json").write_text(json.dumps({"source": source, "platform": "iphoneos",
         "architecture": "arm64", "inputs": records}, indent=2) + "\n")
     (output / "README.txt").write_text("Internal arm64 device-engine linking candidate.\n"

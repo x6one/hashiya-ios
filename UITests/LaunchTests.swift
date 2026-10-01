@@ -1,6 +1,42 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
+    private static var externalFixturesPrepared = false
+
+    private func prepareExternalFixtures(in app: XCUIApplication) -> Bool {
+        if Self.externalFixturesPrepared { return true }
+        app.launchArguments = ["--test-export-fixtures"]
+        app.launch()
+        let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
+        let browse = app.buttons["Browse"].firstMatch
+        let loaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (location.exists && location.isHittable) || (browse.exists && browse.isHittable)
+        }, object: app)
+        guard XCTWaiter.wait(for: [loaded], timeout: 60) == .completed else {
+            XCTFail("Files export did not load: " + app.debugDescription); return false
+        }
+        if browse.exists && browse.isHittable { browse.tap() }
+        guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+        let locationFrame = location.frame
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
+        let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")).firstMatch
+        guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+        let folderFrame = folder.frame
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()
+        let save = app.buttons["Save"].firstMatch
+        guard save.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+        save.tap()
+        let status = app.staticTexts["fixtureExportStatus"]
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            status.exists && status.label == "Fixtures exported"
+        }, object: status)
+        guard XCTWaiter.wait(for: [saved], timeout: 25) == .completed else {
+            XCTFail("Files export did not complete: " + app.debugDescription); return false
+        }
+        Self.externalFixturesPrepared = true
+        app.terminate()
+        return true
+    }
     func testTouchInkPersistsAfterRelaunch() {
         let app = XCUIApplication()
         app.launch()
@@ -66,6 +102,7 @@ final class LaunchTests: XCTestCase {
 
     private func verifyPickerImport(name: String, editor: String, appOwned: Bool = false) {
         let app = XCUIApplication()
+        if !appOwned && !prepareExternalFixtures(in: app) { return }
         app.launchArguments = appOwned ? ["--test-app-owned-picker"] : []
         app.launch()
         let importButton = app.buttons["importDocument"]

@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main, 'work/native-link-probe']
-    paths: ['App/**', 'Tests/**', 'UITests/**', 'Tools/seed_files_fixtures.py', 'Tools/FilesFixtureWriter.swift', '.github/workflows/ios-check.yml', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'Tools/select_app_xcode.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
+    paths: ['App/**', 'Tests/**', 'UITests/**', 'Tools/seed_files_fixtures.py', '.github/workflows/ios-check.yml', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'Tools/select_app_xcode.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
 permissions:
   contents: read
   actions: read

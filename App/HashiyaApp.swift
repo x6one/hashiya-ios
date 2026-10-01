@@ -9,7 +9,7 @@ import ZIPFoundation
     @StateObject private var library: LibraryStore
     init() {
         #if DEBUG
-        let store = LibraryStore()
+        let store = LibraryStore(seedDemo: !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures"))
         if ProcessInfo.processInfo.arguments.contains("--test-office-preview"),
            !store.notebooks.contains(where: { $0.title == "ملف Office للاختبار" }),
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {
@@ -31,7 +31,17 @@ import ZIPFoundation
         #endif
         _library = StateObject(wrappedValue: store)
     }
-    var body: some Scene { WindowGroup { AppEntrance().environmentObject(library) } }
+    var body: some Scene {
+        WindowGroup {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") {
+                DebugFilesFixtures()
+            } else { AppEntrance().environmentObject(library) }
+            #else
+            AppEntrance().environmentObject(library)
+            #endif
+        }
+    }
 }
 struct Notebook: Identifiable, Codable, Hashable {
     var id: UUID = UUID()

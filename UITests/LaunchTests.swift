@@ -58,22 +58,30 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 25), .completed, app.debugDescription)
         // Use Files' real list mode: row actions stay stable while thumbnails
         // finish rendering. This still selects through UIDocumentPicker.
-        let icons = app.buttons["DOC.itemCollectionMenuButton.Icons"]
-        let viewOptions = icons.exists ? icons : app.buttons["More"].firstMatch
-        XCTAssertTrue(viewOptions.waitForExistence(timeout: 5), app.debugDescription)
-        viewOptions.tap()
-        let list = app.buttons["List"].firstMatch
-        XCTAssertTrue(list.waitForExistence(timeout: 5), app.debugDescription)
-        list.tap()
+        if app.collectionViews["File View"].value as? String != "List Mode" {
+            let icons = app.buttons["DOC.itemCollectionMenuButton.Icons"]
+            let viewOptions = icons.exists ? icons : app.buttons["More"].firstMatch
+            guard viewOptions.waitForExistence(timeout: 5) else { XCTFail(app.debugDescription); return }
+            viewOptions.tap()
+            let list = app.buttons["List"].firstMatch
+            guard list.waitForExistence(timeout: 5) else { XCTFail(app.debugDescription); return }
+            list.tap()
+        }
         XCTAssertTrue(file.waitForExistence(timeout: 10))
         let pickerShot = XCTAttachment(screenshot: app.screenshot())
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways
         add(pickerShot)
         XCTAssertTrue(file.isEnabled, "Files must permit this document type")
-        // Use Files' cell action. Its async thumbnail can change its bounds
-        // while accessibility is resolving an image tap.
-        file.tap()
+        // The provider is a remote UI process. Use its observed thumbnail frame
+        // in screen coordinates instead of its synthesized accessibility hit
+        // point. The tap still goes through the real Files picker and delegate.
+        let thumbnail = file.images.firstMatch
+        let frame = thumbnail.exists ? thumbnail.frame : file.frame
+        let target = XCTAttachment(string: "File frame: \(file.frame); tap frame: \(frame)")
+        target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
         let status = app.staticTexts["importStatus"]
         guard status.waitForExistence(timeout: 20) else {
             XCTFail("Files did not complete the selection: " + app.debugDescription)

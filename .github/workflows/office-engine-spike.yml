@@ -3,9 +3,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main, 'work/native-link-probe']
-    paths: ['Tools/package_office_engine.py', 'Tools/link_office_engine.py', 'Tools/prepare_native_office_app.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
+    paths: ['Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: office-engine-spike
   cancel-in-progress: false
@@ -97,6 +98,18 @@ jobs:
           test -s NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/fundamentalrc
           test -s NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/services.rdb
           test -d NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/share/fonts/truetype
+      - name: Require both simulator suites before native IPA packaging
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 hashiya-tools/Tools/require_preflight.py
+      - name: Package the experimental unsigned native Office app
+        run: python3 hashiya-tools/Tools/package_native_app.py hashiya-tools/NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app NativeOfficePackage
+      - name: Save native Office IPA and signing evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hashiya-native-office-unsigned
+          path: NativeOfficePackage/*
+          retention-days: 14
       - name: Measure build checkpoint
         if: always()
         id: checkpoint-size

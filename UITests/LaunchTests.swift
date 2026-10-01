@@ -72,12 +72,21 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
         let file = app.cells.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+        let browse = app.buttons["Browse"].firstMatch
+        let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
+        // A cold iPad simulator can spend tens of seconds starting the remote
+        // Documents service. Wait for actual Files controls, not its blank host.
+        let filesLoaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (file.exists && file.isHittable) || (browse.exists && browse.isHittable) ||
+                (location.exists && location.isHittable)
+        }, object: app)
+        guard XCTWaiter.wait(for: [filesLoaded], timeout: 60) == .completed else {
+            XCTFail("Native Files did not finish loading: " + app.debugDescription); return
+        }
         // Browse through Files' actual provider hierarchy instead of injecting
         // directoryURL. That shortcut can produce stale provider IDs on iOS 26.
         if !file.exists {
-            let browse = app.buttons["Browse"].firstMatch
-            if browse.waitForExistence(timeout: 10) { browse.tap() }
-            let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
+            if browse.exists && browse.isHittable { browse.tap() }
             guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
             let locationFrame = location.frame
             app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()

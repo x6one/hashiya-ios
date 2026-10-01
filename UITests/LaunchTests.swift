@@ -61,10 +61,9 @@ final class LaunchTests: XCTestCase {
         pickerShot.lifetime = .keepAlways
         add(pickerShot)
         XCTAssertTrue(file.isEnabled, "Files must permit this document type")
-        // Files' grid cell includes metadata below the thumbnail. Select its
-        // actual image rather than a cell centre that can land between labels.
-        let thumbnail = file.images.firstMatch
-        if thumbnail.exists { thumbnail.tap() } else { file.tap() }
+        // Use Files' cell action. Its async thumbnail can change its bounds
+        // while accessibility is resolving an image tap.
+        file.tap()
         let status = app.staticTexts["importStatus"]
         guard status.waitForExistence(timeout: 20) else {
             XCTFail("Files did not complete the selection: " + app.debugDescription)

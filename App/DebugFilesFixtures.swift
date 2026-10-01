@@ -10,9 +10,16 @@ struct DebugFilesFixtures: View {
         let urls: [URL]
     }
     @State private var request: ExportRequest?
+    @State private var stagedURLs: [URL] = []
     @State private var status = "Preparing external fixtures"
     var body: some View {
-        Text(status).accessibilityIdentifier("fixtureExportStatus")
+        VStack {
+            Text(status).accessibilityIdentifier("fixtureExportStatus")
+            Button("Export fixtures again") {
+                status = "Exporting \(stagedURLs.count) fixtures"
+                request = ExportRequest(urls: stagedURLs)
+            }.accessibilityIdentifier("fixtureExportAgain").disabled(stagedURLs.count != 2)
+        }
             .task {
                 do {
                     let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -27,6 +34,7 @@ struct DebugFilesFixtures: View {
                         urls.append(destination)
                     }
                     status = "Exporting \(urls.count) fixtures"
+                    stagedURLs = urls
                     request = ExportRequest(urls: urls)
                 } catch { status = error.localizedDescription }
             }

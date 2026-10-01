@@ -3,10 +3,16 @@ import XCTest
 final class LaunchTests: XCTestCase {
     private static var externalFixturesPrepared = false
 
-    private func prepareExternalFixtures(in app: XCUIApplication) -> Bool {
+    private func prepareExternalFixtures(in app: XCUIApplication, reopening: Bool = false) -> Bool {
         if Self.externalFixturesPrepared { return true }
-        app.launchArguments = ["--test-export-fixtures"]
-        app.launch()
+        if reopening {
+            let again = app.buttons["fixtureExportAgain"]
+            guard again.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+            again.tap()
+        } else {
+            app.launchArguments = ["--test-export-fixtures"]
+            app.launch()
+        }
         let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
         let browse = app.buttons["Browse"].firstMatch
         let loaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -20,7 +26,9 @@ final class LaunchTests: XCTestCase {
         let locationFrame = location.frame
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
         let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")).firstMatch
-        if !folder.exists {
+        let folderExists = reopening ? folder.waitForExistence(timeout: 30) : folder.exists
+        if !folderExists {
+            guard !reopening else { XCTFail("Files did not retain its new folder: " + app.debugDescription); return false }
             // The iPad export bar exposes New Folder directly. On compact
             // layouts it belongs to the content menu, not sidebar More.
             let newFolder = app.buttons["New Folder"].firstMatch
@@ -40,19 +48,19 @@ final class LaunchTests: XCTestCase {
             let name = app.textViews["DOC.inlineRenameField"]
             guard name.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
             name.typeText("Tayya-test-files")
-            // The recording and synthesized event confirm that Done was
-            // tapped at its real frame, yet the field remained focused.
-            // Commit by tapping the observed empty space beside/below it.
-            let contents = app.collectionViews["File View"].frame
-            let field = name.frame
-            let target = CGPoint(x: contents.maxX - 24, y: min(field.maxY + 24, contents.maxY - 24))
-            XCTAssertTrue(contents.contains(target))
+            // Complete folder setup by closing this export presentation.
+            // A new presentation must then find Files' persisted folder.
+            let cancel = app.buttons["Cancel"].firstMatch
+            guard cancel.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+            let frame = cancel.frame
             app.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: target.x, dy: target.y)).tap()
-            let committed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: name)
-            guard XCTWaiter.wait(for: [committed], timeout: 30) == .completed else {
-                XCTFail("Files did not commit the folder name: " + app.debugDescription); return false
+                .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
+            let cancelled = XCTNSPredicateExpectation(predicate: NSPredicate(format:
+                "exists == true AND label == %@", "Export cancelled"), object: app.staticTexts["fixtureExportStatus"])
+            guard XCTWaiter.wait(for: [cancelled], timeout: 60) == .completed else {
+                XCTFail("Files did not close folder setup: " + app.debugDescription); return false
             }
+            return prepareExternalFixtures(in: app, reopening: true)
         }
         if folder.waitForExistence(timeout: 5) {
             let folderFrame = folder.frame

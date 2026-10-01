@@ -1,0 +1,48 @@
+{
+  "code_commit": "a5a36a3484d99e6a52b070089f8e30e174e4d701",
+  "version": "0.2.4",
+  "build": "6",
+  "preflight_run": 36822168445,
+  "simulator_jobs": {
+    "iPhone": 110239898334,
+    "iPad": 110239897961
+  },
+  "tests_per_family": {
+    "unit": 11,
+    "ui": 7,
+    "failures": 0
+  },
+  "actual_files_import_tested": [
+    "pdf",
+    "pptx"
+  ],
+  "native_build_run": 36822168606,
+  "native_artifact_id": 11144170939,
+  "ipa_name": "Hashiya-native-office-unsigned.ipa",
+  "ipa_bytes": 130395636,
+  "ipa_sha256": "a67663e4ca85c8993f5aaea04b9847cfe68d2159c201802f114476a9dcb69ffe",
+  "platform": "iOS device",
+  "architecture": "arm64",
+  "device_families": [
+    1,
+    2
+  ],
+  "resources_verified": [
+    "fundamentalrc",
+    "services.rdb",
+    "services/services.rdb",
+    "udkapi.rdb",
+    "offapi.rdb",
+    "176 bundled fonts",
+    "OfficeEngineNotices/engine-manifest.json"
+  ],
+  "engine_source": "124ecf55b0f0969b7859d2f803f0bc3a0049a4dc",
+  "zip_integrity_verified": true,
+  "code_signed": false,
+  "contains_provisioning_profile": false,
+  "codesign_verify_exit": 1,
+  "installation": "Requires a valid certificate and provisioning profile. Not directly installable.",
+  "office_conversion_device_runtime_tested": false,
+  "apple_pencil_hardware_tested": false,
+  "published_to_testflight_or_app_store": false
+}

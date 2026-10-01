@@ -46,9 +46,13 @@ final class LaunchTests: XCTestCase {
         verifyPickerImport(name: "Picker-office", editor: "officeMedia")
     }
 
-    private func verifyPickerImport(name: String, editor: String) {
+    func testAppOwnedDocumentPickerImportsPDF() {
+        verifyPickerImport(name: "Owned-fixture", editor: "textTool", appOwned: true)
+    }
+
+    private func verifyPickerImport(name: String, editor: String, appOwned: Bool = false) {
         let app = XCUIApplication()
-        app.launchArguments = ["--test-file-picker"]
+        app.launchArguments = appOwned ? ["--test-app-owned-picker"] : []
         app.launch()
         let importButton = app.buttons["importDocument"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
@@ -63,7 +67,10 @@ final class LaunchTests: XCTestCase {
             guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
             let locationFrame = location.frame
             app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
-            let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "طَيّة", "Hashiya")).firstMatch
+            let folderPredicate = appOwned
+                ? NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "طَيّة", "Hashiya")
+                : NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")
+            let folder = app.cells.matching(folderPredicate).firstMatch
             guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
             let folderFrame = folder.frame
             app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()

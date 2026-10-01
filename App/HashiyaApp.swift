@@ -15,8 +15,8 @@ import ZIPFoundation
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {
             try? store.importDocument(source, title: "ملف Office للاختبار")
         }
-        if ProcessInfo.processInfo.arguments.contains("--test-file-picker") {
-            for (name, ext, targetName) in [("english", "pdf", "Picker-fixture.pdf"), ("office-demo", "pptx", "Picker-office.pptx")] {
+        if ProcessInfo.processInfo.arguments.contains("--test-app-owned-picker") {
+            for (name, ext, targetName) in [("english", "pdf", "Owned-fixture.pdf"), ("office-demo", "pptx", "Owned-office.pptx")] {
                 guard let source = Bundle.main.url(forResource: name, withExtension: ext) else { continue }
                 let target = store.root.appendingPathComponent(targetName)
                 guard !FileManager.default.fileExists(atPath: target.path) else { continue }

@@ -55,10 +55,7 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
-            Screenshots/*.png
-            Screenshots/*.mp4
-            Screenshots/*.txt
-            Screenshots/*.json
+            Screenshots/
           retention-days: 7
 
   device-package:

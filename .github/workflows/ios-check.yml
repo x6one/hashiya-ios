@@ -34,7 +34,8 @@ jobs:
           subprocess.run(["xcodebuild", "-version"], check=True)
           devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
           matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
-          matching.sort(key=lambda row: row[0], reverse=True)
+          # Prefer the large current iPhone and iPad for real Store captures.
+          matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
           if not matching:
               raise SystemExit('Required simulator family is unavailable')
           print('Simulator:', matching[0][1], matching[0][2]['name'])

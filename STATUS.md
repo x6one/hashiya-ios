@@ -213,3 +213,13 @@
 - اختبار جهاز فعلي لا يزال مطلوبًا للأقلام والتسجيل والاتجاهات والتكبير.
 - تحويل خط اليد إلى نص والتبويبات المتعددة والأشكال الهندسية غير مكتملة.
 - لا تتعامل مع IPA 0.2.1 القديم كأنه يتضمن إصلاحات 0.2.2.
+
+## 2026-10-01 — Signing setup and upload blocker
+
+- Apple record: **طَيّة — Tayya**, Apple ID **6818288428**, bundle com.ahmadalawi.hashiya, team ZUB6SJFQA3. Arabic metadata, categories and 4+ questionnaire saved. Prepare for Submission; TestFlight has no builds.
+- New approved Apple Distribution certificate and Tayya App Store profile created. Certificate/private-key match, identity, expiry and App Store entitlements verified offline. Three signing secrets confirmed in GitHub Actions. No private signing material is committed or included in artifacts.
+- One-time downloads for Tayya Upload and its same-permission replacement Tayya Upload CI returned no file/event. Private keys are unavailable. Stop generating additional keys; owner assistance is required to recover an upload credential. Unrelated app credentials were not reused. See Store/signing-status.json.
+- Added privacy manifest for verified file metadata and elapsed-timer reasons. Store/privacy-audit.md and Store/encryption-audit.md retain findings and open questions; both publication gates remain false.
+- Workflow supports sign_archive=true, publish_to_apple=false using only three signing secrets. This generates an App Store signed inspection IPA without uploading. Publishing still requires all six secrets and completed audits. No signed archive has passed macOS verification yet.
+- Simulator selection prefers current iPhone Pro Max / iPad Pro 13 for real Store captures. Prior 48 tests passed at d18cc32; the changed source needs a new run.
+- App Store signed IPAs require Apple processing and TestFlight/App Store distribution, and are not directly installable. No review submission or publication is claimed.

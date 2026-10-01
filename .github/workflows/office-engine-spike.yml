@@ -2,6 +2,11 @@ name: Local Office engine feasibility
 on:
   workflow_dispatch:
     inputs:
+      sign_archive:
+        description: 'Verify an App Store signed IPA without uploading it'
+        type: boolean
+        required: true
+        default: false
       publish_to_apple:
         description: 'Archive, sign and upload after release audits and Apple credentials are approved'
         type: boolean
@@ -121,8 +126,8 @@ jobs:
           name: Tayya-native-office-unsigned
           path: NativeOfficePackage/*
           retention-days: 14
-      - name: Archive, verify and upload to Apple
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_apple }}
+      - name: Archive and verify; upload only when explicitly selected
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.sign_archive || inputs.publish_to_apple) }}
         working-directory: hashiya-tools
         env:
           APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
@@ -131,9 +136,15 @@ jobs:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: python3 Tools/distribute_native_app.py
+          PUBLISH_TO_APPLE: ${{ inputs.publish_to_apple }}
+        run: |
+          if [ "$PUBLISH_TO_APPLE" = "true" ]; then
+            python3 Tools/distribute_native_app.py
+          else
+            python3 Tools/distribute_native_app.py --archive-only
+          fi
       - name: Retain signed IPA and upload evidence
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.publish_to_apple }}
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && (inputs.sign_archive || inputs.publish_to_apple) }}
         uses: actions/upload-artifact@v4
         with:
           name: Tayya-Apple-distribution

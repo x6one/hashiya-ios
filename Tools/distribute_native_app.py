@@ -4,6 +4,7 @@ Signing credentials are read only from CI secrets. This does not submit an
 App Store review or invite testers. Apple processing must be verified separately.
 """
 import base64
+import argparse
 import datetime
 import hashlib
 import json
@@ -46,16 +47,21 @@ def validate_resources(app):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--archive-only', action='store_true',
+                        help='Verify a signed App Store IPA without transmitting it to Apple')
+    args = parser.parse_args()
     readiness = json.loads(Path("Store/release-readiness.json").read_text())
-    for gate in ["privacy_audit_complete", "encryption_classification_complete"]:
+    for gate in ([] if args.archive_only else ["privacy_audit_complete", "encryption_classification_complete"]):
         if readiness.get(gate) is not True:
             raise RuntimeError(f"Release gate is incomplete: {gate}")
     required = ["APPLE_DISTRIBUTION_P12_BASE64", "APPLE_DISTRIBUTION_P12_PASSWORD",
-                "APPLE_PROVISIONING_PROFILE_BASE64", "ASC_PRIVATE_KEY_BASE64",
-                "ASC_KEY_ID", "ASC_ISSUER_ID"]
+                "APPLE_PROVISIONING_PROFILE_BASE64"]
+    if not args.archive_only:
+        required += ["ASC_PRIVATE_KEY_BASE64", "ASC_KEY_ID", "ASC_ISSUER_ID"]
     if any(not os.environ.get(name) for name in required):
         raise RuntimeError("Apple distribution secrets have not been configured")
-    if not re.fullmatch(r"[A-Z0-9]+", os.environ["ASC_KEY_ID"]):
+    if not args.archive_only and not re.fullmatch(r"[A-Z0-9]+", os.environ["ASC_KEY_ID"]):
         raise RuntimeError("Invalid App Store Connect key ID")
     unsigned_app = Path("NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app")
     validate_resources(unsigned_app)
@@ -149,6 +155,18 @@ def main():
                 raise RuntimeError("Exported entitlements do not match distribution")
             executable = app / info["CFBundleExecutable"]
             run(["xcrun", "lipo", str(executable), "-verify_arch", "arm64"], "Verify device architecture")
+            with ipas[0].open("rb") as ipa_file:
+                digest = hashlib.file_digest(ipa_file, "sha256").hexdigest()
+            report = {"source_commit": os.environ["GITHUB_SHA"], "run": os.environ["GITHUB_RUN_ID"],
+                "team": TEAM, "bundle_id": BUNDLE, "version": info["CFBundleShortVersionString"],
+                "build": info["CFBundleVersion"], "code_signed": True, "sha256": digest,
+                "archive_only": args.archive_only, "release_readiness": readiness,
+                "installation": "App Store distribution signature; installation requires Apple processing and TestFlight or App Store distribution. Not directly installable.",
+                "upload_accepted": False, "apple_processing_confirmed": False, "app_store_submitted": False}
+            report_path = output / "distribution-report.json"
+            report_path.write_text(json.dumps(report, indent=2) + "\n")
+            if args.archive_only:
+                return
             api_directory = private / "api"
             api_directory.mkdir(mode=0o700)
             write_private(api_directory / ("AuthKey_" + os.environ["ASC_KEY_ID"] + ".p8"),
@@ -157,13 +175,6 @@ def main():
             auth = ["--apiKey", os.environ["ASC_KEY_ID"], "--apiIssuer", os.environ["ASC_ISSUER_ID"]]
             run(["xcrun", "altool", "--validate-app", "-f", str(ipas[0]), "-t", "ios", *auth],
                 "Validate with App Store Connect", env=upload_env)
-            report = {"source_commit": os.environ["GITHUB_SHA"], "run": os.environ["GITHUB_RUN_ID"],
-                "team": TEAM, "bundle_id": BUNDLE, "version": info["CFBundleShortVersionString"],
-                "build": info["CFBundleVersion"], "code_signed": True,
-                "sha256": hashlib.file_digest(ipas[0].open("rb"), "sha256").hexdigest(),
-                "upload_accepted": False, "apple_processing_confirmed": False, "app_store_submitted": False}
-            report_path = output / "distribution-report.json"
-            report_path.write_text(json.dumps(report, indent=2) + "\n")
             run(["xcrun", "altool", "--upload-app", "-f", str(ipas[0]), "-t", "ios", *auth],
                 "Upload to App Store Connect", env=upload_env)
             report["upload_accepted"] = True
@@ -175,7 +186,7 @@ def main():
                 subprocess.run(["security", "delete-keychain", str(keychain)], capture_output=True)
             if profile_installed and profile_path is not None and profile_path.exists():
                 profile_path.unlink()
-    shutil.rmtree(output / "Tayya.xcarchive")
+            shutil.rmtree(output / "Tayya.xcarchive", ignore_errors=True)
 
 
 if __name__ == "__main__":

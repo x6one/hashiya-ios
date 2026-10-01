@@ -1,0 +1,51 @@
+{
+  "defined_symbols": 731569,
+  "target_stubs": [
+    "_CFPreferencesCopyAppValue",
+    "_mach_absolute_time",
+    "_sysctlbyname"
+  ],
+  "direct_callers": [
+    {
+      "api": "_CFPreferencesCopyAppValue",
+      "caller_symbol": "__Z16macosx_getLocalev",
+      "offset_from_symbol": 64
+    },
+    {
+      "api": "_mach_absolute_time",
+      "caller_symbol": "__ZN5tools4Time12GetUTCOffsetEv",
+      "offset_from_symbol": 56
+    },
+    {
+      "api": "_mach_absolute_time",
+      "caller_symbol": "__ZN5tools4Time14GetSystemTicksEv",
+      "offset_from_symbol": 32
+    },
+    {
+      "api": "_mach_absolute_time",
+      "caller_symbol": "__ZN5tools4Time17GetMonotonicTicksEv",
+      "offset_from_symbol": 32
+    },
+    {
+      "api": "_mach_absolute_time",
+      "caller_symbol": "__PR_Mach_GetInterval",
+      "offset_from_symbol": 12
+    },
+    {
+      "api": "_sysctlbyname",
+      "caller_symbol": "_OPENSSL_cpuid_setup",
+      "offset_from_symbol": 140
+    },
+    {
+      "api": "_sysctlbyname",
+      "caller_symbol": "_OPENSSL_cpuid_setup",
+      "offset_from_symbol": 208
+    },
+    {
+      "api": "_sysctlbyname",
+      "caller_symbol": "_OPENSSL_cpuid_setup",
+      "offset_from_symbol": 304
+    }
+  ],
+  "note": "Closest retained symbol; instruction offsets should be checked against source or link map if a symbol is stripped."
+}

@@ -1,0 +1,26 @@
+{
+  "certificate_id": "2WNN825K2B",
+  "team": "ZUB6SJFQA3",
+  "profile_name": "Tayya App Store",
+  "profile_uuid": "c305f452-f138-4d35-8d32-522ba47db989",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "expires": "2027-10-01 20:14:02",
+  "app_store_profile_verified": true,
+  "certificate_private_key_match_verified": true,
+  "api_key_id": "6VJ54U98DS",
+  "api_key_file_downloaded": false,
+  "signed_build_uploaded": false,
+  "api_key_name": "Tayya Upload CI",
+  "unavailable_api_key_ids": [
+    "WLZS657R99",
+    "6VJ54U98DS"
+  ],
+  "github_signing_secrets_verified": [
+    "APPLE_DISTRIBUTION_P12_BASE64",
+    "APPLE_DISTRIBUTION_P12_PASSWORD",
+    "APPLE_PROVISIONING_PROFILE_BASE64",
+    "ASC_ISSUER_ID"
+  ],
+  "signed_archive_verified": false,
+  "blocker": "One-time API key downloads did not produce a file or download event in the cloud browser. No further keys should be generated automatically."
+}

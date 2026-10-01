@@ -1,0 +1,82 @@
+{
+  "ipa_name": "Tayya-native-office-unsigned.ipa",
+  "ipa_bytes": 132191318,
+  "ipa_sha256": "b8229232b61ef3c03c3c166e229eb0c3e7e01052e2c46f0360f3c9ce7115bd0e",
+  "display_name": "طَيّة",
+  "version": "0.3.0",
+  "build": "7",
+  "device_families": [
+    1,
+    2
+  ],
+  "architecture": "arm64",
+  "platform": "iOS device",
+  "fonts": 184,
+  "zip_integrity_verified": true,
+  "code_signed": false,
+  "contains_provisioning_profile": false,
+  "release_debug_fixture_flags_absent": true,
+  "source_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+  "native_run": "36895436900",
+  "engine_source": "124ecf55b0f0969b7859d2f803f0bc3a0049a4dc",
+  "verified_at_utc": "2026-10-01T17:14:46.848345+00:00",
+  "code_commit": "d18cc32d4e96e19acd2534992c2557938d910654",
+  "bundle_identifier": "com.ahmadalawi.hashiya",
+  "preflight_run": 36895436984,
+  "simulator_os": "iOS 26.2",
+  "app_toolchain": "Xcode 26.2",
+  "engine_link_toolchain": "Xcode 16.4",
+  "simulator_jobs": {
+    "iPhone": 110481116320,
+    "iPad": 110481116455
+  },
+  "simulator_devices": {
+    "iPhone": "iPhone 17 Pro",
+    "iPad": "iPad Pro 13-inch (M5)"
+  },
+  "tests_per_family": {
+    "unit": 16,
+    "ui": 8,
+    "failures": 0
+  },
+  "total_tests": 48,
+  "actual_files_import_tested": [
+    "external PDF",
+    "external PPTX",
+    "app-owned PDF"
+  ],
+  "external_fixtures_native_exported": true,
+  "external_fixture_sha256_verified_on_both_families": true,
+  "native_build_run": 36895436900,
+  "native_job": 110481115971,
+  "same_source_preflight_gate_passed": true,
+  "native_artifact_id": 11180730113,
+  "artifact_zip_sha256": "350424abea67fe89471c3e51347fee293ab120ad454b8b8ac5afd1ee7ee00493",
+  "diagnostics_artifacts": {
+    "iPhone": 11180406161,
+    "iPad": 11180450001
+  },
+  "screenshots_reviewed_on_both_families": [
+    "native Files PDF/PPTX/app-owned picker",
+    "library",
+    "Office conversion prompt",
+    "touch ink"
+  ],
+  "resources_verified": [
+    "fundamentalrc",
+    "services.rdb",
+    "services/services.rdb",
+    "udkapi.rdb",
+    "offapi.rdb",
+    "184 bundled fonts",
+    "OfficeEngineNotices/engine-manifest.json"
+  ],
+  "codesign_verify_exit": 1,
+  "installation": "Unsigned. Requires external re-signing with a valid certificate and provisioning profile; not directly installable.",
+  "office_conversion_device_runtime_tested": false,
+  "new_release_files_import_on_physical_device_tested": false,
+  "apple_pencil_hardware_tested": false,
+  "physical_device_prior_feedback": "User reported Office-to-PDF conversion working in 0.2.4 (6), but Files selection regressed. New release still requires physical-device feedback.",
+  "quick_look_rendering_limitation": "Office UI navigation and embedded media tests passed; captured OfficePreview screenshots show Quick Look Loading. These tests do not establish final preview rendering or native-engine conversion on a physical device.",
+  "published_to_testflight_or_app_store": false
+}

@@ -43,7 +43,7 @@ struct LibraryScreen: View {
                             VStack(alignment: .leading, spacing: 0) {
                                 NavigationLink {
                                     if note.file.lowercased().hasSuffix(".pdf") { DocumentScreen(note: note, root: store.root) }
-                                    else { OfficeDocumentScreen(note: note, root: store.root) }
+                                    else { OfficeDocumentScreen(note: note, store: store) }
                                 } label: {
                                     VStack(alignment: .leading, spacing: 14) {
                                         Image(systemName: note.favorite ? "star.fill" : "book.closed").font(.system(size: 32)).padding(.bottom, 10)

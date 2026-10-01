@@ -84,16 +84,49 @@ struct OfficePreview: UIViewControllerRepresentable {
 }
 struct OfficeDocumentScreen: View {
     let note: Notebook
-    let root: URL
+    @ObservedObject var store: LibraryStore
+    private var root: URL { store.root }
     @State private var showMedia = false
+    @State private var converting = false
+    @State private var conversionError: String?
+    @State private var converted: Notebook?
+    @State private var showConverted = false
     var body: some View {
         VStack(spacing: 0) {
-            Text("معاينة Office تجريبية · الأصل محفوظ · التعليق على Office غير متاح بعد")
+            Text(OfficeConversion.available
+                 ? "الأصل محفوظ · أنشئ نسخة PDF ثابتة للقلم والنص · التحويل المحلي تجريبي"
+                 : "معاينة Office تجريبية · الأصل محفوظ · التعليق على Office غير متاح بعد")
                 .font(.caption).foregroundStyle(.secondary).padding(10)
+            if converting { ProgressView("إنشاء نسخة PDF…").padding(8) }
             OfficePreview(url: root.appendingPathComponent(note.file))
         }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
-            .toolbar { Button("وسائط الملف", systemImage: "play.rectangle") { showMedia = true }.accessibilityIdentifier("officeMedia") }
+            .toolbar {
+                Button("وسائط الملف", systemImage: "play.rectangle") { showMedia = true }.accessibilityIdentifier("officeMedia")
+                if OfficeConversion.available {
+                    Button("نسخة PDF للقلم", systemImage: "doc.badge.plus") { convert() }
+                        .disabled(converting).accessibilityIdentifier("convertOfficePDF")
+                }
+            }
             .sheet(isPresented: $showMedia) { OfficeMediaScreen(source: root.appendingPathComponent(note.file)) }
+            .navigationDestination(isPresented: $showConverted) {
+                if let converted { DocumentScreen(note: converted, root: root) }
+            }
+            .alert("تعذّر تحويل المستند", isPresented: Binding(get: { conversionError != nil }, set: { if !$0 { conversionError = nil } })) {
+                Button("حسناً") { conversionError = nil }
+            } message: { Text(conversionError ?? "") }
+    }
+    private func convert() {
+        guard !converting else { return }
+        converting = true
+        Task { @MainActor in
+            defer { converting = false }
+            do {
+                let pdf = try await OfficeConversion.convert(root.appendingPathComponent(note.file))
+                defer { try? FileManager.default.removeItem(at: pdf.deletingLastPathComponent()) }
+                converted = try await store.importDocumentAsync(pdf, title: note.title + " — PDF", section: note.section)
+                showConverted = converted != nil
+            } catch { conversionError = error.localizedDescription }
+        }
     }
 }
 final class MediaSession: ObservableObject {

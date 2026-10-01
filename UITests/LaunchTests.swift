@@ -56,6 +56,16 @@ final class LaunchTests: XCTestCase {
         let file = app.cells.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: file)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 25), .completed, app.debugDescription)
+        // Use Files' real list mode: row actions stay stable while thumbnails
+        // finish rendering. This still selects through UIDocumentPicker.
+        let icons = app.buttons["DOC.itemCollectionMenuButton.Icons"]
+        let viewOptions = icons.exists ? icons : app.buttons["More"].firstMatch
+        XCTAssertTrue(viewOptions.waitForExistence(timeout: 5), app.debugDescription)
+        viewOptions.tap()
+        let list = app.buttons["List"].firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 5), app.debugDescription)
+        list.tap()
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
         let pickerShot = XCTAttachment(screenshot: app.screenshot())
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways

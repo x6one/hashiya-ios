@@ -24,10 +24,9 @@ struct LibraryScreen: View {
             .tint(TayyaTheme.ink).environment(\.layoutDirection, .rightToLeft)
             // Keep the importer's host outside the forced Arabic content layout.
             // Files owns its localization and presentation lifecycle.
-            .fileImporter(isPresented: $importing, allowedContentTypes: DocumentPicker.contentTypes,
-                          allowsMultipleSelection: true) { result in
+            .fileImporter(isPresented: $importing, allowedContentTypes: DocumentPicker.contentTypes) { result in
                 switch result {
-                case .success(let urls): finishPicking(urls)
+                case .success(let url): finishPicking([url])
                 case .failure(let error): importMessage = "لم يتم الاستيراد: " + error.localizedDescription
                 }
             }

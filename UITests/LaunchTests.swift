@@ -89,19 +89,14 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(file.isEnabled, "Files must permit this document type")
         // The provider is a remote UI process. Use its observed thumbnail frame
         // in screen coordinates instead of its synthesized accessibility hit
-        // point. The tap still goes through the real Files picker and delegate.
+        // point. The tap still goes through the real Files picker and callback.
         let thumbnail = file.images.firstMatch
         let frame = thumbnail.exists ? thumbnail.frame : file.frame
         let target = XCTAttachment(string: "File frame: \(file.frame); tap frame: \(frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
-        // Copy-mode multi-selection uses Files' explicit final action.
-        let open = app.buttons["Open"].firstMatch
-        guard open.waitForExistence(timeout: 10), open.isEnabled else {
-            XCTFail("Files must enable Open after selection: " + app.debugDescription); return
-        }
-        open.tap()
+        // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts["importStatus"]
         let completed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             status.exists && (status.label.contains("تم استيراد") || status.label.contains("لم يتم الاستيراد"))

@@ -21,16 +21,18 @@ final class LaunchTests: XCTestCase {
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
         let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Tayya-test-files")).firstMatch
         if !folder.exists {
-            // The sidebar's More menu edits locations. Create the folder
-            // from the content navigation bar on both device families.
-            let toolbar = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-            let more = toolbar.buttons.matching(NSPredicate(format: "identifier == %@ OR identifier BEGINSWITH %@ OR label == %@",
-                "OverflowBarButtonItem", "DOC.itemCollectionMenuButton.", "More")).firstMatch
-            guard more.waitForExistence(timeout: 15) else {
-                XCTFail("Files content menu did not load: " + app.debugDescription); return false
-            }
-            more.tap()
+            // The iPad export bar exposes New Folder directly. On compact
+            // layouts it belongs to the content menu, not sidebar More.
             let newFolder = app.buttons["New Folder"].firstMatch
+            if !newFolder.exists {
+                let toolbar = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
+                let more = toolbar.buttons.matching(NSPredicate(format: "identifier == %@ OR identifier BEGINSWITH %@ OR label == %@",
+                    "OverflowBarButtonItem", "DOC.itemCollectionMenuButton.", "More")).firstMatch
+                guard more.waitForExistence(timeout: 15) else {
+                    XCTFail("Files content menu did not load: " + app.debugDescription); return false
+                }
+                more.tap()
+            }
             guard newFolder.waitForExistence(timeout: 10) else { XCTFail(app.debugDescription); return false }
             newFolder.tap()
             // iOS 26 creates the folder immediately, with its name selected

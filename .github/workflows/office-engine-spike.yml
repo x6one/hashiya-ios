@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main, 'work/native-link-probe']
-    paths: ['App/**', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
+    paths: ['App/**', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'Tools/select_app_xcode.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
 permissions:
   contents: read
   actions: read
@@ -94,6 +94,9 @@ jobs:
         working-directory: hashiya-tools
         run: |
           set -o pipefail
+          # Reuse the pinned engine toolchain/cache, then compile the app and
+          # link against the same current SDK used by simulator verification.
+          python3 Tools/select_app_xcode.py
           python3 Tools/prepare_native_office_app.py ../OfficeEngineCandidate ../diagnostics/link-probe project.yml
           xcodegen generate --spec NativeOfficeProject.yml
           xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath NativeDeviceBuild CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../diagnostics/native-app-build.log

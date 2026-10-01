@@ -19,6 +19,8 @@ jobs:
         family: [iPhone, iPad]
     steps:
       - uses: actions/checkout@v4
+      - name: Select current app toolchain
+        run: python3 Tools/select_app_xcode.py
       - name: Generate Xcode project
         run: |
           brew install xcodegen
@@ -73,6 +75,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Select current app toolchain
+        run: python3 Tools/select_app_xcode.py
       - name: Generate project
         run: |
           brew install xcodegen

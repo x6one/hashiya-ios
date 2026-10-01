@@ -18,7 +18,7 @@ def fetch(path):
 
 def require():
     sha = os.environ["GITHUB_SHA"]
-    for _ in range(60):
+    for _ in range(120):
         runs = fetch("actions/runs?head_sha=" + sha + "&event=push&per_page=30")["workflow_runs"]
         matching = [r for r in runs if r["head_sha"] == sha and r["name"] == "iPhone and iPad preflight"]
         if matching:

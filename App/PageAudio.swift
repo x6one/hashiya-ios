@@ -18,7 +18,7 @@ import AVFoundation
     }
     func start() async {
         let allowed = await withCheckedContinuation { continuation in AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) } }
-        guard allowed else { error = "اسمح لحاشية باستخدام الميكروفون من إعدادات الجهاز."; return }
+        guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
         do {
             player?.stop(); playing = nil
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])

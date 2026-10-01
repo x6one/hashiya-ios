@@ -109,12 +109,12 @@ struct OfficeDocumentScreen: View {
                 if OfficeConversion.available {
                     Button(action: convert) {
                         HStack {
-                            if converting { ProgressView().tint(.white) }
+                            if converting { ProgressView().tint(TayyaTheme.paper) }
                             Text(converting ? "جارٍ التحويل…" : "تحويل إلى PDF والكتابة")
                             Spacer(minLength: 8)
                             Image(systemName: "arrow.left")
                         }.padding(.vertical, 8)
-                    }.buttonStyle(.borderedProminent).disabled(converting)
+                    }.buttonStyle(.borderedProminent).foregroundStyle(TayyaTheme.paper).disabled(converting)
                         .accessibilityIdentifier("convertOfficePDF")
                     Text("يستبدل الملف في مكتبتك. الأصل في تطبيق الملفات يبقى محفوظًا.")
                         .font(.caption).foregroundStyle(.secondary)

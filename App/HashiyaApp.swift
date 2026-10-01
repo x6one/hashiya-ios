@@ -15,6 +15,17 @@ import ZIPFoundation
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {
             try? store.importDocument(source, title: "ملف Office للاختبار")
         }
+        if ProcessInfo.processInfo.arguments.contains("--test-file-picker") {
+            for (name, ext, targetName) in [("english", "pdf", "Picker-fixture.pdf"), ("office-demo", "pptx", "Picker-office.pptx")] {
+                guard let source = Bundle.main.url(forResource: name, withExtension: ext) else { continue }
+                let target = store.root.appendingPathComponent(targetName)
+                guard !FileManager.default.fileExists(atPath: target.path) else { continue }
+                var coordinationError: NSError?
+                NSFileCoordinator().coordinate(writingItemAt: target, options: [], error: &coordinationError) { destination in
+                    try? FileManager.default.copyItem(at: source, to: destination)
+                }
+            }
+        }
         #else
         let store = LibraryStore(seedDemo: false)
         #endif

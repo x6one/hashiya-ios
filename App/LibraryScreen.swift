@@ -90,16 +90,6 @@ struct LibraryScreen: View {
                     Button("إدارة الأقسام") { managing = true }
                     Button("إلغاء", role: .cancel) {}
                 }
-                .sheet(isPresented: $importing) {
-                    DocumentPicker(directory: pickerDirectory, completed: { urls in
-                        finishPicking(urls)
-                        importing = false
-                    }, cancelled: { importing = false })
-                    // The remote Files UI manages its own localization. Do not
-                    // mirror its UIKit host with our forced Arabic app layout.
-                    .environment(\.layoutDirection, .leftToRight)
-                    .interactiveDismissDisabled()
-                }
                 .safeAreaInset(edge: .bottom) {
                     if let importMessage {
                         Text(importMessage).font(.callout).padding(12).frame(maxWidth: .infinity)
@@ -125,24 +115,15 @@ struct LibraryScreen: View {
                 .sheet(isPresented: $managing) { SectionsScreen().environmentObject(store) }
                 .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
         }.tint(TayyaTheme.ink).environment(\.layoutDirection, .rightToLeft)
-    }
-    private var pickerDirectory: URL? {
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--test-file-picker") {
-            let folder = store.root
-            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            if let source = Bundle.main.url(forResource: "english", withExtension: "pdf") {
-                let target = folder.appendingPathComponent("Picker-fixture.pdf")
-                if !FileManager.default.fileExists(atPath: target.path) { try? FileManager.default.copyItem(at: source, to: target) }
+            // Keep the importer's host outside the forced Arabic content layout.
+            // Files owns its localization and presentation lifecycle.
+            .fileImporter(isPresented: $importing, allowedContentTypes: DocumentPicker.contentTypes,
+                          allowsMultipleSelection: true) { result in
+                switch result {
+                case .success(let urls): finishPicking(urls)
+                case .failure(let error): importMessage = "لم يتم الاستيراد: " + error.localizedDescription
+                }
             }
-            if let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {
-                let target = folder.appendingPathComponent("Picker-office.pptx")
-                if !FileManager.default.fileExists(atPath: target.path) { try? FileManager.default.copyItem(at: source, to: target) }
-            }
-            return folder
-        }
-        #endif
-        return nil
     }
     private func finishPicking(_ urls: [URL]) {
         guard !importingFile, !urls.isEmpty else { return }

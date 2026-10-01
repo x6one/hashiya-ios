@@ -54,6 +54,20 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
         let file = app.cells.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+        // Browse through Files' actual provider hierarchy instead of injecting
+        // directoryURL. That shortcut can produce stale provider IDs on iOS 26.
+        if !file.exists {
+            let browse = app.buttons["Browse"].firstMatch
+            if browse.waitForExistence(timeout: 10) { browse.tap() }
+            let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
+            guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
+            let locationFrame = location.frame
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
+            let folder = app.cells.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "طَيّة", "Hashiya")).firstMatch
+            guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
+            let folderFrame = folder.frame
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: folderFrame.midX, dy: folderFrame.midY)).tap()
+        }
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: file)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 25), .completed, app.debugDescription)
         // Use Files' real list mode: row actions stay stable while thumbnails
@@ -92,7 +106,9 @@ final class LaunchTests: XCTestCase {
         let completed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             status.exists && (status.label.contains("تم استيراد") || status.label.contains("لم يتم الاستيراد"))
         }, object: status)
-        XCTAssertEqual(XCTWaiter.wait(for: [completed], timeout: 25), .completed, app.debugDescription)
+        guard XCTWaiter.wait(for: [completed], timeout: 25) == .completed else {
+            XCTFail("Files did not deliver the selected document: " + app.debugDescription); return
+        }
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)
         let card = app.staticTexts[name].firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))

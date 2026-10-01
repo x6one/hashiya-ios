@@ -87,7 +87,7 @@ struct PageText: Codable, Identifiable {
     }
     func export() {
         guard let first = document.page(at: 0) else { return }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Hashiya-" + UUID().uuidString + ".pdf")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Tayya-" + UUID().uuidString + ".pdf")
         let renderer = UIGraphicsPDFRenderer(bounds: first.bounds(for: .mediaBox))
         do {
             try renderer.writePDF(to: url) { context in

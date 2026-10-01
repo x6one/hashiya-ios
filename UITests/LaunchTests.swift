@@ -40,13 +40,17 @@ final class LaunchTests: XCTestCase {
             let name = app.textViews["DOC.inlineRenameField"]
             guard name.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
             name.typeText("Tayya-test-files")
-            let done = app.buttons["Done"].firstMatch
-            let returnKey = app.buttons["Return"].firstMatch
-            if done.exists { done.tap() }
-            else if returnKey.exists { returnKey.tap() }
-            else { name.typeText("\n") }
+            // The recording and synthesized event confirm that Done was
+            // tapped at its real frame, yet the field remained focused.
+            // Commit by tapping the observed empty space beside/below it.
+            let contents = app.collectionViews["File View"].frame
+            let field = name.frame
+            let target = CGPoint(x: contents.maxX - 24, y: min(field.maxY + 24, contents.maxY - 24))
+            XCTAssertTrue(contents.contains(target))
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: target.x, dy: target.y)).tap()
             let committed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: name)
-            guard XCTWaiter.wait(for: [committed], timeout: 15) == .completed else {
+            guard XCTWaiter.wait(for: [committed], timeout: 30) == .completed else {
                 XCTFail("Files did not commit the folder name: " + app.debugDescription); return false
             }
         }
@@ -65,9 +69,8 @@ final class LaunchTests: XCTestCase {
         }
         save.tap()
         let status = app.staticTexts["fixtureExportStatus"]
-        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            status.exists && status.label == "Fixtures exported"
-        }, object: status)
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format:
+            "exists == true AND label == %@", "Fixtures exported"), object: status)
         guard XCTWaiter.wait(for: [saved], timeout: 25) == .completed else {
             XCTFail("Files export did not complete: " + app.debugDescription); return false
         }
@@ -203,10 +206,12 @@ final class LaunchTests: XCTestCase {
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts["importStatus"]
-        let completed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            status.exists && (status.label.contains("تم استيراد") || status.label.contains("لم يتم الاستيراد"))
-        }, object: status)
-        guard XCTWaiter.wait(for: [completed], timeout: 25) == .completed else {
+        // One native predicate avoids repeated cross-process snapshots from
+        // a block predicate; the failure hierarchy showed success already.
+        let completed = XCTNSPredicateExpectation(predicate: NSPredicate(format:
+            "exists == true AND (label CONTAINS %@ OR label CONTAINS %@)",
+            "تم استيراد", "لم يتم الاستيراد"), object: status)
+        guard XCTWaiter.wait(for: [completed], timeout: 60) == .completed else {
             XCTFail("Files did not deliver the selected document: " + app.debugDescription); return
         }
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)

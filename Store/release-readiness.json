@@ -1,5 +1,11 @@
 {
-  "privacy_audit_complete": false,
-  "encryption_classification_complete": false,
-  "note": "Do not set these gates true until the native engine API usage and encryption classification are documented and included in the source that CI builds."
+  "privacy_audit_complete": true,
+  "encryption_classification_complete": true,
+  "audited_app_source": "52705ef6685ee1ee9afc0c8a67ce8b319469d216",
+  "audit": "Store/release-audit-2026-10-02.md",
+  "encryption": "Standard third-party encryption; truthful Apple questionnaire required",
+  "excluded_territories": [
+    "FRA"
+  ],
+  "note": "Initial release excludes France by explicit user choice. No assertion of no encryption, OS-only crypto, complete offline operation, or Apple approval."
 }

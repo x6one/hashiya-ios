@@ -1,0 +1,32 @@
+{
+  "version": "0.3.0",
+  "build": 7,
+  "source_commit": "505e814674f69607e7af30103b237317e59ba689",
+  "preflight_run": 36941698333,
+  "test_results": {
+    "iPhone": {
+      "unit": 16,
+      "ui": 8,
+      "failures": 0
+    },
+    "iPad": {
+      "unit": 16,
+      "ui": 8,
+      "failures": 0
+    }
+  },
+  "external_files": {
+    "native_picker_pdf": true,
+    "native_picker_powerpoint": true,
+    "exported_fixture_bytes_verified": true
+  },
+  "fixture_setup": "Each external fixture is exported through native Files immediately before its matching import test. No test was removed or skipped.",
+  "scope": "Simulator checks; physical device testing and native Office conversion remain separate.",
+  "native_engine_build_run": 36941698537,
+  "native_engine_build": "passed",
+  "signed_archive_run": 36942394227,
+  "signed_archive": "failed_before_archive",
+  "apple_upload": "not_uploaded",
+  "app_review": "not_submitted",
+  "signing_failure": "Distribution identity import failed; a separate PEM import is being verified."
+}

@@ -46,5 +46,41 @@
     "source_attachment": "2FB81C4A-319C-4552-B1CD-7A2E810064E9.png",
     "device": "iPad Pro 13-inch (M5)",
     "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPhone-6.9/Document.png",
+    "source_run": 36941698333,
+    "source_commit": "505e814674f69607e7af30103b237317e59ba689",
+    "source_attachment": "6C931297-57AE-4023-BBC1-705DC58E7CC6.png",
+    "device": "iPhone 17 Pro Max",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPhone-6.9/TextAnnotation.png",
+    "source_run": 36941698333,
+    "source_commit": "505e814674f69607e7af30103b237317e59ba689",
+    "source_attachment": "DBA42226-44DE-4CCF-8521-1A8F3174BBDF.png",
+    "device": "iPhone 17 Pro Max",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "ui_modified": false
+  },
+  {
+    "file": "Store/Screenshots/iPhone-6.9/TouchInk.png",
+    "source_run": 36941698333,
+    "source_commit": "505e814674f69607e7af30103b237317e59ba689",
+    "source_attachment": "0B3469BE-79D9-46E1-B4A2-295FD1F21057.png",
+    "device": "iPhone 17 Pro Max",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "ui_modified": false
   }
 ]

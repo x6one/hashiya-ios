@@ -110,8 +110,34 @@ def main():
             run(["security", "create-keychain", "-p", password, str(keychain)], "Create ephemeral keychain", capture=True)
             run(["security", "set-keychain-settings", "-lut", "21600", str(keychain)], "Configure keychain", capture=True)
             run(["security", "unlock-keychain", "-p", password, str(keychain)], "Unlock keychain", capture=True)
-            run(["security", "import", str(p12), "-P", os.environ[required[1]], "-k", str(keychain),
-                 "-T", "/usr/bin/codesign", "-T", "/usr/bin/security"], "Import distribution identity", capture=True)
+            # Keep the stored PKCS12 encrypted with modern algorithms. Apple's
+            # failed to import this container; decode it with OpenSSL 3 instead.
+            # Decrypt only inside this private, per-run directory and import
+            # the RSA key and certificate separately into the unlocked keychain.
+            openssl = Path(run(["brew", "--prefix", "openssl@3"],
+                               "Locate OpenSSL 3", capture=True).decode().strip()) / "bin/openssl"
+            if not openssl.is_file():
+                raise RuntimeError("OpenSSL 3 is required to decode the signing container")
+            decoded_key = private / "decoded-key.pem"
+            signing_key = private / "signing-key.pem"
+            signing_certificate = private / "signing-certificate.pem"
+            for path in [decoded_key, signing_key, signing_certificate]:
+                write_private(path, b"")
+            import_env = {**os.environ, "TAYYA_P12_IMPORT_PASSWORD": os.environ[required[1]]}
+            run([str(openssl), "pkcs12", "-in", str(p12), "-passin", "env:TAYYA_P12_IMPORT_PASSWORD",
+                 "-nocerts", "-noenc", "-out", str(decoded_key)],
+                "Decode encrypted signing key", capture=True, env=import_env)
+            run([str(openssl), "pkey", "-in", str(decoded_key), "-traditional", "-out", str(signing_key)],
+                "Prepare Keychain-compatible RSA key", capture=True)
+            run([str(openssl), "pkcs12", "-in", str(p12), "-passin", "env:TAYYA_P12_IMPORT_PASSWORD",
+                 "-clcerts", "-nokeys", "-out", str(signing_certificate)],
+                "Decode signing certificate", capture=True, env=import_env)
+            for path in [signing_key, signing_certificate]:
+                run(["security", "import", str(path), "-k", str(keychain),
+                     "-T", "/usr/bin/codesign", "-T", "/usr/bin/security"],
+                    "Import distribution identity component", capture=True)
+            for path in [decoded_key, signing_key, signing_certificate]:
+                path.unlink()
             run(["security", "set-key-partition-list", "-S", "apple-tool:,apple:,codesign:", "-s", "-k", password,
                  str(keychain)], "Allow signing tools in ephemeral keychain", capture=True)
             run(["security", "list-keychains", "-d", "user", "-s", str(keychain), *original_keychains], "Set runner keychain list", capture=True)

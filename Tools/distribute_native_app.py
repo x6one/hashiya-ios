@@ -145,11 +145,26 @@ def main():
                              "Check matching private key", capture=True).decode()
             if identity not in identities:
                 raise RuntimeError("The certificate private key does not match the App Store profile")
+            # Command-line signing overrides affect every target, including
+            # Swift package resource bundles that cannot use a provisioning
+            # profile. Scope these settings to the application in the generated
+            # native project, preserving its engine sources and resource script.
+            native_spec = json.loads(Path("NativeOfficeProject.yml").read_text())
+            app_settings = native_spec["targets"]["Hashiya"]["settings"]["base"]
+            app_settings.update({"CODE_SIGN_STYLE": "Manual", "DEVELOPMENT_TEAM": TEAM,
+                                 "CODE_SIGN_IDENTITY": identity,
+                                 "PROVISIONING_PROFILE_SPECIFIER": profile_uuid})
+            signing_spec = Path("NativeOfficeSigningProject.yml")
+            try:
+                write_private(signing_spec, (json.dumps(native_spec, indent=2) + "\n").encode())
+                run(["xcodegen", "generate", "--spec", str(signing_spec)],
+                    "Generate app-target signing settings", capture=True)
+            finally:
+                signing_spec.unlink(missing_ok=True)
             archive = output / "Tayya.xcarchive"
             run(["xcodebuild", "-project", "Hashiya.xcodeproj", "-scheme", "Hashiya", "-configuration", "Release",
                  "-sdk", "iphoneos", "-destination", "generic/platform=iOS", "-archivePath", str(archive),
-                 "CODE_SIGN_STYLE=Manual", "DEVELOPMENT_TEAM=" + TEAM, "CODE_SIGN_IDENTITY=" + identity,
-                 "PROVISIONING_PROFILE_SPECIFIER=" + profile_uuid, "archive"], "Archive native Office app")
+                 "-derivedDataPath", "NativeDeviceBuild", "archive"], "Archive native Office app")
             options = private / "ExportOptions.plist"
             write_private(options, plistlib.dumps({"method": "app-store-connect", "destination": "export",
                 "teamID": TEAM, "signingStyle": "manual", "signingCertificate": identity,

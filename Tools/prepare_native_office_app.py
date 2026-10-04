@@ -40,8 +40,8 @@ def prepare(candidate: Path, report: Path, project: Path) -> Path:
             + 'if [ -d ' + quoted(candidate / "notices") + ' ]; then cp -R ' + quoted(candidate / "notices")
             + '/. "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/OfficeEngineNotices/"; fi\n',
         "basedOnDependencyAnalysis": False}]
-    spec["settings"]["base"]["MARKETING_VERSION"] = "0.3.0"
-    spec["settings"]["base"]["CURRENT_PROJECT_VERSION"] = "7"
+    # The app's canonical project owns release numbering. Engine preparation
+    # must not silently replace it with an earlier, already uploaded release.
     output = project.with_name("NativeOfficeProject.yml")
     output.write_text(json.dumps(spec, indent=2) + "\n")
     return output

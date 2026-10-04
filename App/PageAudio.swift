@@ -6,18 +6,24 @@ import AVFoundation
     @Published var recording = false
     @Published var playing: URL?
     @Published var error: String?
+    @Published var markers: [AudioLink] = []
     let folder: URL
-    private var recorder: AVAudioRecorder?
+    var recorder: AVAudioRecorder?
+    private var generation = 0
     private var player: AVAudioPlayer?
     init(folder: URL) { self.folder = folder; reload() }
     func reload() {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            markers = loadLinks()
             clips = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey]).filter { $0.pathExtension == "m4a" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
         } catch { self.error = error.localizedDescription }
     }
     func start() async {
+        guard !recording else { return }
+        generation += 1; let token = generation
         let allowed = await withCheckedContinuation { continuation in AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) } }
+        guard token == generation else { return }
         guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
         do {
             player?.stop(); playing = nil
@@ -30,17 +36,18 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func stop() {
+        generation += 1
         recorder?.stop(); recorder = nil; recording = false
         player?.stop(); playing = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         reload()
     }
-    func play(_ url: URL) {
-        if playing == url { player?.stop(); playing = nil; return }
+    func play(_ url: URL, at time: TimeInterval = 0) {
+        if playing == url && time == 0 { player?.stop(); playing = nil; return }
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback)
             try AVAudioSession.sharedInstance().setActive(true)
-            player = try AVAudioPlayer(contentsOf: url); player?.play(); playing = url
+            player = try AVAudioPlayer(contentsOf: url); player?.currentTime = time; player?.play(); playing = url
         } catch { self.error = error.localizedDescription }
     }
     func delete(_ url: URL) {

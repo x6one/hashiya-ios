@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
+import yaml
 
 TEAM = "ZUB6SJFQA3"
 BUNDLE = "com.ahmadalawi.hashiya"
@@ -33,6 +34,31 @@ def run(args, operation, *, capture=False, env=None):
 def write_private(path, data):
     path.write_bytes(data)
     path.chmod(0o600)
+
+
+def run_apple(args, operation, *, env):
+    # Some altool versions return zero even when the server rejects a package.
+    # Require Apple's structured success response before reporting acceptance.
+    result = subprocess.run([*args, "--output-format", "xml"], capture_output=True, env=env)
+    try:
+        response = plistlib.loads(result.stdout)
+    except (plistlib.InvalidFileException, ValueError):
+        raise RuntimeError(f"{operation}: no valid Apple response") from None
+    if (result.returncode or not isinstance(response, dict)
+            or response.get("product-errors")
+            or re.search(rb"\bERROR:", result.stderr, re.IGNORECASE)
+            or not response.get("success-message")):
+        # Never echo command arguments or raw output containing auth details.
+        raise RuntimeError(f"{operation}: Apple did not confirm success")
+    print(f"{operation}: Apple confirmed success", flush=True)
+
+
+def validate_release_version(info, spec):
+    settings = spec["settings"]["base"]
+    for info_key, setting_key in [("CFBundleShortVersionString", "MARKETING_VERSION"),
+                                  ("CFBundleVersion", "CURRENT_PROJECT_VERSION")]:
+        if str(info.get(info_key)) != str(settings[setting_key]):
+            raise RuntimeError(f"Exported {info_key} differs from project.yml")
 
 
 def validate_resources(app):
@@ -65,6 +91,8 @@ def main():
         raise RuntimeError("Invalid App Store Connect key ID")
     unsigned_app = Path("NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app")
     validate_resources(unsigned_app)
+    canonical_spec = yaml.safe_load(Path("project.yml").read_text())
+    validate_release_version(plistlib.loads((unsigned_app / "Info.plist").read_bytes()), canonical_spec)
     output = Path("../AppleDistribution").resolve()
     output.mkdir(exist_ok=False)
     original_keychains = run(["security", "list-keychains", "-d", "user"],
@@ -184,6 +212,7 @@ def main():
             app = apps[0]
             validate_resources(app)
             info = plistlib.loads((app / "Info.plist").read_bytes())
+            validate_release_version(info, canonical_spec)
             if info["CFBundleIdentifier"] != BUNDLE or sorted(info["UIDeviceFamily"]) != [1, 2]:
                 raise RuntimeError("Signed app identity or device families do not match")
             if not (app / "embedded.mobileprovision").is_file():
@@ -214,9 +243,9 @@ def main():
                           base64.b64decode(os.environ["ASC_PRIVATE_KEY_BASE64"], validate=True))
             upload_env = {**os.environ, "API_PRIVATE_KEYS_DIR": str(api_directory)}
             auth = ["--apiKey", os.environ["ASC_KEY_ID"], "--apiIssuer", os.environ["ASC_ISSUER_ID"]]
-            run(["xcrun", "altool", "--validate-app", "-f", str(ipas[0]), "-t", "ios", *auth],
+            run_apple(["xcrun", "altool", "--validate-app", "-f", str(ipas[0]), "-t", "ios", *auth],
                 "Validate with App Store Connect", env=upload_env)
-            run(["xcrun", "altool", "--upload-app", "-f", str(ipas[0]), "-t", "ios", *auth],
+            run_apple(["xcrun", "altool", "--upload-app", "-f", str(ipas[0]), "-t", "ios", *auth],
                 "Upload to App Store Connect", env=upload_env)
             report["upload_accepted"] = True
             report_path.write_text(json.dumps(report, indent=2) + "\n")

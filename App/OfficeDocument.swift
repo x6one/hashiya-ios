@@ -86,10 +86,11 @@ struct OfficePreview: UIViewControllerRepresentable {
 struct NotebookScreen: View {
     let id: UUID
     @ObservedObject var store: LibraryStore
+    var initialPage: Int? = nil
     var body: some View {
         if let note = store.notebooks.first(where: { $0.id == id }) {
             if (note.file as NSString).pathExtension.lowercased() == "pdf" {
-                DocumentScreen(note: note, root: store.root)
+                DocumentScreen(note: note, root: store.root, initialPage: initialPage)
             } else { OfficeDocumentScreen(note: note, store: store) }
         } else { ContentUnavailableView("الملف غير موجود", systemImage: "doc.questionmark") }
     }
@@ -116,7 +117,7 @@ struct OfficeDocumentScreen: View {
                         }.padding(.vertical, 8)
                     }.buttonStyle(.borderedProminent).foregroundStyle(TayyaTheme.paper).disabled(converting)
                         .accessibilityIdentifier("convertOfficePDF")
-                    Text("يستبدل الملف في مكتبتك. الأصل في تطبيق الملفات يبقى محفوظًا.")
+                    Text("ينشئ نسخة للكتابة ويحفظ أصل Office داخل مكتبتك.")
                         .font(.caption).foregroundStyle(.secondary)
                 } else {
                     Text("التحويل المحلي متاح في نسخة الجهاز المزوّدة بمحرك Office.")

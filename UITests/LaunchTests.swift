@@ -80,7 +80,7 @@ final class LaunchTests: XCTestCase {
     }
 
     private func visibleLibraryDocument(_ title: String, in app: XCUIApplication) -> XCUIElement {
-        XCTAssertTrue(app.buttons["libraryMenu"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 15))
         let document = app.staticTexts[title].firstMatch
         // Imports add real cards. LazyVGrid instantiates visible rows only;
         // reach the document through the same scrolling a user performs.
@@ -191,14 +191,14 @@ final class LaunchTests: XCTestCase {
         let create = app.buttons["createNotebook"]
         XCTAssertTrue(create.waitForExistence(timeout: 15))
         create.tap()
-        app.alerts.buttons["إنشاء"].tap()
+        app.buttons["إنشاء"].tap()
         XCTAssertTrue(app.staticTexts["دفتر جديد"].firstMatch.waitForExistence(timeout: 10))
     }
 
     func testLibraryLaunchAndDocumentOpen() {
         let app = XCUIApplication()
         app.launch()
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["librarySections"])
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
@@ -253,7 +253,7 @@ final class LaunchTests: XCTestCase {
     func testPageJumpAndTextEditor() {
         let app = XCUIApplication()
         app.launch()
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["libraryMenu"])
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: app.buttons["librarySections"])
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let demo = visibleLibraryDocument("ملف التجربة", in: app)
         XCTAssertTrue(demo.waitForExistence(timeout: 15))
@@ -279,5 +279,21 @@ final class LaunchTests: XCTestCase {
         screenshot.name = "TextAnnotation"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+    func testVisibleSectionsTrashAndSplitNotes() {
+        let app = XCUIApplication(); app.launch()
+        let sections = app.buttons["librarySections"]
+        XCTAssertTrue(sections.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["libraryTrash"].exists)
+        sections.tap()
+        XCTAssertTrue(app.navigationBars["الأقسام"].waitForExistence(timeout: 5))
+        app.buttons["تم"].tap()
+        let library = XCTAttachment(screenshot: app.screenshot()); library.name = "VisibleLibraryNavigation"; library.lifetime = .keepAlways; add(library)
+        let demo = visibleLibraryDocument("ملف التجربة", in: app)
+        XCTAssertTrue(demo.waitForExistence(timeout: 10)); demo.tap()
+        app.buttons["documentTools"].tap()
+        app.buttons["المستند والحاشية معًا"].tap()
+        XCTAssertTrue(app.textViews["splitNotes"].waitForExistence(timeout: 5))
+        let split = XCTAttachment(screenshot: app.screenshot()); split.name = "AdaptiveSplitNotes"; split.lifetime = .keepAlways; add(split)
     }
 }

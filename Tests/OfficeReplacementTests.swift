@@ -23,7 +23,8 @@ final class OfficeReplacementTests: XCTestCase {
         XCTAssertTrue(converted.favorite)
         XCTAssertEqual(store.notebooks, [converted])
         XCTAssertEqual(LibraryStore(root: root, seedDemo: false).notebooks, [converted])
-        XCTAssertFalse(fm.fileExists(atPath: root.appendingPathComponent(note.file).path))
+        XCTAssertTrue(fm.fileExists(atPath: root.appendingPathComponent(note.file).path))
+        XCTAssertEqual(converted.originalFile, note.file)
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(converted.file)), try Data(contentsOf: pdf))
         XCTAssertEqual(try Data(contentsOf: office), originalBytes)
     }

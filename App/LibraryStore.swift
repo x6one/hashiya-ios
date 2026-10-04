@@ -49,11 +49,12 @@ import ZIPFoundation
         let name = UUID().uuidString + ".pdf"
         let target = root.appendingPathComponent(name)
         try FileManager.default.moveItem(at: snapshot.url, to: target)
+        updated[index].originalFile = original.originalFile ?? original.file
         updated[index].file = name
         do { try persist(updated) }
         catch { try? FileManager.default.removeItem(at: target); throw error }
         notebooks = updated
-        try? FileManager.default.removeItem(at: root.appendingPathComponent(original.file))
+        // Keep the original Office source for preview, media, sharing and backup.
         return updated[index]
     }
     func change(_ id: UUID, _ mutation: (inout Notebook) -> Void) {
@@ -62,7 +63,7 @@ import ZIPFoundation
         mutation(&updated[i])
         do { try persist(updated); notebooks = updated } catch { self.error = error.localizedDescription }
     }
-    private func persist(_ items: [Notebook]) throws {
+    func persist(_ items: [Notebook]) throws {
         try JSONEncoder().encode(items).write(to: root.appendingPathComponent("library.json"), options: .atomic)
     }
     func addSection(_ raw: String) {
@@ -89,7 +90,7 @@ import ZIPFoundation
         var moved: [(URL, URL)] = []
         do {
             try fm.createDirectory(at: staging, withIntermediateDirectories: true)
-            for name in [note.file, note.id.uuidString, note.id.uuidString + "-margin.txt", note.id.uuidString + "-text.json", note.id.uuidString + "-audio"] {
+            for name in note.resources {
                 let original = root.appendingPathComponent(name)
                 if fm.fileExists(atPath: original.path) {
                     let target = staging.appendingPathComponent(name)
@@ -143,27 +144,17 @@ import ZIPFoundation
         } catch { try? FileManager.default.removeItem(at: target); throw error }
         return note
     }
-    func create(_ title: String, section: String? = nil) {
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 650, height: 900))
-        let data = renderer.pdfData { ctx in
-            ctx.beginPage()
-            UIColor(red: 1, green: 0.995, blue: 0.98, alpha: 1).setFill()
-            ctx.cgContext.fill(CGRect(x: 0, y: 0, width: 650, height: 900))
-            UIColor.systemGray5.setStroke()
-            for y in stride(from: 70, through: 850, by: 30) { ctx.cgContext.move(to: CGPoint(x: 40, y: CGFloat(y))); ctx.cgContext.addLine(to: CGPoint(x: 610, y: CGFloat(y))) }
-            ctx.cgContext.strokePath()
-        }
+    func create(_ title: String, section: String? = nil, template: PaperTemplate = .ruled, color: PaperColor = .cream) {
         do {
             let name = UUID().uuidString + ".pdf"
             let url = root.appendingPathComponent(name)
-            try data.write(to: url, options: .atomic)
+            try template.render(color: color).write(to: url, options: .atomic)
             var note = Notebook(title: title, file: name)
             note.section = section.flatMap { sections.contains($0) ? $0 : nil } ?? "مكتبتي"
             var updated = notebooks
             updated.insert(note, at: 0)
             do { try persist(updated); notebooks = updated }
             catch { try? FileManager.default.removeItem(at: url); throw error }
-        }
-        catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
 }

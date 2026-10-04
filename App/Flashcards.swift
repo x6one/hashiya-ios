@@ -29,8 +29,9 @@ struct Flashcard: Identifiable, Codable {
 }
 struct CardEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @State var card: Flashcard
+    @State private var card: Flashcard
     let save: (Flashcard) -> Bool
+    init(card: Flashcard, save: @escaping (Flashcard) -> Bool) { _card = State(initialValue: card); self.save = save }
     var body: some View {
         NavigationStack {
             Form {
@@ -82,9 +83,16 @@ struct LibraryCardsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var section: String? = nil
     @State private var selected: Notebook?
-    private func count(_ note: Notebook) -> Int {
-        let url = library.root.appendingPathComponent(note.id.uuidString + "-cards.json")
-        return (try? JSONDecoder().decode([Flashcard].self, from: Data(contentsOf: url)))?.count ?? 0
+    @State private var counts: [UUID: Int] = [:]
+    private func refreshCounts() async {
+        let notes = library.notebooks, root = library.root
+        counts = await Task.detached(priority: .utility) {
+            Dictionary(uniqueKeysWithValues: notes.map { note in
+                let url = root.appendingPathComponent(note.id.uuidString + "-cards.json")
+                let count = (try? JSONDecoder().decode([Flashcard].self, from: Data(contentsOf: url)))?.count ?? 0
+                return (note.id, count)
+            })
+        }.value
     }
     var body: some View {
         NavigationStack {
@@ -94,13 +102,15 @@ struct LibraryCardsScreen: View {
                     ForEach(library.sections, id: \.self) { Text($0).tag(Optional($0)) }
                 }
                 ForEach(library.notebooks.filter { !$0.trashed && (section == nil || $0.section == section) }) { note in
-                    let total = count(note)
+                    let total = counts[note.id] ?? 0
                     if total > 0 { Button { selected = note } label: {
                         HStack { VStack(alignment: .leading) { Text(note.title); Text(note.section).font(.caption).foregroundStyle(.secondary) }; Spacer(); Text("\(total) بطاقة") }
                     } }
                 }
                 Text("لإضافة بطاقة، افتح المستند وحدد نصًا ثم اختر إنشاء بطاقة من قائمة أدواته.").font(.caption).foregroundStyle(.secondary)
             }.navigationTitle("مراجعة الأقسام").toolbar { Button("تم") { dismiss() } }
+            .task(id: library.notebooks) { await refreshCounts() }
+            .onChange(of: selected) { _, value in if value == nil { Task { await refreshCounts() } } }
             .sheet(item: $selected) { note in FlashcardsScreen(url: library.root.appendingPathComponent(note.id.uuidString + "-cards.json")) }
         }.environment(\.layoutDirection, .rightToLeft)
     }

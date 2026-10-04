@@ -122,6 +122,7 @@ struct DocumentScreen: View {
     @State private var showNotes = false
     @State private var showAudio = false
     @State private var margin = ""
+    @State private var marginInk = false
     @State private var splitNotes = false
     @State private var splitFraction = 0.6
     @State private var dragFraction: Double?
@@ -140,6 +141,26 @@ struct DocumentScreen: View {
         _audio = StateObject(wrappedValue: PageAudio(folder: root.appendingPathComponent(note.id.uuidString + "-audio").appendingPathComponent("linked")))
     }
     var body: some View {
+        documentSheets
+            .onAppear {
+                margin = (try? String(contentsOf: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), encoding: .utf8)) ?? ""
+                if let initialPage { workspace.jump(initialPage) }
+                workspace.onTextSaved = { item in do { try audio.link(page: item.page + 1, textID: item.id, label: String(item.text.prefix(70))) } catch { workspace.error = error.localizedDescription } }
+                workspace.onInkSaved = { page, count in do { try audio.link(page: page + 1, strokeCount: count, label: "كتابة بخط اليد — صفحة \(page + 1)") } catch { workspace.error = error.localizedDescription } }
+                workspace.onTextTapped = { id in if !audio.recording, let marker = audio.markers.last(where: { $0.textID == id }) { audio.seek(marker) } }
+            }
+            .onDisappear { audio.stop() }
+            .onChange(of: scenePhase) { _, phase in if phase != .active { audio.stop() } }
+            .overlay(alignment: .bottom) { if ocrBusy { ProgressView("قراءة الصفحات على الجهاز…").padding().background(.regularMaterial) } }
+            .alert("قراءة الصفحات", isPresented: Binding(get: { !ocrMessage.isEmpty }, set: { if !$0 { ocrMessage = "" } })) { Button("حسنًا") { ocrMessage = "" } } message: { Text(ocrMessage) }
+            .onChange(of: margin) { _, value in
+                do {
+                    try audio.link(page: workspace.page, label: "حاشية: " + String(value.suffix(70)))
+                    try value.write(to: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), atomically: true, encoding: .utf8) } catch { workspace.error = error.localizedDescription }
+            }
+            .alert("تعذّر إكمال العملية", isPresented: Binding(get: { workspace.error != nil }, set: { if !$0 { workspace.error = nil } })) { Button("حسناً") { workspace.error = nil } } message: { Text(workspace.error ?? "") }
+    }
+    private var documentContent: some View {
         VStack(spacing: 0) {
             if workspace.tool == .ink { pageControls }
             GeometryReader { geometry in
@@ -162,7 +183,10 @@ struct DocumentScreen: View {
             if workspace.tool == .lasso { lassoControls }
             if audio.recording { Label("جارٍ التسجيل — الملاحظات مرتبطة بزمن الصوت", systemImage: "record.circle").font(.caption).foregroundStyle(.red).padding(8) }
             if workspace.tool != .ink { pageControls }
-        }.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    private var documentPresentation: some View {
+        documentContent.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button(workspace.tool == .ink ? "قراءة" : "قلم", systemImage: workspace.tool == .ink ? "hand.draw" : "pencil.tip") { workspace.tool = workspace.tool == .ink ? .read : .ink }.accessibilityIdentifier("inkTool").accessibilityValue(String(workspace.inkStrokeCount))
@@ -194,6 +218,10 @@ struct DocumentScreen: View {
                 else if pageNumber.isEmpty { pageNumber = String(workspace.page) }
             }
             .onChange(of: workspace.page) { _, page in pageNumber = String(page) }
+
+    }
+    private var documentSheets: some View {
+        documentPresentation
             .sheet(item: $cardDraft) { card in CardEditor(card: card) { updated in
                 let cards = FlashcardStore(url: cardsURL); let saved = cards.save(updated); if let error = cards.error { workspace.error = error }; return saved
             } }
@@ -212,29 +240,18 @@ struct DocumentScreen: View {
             .sheet(isPresented: Binding(get: { workspace.exported != nil }, set: { if !$0 { workspace.exported = nil } })) {
                 if let url = workspace.exported { ShareDocument(url: url) }
             }
-            .onAppear {
-                margin = (try? String(contentsOf: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), encoding: .utf8)) ?? ""
-                if let initialPage { workspace.jump(initialPage) }
-                workspace.onTextSaved = { item in do { try audio.link(page: item.page + 1, textID: item.id, label: String(item.text.prefix(70))) } catch { workspace.error = error.localizedDescription } }
-                workspace.onInkSaved = { page, count in do { try audio.link(page: page + 1, strokeCount: count, label: "كتابة بخط اليد — صفحة \(page + 1)") } catch { workspace.error = error.localizedDescription } }
-                workspace.onTextTapped = { id in if !audio.recording, let marker = audio.markers.last(where: { $0.textID == id }) { audio.seek(marker) } }
-            }
-            .onDisappear { audio.stop() }
-            .onChange(of: scenePhase) { _, phase in if phase != .active { audio.stop() } }
-            .overlay(alignment: .bottom) { if ocrBusy { ProgressView("قراءة الصفحات على الجهاز…").padding().background(.regularMaterial) } }
-            .alert("قراءة الصفحات", isPresented: Binding(get: { !ocrMessage.isEmpty }, set: { if !$0 { ocrMessage = "" } })) { Button("حسنًا") { ocrMessage = "" } } message: { Text(ocrMessage) }
-            .onChange(of: margin) { _, value in
-                do {
-                    try audio.link(page: workspace.page, label: "حاشية: " + String(value.suffix(70)))
-                    try value.write(to: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), atomically: true, encoding: .utf8) } catch { workspace.error = error.localizedDescription }
-            }
-            .alert("تعذّر إكمال العملية", isPresented: Binding(get: { workspace.error != nil }, set: { if !$0 { workspace.error = nil } })) { Button("حسناً") { workspace.error = nil } } message: { Text(workspace.error ?? "") }
+
     }
     private var cardsURL: URL { root.appendingPathComponent(note.id.uuidString + "-cards.json") }
     private var notesPane: some View {
         VStack(alignment: .leading) {
             Text("الحاشية").font(.headline).padding(.horizontal)
-            TextEditor(text: $margin).padding(8).accessibilityIdentifier("splitNotes")
+            Picker("طريقة تدوين الحاشية", selection: $marginInk) { Text("نص").tag(false); Text("خط اليد").tag(true) }.pickerStyle(.segmented).padding(.horizontal)
+            if marginInk {
+                MarginNotebook(url: root.appendingPathComponent(note.id.uuidString + "-margin.drawing"), saved: { count in
+                    do { try audio.link(page: workspace.page, strokeCount: count, label: "كتابة في دفتر الحاشية") } catch { workspace.error = error.localizedDescription }
+                }, failed: { workspace.error = $0 })
+            } else { TextEditor(text: $margin).padding(8).accessibilityIdentifier("splitNotes") }
             if !audio.markers.isEmpty {
                 ScrollView { ForEach(audio.markers.filter { $0.page == workspace.page }) { marker in
                     Button("\(Int(marker.time / 60)):\(String(format: "%02d", Int(marker.time) % 60)) — " + marker.label) { audio.seek(marker) }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
@@ -430,11 +447,14 @@ struct NativePDF: UIViewRepresentable {
         }
         func applyInkAction(_ action: String) {
             guard let canvas = canvases[workspace.page - 1] else { return }
+            if action == "copy" {
+                guard !canvas.selected.isEmpty else { return }
+                copiedInk = PKDrawing(strokes: canvas.selected.map { canvas.drawing.strokes[$0] }); return
+            }
+            guard action == "paste" ? copiedInk != nil : !canvas.selected.isEmpty else { return }
             let previous = canvas.drawing
             canvas.undoManager?.registerUndo(withTarget: canvas) { target in target.drawing = previous }
             if action == "paste" { if let copiedInk { canvas.drawing = PKDrawing(strokes: canvas.drawing.strokes + copiedInk.strokes) }; return }
-            guard !canvas.selected.isEmpty else { return }
-            if action == "copy" { copiedInk = PKDrawing(strokes: canvas.selected.map { canvas.drawing.strokes[$0] }); return }
             let bounds = PKDrawing(strokes: canvas.selected.map { canvas.drawing.strokes[$0] }).bounds
             var transform = CGAffineTransform.identity
             switch action {

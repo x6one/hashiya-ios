@@ -29,6 +29,7 @@ final class StudyUpdateTests: XCTestCase {
         let ink = root.appendingPathComponent(note.id.uuidString)
         try fm.createDirectory(at: ink, withIntermediateDirectories: true)
         try PKDrawing().dataRepresentation().write(to: ink.appendingPathComponent("0.drawing"))
+        try PKDrawing().dataRepresentation().write(to: root.appendingPathComponent(note.id.uuidString + "-margin.drawing"))
         let audio = root.appendingPathComponent(note.id.uuidString + "-audio")
         try fm.createDirectory(at: audio, withIntermediateDirectories: true)
         try Data([4, 5, 6]).write(to: audio.appendingPathComponent("voice.m4a"))
@@ -43,6 +44,7 @@ final class StudyUpdateTests: XCTestCase {
         XCTAssertTrue(recovered.favorite); XCTAssertEqual(recovered.section, "دراستي")
         XCTAssertEqual(try Data(contentsOf: restored.appendingPathComponent(try XCTUnwrap(recovered.originalFile))), Data([1, 2, 3]))
         XCTAssertEqual(try Data(contentsOf: restored.appendingPathComponent(recovered.id.uuidString + "-audio/voice.m4a")), Data([4, 5, 6]))
+        XCTAssertTrue(fm.fileExists(atPath: restored.appendingPathComponent(recovered.id.uuidString + "-margin.drawing").path))
         XCTAssertEqual(FlashcardStore(url: restored.appendingPathComponent(recovered.id.uuidString + "-cards.json")).cards.count, 1)
         let skipped = try await target.restoreBackup(backup, policy: .skipExisting)
         XCTAssertEqual(skipped, 0)
@@ -104,7 +106,7 @@ final class StudyUpdateTests: XCTestCase {
         let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
         let url = root.appendingPathComponent("bad.zip")
         let archive = try Archive(url: url, accessMode: .create)
-        try archive.addEntry(with: "../escaped.txt", type: .file, uncompressedSize: 1) { _, _ in Data([1]) }
+        try archive.addEntry(with: "../escaped.txt", type: .file, uncompressedSize: Int64(1)) { _, _ in Data([1]) }
         XCTAssertThrowsError(try LibraryBackup.unpack(url, into: root.appendingPathComponent("staging")))
         XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("escaped.txt").path))
     }

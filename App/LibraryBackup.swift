@@ -3,7 +3,7 @@ import ZIPFoundation
 
 extension Notebook {
     var resources: [String] {
-        [file, originalFile, id.uuidString, id.uuidString + "-margin.txt", id.uuidString + "-text.json", id.uuidString + "-audio", id.uuidString + "-cards.json", id.uuidString + "-ocr.json"].compactMap { $0 }
+        [file, originalFile, id.uuidString, id.uuidString + "-margin.txt", id.uuidString + "-margin.drawing", id.uuidString + "-text.json", id.uuidString + "-audio", id.uuidString + "-cards.json", id.uuidString + "-ocr.json"].compactMap { $0 }
     }
 }
 struct BackupManifest: Codable {

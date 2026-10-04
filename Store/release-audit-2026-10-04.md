@@ -1,0 +1,11 @@
+# Tayya 0.4 study-tool source review — 2026-10-04
+
+Reviewed feature source: 1a263cafd8734ca23856d6e8fb55a542cba9e7c6, based on 52705ef6685ee1ee9afc0c8a67ce8b319469d216. The signed native engine review and standard-encryption classification in release-audit-2026-10-02.md remain the baseline. The engine, bridge, bundled fonts, privacy manifest and encryption implementations are unchanged.
+
+The update adds local ZIP backup/restore, paper PDF generation, PencilKit lasso selection/transforms and a margin canvas, PDF/OpenXML/typed-note text search, Apple Vision OCR, timestamp links stored beside user recordings, and local JSON flashcards. No URLSession client, developer server, telemetry, advertising SDK, account, payment, subscription or third-party AI service was added. User-chosen file export and Files providers remain user-directed transfers covered by the policy. OCR language support is queried on the actual OS; unavailable languages produce a clear local error rather than a cloud fallback.
+
+Backup exports indexed library resources only. Restore rejects absolute/traversal paths, duplicate entries, symlinks, invalid manifests, CRC failures and excessive unpacked sizes. It validates and stages before publishing the library index, with explicit Keep both/Skip existing collision choices and rollback on save failure. Office conversions retain their original resource. Existing optional-free Notebook JSON decodes without a migration rewrite. Existing page recordings and drawing storage remain readable.
+
+No new required-reason API category was introduced by the Swift source changes. File metadata in app storage and selected Files resources remains declared as C617.1/3B52.1, and elapsed native timers remain 35F9.1. The existing engine can access Office external resources; this update does not claim every Office document is entirely offline. Standard third-party encryption remains truthfully classified; do not select no encryption or OS-only encryption. France remains excluded under the user's existing choice.
+
+Release remains gated on the exact source commit's simulator tests, signed native archive verification, Apple processing/export-compliance answers and beta/store review. This source review is not a claim of dynamic network testing, physical-device installation, signed-archive completion or Apple approval of 0.4.0.

@@ -1,12 +1,12 @@
 {
-  "status": "app_record_created_not_uploaded",
+  "status": "0.4.0_candidate_in_preflight",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
     "IOS"
   ],
-  "version": "0.3.0",
-  "build": "7",
+  "version": "0.4.0",
+  "build": "8",
   "primary_locale": "ar-SA",
   "suggested_primary_category": "EDUCATION",
   "suggested_secondary_category": "PRODUCTIVITY",
@@ -16,19 +16,19 @@
       "name": "طَيّة — Tayya",
       "subtitle": "دفاترك وتعليقاتك على PDF",
       "promotional_text": "صفحاتك بطريقتك: اقرأ ملفاتك، اكتب عليها، واحفظ ملاحظاتك في مكتبة واحدة على الآيفون والآيباد.",
-      "description": "طَيّة مساحة عربية للقراءة والكتابة وتنظيم ملفات الدراسة على الآيفون والآيباد.\n\nاقرأ ملفات PDF وأضف ملاحظاتك بالقلم أو اللمس، واكتب تعليقات نصية وانتقل بين الصفحات. صدّر نسخة PDF بتعليقاتك للمشاركة أو الحفظ.\n\nنظّم ملفاتك في أقسام، أعد تسميتها وأضفها إلى المفضلة. استورد الملفات من تطبيق الملفات، واحتفظ بمكتبتك على جهازك.\n\nاربط تسجيلاتك الصوتية بصفحات الدراسة بعد السماح بالميكروفون.\n\nيمكن تحويل مستندات Office المدعومة محليًا إلى PDF ثابت للكتابة عليها. بعد نجاح التحويل، يحل PDF محل بطاقة الملف نفسها مع الحفاظ على اسمها وقسمها ومفضلتها؛ ولا يُحذف الملف الأصلي في تطبيق الملفات. قد يختلف تنسيق بعض الملفات والخطوط، ولا تنتقل حركات PowerPoint أو الفيديو إلى PDF.\n\nواجهة تدعم العربية والاتجاه من اليمين إلى اليسار، ووضعًا داكنًا يتبع النظام، وافتتاحية قصيرة تحترم إعداد تقليل الحركة.",
+      "description": "طَيّة مساحة عربية للقراءة والكتابة وتنظيم ملفات الدراسة على الآيفون والآيباد.\n\nاقرأ ملفات PDF وأضف ملاحظاتك بالقلم أو اللمس، واكتب تعليقات نصية وانتقل بين الصفحات. صدّر نسخة PDF بتعليقاتك للمشاركة أو الحفظ.\n\nنظّم ملفاتك في أقسام، أعد تسميتها وأضفها إلى المفضلة. استورد الملفات من تطبيق الملفات، واحتفظ بمكتبتك على جهازك.\n\nاربط تسجيلاتك الصوتية بصفحات الدراسة بعد السماح بالميكروفون.\n\nيمكن تحويل مستندات Office المدعومة محليًا إلى PDF ثابت للكتابة عليها. بعد نجاح التحويل، يحل PDF محل بطاقة الملف نفسها مع الحفاظ على اسمها وقسمها ومفضلتها؛ ويُحفظ أصل Office داخل المكتبة أيضًا لإعادة فتحه وتشغيل وسائطه. قد يختلف تنسيق بعض الملفات والخطوط، ولا تنتقل حركات PowerPoint أو الفيديو إلى PDF.\n\nواجهة تدعم العربية والاتجاه من اليمين إلى اليسار، ووضعًا داكنًا يتبع النظام، وافتتاحية قصيرة تحترم إعداد تقليل الحركة.\n\nقوالب ورق للمحاضرات والتخطيط، وبطاقات مراجعة، ونسخ احتياطي كامل للمكتبة. ابحث في نصوص PDF وملفات Office الحديثة والتعليقات النصية. التعرف على الصفحات المصورة يعمل على الجهاز وفق اللغات التي يدعمها إصدار النظام. افتح المستند والحاشية معًا، واكتب بالنص أو بخط اليد، واربط الكتابة بزمن تسجيل صوتي.",
       "keywords": "PDF,ملاحظات,قلم,دراسة,دفتر,تعليقات,قراءة,ملفات,حاشية,طية",
-      "whats_new": "هوية طَيّة الجديدة، تحسين استيراد الملفات، وتحويل Office إلى PDF داخل البطاقة نفسها.",
-      "beta_test_description": "يرجى تجربة اختيار PDF وPowerPoint من تطبيق الملفات، ثم زر تحويل إلى PDF والكتابة. تحقق من ظهور بطاقة واحدة بعد التحويل، وحفظ الرسم والنص بعد إغلاق التطبيق وفتحه. جرّب اتجاه الشاشة والوضع الداكن على الآيفون والآيباد."
+      "whats_new": "أقسام ومحذوفات واضحة، قوالب ورق جديدة، نسخ احتياطي كامل، حفظ أصل Office، تحديد الكتابة ونسخها بين الصفحات، بحث داخل المستندات والملاحظات، حاشية مقسومة بخط اليد والنص، تسجيل مرتبط بالكتابة، وبطاقات مراجعة حسب الأقسام.",
+      "beta_test_description": "جرّب الأقسام والمحذوفات على الآيفون والشريط الجانبي على الآيباد. أنشئ دفترًا بقالب جديد، واكتب بالقلم والنص. جرّب تحديد الكتابة ونقلها ونسخها بين الصفحات، والحاشية المقسومة، وبطاقات المراجعة والتسجيل المرتبط. صدّر نسخة احتياطية ثم استعدها بخيار حفظ النسختين. جرّب البحث داخل PDF والتعليقات، والتعرف المحلي على الصفحات المصورة باللغة التي يدعمها جهازك. تأكد من بقاء أصل Office بعد التحويل."
     },
     "en-US": {
       "name": "Tayya — طَيّة",
       "subtitle": "Read, write and annotate PDFs",
       "promotional_text": "Keep your reading, handwritten notes and study files together on iPhone and iPad.",
-      "description": "Tayya is a local reading and annotation workspace for iPhone and iPad.\n\nRead PDFs, draw with a stylus or touch, add editable text notes and export an annotated PDF. Organize documents into sections, rename them and mark favorites. Import supported files from the Files app.\n\nRecord audio notes linked to a page after granting microphone access.\n\nConvert supported Office documents locally into a static PDF for annotation. Once conversion and saving succeed, the PDF replaces the same library entry while preserving its name, section and favorite status. Your source file in Files is retained. Some formatting and fonts may differ; PowerPoint animations and videos are not preserved in the PDF.\n\nDesigned for Arabic and right-to-left reading, with adaptive iPad layouts, system dark appearance and an introduction that respects Reduce Motion.",
+      "description": "Tayya is a local reading and annotation workspace for iPhone and iPad.\n\nRead PDFs, draw with a stylus or touch, add editable text notes and export an annotated PDF. Organize documents into sections, rename them and mark favorites. Import supported files from the Files app.\n\nRecord audio notes linked to a page after granting microphone access.\n\nConvert supported Office documents locally into a static PDF for annotation. Once conversion and saving succeed, the PDF replaces the same library entry while preserving its name, section and favorite status. The Office original is also retained inside your library for preview and embedded media. Some formatting and fonts may differ; PowerPoint animations and videos are not preserved in the PDF.\n\nDesigned for Arabic and right-to-left reading, with adaptive iPad layouts, system dark appearance and an introduction that respects Reduce Motion.\n\nPaper templates, review cards and full library backups. Search PDF text, modern Office document text and typed annotations. On-device OCR availability depends on the languages supported by your OS. Open a document alongside typed or handwritten notes and link writing to audio timestamps.",
       "keywords": "PDF,notes,study,annotation,handwriting,notebook,documents,Arabic,Tayya",
-      "whats_new": "New Tayya identity, improved Files imports and in-place Office-to-PDF conversion.",
-      "beta_test_description": "Test importing PDF and PowerPoint using the native Files picker. Convert an Office document to PDF and confirm a single library entry remains. Draw and add text, relaunch the app and check persistence. Test rotation and dark appearance on iPhone and iPad."
+      "whats_new": "Visible sections and trash, adaptive iPad sidebar, paper templates, complete library backups, retained Office originals, lasso transforms and cross-page copying, document and annotation search, split handwritten and typed notes, audio timestamps and review cards by section.",
+      "beta_test_description": "Test the visible library navigation on iPhone and iPad. Create templates, draw and type, use lasso transforms and copy between pages, split notes, linked recording and flashcards. Export a full backup and restore with Keep both. Check PDF and annotation search, on-device OCR for languages supported by your OS, and retained Office originals after conversion."
     }
   },
   "review": {
@@ -36,25 +36,22 @@
     "contact_name": "Ahmad Alawi",
     "contact_email": null,
     "contact_phone": null,
-    "notes": "No login required. Import a PDF with the native Files picker, or create a notebook. The Office converter runs locally in the device build. Microphone permission is requested only for recording page audio. No demo Office entry is seeded in production."
+    "notes": "No login or subscription required. All added study tools store data locally. OCR uses Apple Vision and checks language support on the device. Import a PDF or create a notebook; use the visible Sections and Trash buttons, split notes, review cards and backup. Office conversion remains local, retains the Office original and uses the unchanged native engine. Office external resources remain disclosed in the privacy policy. Microphone permission is requested only when recording."
   },
-  "privacy_url": null,
-  "support_url": null,
-  "encryption_declaration": "PENDING: native engine executable contains OpenSSL SSL symbols. Do not declare no encryption or set ITSAppUsesNonExemptEncryption=false without reviewing actual usage and Apple questions.",
-  "privacy_manifest": "App root manifest added for verified file metadata and elapsed timers. Final native privacy review and rebuilt archive verification pending; see privacy-audit.md.",
-  "apple_session": "Authenticated Apple Developer and App Store Connect. Tayya explicit App ID registered and App Store record created; Arabic description, version, subtitle, categories and age rating saved. No signed upload yet.",
+  "privacy_url": "https://x6one.github.io/hashiya-ios/privacy.html",
+  "support_url": "https://x6one.github.io/hashiya-ios/support.html",
+  "encryption_declaration": "Standard third-party encryption; unchanged OpenSSL engine. Complete the truthful standard-encryption questionnaire; France remains excluded.",
+  "privacy_manifest": "Existing required-reason manifest retained. Baseline signed-engine audit plus 0.4 source review included; new signed-archive verification remains required.",
+  "apple_session": "Verified 2026-10-04: 0.3.0 (7) remains Waiting for Review. 0.4.0 (8) has not yet been uploaded.",
   "app_store_app_id": "6818288428",
   "testflight_uploaded": false,
   "app_store_submitted": false,
   "required_before_submission": [
-    "Recover a usable App Store Connect API private key; distribution signing secrets configured",
-    "Signed archive with native Office engine",
-    "Complete privacy manifest and encryption declaration",
-    "Public privacy/support URLs",
-    "App Review contact email and phone",
-    "Required iPhone 6.9-inch screenshots",
-    "Physical-device smoke check of this release",
-    "Select build and submit for Apple review"
+    "Pass exact-commit iPhone and iPad preflight",
+    "Verify signed native archive and upload 0.4.0 (8)",
+    "Apple processing and export-compliance questionnaire",
+    "TestFlight beta review",
+    "App Store 0.3.0 review completes before submitting 0.4.0 update"
   ],
   "apple_team_id": "ZUB6SJFQA3",
   "age_rating": "4+",
@@ -70,5 +67,11 @@
     "Education primary category",
     "Productivity secondary category",
     "age rating questionnaire"
-  ]
+  ],
+  "current_store_release": {
+    "version": "0.3.0",
+    "build": "7",
+    "status": "Waiting for Review",
+    "verified": "2026-10-04"
+  }
 }

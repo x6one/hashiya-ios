@@ -1,5 +1,5 @@
 {
-  "status": "0.4.0_candidate_in_preflight",
+  "status": "0.4.0_uploaded_waiting_for_beta_review",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
@@ -41,16 +41,13 @@
   "privacy_url": "https://x6one.github.io/hashiya-ios/privacy.html",
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption; unchanged OpenSSL engine. Complete the truthful standard-encryption questionnaire; France remains excluded.",
-  "privacy_manifest": "Existing required-reason manifest retained. Baseline signed-engine audit plus 0.4 source review included; new signed-archive verification remains required.",
-  "apple_session": "Verified 2026-10-04: 0.3.0 (7) remains Waiting for Review. 0.4.0 (8) has not yet been uploaded.",
+  "privacy_manifest": "Existing required-reason manifest retained. Native run 37203677730 completed signed archive/export, Apple validation and upload.",
+  "apple_session": "Verified 2026-10-04: 0.4.0 (8) processed Complete, export compliance saved and submitted to Tayya Beta: Waiting for Review. Existing App Store 0.3.0 (7) remains Waiting for Review.",
   "app_store_app_id": "6818288428",
-  "testflight_uploaded": false,
+  "testflight_uploaded": true,
   "app_store_submitted": false,
   "required_before_submission": [
-    "Pass exact-commit iPhone and iPad preflight",
-    "Verify signed native archive and upload 0.4.0 (8)",
-    "Apple processing and export-compliance questionnaire",
-    "TestFlight beta review",
+    "Apple TestFlight beta review approval for 0.4.0 (8)",
     "App Store 0.3.0 review completes before submitting 0.4.0 update"
   ],
   "apple_team_id": "ZUB6SJFQA3",
@@ -73,5 +70,13 @@
     "build": "7",
     "status": "Waiting for Review",
     "verified": "2026-10-04"
+  },
+  "testflight": {
+    "build_id": "d0ef0a77-cddb-4663-8c55-4fb40a9e192c",
+    "group": "Tayya Beta",
+    "public_link": "https://testflight.apple.com/join/bBwnghMX",
+    "status": "Waiting for Review",
+    "automatically_notify_testers": true,
+    "verified_date": "2026-10-04"
   }
 }

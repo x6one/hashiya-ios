@@ -1,0 +1,59 @@
+{
+  "version": "0.4.0",
+  "build": "8",
+  "app_source_commit": "d35d22771a4729b6e2c15900088c679ddf0b64b4",
+  "merge_commit": "f28f49f7229da243a02e7e662de59d8488c865a8",
+  "verified_date": "2026-10-04",
+  "tests": {
+    "pr_run": 37203531316,
+    "conclusion": "success",
+    "unit_per_family": 25,
+    "ui_per_family": 9,
+    "families": [
+      "iPhone",
+      "iPad"
+    ],
+    "push_run": 37203528908,
+    "push_retry_note": "iPhone Files-provider fixture setup retried; both simulator suites passed before signing",
+    "local_release_tool_regressions": 5
+  },
+  "distribution": {
+    "run": 37203677730,
+    "attempt": 2,
+    "conclusion": "success",
+    "job": 111443522087,
+    "apple_validation": "explicit XML success",
+    "apple_upload": "explicit XML success",
+    "artifact_id": 11304742711,
+    "artifact_name": "Tayya-Apple-distribution",
+    "archive_sha256": "5b4969b7851ab55316d96ed44ab2601f8d19b472cd47604d4918912eb502d6d8",
+    "artifact_size_bytes": 136053639,
+    "contains": "Signed IPA and distribution report",
+    "local_full_signed_artifact_inspection": false
+  },
+  "apple": {
+    "app_id": "6818288428",
+    "build_id": "d0ef0a77-cddb-4663-8c55-4fb40a9e192c",
+    "processing": "Complete",
+    "export_compliance": "Standard encryption in addition to Apple OS; France excluded; questionnaire saved",
+    "testflight_group": "Tayya Beta",
+    "testflight_status": "Waiting for Review",
+    "beta_submitted": true,
+    "automatically_notify_testers": true,
+    "public_link": "https://testflight.apple.com/join/bBwnghMX",
+    "previous_testflight_build": "0.3.0 (7): Testing",
+    "app_store_0_4_submitted": false,
+    "existing_store_release": "0.3.0 (7): Waiting for Review",
+    "store_blocker": "Apple requires removing the current review to replace its build; preserve existing review until it completes"
+  },
+  "limitations": [
+    "Physical-device audio and OCR are beta QA",
+    "No dynamic network audit asserted",
+    "Upload and submission do not imply Apple approval"
+  ],
+  "invalid_prior_distribution": {
+    "run": 37200251554,
+    "uploaded": false,
+    "reason": "altool returned duplicate build errors with exit 0; fixed strict success parser and canonical version preservation"
+  }
+}

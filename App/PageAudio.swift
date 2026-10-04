@@ -9,6 +9,7 @@ import AVFoundation
     @Published var markers: [AudioLink] = []
     let folder: URL
     var recorder: AVAudioRecorder?
+    private var generation = 0
     private var player: AVAudioPlayer?
     init(folder: URL) { self.folder = folder; reload() }
     func reload() {
@@ -19,7 +20,10 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func start() async {
+        guard !recording else { return }
+        generation += 1; let token = generation
         let allowed = await withCheckedContinuation { continuation in AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) } }
+        guard token == generation else { return }
         guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
         do {
             player?.stop(); playing = nil
@@ -32,6 +36,7 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func stop() {
+        generation += 1
         recorder?.stop(); recorder = nil; recording = false
         player?.stop(); playing = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)

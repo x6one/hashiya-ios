@@ -16,6 +16,7 @@ extension PageAudio {
     func link(page: Int, textID: UUID? = nil, strokeCount: Int? = nil, label: String) throws {
         guard let recorder, recording else { return }
         var links = loadLinks()
+        if let last = links.last, last.clip == recorder.url.lastPathComponent, last.page == page, last.textID == textID, last.strokeCount == strokeCount, recorder.currentTime - last.time < 1 { return }
         links.append(AudioLink(clip: recorder.url.lastPathComponent, time: recorder.currentTime, page: page, textID: textID, strokeCount: strokeCount, label: label))
         try JSONEncoder().encode(links).write(to: linksURL, options: .atomic)
         markers = links

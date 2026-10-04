@@ -55,6 +55,7 @@ enum LibraryBackup {
             guard paths.insert(entry.path).inserted, paths.count <= 100000,
                   entry.type != .symlink, !entry.path.hasPrefix("/"), !entry.path.contains("\\"),
                   entry.path.split(separator: "/").allSatisfy({ $0 != ".." && $0 != "." }) else { throw BackupError.invalid }
+            guard entry.uncompressedSize <= UInt64(maximumBytes) else { throw BackupError.limit }
             total += Int64(entry.uncompressedSize)
             guard total <= Int64(maximumBytes) else { throw BackupError.limit }
             let target = staging.appendingPathComponent(entry.path)

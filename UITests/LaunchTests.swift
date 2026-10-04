@@ -280,4 +280,20 @@ final class LaunchTests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
     }
+    func testVisibleSectionsTrashAndSplitNotes() {
+        let app = XCUIApplication(); app.launch()
+        let sections = app.buttons["librarySections"]
+        XCTAssertTrue(sections.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["libraryTrash"].exists)
+        sections.tap()
+        XCTAssertTrue(app.navigationBars["الأقسام"].waitForExistence(timeout: 5))
+        app.buttons["تم"].tap()
+        let library = XCTAttachment(screenshot: app.screenshot()); library.name = "VisibleLibraryNavigation"; library.lifetime = .keepAlways; add(library)
+        let demo = visibleLibraryDocument("ملف التجربة", in: app)
+        XCTAssertTrue(demo.waitForExistence(timeout: 10)); demo.tap()
+        app.buttons["documentTools"].tap()
+        app.buttons["المستند والحاشية معًا"].tap()
+        XCTAssertTrue(app.textViews["splitNotes"].waitForExistence(timeout: 5))
+        let split = XCTAttachment(screenshot: app.screenshot()); split.name = "AdaptiveSplitNotes"; split.lifetime = .keepAlways; add(split)
+    }
 }

@@ -17,20 +17,20 @@ struct Flashcard: Identifiable, Codable {
             catch { self.error = error.localizedDescription }
         }
     }
-    func save(_ card: Flashcard) {
+    @discardableResult func save(_ card: Flashcard) -> Bool {
         var updated = cards.filter { $0.id != card.id }; updated.append(card)
-        commit(updated)
+        return commit(updated)
     }
     func delete(_ id: UUID) { commit(cards.filter { $0.id != id }) }
-    private func commit(_ updated: [Flashcard]) {
-        do { try JSONEncoder().encode(updated).write(to: url, options: .atomic); cards = updated }
-        catch { self.error = error.localizedDescription }
+    @discardableResult private func commit(_ updated: [Flashcard]) -> Bool {
+        do { try JSONEncoder().encode(updated).write(to: url, options: .atomic); cards = updated; return true }
+        catch { self.error = error.localizedDescription; return false }
     }
 }
 struct CardEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State var card: Flashcard
-    let save: (Flashcard) -> Void
+    let save: (Flashcard) -> Bool
     var body: some View {
         NavigationStack {
             Form {
@@ -39,7 +39,7 @@ struct CardEditor: View {
                 Text("صفحة \(card.page)").font(.caption)
             }.navigationTitle("بطاقة مراجعة").toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("حفظ") { save(card); dismiss() }.disabled(card.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || card.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+                ToolbarItem(placement: .confirmationAction) { Button("حفظ") { if save(card) { dismiss() } }.disabled(card.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || card.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
             }
         }.environment(\.layoutDirection, .rightToLeft)
     }
@@ -74,6 +74,34 @@ struct FlashcardsScreen: View {
                 ToolbarItem(placement: .primaryAction) { Button("إضافة", systemImage: "plus") { editing = Flashcard(question: "", answer: "", page: 1) } }
             }.sheet(item: $editing) { card in CardEditor(card: card, save: store.save) }
             .alert("تعذر الحفظ", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسنًا") { store.error = nil } } message: { Text(store.error ?? "") }
+        }.environment(\.layoutDirection, .rightToLeft)
+    }
+}
+struct LibraryCardsScreen: View {
+    @ObservedObject var library: LibraryStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var section: String? = nil
+    @State private var selected: Notebook?
+    private func count(_ note: Notebook) -> Int {
+        let url = library.root.appendingPathComponent(note.id.uuidString + "-cards.json")
+        return (try? JSONDecoder().decode([Flashcard].self, from: Data(contentsOf: url)))?.count ?? 0
+    }
+    var body: some View {
+        NavigationStack {
+            List {
+                Picker("القسم", selection: $section) {
+                    Text("كل الأقسام").tag(String?.none)
+                    ForEach(library.sections, id: \.self) { Text($0).tag(Optional($0)) }
+                }
+                ForEach(library.notebooks.filter { !$0.trashed && (section == nil || $0.section == section) }) { note in
+                    let total = count(note)
+                    if total > 0 { Button { selected = note } label: {
+                        HStack { VStack(alignment: .leading) { Text(note.title); Text(note.section).font(.caption).foregroundStyle(.secondary) }; Spacer(); Text("\(total) بطاقة") }
+                    } }
+                }
+                Text("لإضافة بطاقة، افتح المستند وحدد نصًا ثم اختر إنشاء بطاقة من قائمة أدواته.").font(.caption).foregroundStyle(.secondary)
+            }.navigationTitle("مراجعة الأقسام").toolbar { Button("تم") { dismiss() } }
+            .sheet(item: $selected) { note in FlashcardsScreen(url: library.root.appendingPathComponent(note.id.uuidString + "-cards.json")) }
         }.environment(\.layoutDirection, .rightToLeft)
     }
 }

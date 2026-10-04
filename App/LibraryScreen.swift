@@ -16,6 +16,7 @@ struct LibraryScreen: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var favorites = false
     @State private var backup = false
+    @State private var reviewing = false
     @State private var hits: [SearchHit] = []
     @State private var searching = false
     @State private var route: SearchHit?
@@ -49,6 +50,7 @@ struct LibraryScreen: View {
                 if let section, !sections.contains(section) { self.section = nil }
             }
             .sheet(isPresented: $creating) { CreateNotebookScreen(store: store, section: section) }
+            .sheet(isPresented: $reviewing) { LibraryCardsScreen(library: store) }
             .sheet(isPresented: $backup) { BackupScreen(store: store) }
             .navigationDestination(item: $route) { hit in NotebookScreen(id: hit.notebook, store: store, initialPage: hit.page) }
             .task(id: query) {
@@ -89,9 +91,7 @@ struct LibraryScreen: View {
                         .accessibilityIdentifier("importDocument").disabled(importingFile)
                     Button("دفتر جديد", systemImage: "plus") { title = "دفتر جديد"; creating = true }
                         .accessibilityIdentifier("createNotebook")
-                    Button("الأقسام", systemImage: "folder") { managing = true }
-                        .accessibilityIdentifier("librarySections")
-                    Button("نسخ احتياطي", systemImage: "externaldrive") { backup = true }
+
 
 
                 }
@@ -106,11 +106,16 @@ struct LibraryScreen: View {
                 }.padding(.vertical, 18)
                 if sizeClass != .regular {
                     HStack {
-                        Button("الأقسام", systemImage: "folder") { managing = true }
+                        Button("الأقسام", systemImage: "folder") { managing = true }.accessibilityIdentifier("librarySections")
                         Spacer()
                         Button(showTrash ? "المكتبة" : "المحذوفات", systemImage: showTrash ? "books.vertical" : "trash") { showTrash.toggle(); favorites = false }
                             .accessibilityIdentifier("libraryTrash")
-                    }.buttonStyle(.bordered)
+                    }.buttonStyle(.bordered).frame(minHeight: 44)
+                    HStack {
+                        Button("بطاقات المراجعة", systemImage: "rectangle.stack") { reviewing = true }
+                        Spacer()
+                        Button("نسخ احتياطي", systemImage: "externaldrive") { backup = true }
+                    }.font(.subheadline).frame(minHeight: 44)
                 }
                 if !showTrash {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -118,7 +123,7 @@ struct LibraryScreen: View {
                             Button("الكل") { section = nil; favorites = false }.buttonStyle(.bordered)
                             Button("المفضلة", systemImage: "star") { favorites.toggle(); section = nil }.buttonStyle(.bordered)
                             ForEach(store.sections, id: \.self) { name in
-                                Button(name) { section = name }.buttonStyle(.bordered).tint(section == name ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55))
+                                Button(name) { section = name; favorites = false }.buttonStyle(.bordered).tint(section == name ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55))
                             }
                         }
                     }
@@ -153,9 +158,10 @@ struct LibraryScreen: View {
             Button("المفضلة", systemImage: "star") { showTrash = false; favorites = true; section = nil }
             Section("الأقسام") {
                 ForEach(store.sections, id: \.self) { name in Button(name, systemImage: "folder") { showTrash = false; favorites = false; section = name } }
-                Button("إدارة الأقسام", systemImage: "folder.badge.gearshape") { managing = true }
+                Button("إدارة الأقسام", systemImage: "folder.badge.gearshape") { managing = true }.accessibilityIdentifier("librarySections")
             }
             Button("المحذوفات", systemImage: "trash") { showTrash = true; favorites = false; section = nil }.accessibilityIdentifier("libraryTrash")
+            Button("بطاقات المراجعة", systemImage: "rectangle.stack") { reviewing = true }
             Button("النسخ الاحتياطي", systemImage: "externaldrive") { backup = true }
         }.listStyle(.sidebar)
     }

@@ -124,6 +124,7 @@ struct DocumentScreen: View {
     @State private var margin = ""
     @State private var splitNotes = false
     @State private var splitFraction = 0.6
+    @State private var dragFraction: Double?
     @State private var cardDraft: Flashcard?
     @State private var showCards = false
     @State private var original = false
@@ -147,7 +148,10 @@ struct DocumentScreen: View {
                         NativePDF(workspace: workspace).frame(width: geometry.size.width * splitFraction)
                         Rectangle().fill(.secondary.opacity(0.3)).frame(width: 16)
                             .overlay { Image(systemName: "line.3.horizontal").font(.caption) }
-                            .gesture(DragGesture().onChanged { value in splitFraction = min(0.75, max(0.3, splitFraction - value.translation.width / geometry.size.width / 10)) })
+                            .gesture(DragGesture().onChanged { value in
+                                if dragFraction == nil { dragFraction = splitFraction }
+                                splitFraction = min(0.75, max(0.3, (dragFraction ?? splitFraction) - value.translation.width / geometry.size.width))
+                            }.onEnded { _ in dragFraction = nil })
                             .accessibilityLabel("تغيير عرض المستند").accessibilityAdjustableAction { direction in splitFraction = min(0.75, max(0.3, splitFraction + (direction == .increment ? 0.05 : -0.05))) }
                         notesPane
                     }
@@ -171,7 +175,8 @@ struct DocumentScreen: View {
                             cardDraft = Flashcard(question: "", answer: selected, page: workspace.page)
                         }
                         Button("بطاقات المراجعة", systemImage: "rectangle.stack") { showCards = true }
-                        Button(audio.recording ? "إيقاف التسجيل المرتبط" : "تسجيل مع الكتابة", systemImage: "mic") { if audio.recording { audio.stop() } else { Task { await audio.start() } } }
+                        Button("الكتابة المرتبطة بالصوت", systemImage: "waveform") { splitNotes = true }
+                        Button(audio.recording ? "إيقاف التسجيل المرتبط" : "تسجيل مع الكتابة", systemImage: "mic") { if audio.recording { audio.stop() } else { splitNotes = true; Task { await audio.start(); if let error = audio.error { workspace.error = error } } } }
                         Menu("قراءة الصفحات المصورة محليًا") {
                             Button("العربية") { recognize("ar") }
                             Button("الإنجليزية") { recognize("en") }
@@ -180,7 +185,7 @@ struct DocumentScreen: View {
                         Button("الحاشية", systemImage: "note.text") { showNotes = true }
                         Button("تسجيلات الصفحة", systemImage: "mic") { showAudio = true }
                         Button("تصدير PDF", systemImage: "square.and.arrow.up") { workspace.export() }
-                    } label: { Image(systemName: "ellipsis.circle") }
+                    } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel("أدوات المستند").accessibilityIdentifier("documentTools")
                 }
             }
             .overlay(alignment: .top) { if workspace.tool == .text { Text("المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله.").font(.caption).padding(10).background(.regularMaterial, in: Capsule()).padding(8).allowsHitTesting(false) } }
@@ -190,7 +195,7 @@ struct DocumentScreen: View {
             }
             .onChange(of: workspace.page) { _, page in pageNumber = String(page) }
             .sheet(item: $cardDraft) { card in CardEditor(card: card) { updated in
-                let cards = FlashcardStore(url: cardsURL); cards.save(updated); if let error = cards.error { workspace.error = error }
+                let cards = FlashcardStore(url: cardsURL); let saved = cards.save(updated); if let error = cards.error { workspace.error = error }; return saved
             } }
             .sheet(isPresented: $showCards) { FlashcardsScreen(url: cardsURL) }
             .sheet(isPresented: $original) { if let file = note.originalFile {
@@ -355,17 +360,17 @@ struct NativePDF: UIViewRepresentable {
             if workspace.tool == .read, let page = view.page(for: gesture.location(in: view), nearest: false), let id = page.annotation(at: view.convert(gesture.location(in: view), to: page))?.userName, let uuid = UUID(uuidString: id) { workspace.onTextTapped?(uuid) }
             if workspace.tool == .text { workspace.edit(at: gesture.location(in: view), in: view, allowNew: true) }
         }
-        @objc func doubleTap(_ gesture: UITapGestureRecognizer) { guard workspace.tool != .ink, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
-        @objc func hold(_ gesture: UILongPressGestureRecognizer) { guard gesture.state == .began, workspace.tool != .ink, let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
+        @objc func doubleTap(_ gesture: UITapGestureRecognizer) { guard (workspace.tool != .ink && workspace.tool != .lasso), let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
+        @objc func hold(_ gesture: UILongPressGestureRecognizer) { guard gesture.state == .began, (workspace.tool != .ink && workspace.tool != .lasso), let view = workspace.view else { return }; workspace.edit(at: gesture.location(in: view), in: view, allowNew: false) }
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
             // PDFKit has its own taps for selection. They must not consume our
             // text annotation taps. Panning and drawing remain exclusive.
-            workspace.tool != .ink &&
+            (workspace.tool != .ink && workspace.tool != .lasso) &&
                 !(gestureRecognizer is UIPanGestureRecognizer) &&
                 !(otherGestureRecognizer is UIPanGestureRecognizer)
         }
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            guard gestureRecognizer is UIPanGestureRecognizer else { return workspace.tool != .ink }
+            guard gestureRecognizer is UIPanGestureRecognizer else { return (workspace.tool != .ink && workspace.tool != .lasso) }
             guard workspace.tool == .text, let view = workspace.view,
                   let page = view.page(for: gestureRecognizer.location(in: view), nearest: false),
                   let annotation = page.annotation(at: view.convert(gestureRecognizer.location(in: view), to: page)),
@@ -424,6 +429,8 @@ struct NativePDF: UIViewRepresentable {
         }
         func applyInkAction(_ action: String) {
             guard let canvas = canvases[workspace.page - 1] else { return }
+            let previous = canvas.drawing
+            canvas.undoManager?.registerUndo(withTarget: canvas) { target in target.drawing = previous }
             if action == "paste" { if let copiedInk { canvas.drawing = PKDrawing(strokes: canvas.drawing.strokes + copiedInk.strokes) }; return }
             guard !canvas.selected.isEmpty else { return }
             if action == "copy" { copiedInk = PKDrawing(strokes: canvas.selected.map { canvas.drawing.strokes[$0] }); return }

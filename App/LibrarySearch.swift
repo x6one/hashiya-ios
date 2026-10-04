@@ -19,7 +19,13 @@ enum LibrarySearch {
         for note in notes where !note.trashed {
             try Task.checkCancellation()
             if note.title.localizedCaseInsensitiveContains(query) { hits.append(SearchHit(notebook: note.id, title: note.title, page: nil, snippet: note.section)) }
-            let doc = PDFDocument(url: root.appendingPathComponent(note.file))
+            let file = root.appendingPathComponent(note.file)
+            let doc = file.pathExtension.lowercased() == "pdf" ? PDFDocument(url: file) : nil
+            if doc == nil, let content = try? OfficeSearch.text(in: file), let range = content.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) {
+                let start = content.index(range.lowerBound, offsetBy: -45, limitedBy: content.startIndex) ?? content.startIndex
+                let end = content.index(range.upperBound, offsetBy: 100, limitedBy: content.endIndex) ?? content.endIndex
+                hits.append(SearchHit(notebook: note.id, title: note.title, page: nil, snippet: String(content[start..<end])))
+            }
             let texts = (try? JSONDecoder().decode([PageText].self, from: Data(contentsOf: root.appendingPathComponent(note.id.uuidString + "-text.json")))) ?? []
             let ocr = (try? JSONDecoder().decode([OCRPage].self, from: Data(contentsOf: root.appendingPathComponent(note.id.uuidString + "-ocr.json")))) ?? []
             for index in 0..<(doc?.pageCount ?? 0) {
@@ -42,7 +48,7 @@ enum LibrarySearch {
         let request = VNRecognizeTextRequest(); request.recognitionLevel = .accurate
         let supported = try request.supportedRecognitionLanguages()
         guard let selected = supported.first(where: { $0 == language || $0.hasPrefix(language + "-") }) else {
-            throw NSError(domain: "TayyaOCR", code: 1, userInfo: [NSLocalizedDescriptionKey: "التعرف على هذا اللغة غير مدعوم على إصدار جهازك. لم يتم إرسال أي بيانات لخدمة خارجية."])
+            throw NSError(domain: "TayyaOCR", code: 1, userInfo: [NSLocalizedDescriptionKey: "التعرف على هذه اللغة غير مدعوم على إصدار جهازك. لم يتم إرسال أي بيانات لخدمة خارجية."])
         }
         request.recognitionLanguages = [selected]; request.usesLanguageCorrection = true
         guard let document = PDFDocument(url: file) else { throw DocumentImportError.damaged }

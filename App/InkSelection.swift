@@ -21,12 +21,13 @@ enum InkSelection {
     }
 }
 final class LassoCanvas: PKCanvasView {
-    var lassoMode = false { didSet { setNeedsDisplay() } }
-    var points: [CGPoint] = []
+    var lassoMode = false { didSet { updateOutline() } }
+    var points: [CGPoint] = [] { didSet { updateOutline() } }
+    let outline = CAShapeLayer()
     var selected: [Int] = []
     var selectionChanged: ((Int) -> Void)?
     lazy var lasso = UIPanGestureRecognizer(target: self, action: #selector(selectInk(_:)))
-    override init(frame: CGRect) { super.init(frame: frame); addGestureRecognizer(lasso); lasso.isEnabled = false }
+    override init(frame: CGRect) { super.init(frame: frame); addGestureRecognizer(lasso); lasso.isEnabled = false; outline.strokeColor = UIColor.systemBlue.cgColor; outline.fillColor = UIColor.clear.cgColor; outline.lineWidth = 2; outline.zPosition = 100; outline.lineDashPattern = [5, 4]; layer.addSublayer(outline) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func enableLasso(_ value: Bool) {
         lassoMode = value; lasso.isEnabled = value; drawingGestureRecognizer.isEnabled = !value
@@ -40,10 +41,9 @@ final class LassoCanvas: PKCanvasView {
             selectionChanged?(selected.count)
         }
     }
-    override func draw(_ rect: CGRect) {
-        super.draw(rect)
-        guard lassoMode, points.count > 1 else { return }
+    private func updateOutline() {
+        guard lassoMode, points.count > 1 else { outline.path = nil; return }
         let path = UIBezierPath(); path.move(to: points[0]); points.dropFirst().forEach { path.addLine(to: $0) }; path.close()
-        UIColor.systemBlue.setStroke(); path.lineWidth = 2; path.setLineDash([5, 4], count: 2, phase: 0); path.stroke()
+        outline.path = path.cgPath
     }
 }

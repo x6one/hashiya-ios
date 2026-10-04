@@ -87,4 +87,25 @@ final class StudyUpdateTests: XCTestCase {
         XCTAssertEqual(FlashcardStore(url: url).cards.first?.known, true)
         store.delete(card.id); XCTAssertTrue(FlashcardStore(url: url).cards.isEmpty)
     }
+    func testLassoSelectsOnlyEnclosedStrokeAndTransformLeavesOthersUnchanged() {
+        func stroke(_ x: CGFloat) -> PKStroke {
+            let points = [0, 10, 20].map { y in PKStrokePoint(location: CGPoint(x: x, y: CGFloat(y)), timeOffset: Double(y) / 100, size: CGSize(width: 3, height: 3), opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2) }
+            return PKStroke(ink: PKInk(.pen, color: .black), path: PKStrokePath(controlPoints: points, creationDate: Date()))
+        }
+        let drawing = PKDrawing(strokes: [stroke(20), stroke(200)])
+        let selection = InkSelection.indices(in: drawing, polygon: [CGPoint(x: 0, y: -10), CGPoint(x: 50, y: -10), CGPoint(x: 50, y: 50), CGPoint(x: 0, y: 50)])
+        XCTAssertEqual(selection, [0])
+        let transformed = InkSelection.transform(drawing, indices: selection, by: CGAffineTransform(translationX: 100, y: 0))
+        XCTAssertEqual(transformed.strokes.count, 2)
+        XCTAssertEqual(transformed.strokes[0].renderBounds.midX - drawing.strokes[0].renderBounds.midX, 100, accuracy: 0.01)
+        XCTAssertEqual(transformed.strokes[1].renderBounds, drawing.strokes[1].renderBounds)
+    }
+    func testBackupRejectsTraversalBeforeExtractingOutsideStaging() throws {
+        let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("bad.zip")
+        let archive = try Archive(url: url, accessMode: .create)
+        try archive.addEntry(with: "../escaped.txt", type: .file, uncompressedSize: 1) { _, _ in Data([1]) }
+        XCTAssertThrowsError(try LibraryBackup.unpack(url, into: root.appendingPathComponent("staging")))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("escaped.txt").path))
+    }
 }

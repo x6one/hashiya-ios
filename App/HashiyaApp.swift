@@ -47,6 +47,7 @@ struct Notebook: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var title: String
     var file: String
+    var originalFile: String?
     var section: String = "مكتبتي"
     var favorite = false
     var trashed = false

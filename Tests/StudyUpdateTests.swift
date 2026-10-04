@@ -5,6 +5,17 @@ import ZIPFoundation
 @testable import Hashiya
 
 final class StudyUpdateTests: XCTestCase {
+    @MainActor func testRepeatedLassoConfigurationDoesNotRepublishSelection() {
+        let canvas = LassoCanvas(frame: .zero)
+        var notifications = 0
+        canvas.selectionChanged = { _ in notifications += 1 }
+        canvas.enableLasso(true)
+        canvas.enableLasso(false)
+        XCTAssertEqual(notifications, 1)
+        for _ in 0..<20 { canvas.enableLasso(false) }
+        XCTAssertEqual(notifications, 1)
+        XCTAssertTrue(canvas.drawingGestureRecognizer.isEnabled)
+    }
     func directory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

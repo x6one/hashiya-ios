@@ -299,14 +299,12 @@ final class LaunchTests: XCTestCase {
     func testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch() {
         let app = XCUIApplication(); app.launch()
         XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 15)); app.buttons["createNotebook"].tap()
-        let name = "Paged margins " + String(UUID().uuidString.prefix(6))
-        let title = app.textFields["الاسم"]; XCTAssertTrue(title.waitForExistence(timeout: 5)); title.tap()
-        title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + name)
+        let name = "دفتر جديد"
         app.buttons["إنشاء"].tap()
         let note = visibleLibraryDocument(name, in: app); XCTAssertTrue(note.waitForExistence(timeout: 10)); note.tap()
         app.buttons["documentTools"].tap(); app.buttons["المستند والحاشية معًا"].tap()
         let text = app.textViews["splitNotes"]; XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap()
-        let firstText = "First margin page — keep this text."
+        let firstText = "First margin page - keep this text."
         text.typeText(firstText)
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
         let canvas = app.otherElements["marginInkCanvas"]

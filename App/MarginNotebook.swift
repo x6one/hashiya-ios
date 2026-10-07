@@ -85,6 +85,7 @@ struct InkToolbar: View {
     @Binding var brush: InkBrush
     @Binding var color: Color
     @Binding var width: Double
+    var allowsWidthFit = false
     let action: (String) -> Void
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -97,7 +98,9 @@ struct InkToolbar: View {
                 Button("تراجع", systemImage: "arrow.uturn.backward") { action("undo") }.labelStyle(.iconOnly)
                 Button("إعادة", systemImage: "arrow.uturn.forward") { action("redo") }.labelStyle(.iconOnly)
                 Button("إظهار الورقة كاملة", systemImage: "arrow.up.left.and.arrow.down.right") { action("fit") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMargin")
-                Button("عرض مناسب للكتابة", systemImage: "arrow.left.and.right") { action("fitWidth") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMarginWidth")
+                if allowsWidthFit {
+                    Button("عرض مناسب للكتابة", systemImage: "arrow.left.and.right") { action("fitWidth") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMarginWidth")
+                }
             }.padding(.horizontal, 12).padding(.vertical, 8)
         }.background(TayyaTheme.surface)
     }

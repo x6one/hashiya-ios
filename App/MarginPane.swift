@@ -28,7 +28,7 @@ struct MarginPane: View {
                     }
                 }.padding(.horizontal, 12).padding(.vertical, 6)
                 if editor.handwriting {
-                    InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, action: canvasControl.action)
+                    InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)

@@ -154,6 +154,14 @@ final class LaunchTests: XCTestCase {
             list.tap()
         }
         XCTAssertTrue(file.waitForExistence(timeout: 10))
+        if appOwned {
+            // New note resources can put Owned-fixture at the clipped bottom
+            // of the iPad picker. Scroll the provider's actual list before
+            // taking its thumbnail geometry; an off-sheet tap dismisses it.
+            app.collectionViews["File View"].swipeUp()
+            XCTAssertTrue(file.waitForExistence(timeout: 10))
+            XCTAssertTrue(file.isHittable)
+        }
         let pickerShot = XCTAttachment(screenshot: app.screenshot())
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways
@@ -307,7 +315,8 @@ final class LaunchTests: XCTestCase {
         let firstText = "First margin page - keep this text."
         text.typeText(firstText)
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
-        let canvas = app.otherElements["marginInkCanvas"]
+        // PKCanvasView exposes itself as a ScrollView in UIKit's real AX tree.
+        let canvas = app.scrollViews["marginInkCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.2)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.85)))
@@ -349,7 +358,7 @@ final class LaunchTests: XCTestCase {
         app.buttons["documentTools"].tap(); app.buttons["المستند والحاشية معًا"].tap()
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/2")
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, firstText)
-        app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(app.otherElements["marginInkCanvas"].value as? String, count)
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(canvas.value as? String, count)
         app.buttons["nextMarginPage"].tap(); app.segmentedControls["marginMode"].buttons["نص"].tap()
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, "Second margin page")
     }

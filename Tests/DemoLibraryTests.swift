@@ -15,7 +15,9 @@ final class DemoLibraryTests: XCTestCase {
         XCTAssertEqual(store.notebooks.count, 4)
         let pdf = try XCTUnwrap(PDFDocument(url: root.appendingPathComponent(guide.file)))
         XCTAssertEqual(pdf.pageCount, 3)
-        XCTAssertTrue(pdf.page(at: 2)?.string?.contains("بيانات شخصية") == true, "The guide must not clip its last paragraph")
+        for index in 0..<3 {
+            XCTAssertTrue(pdf.page(at: index)?.string?.contains("Tayya Demo") == true, "The guide must retain the end of every lesson")
+        }
         let margins = MarginPages(root: root, notebook: guide.id)
         XCTAssertEqual(margins.pages.count, 2)
         XCTAssertEqual(margins.pages.map(\.sourcePage), [1, 2])

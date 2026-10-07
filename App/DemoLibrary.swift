@@ -79,7 +79,23 @@ extension LibraryStore {
                 context.beginPage(); PaperColor.cream.uiColor.setFill(); context.cgContext.fill(bounds)
                 let style = NSMutableParagraphStyle(); style.alignment = .right; style.baseWritingDirection = .rightToLeft; style.lineSpacing = 10
                 (lesson.0 as NSString).draw(in: CGRect(x: 45, y: 55, width: 560, height: 65), withAttributes: [.font: UIFont.systemFont(ofSize: 30, weight: .semibold), .foregroundColor: UIColor(TayyaTheme.brandInk), .paragraphStyle: style])
-                (lesson.1 as NSString).draw(in: CGRect(x: 45, y: 145, width: 560, height: 670), withAttributes: [.font: UIFont.systemFont(ofSize: 21), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
+                // Lay out every glyph, reducing the font only when necessary.
+                // An ASCII end marker also makes PDF text extraction verifiable
+                // without depending on PDFKit's Arabic ligature/RTL ordering.
+                let body = lesson.1 + "\n\nTayya Demo"
+                var fontSize: CGFloat = 21
+                while true {
+                    let storage = NSTextStorage(string: body, attributes: [.font: UIFont.systemFont(ofSize: fontSize), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
+                    let layout = NSLayoutManager(); storage.addLayoutManager(layout)
+                    let container = NSTextContainer(size: CGSize(width: 560, height: 670)); container.lineFragmentPadding = 0
+                    layout.addTextContainer(container)
+                    let range = layout.glyphRange(for: container)
+                    if NSMaxRange(range) == layout.numberOfGlyphs {
+                        layout.drawGlyphs(forGlyphRange: range, at: CGPoint(x: 45, y: 145))
+                        break
+                    }
+                    fontSize -= 1
+                }
                 ("\(index + 1) / 3 — مكتبة تجريبية" as NSString).draw(in: CGRect(x: 45, y: 845, width: 560, height: 30), withAttributes: [.font: UIFont.systemFont(ofSize: 14), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
             }
         }

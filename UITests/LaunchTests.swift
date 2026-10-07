@@ -337,6 +337,8 @@ final class LaunchTests: XCTestCase {
         let start = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: -60, dy: -50)))
         XCTAssertEqual(canvas.value as? String, count)
+        app.buttons["fitMargin"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        app.buttons["fitMarginWidth"].tap(); XCTAssertEqual(canvas.value as? String, count)
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["addMarginPage"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
         XCTAssertEqual(canvas.value as? String, count)

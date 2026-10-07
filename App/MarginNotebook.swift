@@ -5,6 +5,7 @@ import PencilKit
 final class MarginCanvas: PKCanvasView {
     var sheetSize = CGSize(width: 650, height: 900)
     var followsFit = true
+    private var fitsWidth = true
     private var previousBounds = CGSize.zero
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -18,22 +19,32 @@ final class MarginCanvas: PKCanvasView {
         previousBounds = bounds.size
         super.layoutSubviews()
         guard changed, bounds.width > 0, bounds.height > 0 else { return }
-        if followsFit { fitSheet() }
+        if followsFit { fitContent() }
         else {
-            contentOffset = CGPoint(x: max(0, center.x * zoomScale - bounds.width / 2),
-                                    y: max(0, center.y * zoomScale - bounds.height / 2))
+            contentOffset = CGPoint(x: max(-contentInset.left, center.x * zoomScale - bounds.width / 2),
+                                    y: max(-contentInset.top, center.y * zoomScale - bounds.height / 2))
         }
     }
     func fitSheet() {
+        fitsWidth = false; fitContent()
+    }
+    func fitWidth() {
+        fitsWidth = true; fitContent()
+    }
+    private func fitContent() {
         guard bounds.width > 0, bounds.height > 0 else { return }
         followsFit = true
         let sheet = CGRect(origin: .zero, size: sheetSize).union(drawing.bounds)
-        let scale = min(bounds.width / sheet.width, bounds.height / sheet.height)
+        let scale = fitsWidth ? bounds.width / sheet.width : min(bounds.width / sheet.width, bounds.height / sheet.height)
         minimumZoomScale = min(0.1, scale)
         maximumZoomScale = max(4, scale)
         zoomScale = scale
-        contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale), left: max(0, -sheet.minX * scale), bottom: 0, right: 0)
-        contentOffset = CGPoint(x: sheet.minX * scale, y: sheet.minY * scale)
+        let horizontalGap = max(0, (bounds.width - sheet.width * scale) / 2)
+        let verticalGap = max(0, (bounds.height - sheet.height * scale) / 2)
+        contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale) + verticalGap,
+                                   left: max(0, -sheet.minX * scale) + horizontalGap,
+                                   bottom: verticalGap, right: horizontalGap)
+        contentOffset = CGPoint(x: sheet.minX * scale - horizontalGap, y: sheet.minY * scale - verticalGap)
     }
 }
 @MainActor final class MarginEditorState: ObservableObject {
@@ -48,6 +59,7 @@ final class MarginCanvas: PKCanvasView {
     func action(_ name: String) {
         switch name {
         case "fit": canvas?.fitSheet()
+        case "fitWidth": canvas?.fitWidth()
         case "undo": canvas?.undoManager?.undo()
         case "redo": canvas?.undoManager?.redo()
         default: break
@@ -85,6 +97,7 @@ struct InkToolbar: View {
                 Button("تراجع", systemImage: "arrow.uturn.backward") { action("undo") }.labelStyle(.iconOnly)
                 Button("إعادة", systemImage: "arrow.uturn.forward") { action("redo") }.labelStyle(.iconOnly)
                 Button("إظهار الورقة كاملة", systemImage: "arrow.up.left.and.arrow.down.right") { action("fit") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMargin")
+                Button("عرض مناسب للكتابة", systemImage: "arrow.left.and.right") { action("fitWidth") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMarginWidth")
             }.padding(.horizontal, 12).padding(.vertical, 8)
         }.background(TayyaTheme.surface)
     }
@@ -123,7 +136,7 @@ struct MarginNotebook: UIViewRepresentable {
                 canvas.undoManager?.removeAllActions()
                 canvas.sheetSize = CGSize(width: page.width, height: page.height)
                 canvas.zoomScale = 1; canvas.contentSize = canvas.sheetSize
-                canvas.fitSheet(); coordinator.pageID = page.id; coordinator.lastInk = page.ink
+                canvas.fitWidth(); coordinator.pageID = page.id; coordinator.lastInk = page.ink
                 canvas.accessibilityValue = String(ink.strokes.count)
             } catch { failed(error.localizedDescription) }
             coordinator.loading = false
@@ -151,5 +164,6 @@ struct MarginNotebook: UIViewRepresentable {
             canvas.accessibilityValue = String(canvas.drawing.strokes.count); saved(canvas.drawing)
         }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.followsFit = false }
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }
 }

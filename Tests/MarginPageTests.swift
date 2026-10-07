@@ -69,6 +69,9 @@ final class MarginPageTests: XCTestCase {
             XCTAssertEqual(canvas.drawing.dataRepresentation(), original); XCTAssertEqual(canvas.drawing.bounds, bounds)
             XCTAssertEqual(canvas.sheetSize, CGSize(width: 650, height: 900))
             XCTAssertEqual(canvas.zoomScale, min(size.width / 650, size.height / 900), accuracy: 0.001)
+            canvas.fitWidth()
+            XCTAssertEqual(canvas.zoomScale, size.width / 650, accuracy: 0.001, "Split handwriting should stay legible even in a short pane")
+            XCTAssertEqual(canvas.drawing.dataRepresentation(), original)
         }
     }
     @MainActor func testInkOutsideOriginalSheetRemainsReachableAfterSaveAndReopen() throws {

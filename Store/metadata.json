@@ -1,12 +1,12 @@
 {
-  "status": "0.4.0_uploaded_waiting_for_beta_review",
+  "status": "0.4.1_candidate_not_uploaded",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
     "IOS"
   ],
-  "version": "0.4.0",
-  "build": "8",
+  "version": "0.4.1",
+  "build": "9",
   "primary_locale": "ar-SA",
   "suggested_primary_category": "EDUCATION",
   "suggested_secondary_category": "PRODUCTIVITY",
@@ -18,8 +18,8 @@
       "promotional_text": "صفحاتك بطريقتك: اقرأ ملفاتك، اكتب عليها، واحفظ ملاحظاتك في مكتبة واحدة على الآيفون والآيباد.",
       "description": "طَيّة مساحة عربية للقراءة والكتابة وتنظيم ملفات الدراسة على الآيفون والآيباد.\n\nاقرأ ملفات PDF وأضف ملاحظاتك بالقلم أو اللمس، واكتب تعليقات نصية وانتقل بين الصفحات. صدّر نسخة PDF بتعليقاتك للمشاركة أو الحفظ.\n\nنظّم ملفاتك في أقسام، أعد تسميتها وأضفها إلى المفضلة. استورد الملفات من تطبيق الملفات، واحتفظ بمكتبتك على جهازك.\n\nاربط تسجيلاتك الصوتية بصفحات الدراسة بعد السماح بالميكروفون.\n\nيمكن تحويل مستندات Office المدعومة محليًا إلى PDF ثابت للكتابة عليها. بعد نجاح التحويل، يحل PDF محل بطاقة الملف نفسها مع الحفاظ على اسمها وقسمها ومفضلتها؛ ويُحفظ أصل Office داخل المكتبة أيضًا لإعادة فتحه وتشغيل وسائطه. قد يختلف تنسيق بعض الملفات والخطوط، ولا تنتقل حركات PowerPoint أو الفيديو إلى PDF.\n\nواجهة تدعم العربية والاتجاه من اليمين إلى اليسار، ووضعًا داكنًا يتبع النظام، وافتتاحية قصيرة تحترم إعداد تقليل الحركة.\n\nقوالب ورق للمحاضرات والتخطيط، وبطاقات مراجعة، ونسخ احتياطي كامل للمكتبة. ابحث في نصوص PDF وملفات Office الحديثة والتعليقات النصية. التعرف على الصفحات المصورة يعمل على الجهاز وفق اللغات التي يدعمها إصدار النظام. افتح المستند والحاشية معًا، واكتب بالنص أو بخط اليد، واربط الكتابة بزمن تسجيل صوتي.",
       "keywords": "PDF,ملاحظات,قلم,دراسة,دفتر,تعليقات,قراءة,ملفات,حاشية,طية",
-      "whats_new": "أقسام ومحذوفات واضحة، قوالب ورق جديدة، نسخ احتياطي كامل، حفظ أصل Office، تحديد الكتابة ونسخها بين الصفحات، بحث داخل المستندات والملاحظات، حاشية مقسومة بخط اليد والنص، تسجيل مرتبط بالكتابة، وبطاقات مراجعة حسب الأقسام.",
-      "beta_test_description": "جرّب الأقسام والمحذوفات على الآيفون والشريط الجانبي على الآيباد. أنشئ دفترًا بقالب جديد، واكتب بالقلم والنص. جرّب تحديد الكتابة ونقلها ونسخها بين الصفحات، والحاشية المقسومة، وبطاقات المراجعة والتسجيل المرتبط. صدّر نسخة احتياطية ثم استعدها بخيار حفظ النسختين. جرّب البحث داخل PDF والتعليقات، والتعرف المحلي على الصفحات المصورة باللغة التي يدعمها جهازك. تأكد من بقاء أصل Office بعد التحويل."
+      "whats_new": "صفحات مستقلة للحاشية بالنص وخط اليد، إضافة وتنقّل واضح بين الصفحات، وربطها بصفحات المستند. مساحة كتابة ثابتة تحفظ الخط عند تغيير التقسيم والتدوير، وأدوات قلم داخل الواجهة مع أي لون وسماكة وتراجع وإعادة. تكبير الحاشية، قائمة صفحات بعناوين ومعاينات، إضافة أوراق كتابة إلى نهاية المستند، وتصدير جميع الحواشي مع النصوص الطويلة. الحواشي القديمة والنسخ الاحتياطية محفوظة.",
+      "beta_test_description": "افتح المستند والحاشية معًا. اكتب بالنص وخط اليد، وأضف صفحة حاشية ثانية؛ تأكد أن كل صفحة تحفظ محتواها وحدها. غيّر حجم التقسيم ودوّر الآيفون والآيباد ووسّع الحاشية ثم أعد فتح التطبيق. جرّب تحريك الورقة، عرضًا مناسبًا للكتابة وإظهار الورقة كاملة، الألوان والسماكة والممحاة والتراجع والإعادة. تنقّل في المستند والحاشية بصورة مستقلة. أضف ورقة إلى نهاية المستند. صدّر حاشية طويلة ونسخة احتياطية، واستعدها بخيار حفظ النسختين. تأكد من بقاء الحواشي القديمة."
     },
     "en-US": {
       "name": "Tayya — طَيّة",
@@ -27,8 +27,8 @@
       "promotional_text": "Keep your reading, handwritten notes and study files together on iPhone and iPad.",
       "description": "Tayya is a local reading and annotation workspace for iPhone and iPad.\n\nRead PDFs, draw with a stylus or touch, add editable text notes and export an annotated PDF. Organize documents into sections, rename them and mark favorites. Import supported files from the Files app.\n\nRecord audio notes linked to a page after granting microphone access.\n\nConvert supported Office documents locally into a static PDF for annotation. Once conversion and saving succeed, the PDF replaces the same library entry while preserving its name, section and favorite status. The Office original is also retained inside your library for preview and embedded media. Some formatting and fonts may differ; PowerPoint animations and videos are not preserved in the PDF.\n\nDesigned for Arabic and right-to-left reading, with adaptive iPad layouts, system dark appearance and an introduction that respects Reduce Motion.\n\nPaper templates, review cards and full library backups. Search PDF text, modern Office document text and typed annotations. On-device OCR availability depends on the languages supported by your OS. Open a document alongside typed or handwritten notes and link writing to audio timestamps.",
       "keywords": "PDF,notes,study,annotation,handwriting,notebook,documents,Arabic,Tayya",
-      "whats_new": "Visible sections and trash, adaptive iPad sidebar, paper templates, complete library backups, retained Office originals, lasso transforms and cross-page copying, document and annotation search, split handwritten and typed notes, audio timestamps and review cards by section.",
-      "beta_test_description": "Test the visible library navigation on iPhone and iPad. Create templates, draw and type, use lasso transforms and copy between pages, split notes, linked recording and flashcards. Export a full backup and restore with Keep both. Check PDF and annotation search, on-device OCR for languages supported by your OS, and retained Office originals after conversion."
+      "whats_new": "Independent typed and handwritten margin pages with visible page navigation, source-page links, titles and previews. Stable sheet coordinates preserve ink through split resizing and rotation. Inline pen, pencil, highlighter, eraser, color, width, undo, redo and fit controls replace floating palettes. Expand the margin, append writing sheets, export all margin pages including long text, and retain legacy notes in backups.",
+      "beta_test_description": "Open a document with its margin. Draw and type on two independent margin pages. Resize the split, rotate iPhone and iPad, expand the margin and relaunch. Check pan, writing-width fit, whole-sheet fit, colors, width, eraser, undo and redo. Navigate document and margin independently; append a writing sheet. Export long notes and restore a backup with Keep both. Verify legacy notes remain intact."
     }
   },
   "review": {
@@ -42,13 +42,15 @@
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption; unchanged OpenSSL engine. Complete the truthful standard-encryption questionnaire; France remains excluded.",
   "privacy_manifest": "Existing required-reason manifest retained. Native run 37203677730 completed signed archive/export, Apple validation and upload.",
-  "apple_session": "Verified 2026-10-04: 0.4.0 (8) processed Complete, export compliance saved and submitted to Tayya Beta: Waiting for Review. Existing App Store 0.3.0 (7) remains Waiting for Review.",
+  "apple_session": "Last Apple verification: 2026-10-04, 0.4.0 (8) Complete and Waiting for Review in Tayya Beta. On 2026-10-07 the user reported an App Store rejection; investigation is deferred. Candidate 0.4.1 (9) is not yet uploaded.",
   "app_store_app_id": "6818288428",
-  "testflight_uploaded": true,
+  "testflight_uploaded": false,
   "app_store_submitted": false,
   "required_before_submission": [
-    "Apple TestFlight beta review approval for 0.4.0 (8)",
-    "App Store 0.3.0 review completes before submitting 0.4.0 update"
+    "Both simulator suites pass for the final source",
+    "Signed archive, validation and Apple upload succeed",
+    "Complete candidate export-compliance and external beta setup after Apple processing",
+    "Handle the reported App Store rejection separately before a new Store submission"
   ],
   "apple_team_id": "ZUB6SJFQA3",
   "age_rating": "4+",
@@ -68,8 +70,9 @@
   "current_store_release": {
     "version": "0.3.0",
     "build": "7",
-    "status": "Waiting for Review",
-    "verified": "2026-10-04"
+    "status": "Rejected (user reported; Apple not rechecked)",
+    "verified": "2026-10-04",
+    "reported_date": "2026-10-07"
   },
   "testflight": {
     "build_id": "d0ef0a77-cddb-4663-8c55-4fb40a9e192c",

@@ -145,7 +145,6 @@ struct DocumentScreen: View {
     @StateObject private var workspace: PDFWorkspace
     @State private var pageNumber = "1"
     @FocusState private var pageFocused: Bool
-    @State private var showNotes = false
     @State private var showAudio = false
     @State private var showLinkedAudio = false
     @StateObject private var margins: MarginPages
@@ -250,7 +249,7 @@ struct DocumentScreen: View {
                             Button("الإنجليزية") { recognize("en") }
                         }.disabled(ocrBusy)
                         if note.originalFile != nil { Button("أصل Office والوسائط", systemImage: "doc") { original = true } }
-                        Button("الحاشية", systemImage: "note.text") { workspace.tool = .read; showNotes = true }
+                        Button("الحاشية", systemImage: "note.text") { workspace.tool = .read; splitNotes = true; notesExpanded = true }
                         Button("التسجيلات المرتبطة بالملاحظات", systemImage: "waveform") { showLinkedAudio = true }
                         Button("تسجيلات الصفحة", systemImage: "mic") { showAudio = true }
                         Button("تصدير PDF", systemImage: "square.and.arrow.up") { workspace.export() }
@@ -280,14 +279,6 @@ struct DocumentScreen: View {
             .sheet(item: $workspace.editing) { item in TextEditorSheet(item: item, save: workspace.saveText) }
             .sheet(isPresented: $showLinkedAudio) { LinkedAudioScreen(audio: audio, jump: workspace.jump) }
             .sheet(isPresented: $showAudio) { PageAudioScreen(folder: root.appendingPathComponent(note.id.uuidString + "-audio").appendingPathComponent(String(workspace.page))) }
-            .sheet(isPresented: $showNotes) {
-                NavigationStack {
-                    MarginPane(store: margins, editor: margins.editor, sourcePage: workspace.page, expanded: true,
-                               toggleExpanded: { showNotes = false }, jump: { page in workspace.jump(page); showNotes = false }, inkSaved: recordMarginInk, textSaved: recordMarginText)
-                        .navigationTitle("دفتر الحاشية").navigationBarTitleDisplayMode(.inline)
-                        .toolbar { Button("تم") { showNotes = false } }
-                }.environment(\.layoutDirection, .rightToLeft)
-            }
             .sheet(isPresented: Binding(get: { workspace.exported != nil }, set: { if !$0 { workspace.exported = nil } })) {
                 if let url = workspace.exported { ShareDocument(url: url) }
             }

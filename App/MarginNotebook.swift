@@ -115,7 +115,7 @@ struct MarginNotebook: UIViewRepresentable {
     private func configure(_ canvas: MarginCanvas, context: Context) {
         let coordinator = context.coordinator
         coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas
-        if coordinator.pageID != page.id {
+        if coordinator.pageID != page.id || coordinator.lastInk != page.ink {
             coordinator.loading = true
             do {
                 let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
@@ -123,7 +123,7 @@ struct MarginNotebook: UIViewRepresentable {
                 canvas.undoManager?.removeAllActions()
                 canvas.sheetSize = CGSize(width: page.width, height: page.height)
                 canvas.zoomScale = 1; canvas.contentSize = canvas.sheetSize
-                canvas.fitSheet(); coordinator.pageID = page.id
+                canvas.fitSheet(); coordinator.pageID = page.id; coordinator.lastInk = page.ink
                 canvas.accessibilityValue = String(ink.strokes.count)
             } catch { failed(error.localizedDescription) }
             coordinator.loading = false
@@ -140,12 +140,14 @@ struct MarginNotebook: UIViewRepresentable {
     }
     @MainActor final class Coordinator: NSObject, PKCanvasViewDelegate {
         var pageID: UUID?
+        var lastInk: Data?
         var loading = false
         var saved: (PKDrawing) -> Void
         var failed: (String) -> Void
         init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void) { self.saved = saved; self.failed = failed }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             guard !loading else { return }
+            lastInk = canvas.drawing.dataRepresentation()
             canvas.accessibilityValue = String(canvas.drawing.strokes.count); saved(canvas.drawing)
         }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.followsFit = false }

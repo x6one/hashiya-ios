@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 struct AudioLink: Codable, Identifiable {
     var id = UUID()
     var clip: String
@@ -24,5 +25,31 @@ extension PageAudio {
     func seek(_ marker: AudioLink) {
         let target = folder.appendingPathComponent(marker.clip)
         play(target, at: marker.time)
+    }
+}
+
+struct LinkedAudioScreen: View {
+    @ObservedObject var audio: PageAudio
+    let jump: (Int) -> Void
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            List {
+                if audio.markers.isEmpty { Text("ستظهر هنا الأوقات المرتبطة بالكتابة أثناء التسجيل.").foregroundStyle(.secondary) }
+                ForEach(audio.markers) { marker in
+                    Button {
+                        jump(marker.page); audio.seek(marker)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("\(Int(marker.time / 60)):\(String(format: "%02d", Int(marker.time) % 60)) — صفحة \(marker.page)", systemImage: "play.circle")
+                            Text(marker.label).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }.disabled(audio.recording)
+                }
+                Section("التسجيلات الكاملة") {
+                    ForEach(audio.clips, id: \.self) { clip in Button(clip.deletingPathExtension().lastPathComponent, systemImage: "play.fill") { audio.play(clip) }.disabled(audio.recording) }
+                }
+            }.navigationTitle("التسجيلات المرتبطة").toolbar { Button("تم") { dismiss() } }
+        }.environment(\.layoutDirection, .rightToLeft)
     }
 }

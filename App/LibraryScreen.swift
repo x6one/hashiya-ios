@@ -22,6 +22,7 @@ struct LibraryScreen: View {
     @State private var route: SearchHit?
     @State private var importMessage: String?
     @State private var importingFile = false
+    @State private var demonstration: Notebook?
     private var filtered: [Notebook] {
         store.notebooks.filter { $0.trashed == showTrash && (section == nil || showTrash || $0.section == section) && (!favorites || $0.favorite) }
     }
@@ -53,6 +54,7 @@ struct LibraryScreen: View {
             .sheet(isPresented: $reviewing) { LibraryCardsScreen(library: store) }
             .sheet(isPresented: $backup) { BackupScreen(store: store) }
             .navigationDestination(item: $route) { hit in NotebookScreen(id: hit.notebook, store: store, initialPage: hit.page) }
+            .navigationDestination(item: $demonstration) { note in NotebookScreen(id: note.id, store: store) }
             .task(id: query) {
                 guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { hits = []; searching = false; return }
                 searching = true
@@ -104,6 +106,23 @@ struct LibraryScreen: View {
                     Text(showTrash ? "المحذوفات" : "صفحاتك، بطريقتك.").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
                     Text(showTrash ? "استعد ملفاتك أو احذفها نهائيًا." : "اقرأ، دوّن، واترك أثر فكرتك.").foregroundStyle(.secondary)
                 }.padding(.vertical, 18)
+                if !showTrash {
+                    Button {
+                        do { demonstration = try store.installDemonstration() }
+                        catch { store.error = error.localizedDescription }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "play.rectangle").font(.title2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("جرّب طَيّة بملفات جاهزة").font(.headline)
+                                Text("دليل PDF ودفتر وحواشٍ وعرض تقديمي — دون حساب").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.left")
+                        }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
+                            .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 14))
+                    }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink).accessibilityIdentifier("openDemonstration")
+                }
                 if sizeClass != .regular {
                     HStack {
                         Button("الأقسام", systemImage: "folder") { managing = true }.accessibilityIdentifier("librarySections")

@@ -1,6 +1,25 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
+    func testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages() {
+        let app = XCUIApplication()
+        app.launch()
+        let demo = app.buttons["openDemonstration"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        if !demo.isHittable { app.swipeDown() }
+        demo.tap()
+        XCTAssertTrue(app.textFields["pageNumber"].waitForExistence(timeout: 15))
+        app.buttons["documentTools"].tap()
+        app.buttons["المستند والحاشية معًا"].tap()
+        XCTAssertTrue(app.segmentedControls["marginMode"].waitForExistence(timeout: 10))
+        app.segmentedControls["marginMode"].buttons["نص"].tap()
+        XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("ملاحظة تجريبية") == true)
+        XCTAssertTrue(app.buttons["nextMarginPage"].isEnabled)
+        app.buttons["nextMarginPage"].tap()
+        XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("صفحة مستقلة") == true)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "DemonstrationReadyForReview"; shot.lifetime = .keepAlways; add(shot)
+    }
     private func prepareExternalFixture(in app: XCUIApplication, name: String) -> Bool {
         // Create the provider-owned fixture immediately before its import,
         // without retaining it across unrelated PDF picker sessions.

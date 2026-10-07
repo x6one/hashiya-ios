@@ -91,7 +91,12 @@ enum MarginError: LocalizedError {
     }
     func saveInk(_ drawing: PKDrawing, page id: UUID) {
         guard let index = pages.firstIndex(where: { $0.id == id }) else { return }
-        pages[index].ink = drawing.dataRepresentation(); pending.insert(id); saved = false; _ = flush()
+        pages[index].ink = drawing.dataRepresentation()
+        if !drawing.strokes.isEmpty {
+            pages[index].width = max(pages[index].width, drawing.bounds.maxX + 24)
+            pages[index].height = max(pages[index].height, drawing.bounds.maxY + 24)
+        }
+        pending.insert(id); saved = false; _ = flush()
     }
     @discardableResult func select(_ id: UUID) -> Bool {
         guard pages.contains(where: { $0.id == id }), flush() else { return false }

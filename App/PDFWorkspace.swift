@@ -379,11 +379,23 @@ struct ShareDocument: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIActivityViewController { UIActivityViewController(activityItems: [url], applicationActivities: nil) }
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
+final class ResizingPDFView: PDFView {
+    private var previousSize = CGSize.zero
+    override func layoutSubviews() {
+        let resized = bounds.size != previousSize
+        previousSize = bounds.size
+        let page = currentPage
+        super.layoutSubviews()
+        guard resized, autoScales, bounds.width > 0, bounds.height > 0 else { return }
+        scaleFactor = scaleFactorForSizeToFit
+        if let page { go(to: page) }
+    }
+}
 struct NativePDF: UIViewRepresentable {
     @ObservedObject var workspace: PDFWorkspace
     func makeCoordinator() -> Coordinator { Coordinator(workspace: workspace) }
     func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
+        let view = ResizingPDFView()
         // Register the overlay provider before PDFKit creates visible page views.
         // Assigning it after the document can leave the first page without ink.
         workspace.view = view

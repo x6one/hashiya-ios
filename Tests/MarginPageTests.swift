@@ -71,6 +71,16 @@ final class MarginPageTests: XCTestCase {
             XCTAssertEqual(canvas.zoomScale, min(size.width / 650, size.height / 900), accuracy: 0.001)
         }
     }
+    @MainActor func testInkOutsideOriginalSheetRemainsReachableAfterSaveAndReopen() throws {
+        let root = try directory(), id = UUID(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = MarginPages(root: root, notebook: id), page = try XCTUnwrap(store.currentID)
+        let drawing = ink().transformed(using: CGAffineTransform(translationX: 600, y: 950))
+        store.saveInk(drawing, page: page)
+        let reopened = MarginPages(root: root, notebook: id), restored = try XCTUnwrap(reopened.current)
+        XCTAssertGreaterThanOrEqual(restored.width, drawing.bounds.maxX)
+        XCTAssertGreaterThanOrEqual(restored.height, drawing.bounds.maxY)
+        XCTAssertEqual(try PKDrawing(data: restored.ink).bounds, drawing.bounds)
+    }
     @MainActor func testBackupRestoresPagedInkTextAndCurrentSelectionWithNewNotebookID() async throws {
         let root = try directory(), targetRoot = try directory(); defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: targetRoot) }
         let library = LibraryStore(root: root, seedDemo: false); library.create("حاشية متعددة")

@@ -27,11 +27,13 @@ final class MarginCanvas: PKCanvasView {
     func fitSheet() {
         guard bounds.width > 0, bounds.height > 0 else { return }
         followsFit = true
-        let scale = min(bounds.width / sheetSize.width, bounds.height / sheetSize.height)
+        let sheet = CGRect(origin: .zero, size: sheetSize).union(drawing.bounds)
+        let scale = min(bounds.width / sheet.width, bounds.height / sheet.height)
         minimumZoomScale = min(0.1, scale)
         maximumZoomScale = max(4, scale)
         zoomScale = scale
-        contentOffset = .zero
+        contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale), left: max(0, -sheet.minX * scale), bottom: 0, right: 0)
+        contentOffset = CGPoint(x: sheet.minX * scale, y: sheet.minY * scale)
     }
 }
 @MainActor final class MarginEditorState: ObservableObject {
@@ -125,6 +127,12 @@ struct MarginNotebook: UIViewRepresentable {
                 canvas.accessibilityValue = String(ink.strokes.count)
             } catch { failed(error.localizedDescription) }
             coordinator.loading = false
+        }
+        let size = CGSize(width: page.width, height: page.height)
+        if canvas.sheetSize != size {
+            let zoom = canvas.zoomScale, offset = canvas.contentOffset
+            canvas.sheetSize = size; canvas.zoomScale = 1; canvas.contentSize = size
+            canvas.zoomScale = zoom; canvas.contentOffset = offset
         }
         canvas.drawingGestureRecognizer.isEnabled = drawing
         canvas.panGestureRecognizer.minimumNumberOfTouches = drawing ? 2 : 1

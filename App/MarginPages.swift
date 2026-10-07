@@ -28,6 +28,7 @@ enum MarginError: LocalizedError {
     @Published private(set) var currentID: UUID?
     @Published var error: String?
     @Published private(set) var saved = true
+    let editor = MarginEditorState()
     let folder: URL
     private var pending = Set<UUID>()
     var current: MarginPage? { pages.first { $0.id == currentID } }

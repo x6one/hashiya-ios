@@ -282,8 +282,8 @@ struct DocumentScreen: View {
             .sheet(isPresented: $showAudio) { PageAudioScreen(folder: root.appendingPathComponent(note.id.uuidString + "-audio").appendingPathComponent(String(workspace.page))) }
             .sheet(isPresented: $showNotes) {
                 NavigationStack {
-                    MarginPane(store: margins, sourcePage: workspace.page, expanded: true,
-                               toggleExpanded: { showNotes = false }, jump: { page in workspace.jump(page); showNotes = false }, inkSaved: recordMarginInk)
+                    MarginPane(store: margins, editor: margins.editor, sourcePage: workspace.page, expanded: true,
+                               toggleExpanded: { showNotes = false }, jump: { page in workspace.jump(page); showNotes = false }, inkSaved: recordMarginInk, textSaved: recordMarginText)
                         .navigationTitle("دفتر الحاشية").navigationBarTitleDisplayMode(.inline)
                         .toolbar { Button("تم") { showNotes = false } }
                 }.environment(\.layoutDirection, .rightToLeft)
@@ -295,9 +295,14 @@ struct DocumentScreen: View {
     }
     private var cardsURL: URL { root.appendingPathComponent(note.id.uuidString + "-cards.json") }
     private var notesPane: some View {
-        MarginPane(store: margins, sourcePage: workspace.page, expanded: notesExpanded,
+        MarginPane(store: margins, editor: margins.editor, sourcePage: workspace.page, expanded: notesExpanded,
                    toggleExpanded: { pageFocused = false; notesExpanded.toggle() },
-                   jump: { page in workspace.jump(page); notesExpanded = false }, inkSaved: recordMarginInk)
+                   jump: { page in workspace.jump(page); notesExpanded = false }, inkSaved: recordMarginInk, textSaved: recordMarginText)
+    }
+    private func recordMarginText(_ text: String, _ id: UUID) {
+        let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
+        do { try audio.link(page: source, label: "حاشية \(margins.position + 1): " + String(text.suffix(70))) }
+        catch { workspace.error = error.localizedDescription }
     }
     private func recordMarginInk(_ count: Int, _ id: UUID) {
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page

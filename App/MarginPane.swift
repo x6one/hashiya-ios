@@ -3,17 +3,14 @@ import PencilKit
 
 struct MarginPane: View {
     @ObservedObject var store: MarginPages
+    @ObservedObject var editor: MarginEditorState
     let sourcePage: Int
     let expanded: Bool
     let toggleExpanded: () -> Void
     let jump: (Int) -> Void
     let inkSaved: (Int, UUID) -> Void
+    let textSaved: (String, UUID) -> Void
     @StateObject private var canvasControl = MarginCanvasControl()
-    @State private var handwriting = false
-    @State private var drawing = true
-    @State private var brush: InkBrush = .pen
-    @State private var color = TayyaTheme.brandInk
-    @State private var width = 3.0
     @State private var showPages = false
     @State private var exported: URL?
     @Environment(\.scenePhase) private var scenePhase
@@ -22,17 +19,17 @@ struct MarginPane: View {
             header
             if let page = store.current {
                 HStack(spacing: 8) {
-                    Picker("طريقة تدوين الحاشية", selection: $handwriting) {
+                    Picker("طريقة تدوين الحاشية", selection: $editor.handwriting) {
                         Text("نص").tag(false); Text("خط اليد").tag(true)
                     }.pickerStyle(.segmented).accessibilityIdentifier("marginMode")
-                    if handwriting {
-                        Button(drawing ? "تحريك" : "كتابة", systemImage: drawing ? "hand.draw" : "pencil.tip") { drawing.toggle() }
+                    if editor.handwriting {
+                        Button(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip") { editor.drawing.toggle() }
                             .font(.subheadline).accessibilityIdentifier("marginPan")
                     }
                 }.padding(.horizontal, 12).padding(.vertical, 6)
-                if handwriting {
-                    InkToolbar(brush: $brush, color: $color, width: $width, action: canvasControl.action)
-                    MarginNotebook(page: page, drawing: drawing, brush: brush, color: color, width: width, control: canvasControl,
+                if editor.handwriting {
+                    InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, action: canvasControl.action)
+                    MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)
                         if store.saved { inkSaved(ink.strokes.count, page.id) }
@@ -40,7 +37,7 @@ struct MarginPane: View {
                     .clipped()
                 } else {
                     TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
-                                             set: { store.editText($0, page: page.id) }))
+                                             set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
                         .font(.system(size: 20)).padding(8).scrollContentBackground(.hidden)
                         .background(TayyaTheme.surface).accessibilityIdentifier("splitNotes")
                 }

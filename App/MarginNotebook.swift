@@ -34,6 +34,13 @@ final class MarginCanvas: PKCanvasView {
         contentOffset = .zero
     }
 }
+@MainActor final class MarginEditorState: ObservableObject {
+    @Published var handwriting = false
+    @Published var drawing = true
+    @Published var brush: InkBrush = .pen
+    @Published var color = TayyaTheme.brandInk
+    @Published var width = 3.0
+}
 @MainActor final class MarginCanvasControl: ObservableObject {
     weak var canvas: MarginCanvas?
     func action(_ name: String) {

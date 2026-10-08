@@ -37,7 +37,12 @@ enum LibrarySearch {
                     hits.append(SearchHit(notebook: note.id, title: note.title, page: index + 1, snippet: String(content[start..<end])))
                 }
             }
-            if let margin = try? String(contentsOf: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), encoding: .utf8), margin.localizedCaseInsensitiveContains(query) {
+            if let pages = try? MarginPages.read(root: root, notebook: note.id) {
+                for (index, page) in pages.enumerated() where page.text.localizedCaseInsensitiveContains(query) || page.title.localizedCaseInsensitiveContains(query) {
+                    hits.append(SearchHit(notebook: note.id, title: note.title, page: page.sourcePage,
+                                          snippet: "الحاشية \(index + 1): " + String((page.title + " " + page.text).prefix(160))))
+                }
+            } else if let margin = try? String(contentsOf: root.appendingPathComponent(note.id.uuidString + "-margin.txt"), encoding: .utf8), margin.localizedCaseInsensitiveContains(query) {
                 hits.append(SearchHit(notebook: note.id, title: note.title, page: nil, snippet: "الحاشية: " + String(margin.prefix(160))))
             }
         }

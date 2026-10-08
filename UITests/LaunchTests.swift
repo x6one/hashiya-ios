@@ -1,6 +1,25 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
+    func testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages() {
+        let app = XCUIApplication()
+        app.launch()
+        let demo = app.buttons["openDemonstration"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        if !demo.isHittable { app.swipeDown() }
+        demo.tap()
+        XCTAssertTrue(app.textFields["pageNumber"].waitForExistence(timeout: 15))
+        app.buttons["documentTools"].tap()
+        app.buttons["المستند والحاشية معًا"].tap()
+        XCTAssertTrue(app.segmentedControls["marginMode"].waitForExistence(timeout: 10))
+        app.segmentedControls["marginMode"].buttons["نص"].tap()
+        XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("ملاحظة تجريبية") == true)
+        XCTAssertTrue(app.buttons["nextMarginPage"].isEnabled)
+        app.buttons["nextMarginPage"].tap()
+        XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("صفحة مستقلة") == true)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "DemonstrationReadyForReview"; shot.lifetime = .keepAlways; add(shot)
+    }
     private func prepareExternalFixture(in app: XCUIApplication, name: String) -> Bool {
         // Create the provider-owned fixture immediately before its import,
         // without retaining it across unrelated PDF picker sessions.
@@ -154,6 +173,14 @@ final class LaunchTests: XCTestCase {
             list.tap()
         }
         XCTAssertTrue(file.waitForExistence(timeout: 10))
+        if appOwned {
+            // New note resources can put Owned-fixture at the clipped bottom
+            // of the iPad picker. Scroll the provider's actual list before
+            // taking its thumbnail geometry; an off-sheet tap dismisses it.
+            app.collectionViews["File View"].swipeUp()
+            XCTAssertTrue(file.waitForExistence(timeout: 10))
+            XCTAssertTrue(file.isHittable)
+        }
         let pickerShot = XCTAttachment(screenshot: app.screenshot())
         pickerShot.name = "NativeFilePicker"
         pickerShot.lifetime = .keepAlways
@@ -296,4 +323,65 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.textViews["splitNotes"].waitForExistence(timeout: 5))
         let split = XCTAttachment(screenshot: app.screenshot()); split.name = "AdaptiveSplitNotes"; split.lifetime = .keepAlways; add(split)
     }
+    func testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch() {
+        let app = XCUIApplication(); app.launch()
+        XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 15)); app.buttons["createNotebook"].tap()
+        let name = "دفتر جديد"
+        app.buttons["إنشاء"].tap()
+        let note = visibleLibraryDocument(name, in: app); XCTAssertTrue(note.waitForExistence(timeout: 10)); note.tap()
+        app.buttons["documentTools"].tap(); app.buttons["المستند والحاشية معًا"].tap()
+        let text = app.textViews["splitNotes"]; XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap()
+        let firstText = "First margin page - keep this text."
+        text.typeText(firstText)
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
+        // PKCanvasView exposes itself as a ScrollView in UIKit's real AX tree.
+        let canvas = app.scrollViews["marginInkCanvas"]
+        XCTAssertTrue(canvas.waitForExistence(timeout: 5))
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.2)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.85)))
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in (Int(canvas.value as? String ?? "") ?? 0) > 0 }, object: canvas)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed)
+        let count = canvas.value as? String
+        XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
+        app.buttons["addMarginPage"].tap()
+        XCTAssertEqual(app.buttons["marginPages"].value as? String, "2/2")
+        XCTAssertEqual(canvas.value as? String, "0", "Pages must have independent ink")
+        app.segmentedControls["marginMode"].buttons["نص"].tap(); text.tap(); text.typeText("Second margin page")
+        app.buttons["previousMarginPage"].tap()
+        XCTAssertEqual(text.value as? String, firstText)
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
+        XCTAssertEqual(canvas.value as? String, count)
+        let divider = app.descendants(matching: .any)["splitDivider"].firstMatch
+        XCTAssertTrue(divider.exists)
+        let start = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: -60, dy: -50)))
+        XCTAssertEqual(canvas.value as? String, count)
+        app.buttons["fitMargin"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        app.buttons["fitMarginWidth"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["addMarginPage"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
+        XCTAssertEqual(canvas.value as? String, count)
+        XCUIDevice.shared.orientation = .portrait
+        app.buttons["expandMargin"].tap()
+        XCTAssertTrue(app.buttons["addMarginPage"].isHittable); XCTAssertEqual(canvas.value as? String, count)
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "PagedHandwritingFullScreen"; shot.lifetime = .keepAlways; add(shot)
+        app.buttons["expandMargin"].tap()
+        app.buttons["documentTools"].tap(); app.buttons["الحاشية"].tap()
+        XCTAssertEqual(canvas.value as? String, count, "The Notes menu must reuse the same drawing")
+        app.buttons["expandMargin"].tap()
+        app.buttons["documentTools"].tap(); app.buttons["إضافة ورقة للكتابة"].tap(); app.buttons["نقاط"].tap()
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
+        XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/2", "Document navigation must not turn the notes page")
+        app.buttons["previousDocumentPage"].tap(); XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
+        let split = XCTAttachment(screenshot: app.screenshot()); split.name = "PagedMarginsSplit"; split.lifetime = .keepAlways; add(split)
+        app.terminate(); app.launch()
+        let reopened = visibleLibraryDocument(name, in: app); XCTAssertTrue(reopened.waitForExistence(timeout: 10)); reopened.tap()
+        app.buttons["documentTools"].tap(); app.buttons["المستند والحاشية معًا"].tap()
+        XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/2")
+        XCTAssertEqual(app.textViews["splitNotes"].value as? String, firstText)
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        app.buttons["nextMarginPage"].tap(); app.segmentedControls["marginMode"].buttons["نص"].tap()
+        XCTAssertEqual(app.textViews["splitNotes"].value as? String, "Second margin page")
+    }
+
 }

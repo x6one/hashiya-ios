@@ -1,44 +1,172 @@
 import SwiftUI
 import PencilKit
 
+// Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
-    let picker = PKToolPicker()
+    var sheetSize = CGSize(width: 650, height: 900)
+    var followsFit = true
+    private var fitsWidth = true
+    private var previousBounds = CGSize.zero
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if window != nil { becomeFirstResponder(); picker.setVisible(true, forFirstResponder: self) }
-        else { picker.setVisible(false, forFirstResponder: self) }
+        if window != nil { becomeFirstResponder() }
+    }
+    override func layoutSubviews() {
+        let changed = bounds.size != previousBounds
+        let oldSize = previousBounds
+        let center = CGPoint(x: (contentOffset.x + oldSize.width / 2) / max(zoomScale, 0.01),
+                             y: (contentOffset.y + oldSize.height / 2) / max(zoomScale, 0.01))
+        previousBounds = bounds.size
+        super.layoutSubviews()
+        guard changed, bounds.width > 0, bounds.height > 0 else { return }
+        if followsFit { fitContent() }
+        else {
+            contentOffset = CGPoint(x: max(-contentInset.left, center.x * zoomScale - bounds.width / 2),
+                                    y: max(-contentInset.top, center.y * zoomScale - bounds.height / 2))
+        }
+    }
+    func fitSheet() {
+        fitsWidth = false; fitContent()
+    }
+    func fitWidth() {
+        fitsWidth = true; fitContent()
+    }
+    private func fitContent() {
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        followsFit = true
+        let sheet = CGRect(origin: .zero, size: sheetSize).union(drawing.bounds)
+        let scale = fitsWidth ? bounds.width / sheet.width : min(bounds.width / sheet.width, bounds.height / sheet.height)
+        minimumZoomScale = min(0.1, scale)
+        maximumZoomScale = max(4, scale)
+        zoomScale = scale
+        let horizontalGap = max(0, (bounds.width - sheet.width * scale) / 2)
+        let verticalGap = max(0, (bounds.height - sheet.height * scale) / 2)
+        contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale) + verticalGap,
+                                   left: max(0, -sheet.minX * scale) + horizontalGap,
+                                   bottom: verticalGap, right: horizontalGap)
+        contentOffset = CGPoint(x: sheet.minX * scale - horizontalGap, y: sheet.minY * scale - verticalGap)
+    }
+}
+@MainActor final class MarginEditorState: ObservableObject {
+    @Published var handwriting = false
+    @Published var drawing = true
+    @Published var brush: InkBrush = .pen
+    @Published var color = TayyaTheme.brandInk
+    @Published var width = 3.0
+}
+@MainActor final class MarginCanvasControl: ObservableObject {
+    weak var canvas: MarginCanvas?
+    func action(_ name: String) {
+        switch name {
+        case "fit": canvas?.fitSheet()
+        case "fitWidth": canvas?.fitWidth()
+        case "undo": canvas?.undoManager?.undo()
+        case "redo": canvas?.undoManager?.redo()
+        default: break
+        }
+    }
+}
+enum InkBrush: String, CaseIterable, Identifiable {
+    case pen = "قلم", pencil = "رصاص", marker = "تظليل", eraser = "ممحاة"
+    var id: String { rawValue }
+    var symbol: String {
+        switch self { case .pen: return "pencil.tip"; case .pencil: return "pencil"; case .marker: return "highlighter"; case .eraser: return "eraser" }
+    }
+    func tool(color: UIColor, width: CGFloat) -> PKTool {
+        switch self {
+        case .pen: return PKInkingTool(.pen, color: color, width: width)
+        case .pencil: return PKInkingTool(.pencil, color: color, width: width)
+        case .marker: return PKInkingTool(.marker, color: color.withAlphaComponent(0.4), width: width * 4)
+        case .eraser: return PKEraserTool(.vector)
+        }
+    }
+}
+struct InkToolbar: View {
+    @Binding var brush: InkBrush
+    @Binding var color: Color
+    @Binding var width: Double
+    var allowsWidthFit = false
+    let action: (String) -> Void
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                Menu { ForEach(InkBrush.allCases) { item in Button(item.rawValue, systemImage: item.symbol) { brush = item } } }
+                label: { Label(brush.rawValue, systemImage: brush.symbol) }
+                ColorPicker("لون الحبر", selection: $color, supportsOpacity: false).labelsHidden().accessibilityLabel("لون الحبر")
+                Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
+                label: { Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle()) }.accessibilityLabel("سماكة القلم")
+                Button("تراجع", systemImage: "arrow.uturn.backward") { action("undo") }.labelStyle(.iconOnly)
+                Button("إعادة", systemImage: "arrow.uturn.forward") { action("redo") }.labelStyle(.iconOnly)
+                Button("إظهار الورقة كاملة", systemImage: "arrow.up.left.and.arrow.down.right") { action("fit") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMargin")
+                if allowsWidthFit {
+                    Button("عرض مناسب للكتابة", systemImage: "arrow.left.and.right") { action("fitWidth") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMarginWidth")
+                }
+            }.padding(.horizontal, 12).padding(.vertical, 8)
+        }.background(TayyaTheme.surface)
     }
 }
 struct MarginNotebook: UIViewRepresentable {
-    let url: URL
-    let saved: (Int) -> Void
+    let page: MarginPage
+    let drawing: Bool
+    let brush: InkBrush
+    let color: Color
+    let width: Double
+    let control: MarginCanvasControl
+    let saved: (PKDrawing) -> Void
     let failed: (String) -> Void
-    func makeCoordinator() -> Coordinator { Coordinator(url: url, saved: saved, failed: failed) }
+    func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed) }
     func makeUIView(context: Context) -> MarginCanvas {
         let canvas = MarginCanvas()
-        canvas.backgroundColor = UIColor(red: 1, green: 0.995, blue: 0.96, alpha: 1)
-        canvas.contentSize = CGSize(width: 650, height: 1200)
-        canvas.minimumZoomScale = 0.3; canvas.maximumZoomScale = 2; canvas.zoomScale = 0.65
+        canvas.backgroundColor = PaperColor.cream.uiColor
         canvas.drawingPolicy = .anyInput
-        canvas.tool = PKInkingTool(.pen, color: .darkGray, width: 3)
-        if FileManager.default.fileExists(atPath: url.path) {
-            do { canvas.drawing = try PKDrawing(data: Data(contentsOf: url)) }
-            catch { failed(error.localizedDescription) }
-        }
-        canvas.delegate = context.coordinator; canvas.picker.addObserver(canvas)
+        canvas.delegate = context.coordinator
+        canvas.bounces = false
+        canvas.isAccessibilityElement = true
         canvas.accessibilityIdentifier = "marginInkCanvas"
-        canvas.accessibilityLabel = "دفتر الحاشية بخط اليد"
+        canvas.accessibilityLabel = "ورقة الحاشية بخط اليد"
+        configure(canvas, context: context)
         return canvas
     }
-    func updateUIView(_ view: MarginCanvas, context: Context) { context.coordinator.saved = saved; context.coordinator.failed = failed }
-    @MainActor final class Coordinator: NSObject, PKCanvasViewDelegate {
-        let url: URL
-        var saved: (Int) -> Void
-        var failed: (String) -> Void
-        init(url: URL, saved: @escaping (Int) -> Void, failed: @escaping (String) -> Void) { self.url = url; self.saved = saved; self.failed = failed }
-        func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            do { try canvasView.drawing.dataRepresentation().write(to: url, options: .atomic); saved(canvasView.drawing.strokes.count) }
-            catch { failed(error.localizedDescription) }
+    func updateUIView(_ canvas: MarginCanvas, context: Context) { configure(canvas, context: context) }
+    private func configure(_ canvas: MarginCanvas, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas
+        if coordinator.pageID != page.id || coordinator.lastInk != page.ink {
+            coordinator.loading = true
+            do {
+                let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
+                canvas.drawing = ink
+                canvas.undoManager?.removeAllActions()
+                canvas.sheetSize = CGSize(width: page.width, height: page.height)
+                canvas.zoomScale = 1; canvas.contentSize = canvas.sheetSize
+                canvas.fitWidth(); coordinator.pageID = page.id; coordinator.lastInk = page.ink
+                canvas.accessibilityValue = String(ink.strokes.count)
+            } catch { failed(error.localizedDescription) }
+            coordinator.loading = false
         }
+        let size = CGSize(width: page.width, height: page.height)
+        if canvas.sheetSize != size {
+            let zoom = canvas.zoomScale, offset = canvas.contentOffset
+            canvas.sheetSize = size; canvas.zoomScale = 1; canvas.contentSize = size
+            canvas.zoomScale = zoom; canvas.contentOffset = offset
+        }
+        canvas.drawingGestureRecognizer.isEnabled = drawing
+        canvas.panGestureRecognizer.minimumNumberOfTouches = drawing ? 2 : 1
+        canvas.tool = brush.tool(color: UIColor(color), width: width)
+    }
+    @MainActor final class Coordinator: NSObject, PKCanvasViewDelegate {
+        var pageID: UUID?
+        var lastInk: Data?
+        var loading = false
+        var saved: (PKDrawing) -> Void
+        var failed: (String) -> Void
+        init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void) { self.saved = saved; self.failed = failed }
+        func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
+            guard !loading else { return }
+            lastInk = canvas.drawing.dataRepresentation()
+            canvas.accessibilityValue = String(canvas.drawing.strokes.count); saved(canvas.drawing)
+        }
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.followsFit = false }
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }
 }

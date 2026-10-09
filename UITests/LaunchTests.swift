@@ -399,6 +399,7 @@ final class LaunchTests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["addMarginPage"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
         XCTAssertEqual(canvas.value as? String, count)
+        XCTAssertGreaterThan(canvas.frame.height, 44, "Landscape controls must reserve visible handwriting space")
         XCUIDevice.shared.orientation = .portrait
         app.buttons["expandMargin"].tap()
         XCTAssertTrue(app.buttons["addMarginPage"].isHittable); XCTAssertEqual(canvas.value as? String, count)

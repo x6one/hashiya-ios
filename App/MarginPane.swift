@@ -14,22 +14,20 @@ struct MarginPane: View {
     @State private var showPages = false
     @State private var exported: URL?
     @State private var deletingPage: UUID?
+    @FocusState private var textFocused: Bool
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         VStack(spacing: 0) {
             header
             if let page = store.current {
-                HStack(spacing: 8) {
-                    Picker("طريقة تدوين الحاشية", selection: $editor.handwriting) {
-                        Text("نص").tag(false); Text("خط اليد").tag(true)
-                    }.pickerStyle(.segmented).accessibilityIdentifier("marginMode")
-                    if editor.handwriting {
-                        Button(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip") { editor.drawing.toggle() }
-                            .font(.subheadline).accessibilityIdentifier("marginPan")
-                    }
-                }.padding(.horizontal, 12).padding(.vertical, 6)
+                if verticalSizeClass == .compact && editor.handwriting {
+                    HStack(spacing: 0) { modeControls.frame(width: 195); inkControls }
+                } else {
+                    modeControls
+                    if editor.handwriting { inkControls }
+                }
                 if editor.handwriting {
-                    InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)
@@ -40,9 +38,9 @@ struct MarginPane: View {
                     TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
                                              set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
                         .font(.system(size: 20)).padding(8).scrollContentBackground(.hidden)
-                        .background(TayyaTheme.surface).accessibilityIdentifier("splitNotes")
+                        .background(TayyaTheme.surface).accessibilityIdentifier("splitNotes").focused($textFocused)
                 }
-                footer(page)
+                if !textFocused { footer(page) }
             } else {
                 ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
             }
@@ -55,8 +53,22 @@ struct MarginPane: View {
             .confirmationDialog("نقل صفحة الحاشية إلى المحذوفات؟", isPresented: Binding(get: { deletingPage != nil }, set: { if !$0 { deletingPage = nil } }), titleVisibility: .visible) {
                 Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil }
             } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
+            .onChange(of: editor.handwriting) { _, _ in textFocused = false }
             .onDisappear { _ = store.flush() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
+    }
+    private var modeControls: some View {
+        HStack(spacing: 8) {
+            Picker("طريقة تدوين الحاشية", selection: $editor.handwriting) { Text("نص").tag(false); Text("خط اليد").tag(true) }
+                .pickerStyle(.segmented).accessibilityIdentifier("marginMode")
+            if editor.handwriting {
+                Button(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip") { editor.drawing.toggle() }
+                    .font(.subheadline).accessibilityIdentifier("marginPan")
+            }
+        }.padding(.horizontal, 12).padding(.vertical, 6)
+    }
+    private var inkControls: some View {
+        InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
     }
     private var header: some View {
         HStack(spacing: 6) {
@@ -79,12 +91,12 @@ struct MarginPane: View {
     }
     private func footer(_ page: MarginPage) -> some View {
         VStack(spacing: 0) {
-            HStack {
+            if verticalSizeClass != .compact { HStack {
                 if let linked = page.sourcePage { Button("المستند · ص \(linked)", systemImage: "link") { jump(linked) } }
                 else { Text("حاشية عامة").foregroundStyle(.secondary) }
                 Spacer()
                 Label(store.saved ? "محفوظ" : "لم يُحفظ", systemImage: store.saved ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(store.saved ? TayyaTheme.ink : Color.red)
-            }.font(.caption).padding(.horizontal, 12).padding(.top, 4)
+            }.font(.caption).padding(.horizontal, 12).padding(.top, 4) }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     WorkspaceAction(title: "ربط الصفحة", symbol: "link") { store.linkCurrent(to: sourcePage) }

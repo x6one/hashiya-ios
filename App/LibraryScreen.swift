@@ -47,7 +47,7 @@ struct LibraryScreen: View {
                 WelcomeScreen(start: { welcomeSeen = true; welcome = false }, demonstrate: {
                     do { demonstration = try store.installDemonstration(); welcomeSeen = true; welcome = false }
                     catch { store.error = error.localizedDescription }
-                })
+                }, error: store.error)
             }
             .safeAreaInset(edge: .bottom) {
                 if let importMessage {
@@ -112,7 +112,7 @@ struct LibraryScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(showTrash ? "المحذوفات" : "صفحاتك، بطريقتك.").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
+                    Text(showTrash ? "المحذوفات" : favorites ? "المفضلة" : section == "مكتبتي" ? "مكتبتك" : section ?? "كل الملفات").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
                     Text(showTrash ? "استعد ملفاتك أو احذفها نهائيًا." : "اقرأ، دوّن، واترك أثر فكرتك.").foregroundStyle(.secondary)
                 }.padding(.vertical, 18)
                 if !showTrash {
@@ -148,7 +148,7 @@ struct LibraryScreen: View {
                 if !showTrash {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            Button("المكتبة", systemImage: "books.vertical") { section = "مكتبتي"; favorites = false }.buttonStyle(.bordered).accessibilityIdentifier("libraryRoot")
+                            Button("المكتبة", systemImage: "books.vertical") { section = "مكتبتي"; favorites = false }.buttonStyle(.bordered).tint(section == "مكتبتي" && !favorites ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55)).accessibilityIdentifier("libraryRoot")
                             Button("كل الملفات", systemImage: "square.grid.2x2") { section = nil; favorites = false }.buttonStyle(.bordered)
                             Button("المفضلة", systemImage: "star") { favorites.toggle(); section = nil }.buttonStyle(.bordered)
                             ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in

@@ -211,7 +211,7 @@ struct DocumentScreen: View {
     }
     private var documentContent: some View {
         VStack(spacing: 0) {
-            toolsBar
+            if !notesExpanded { toolsBar }
             // Navigation is outside the drawing area and tool picker on every device.
             if !notesExpanded { pageControls }
             if workspace.tool == .ink && !notesExpanded {
@@ -265,11 +265,18 @@ struct DocumentScreen: View {
 
     }
     private var toolsBar: some View {
-        VStack(spacing: 6) {
-            Picker("مجموعة الأدوات", selection: $toolGroup) {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { toolGroupPicker.frame(width: 240); toolActions.frame(minWidth: 360) }
+            VStack(spacing: 6) { toolGroupPicker; toolActions }
+        }.padding(.horizontal, 8).padding(.top, 6).background(TayyaTheme.surface)
+    }
+    private var toolGroupPicker: some View {
+        Picker("مجموعة الأدوات", selection: $toolGroup) {
                 ForEach(WorkspaceToolGroup.allCases) { group in Text(group.rawValue).tag(group) }
             }.pickerStyle(.segmented).accessibilityIdentifier("workspaceToolGroups")
-            ScrollView(.horizontal, showsIndicators: false) {
+    }
+    private var toolActions: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     switch toolGroup {
                     case .writing:
@@ -300,7 +307,6 @@ struct DocumentScreen: View {
                     }
                 }.padding(.vertical, 2).disabled(toolGroup == .pages && ocrBusy)
             }
-        }.padding(.horizontal, 8).padding(.top, 6).background(TayyaTheme.surface)
     }
     private func changeDocumentPage(undo: Bool = false) {
         audio.stop(); workspace.tool = .read

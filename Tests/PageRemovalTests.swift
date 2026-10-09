@@ -134,4 +134,15 @@ final class PageRemovalTests: XCTestCase {
         XCTAssertTrue(restoredMargins.restore(deleted))
         XCTAssertEqual(restoredMargins.current?.text, "Recover from backup")
     }
+    @MainActor func testDamagedArchivedMarginCannotBeOverwrittenByAddingAnEmptyPage() throws {
+        let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
+        let id = UUID(), margins = MarginPages(root: root, notebook: id)
+        XCTAssertTrue(margins.add(linkedTo: 1)); let removed = try XCTUnwrap(margins.currentID)
+        XCTAssertTrue(margins.delete(removed))
+        let index = margins.folder.appendingPathComponent("index.json"), original = try Data(contentsOf: index)
+        try Data("broken".utf8).write(to: margins.folder.appendingPathComponent(removed.uuidString + ".json"))
+        let reopened = MarginPages(root: root, notebook: id)
+        XCTAssertNotNil(reopened.error); XCTAssertTrue(reopened.pages.isEmpty); XCTAssertFalse(reopened.add(linkedTo: 2))
+        XCTAssertEqual(try Data(contentsOf: index), original)
+    }
 }

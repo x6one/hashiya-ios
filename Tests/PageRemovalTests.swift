@@ -113,4 +113,25 @@ final class PageRemovalTests: XCTestCase {
         reopened.deleteSection("Study"); XCTAssertEqual(reopened.visibleNotebooks().map(\.id), [note.id])
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(note.file)), original)
     }
+    @MainActor func testBackupKeepsDeletedMarginsAndPageUndoWithRenamedNotebookResources() async throws {
+        let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
+        let library = LibraryStore(root: root, seedDemo: false); library.create("Backup")
+        let note = try XCTUnwrap(library.notebooks.first), margins = MarginPages(root: root, notebook: note.id)
+        XCTAssertTrue(margins.add(linkedTo: 1)); let deleted = try XCTUnwrap(margins.currentID)
+        margins.editText("Recover from backup", page: deleted); XCTAssertTrue(margins.delete(deleted))
+        let workspace = PDFWorkspace(note: note, root: root); workspace.appendPaper(.dots)
+        let original = try Data(contentsOf: workspace.fileURL)
+        try workspace.deletePage(2, note: note, root: root)
+        let backup = try await library.exportBackup(); defer { try? FileManager.default.removeItem(at: backup) }
+        _ = try await library.restoreBackup(backup, policy: .keepBoth)
+        let restored = try XCTUnwrap(library.notebooks.last); XCTAssertNotEqual(restored.id, note.id)
+        let restoredMargins = MarginPages(root: root, notebook: restored.id)
+        XCTAssertEqual(restoredMargins.deletedPages.first?.text, "Recover from backup")
+        let restoredPDF = PDFWorkspace(note: restored, root: root)
+        XCTAssertTrue(restoredPDF.canUndoPageDeletion)
+        try restoredPDF.undoPageDeletion(note: restored, root: root)
+        XCTAssertEqual(try Data(contentsOf: restoredPDF.fileURL), original)
+        XCTAssertTrue(restoredMargins.restore(deleted))
+        XCTAssertEqual(restoredMargins.current?.text, "Recover from backup")
+    }
 }

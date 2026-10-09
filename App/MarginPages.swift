@@ -54,7 +54,8 @@ enum MarginError: LocalizedError {
                 }
                 deletedPages = try (index.deleted ?? []).map { id in
                     let page = try JSONDecoder().decode(MarginPage.self, from: Data(contentsOf: pageURL(id)))
-                    guard page.id == id, !index.pages.contains(id) else { throw MarginError.damaged }
+                    guard page.id == id, !index.pages.contains(id), page.width.isFinite, page.height.isFinite, page.width > 0, page.height > 0 else { throw MarginError.damaged }
+                    if !page.ink.isEmpty { _ = try PKDrawing(data: page.ink) }
                     return page
                 }
                 guard Set(deletedPages.map(\.id)).count == deletedPages.count else { throw MarginError.damaged }
@@ -75,7 +76,7 @@ enum MarginError: LocalizedError {
                 try writeIndex([page], current: page.id)
                 pages = [page]; currentID = page.id
             }
-        } catch { self.error = error.localizedDescription }
+        } catch { pages = []; deletedPages = []; currentID = nil; self.error = error.localizedDescription }
     }
     private func pageURL(_ id: UUID) -> URL { folder.appendingPathComponent(id.uuidString + ".json") }
     private func write(_ page: MarginPage) throws { try JSONEncoder().encode(page).write(to: pageURL(page.id), options: .atomic) }

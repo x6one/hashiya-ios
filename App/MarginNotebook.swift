@@ -7,6 +7,24 @@ final class MarginCanvas: PKCanvasView {
     var followsFit = true
     private var fitsWidth = true
     private var previousBounds = CGSize.zero
+    private var updatingViewport = false
+    var usingTool = false
+    private var pendingSheetSize: CGSize?
+    func setSheetSize(_ size: CGSize) {
+        guard size != sheetSize else { return }
+        if usingTool { pendingSheetSize = size; return }
+        sheetSize = size
+        // UIScrollView's content size is in the current zoomed coordinate space.
+        // Never reset PencilKit to zoom 1 while it is committing a stroke.
+        contentSize = CGSize(width: size.width * zoomScale, height: size.height * zoomScale)
+    }
+    func finishedUsingTool() {
+        usingTool = false
+        if let size = pendingSheetSize { pendingSheetSize = nil; setSheetSize(size) }
+    }
+    func beganUserZooming() {
+        if !updatingViewport, pinchGestureRecognizer?.state == .began { followsFit = false }
+    }
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil { becomeFirstResponder() }
@@ -32,13 +50,16 @@ final class MarginCanvas: PKCanvasView {
         fitsWidth = true; fitContent()
     }
     private func fitContent() {
-        guard bounds.width > 0, bounds.height > 0 else { return }
+        guard !updatingViewport, bounds.width > 0, bounds.height > 0 else { return }
+        updatingViewport = true
+        defer { updatingViewport = false }
         followsFit = true
         let sheet = CGRect(origin: .zero, size: sheetSize).union(drawing.bounds)
         let scale = fitsWidth ? bounds.width / sheet.width : min(bounds.width / sheet.width, bounds.height / sheet.height)
         minimumZoomScale = min(0.1, scale)
         maximumZoomScale = max(4, scale)
         zoomScale = scale
+        contentSize = CGSize(width: sheetSize.width * scale, height: sheetSize.height * scale)
         let horizontalGap = max(0, (bounds.width - sheet.width * scale) / 2)
         let verticalGap = max(0, (bounds.height - sheet.height * scale) / 2)
         contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale) + verticalGap,
@@ -119,6 +140,9 @@ struct MarginNotebook: UIViewRepresentable {
         let canvas = MarginCanvas()
         canvas.backgroundColor = PaperColor.cream.uiColor
         canvas.drawingPolicy = .anyInput
+        canvas.contentInsetAdjustmentBehavior = .never
+        // Sheet coordinates keep their origin on the left in the Arabic UI too.
+        canvas.semanticContentAttribute = .forceLeftToRight
         canvas.delegate = context.coordinator
         canvas.bounces = false
         canvas.isAccessibilityElement = true
@@ -137,8 +161,8 @@ struct MarginNotebook: UIViewRepresentable {
                 let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
                 canvas.drawing = ink
                 canvas.undoManager?.removeAllActions()
-                canvas.sheetSize = CGSize(width: page.width, height: page.height)
-                canvas.zoomScale = 1; canvas.contentSize = canvas.sheetSize
+                canvas.setSheetSize(CGSize(width: page.width, height: page.height))
+                canvas.contentSize = CGSize(width: canvas.sheetSize.width * canvas.zoomScale, height: canvas.sheetSize.height * canvas.zoomScale)
                 canvas.fitWidth(); coordinator.pageID = page.id; coordinator.lastInk = page.ink
                 canvas.accessibilityValue = String(ink.strokes.count)
             } catch { failed(error.localizedDescription) }
@@ -146,9 +170,7 @@ struct MarginNotebook: UIViewRepresentable {
         }
         let size = CGSize(width: page.width, height: page.height)
         if canvas.sheetSize != size {
-            let zoom = canvas.zoomScale, offset = canvas.contentOffset
-            canvas.sheetSize = size; canvas.zoomScale = 1; canvas.contentSize = size
-            canvas.zoomScale = zoom; canvas.contentOffset = offset
+            canvas.setSheetSize(size)
         }
         canvas.drawingGestureRecognizer.isEnabled = drawing
         canvas.panGestureRecognizer.minimumNumberOfTouches = drawing ? 2 : 1
@@ -166,7 +188,9 @@ struct MarginNotebook: UIViewRepresentable {
             lastInk = canvas.drawing.dataRepresentation()
             canvas.accessibilityValue = String(canvas.drawing.strokes.count); saved(canvas.drawing)
         }
-        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.followsFit = false }
+        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) { (canvasView as? MarginCanvas)?.usingTool = true }
+        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) { (canvasView as? MarginCanvas)?.finishedUsingTool() }
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.beganUserZooming() }
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }
 }

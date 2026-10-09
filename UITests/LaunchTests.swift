@@ -3,7 +3,7 @@ import UIKit
 
 final class LaunchTests: XCTestCase {
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
-        let screenshot = app.screenshot().image
+        let screenshot = XCUIScreen.main.screenshot().image
         guard let image = screenshot.cgImage else { return 0 }
         let scale = CGFloat(image.width) / screenshot.size.width
         let frame = canvas.frame.insetBy(dx: 12, dy: 12)
@@ -26,7 +26,7 @@ final class LaunchTests: XCTestCase {
     private func assertMarginInkVisible(_ canvas: XCUIElement, in app: XCUIApplication, stage: String, file: StaticString = #filePath, line: UInt = #line) {
         let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.visibleMarginInkPixels(canvas, in: app) > 40 }, object: canvas)
         let result = XCTWaiter.wait(for: [visible], timeout: 10)
-        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
         XCTAssertEqual(result, .completed, "Saved strokes must remain visible in the canvas after " + stage + "; frame: " + String(describing: canvas.frame), file: file, line: line)
     }
     func testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin() {
@@ -62,6 +62,8 @@ final class LaunchTests: XCTestCase {
         // Dismiss the keyboard through a real mode change before using the footer.
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
         app.buttons["deleteMarginPage"].tap(); app.sheets.buttons["حذف صفحة الحاشية"].tap()
+        let deleted = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1/1"), object: app.buttons["marginPages"])
+        XCTAssertEqual(XCTWaiter.wait(for: [deleted], timeout: 5), .completed)
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/1")
         app.buttons["deletedMarginPages"].tap(); app.buttons["استعادة"].tap()
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "2/2")
@@ -427,11 +429,15 @@ final class LaunchTests: XCTestCase {
         assertMarginInkVisible(canvas, in: app, stage: "fit-sheet")
         app.buttons["fitMarginWidth"].tap(); XCTAssertEqual(canvas.value as? String, count)
         XCUIDevice.shared.orientation = .landscapeLeft
+        let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
         XCTAssertTrue(app.buttons["addMarginPage"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
         XCTAssertEqual(canvas.value as? String, count)
         XCTAssertGreaterThan(canvas.frame.height, 44, "Landscape controls must reserve visible handwriting space")
         assertMarginInkVisible(canvas, in: app, stage: "landscape")
         XCUIDevice.shared.orientation = .portrait
+        let portrait = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.height > app.frame.width }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [portrait], timeout: 5), .completed)
         app.buttons["expandMargin"].tap()
         XCTAssertTrue(app.buttons["addMarginPage"].isHittable); XCTAssertEqual(canvas.value as? String, count)
         assertMarginInkVisible(canvas, in: app, stage: "full-screen")

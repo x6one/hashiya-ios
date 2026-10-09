@@ -6,7 +6,8 @@ final class LaunchTests: XCTestCase {
         let screenshot = XCUIScreen.main.screenshot().image
         guard let image = screenshot.cgImage else { return 0 }
         let scale = CGFloat(image.width) / screenshot.size.width
-        let frame = canvas.frame.insetBy(dx: 12, dy: 12)
+        // A fit-to-sheet canvas can be only 110 pt high; retain ink near its edges.
+        let frame = canvas.frame.insetBy(dx: 2, dy: 2)
         let crop = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale)
         guard let ink = image.cropping(to: crop), ink.width > 0, ink.height > 0 else { return 0 }
         var pixels = [UInt8](repeating: 0, count: ink.width * ink.height * 4)
@@ -18,7 +19,8 @@ final class LaunchTests: XCTestCase {
             var count = 0
             for index in stride(from: 0, to: bytes.count, by: 4) {
                 let red = Int(bytes[index]), green = Int(bytes[index + 1]), blue = Int(bytes[index + 2])
-                if red < 100 && green < 180 && blue < 100 && green > red + 8 && green > blue + 3 { count += 1 }
+                // Include antialiased green edges at small fit scales; blank cream/gray pixels do not qualify.
+                if red < 235 && green > red + 3 && green > blue + 3 { count += 1 }
             }
             return count
         }

@@ -1,0 +1,87 @@
+appId: com.ahmadalawi.hashiya
+name: Library create move rename trash restore and delete
+---
+- runFlow: helpers/new-notebook.yaml
+- tapOn:
+    id: librarySections
+    index: 0
+- tapOn:
+    id: sectionName
+- inputText: QA Section
+- tapOn:
+    id: addSection
+- assertVisible: QA Section
+- tapOn: تم
+- tapOn:
+    id: moveNotebook-QA Notebook
+- tapOn: QA Section
+- assertNotVisible:
+    id: openNotebook-QA Notebook
+- tapOn:
+    text: QA Section
+    index: 0
+- assertVisible:
+    id: openNotebook-QA Notebook
+- launchApp:
+    arguments:
+      maestroTesting: true
+- assertNotVisible:
+    id: openNotebook-QA Notebook
+- tapOn:
+    text: QA Section
+    index: 0
+- assertVisible:
+    id: openNotebook-QA Notebook
+- tapOn:
+    id: librarySections
+    index: 0
+- tapOn:
+    id: deleteSection-QA Section
+- assertNotVisible: QA Section
+- tapOn: تم
+- runFlow: helpers/library-root.yaml
+- assertVisible:
+    id: openNotebook-QA Notebook
+- tapOn:
+    id: renameNotebook-QA Notebook
+- tapOn:
+    id: renameNotebookTitle
+- eraseText
+- inputText: QA Renamed
+- tapOn: حفظ
+- assertVisible:
+    id: openNotebook-QA Renamed
+- tapOn:
+    id: trashNotebook-QA Renamed
+- assertNotVisible:
+    id: openNotebook-QA Renamed
+- tapOn:
+    id: libraryTrash
+    index: 0
+- assertVisible:
+    id: restoreNotebook-QA Renamed
+- tapOn:
+    id: restoreNotebook-QA Renamed
+- assertNotVisible:
+    id: restoreNotebook-QA Renamed
+- runFlow: helpers/library-root.yaml
+- assertVisible:
+    id: openNotebook-QA Renamed
+- tapOn:
+    id: trashNotebook-QA Renamed
+- tapOn:
+    id: libraryTrash
+    index: 0
+- tapOn:
+    id: eraseNotebook-QA Renamed
+- tapOn: حذف نهائي
+- assertNotVisible:
+    id: eraseNotebook-QA Renamed
+- launchApp:
+    arguments:
+      maestroTesting: true
+- assertNotVisible:
+    id: openNotebook-QA Renamed
+- assertVisible:
+    id: createNotebook
+- takeScreenshot: library-lifecycle-complete

@@ -293,11 +293,11 @@ struct DocumentScreen: View {
                         WorkspaceAction(title: "ملاءمة", symbol: "arrow.up.left.and.arrow.down.right") { workspace.fit() }
                     case .study:
                         WorkspaceAction(title: "بطاقة جديدة", symbol: "rectangle.badge.plus") { cardDraft = Flashcard(question: "", answer: workspace.view?.currentSelection?.string ?? "", page: workspace.page) }
-                        WorkspaceAction(title: "البطاقات", symbol: "rectangle.stack") { showCards = true }
+                        WorkspaceAction(title: "البطاقات", symbol: "rectangle.stack") { showCards = true }.accessibilityIdentifier("openFlashcards")
                         WorkspaceAction(title: audio.recording ? "إيقاف التسجيل" : "تسجيل", symbol: audio.recording ? "stop.circle" : "mic", selected: audio.recording) {
                             if audio.recording { audio.stop() } else { splitNotes = true; Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
-                        }
-                        WorkspaceAction(title: "الصوت المرتبط", symbol: "waveform") { showLinkedAudio = true }
+                        }.accessibilityIdentifier("recordLinkedAudio")
+                        WorkspaceAction(title: "الصوت المرتبط", symbol: "waveform") { showLinkedAudio = true }.accessibilityIdentifier("openLinkedAudio")
                         WorkspaceAction(title: "صوت الصفحة", symbol: "mic.circle") { showAudio = true }
                         WorkspaceAction(title: "قراءة العربية", symbol: "text.viewfinder") { recognize("ar") }.disabled(ocrBusy)
                         WorkspaceAction(title: "قراءة الإنجليزية", symbol: "text.viewfinder") { recognize("en") }.disabled(ocrBusy)

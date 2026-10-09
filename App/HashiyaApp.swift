@@ -11,7 +11,7 @@ import ZIPFoundation
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--test-review-entry") { UserDefaults.standard.removeObject(forKey: "tayya.welcomeSeen") }
         let reviewRoot = ProcessInfo.processInfo.arguments.contains("--test-review-entry") ? FileManager.default.temporaryDirectory.appendingPathComponent("ReviewEntry-" + UUID().uuidString) : nil
-        let store = LibraryStore(root: reviewRoot, seedDemo: !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
+        let store = LibraryStore(root: reviewRoot, seedDemo: !UserDefaults.standard.bool(forKey: "maestroTesting") && !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
         if ProcessInfo.processInfo.arguments.contains("--test-office-preview"),
            !store.notebooks.contains(where: { $0.title == "ملف Office للاختبار" }),
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {

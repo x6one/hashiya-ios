@@ -15,8 +15,8 @@ import AVFoundation
     func reload() {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            markers = loadLinks()
             clips = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey]).filter { $0.pathExtension == "m4a" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+            markers = loadLinks().filter { marker in clips.contains { $0.lastPathComponent == marker.clip } }
         } catch { self.error = error.localizedDescription }
     }
     func start() async {
@@ -51,7 +51,18 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func delete(_ url: URL) {
-        do { if playing == url { player?.stop(); playing = nil }; try FileManager.default.removeItem(at: url); reload() }
+        guard !recording, url.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL else { return }
+        let retained = loadLinks().filter { $0.clip != url.lastPathComponent }
+        let parked = folder.appendingPathComponent(".deleting-" + UUID().uuidString)
+        do {
+            let data = try JSONEncoder().encode(retained)
+            if playing == url { player?.stop(); playing = nil }
+            try FileManager.default.moveItem(at: url, to: parked)
+            do { try data.write(to: linksURL, options: .atomic) }
+            catch { try? FileManager.default.moveItem(at: parked, to: url); throw error }
+            try FileManager.default.removeItem(at: parked)
+            reload()
+        }
         catch { self.error = error.localizedDescription }
     }
 }

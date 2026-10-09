@@ -152,7 +152,7 @@ struct MarginPageList: View {
                                     Text(page.text).font(.caption).lineLimit(2).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Button("استعادة", systemImage: "arrow.uturn.backward") { if store.restore(page.id) { dismiss() } }
+                                Button("استعادة", systemImage: "arrow.uturn.backward") { if store.restore(page.id) { dismiss() } }.accessibilityIdentifier("restoreMarginPage")
                             }
                         }
                     }

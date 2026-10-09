@@ -22,7 +22,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(groups.waitForExistence(timeout: 10)); groups.buttons["صفحات"].tap()
         app.buttons["addWritingPaper"].tap(); app.buttons["نقاط"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
-        app.buttons["deleteDocumentPage"].tap(); app.buttons["حذف الصفحة"].tap()
+        app.buttons["deleteDocumentPage"].tap(); app.sheets.buttons["حذف الصفحة"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
         XCTAssertTrue(app.buttons["undoDocumentPageDeletion"].isEnabled)
         app.buttons["undoDocumentPageDeletion"].tap()
@@ -33,7 +33,7 @@ final class LaunchTests: XCTestCase {
         let text = app.textViews["splitNotes"]; text.tap(); text.typeText("Recover this page")
         // Dismiss the keyboard through a real mode change before using the footer.
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
-        app.buttons["deleteMarginPage"].tap(); app.buttons["حذف صفحة الحاشية"].tap()
+        app.buttons["deleteMarginPage"].tap(); app.sheets.buttons["حذف صفحة الحاشية"].tap()
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/1")
         app.buttons["deletedMarginPages"].tap(); app.buttons["استعادة"].tap()
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "2/2")

@@ -1,6 +1,34 @@
 import XCTest
+import UIKit
 
 final class LaunchTests: XCTestCase {
+    private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
+        let screenshot = app.screenshot().image
+        guard let image = screenshot.cgImage else { return 0 }
+        let scale = CGFloat(image.width) / screenshot.size.width
+        let frame = canvas.frame.insetBy(dx: 12, dy: 12)
+        let crop = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale)
+        guard let ink = image.cropping(to: crop), ink.width > 0, ink.height > 0 else { return 0 }
+        var pixels = [UInt8](repeating: 0, count: ink.width * ink.height * 4)
+        return pixels.withUnsafeMutableBytes { bytes in
+            guard let context = CGContext(data: bytes.baseAddress, width: ink.width, height: ink.height, bitsPerComponent: 8,
+                                          bytesPerRow: ink.width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return 0 }
+            context.draw(ink, in: CGRect(x: 0, y: 0, width: ink.width, height: ink.height))
+            var count = 0
+            for index in stride(from: 0, to: bytes.count, by: 4) {
+                let red = Int(bytes[index]), green = Int(bytes[index + 1]), blue = Int(bytes[index + 2])
+                if red < 100 && green < 180 && blue < 100 && green > red + 8 && green > blue + 3 { count += 1 }
+            }
+            return count
+        }
+    }
+    private func assertMarginInkVisible(_ canvas: XCUIElement, in app: XCUIApplication, stage: String, file: StaticString = #filePath, line: UInt = #line) {
+        let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.visibleMarginInkPixels(canvas, in: app) > 40 }, object: canvas)
+        let result = XCTWaiter.wait(for: [visible], timeout: 10)
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
+        XCTAssertEqual(result, .completed, "Saved strokes must remain visible in the canvas after " + stage + "; frame: " + String(describing: canvas.frame), file: file, line: line)
+    }
     func testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin() {
         let app = XCUIApplication(); app.launchArguments = ["--test-review-entry"]; app.launch()
         let demo = app.buttons["welcomeDemonstration"]
@@ -380,6 +408,7 @@ final class LaunchTests: XCTestCase {
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in (Int(canvas.value as? String ?? "") ?? 0) > 0 }, object: canvas)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed)
         let count = canvas.value as? String
+        assertMarginInkVisible(canvas, in: app, stage: "drawing")
         XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
         app.buttons["addMarginPage"].tap()
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "2/2")
@@ -395,14 +424,17 @@ final class LaunchTests: XCTestCase {
         start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: -60, dy: -50)))
         XCTAssertEqual(canvas.value as? String, count)
         app.buttons["fitMargin"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        assertMarginInkVisible(canvas, in: app, stage: "fit-sheet")
         app.buttons["fitMarginWidth"].tap(); XCTAssertEqual(canvas.value as? String, count)
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["addMarginPage"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["addMarginPage"].isHittable)
         XCTAssertEqual(canvas.value as? String, count)
         XCTAssertGreaterThan(canvas.frame.height, 44, "Landscape controls must reserve visible handwriting space")
+        assertMarginInkVisible(canvas, in: app, stage: "landscape")
         XCUIDevice.shared.orientation = .portrait
         app.buttons["expandMargin"].tap()
         XCTAssertTrue(app.buttons["addMarginPage"].isHittable); XCTAssertEqual(canvas.value as? String, count)
+        assertMarginInkVisible(canvas, in: app, stage: "full-screen")
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "PagedHandwritingFullScreen"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["expandMargin"].tap()
         app.buttons["openMargin"].tap()
@@ -419,6 +451,8 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/2")
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, firstText)
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        app.buttons["fitMargin"].tap()
+        assertMarginInkVisible(canvas, in: app, stage: "relaunch")
         app.buttons["nextMarginPage"].tap(); app.segmentedControls["marginMode"].buttons["نص"].tap()
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, "Second margin page")
     }

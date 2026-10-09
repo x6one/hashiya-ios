@@ -13,6 +13,7 @@ struct MarginPane: View {
     @StateObject private var canvasControl = MarginCanvasControl()
     @State private var showPages = false
     @State private var exported: URL?
+    @State private var deletingPage: UUID?
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         VStack(spacing: 0) {
@@ -51,6 +52,9 @@ struct MarginPane: View {
             .alert("حفظ الحاشية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
                 Button("حاول الحفظ مجددًا") { _ = store.flush() }; Button("حسنًا", role: .cancel) { }
             } message: { Text(store.error ?? "") }
+            .confirmationDialog("نقل صفحة الحاشية إلى المحذوفات؟", isPresented: Binding(get: { deletingPage != nil }, set: { if !$0 { deletingPage = nil } }), titleVisibility: .visible) {
+                Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil }
+            } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
             .onDisappear { _ = store.flush() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
     }
@@ -74,22 +78,25 @@ struct MarginPane: View {
         }.padding(.horizontal, 8).background(TayyaTheme.surface)
     }
     private func footer(_ page: MarginPage) -> some View {
-        HStack(spacing: 8) {
-            if let linked = page.sourcePage {
-                Button("المستند · ص \(linked)", systemImage: "link") { jump(linked) }.lineLimit(1)
-            } else { Text("حاشية عامة").foregroundStyle(.secondary) }
-            Spacer(minLength: 0)
-            Image(systemName: store.saved ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(store.saved ? TayyaTheme.ink : Color.red)
-                .accessibilityLabel(store.saved ? "محفوظ" : "لم يُحفظ")
-            Menu {
-                Button("ربط بصفحة المستند الحالية") { store.linkCurrent(to: sourcePage) }
-                Button("حاشية عامة") { store.linkCurrent(to: nil) }
-                Button("تصدير جميع صفحات الحاشية PDF", systemImage: "square.and.arrow.up") {
-                    do { exported = try store.export() } catch { store.error = error.localizedDescription }
-                }
-            } label: { Image(systemName: "ellipsis.circle").frame(minWidth: 40, minHeight: 36) }.accessibilityLabel("خيارات صفحة الحاشية")
-        }.font(.caption).padding(.horizontal, 12).background(TayyaTheme.surface)
+        VStack(spacing: 0) {
+            HStack {
+                if let linked = page.sourcePage { Button("المستند · ص \(linked)", systemImage: "link") { jump(linked) } }
+                else { Text("حاشية عامة").foregroundStyle(.secondary) }
+                Spacer()
+                Label(store.saved ? "محفوظ" : "لم يُحفظ", systemImage: store.saved ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(store.saved ? TayyaTheme.ink : Color.red)
+            }.font(.caption).padding(.horizontal, 12).padding(.top, 4)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    WorkspaceAction(title: "ربط الصفحة", symbol: "link") { store.linkCurrent(to: sourcePage) }
+                    WorkspaceAction(title: "فك الربط", symbol: "link.badge.plus") { store.linkCurrent(to: nil) }.disabled(page.sourcePage == nil)
+                    WorkspaceAction(title: "تصدير", symbol: "square.and.arrow.up") { do { exported = try store.export() } catch { store.error = error.localizedDescription } }
+                    WorkspaceAction(title: "حذف", symbol: "trash") { deletingPage = page.id }.disabled(store.pages.count <= 1).accessibilityIdentifier("deleteMarginPage")
+                    WorkspaceAction(title: "المحذوفات", symbol: "trash.circle") { showPages = true }.accessibilityIdentifier("deletedMarginPages")
+                }.padding(.horizontal, 8)
+            }
+        }.background(TayyaTheme.surface)
     }
+
 }
 struct MarginPageList: View {
     @ObservedObject var store: MarginPages
@@ -119,7 +126,23 @@ struct MarginPageList: View {
                                 Spacer()
                                 if page.id == store.currentID { Image(systemName: "checkmark.circle.fill").foregroundStyle(TayyaTheme.ink) }
                             }
-                        }.foregroundStyle(.primary)
+                        }.foregroundStyle(.primary).swipeActions {
+                            Button("حذف", role: .destructive) { _ = store.delete(page.id) }.disabled(store.pages.count <= 1)
+                        }
+                    }
+                }
+                if !store.deletedPages.isEmpty {
+                    Section("صفحات محذوفة — قابلة للاستعادة") {
+                        ForEach(store.deletedPages) { page in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(page.title.isEmpty ? "صفحة حاشية" : page.title)
+                                    Text(page.text).font(.caption).lineLimit(2).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button("استعادة", systemImage: "arrow.uturn.backward") { if store.restore(page.id) { dismiss() } }
+                            }
+                        }
                     }
                 }
             }.navigationTitle("صفحات الحاشية").toolbar {

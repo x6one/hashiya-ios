@@ -3,7 +3,7 @@ import ZIPFoundation
 
 extension Notebook {
     var resources: [String] {
-        [file, originalFile, id.uuidString, id.uuidString + "-margin.txt", id.uuidString + "-margin.drawing", id.uuidString + "-text.json", id.uuidString + "-audio", id.uuidString + "-cards.json", id.uuidString + "-ocr.json", id.uuidString + "-margins", id.uuidString + "-source.pdf"].compactMap { $0 }
+        [file, originalFile, id.uuidString, id.uuidString + "-margin.txt", id.uuidString + "-margin.drawing", id.uuidString + "-text.json", id.uuidString + "-audio", id.uuidString + "-cards.json", id.uuidString + "-ocr.json", id.uuidString + "-margins", id.uuidString + "-source.pdf", id.uuidString + "-page-edit"].compactMap { $0 }
     }
 }
 struct BackupManifest: Codable {
@@ -34,6 +34,7 @@ enum LibraryBackup {
         defer { try? fm.removeItem(at: staging) }
         try JSONEncoder().encode(manifest).write(to: staging.appendingPathComponent("manifest.json"))
         for note in manifest.notebooks {
+            try DocumentPageRemoval.recover(note, root: root)
             for name in note.resources {
                 guard validComponent(name) else { throw BackupError.invalid }
                 let source = root.appendingPathComponent(name)

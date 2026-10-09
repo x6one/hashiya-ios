@@ -63,6 +63,9 @@ import ZIPFoundation
         mutation(&updated[i])
         do { try persist(updated); notebooks = updated } catch { self.error = error.localizedDescription }
     }
+    func visibleNotebooks(section: String? = "مكتبتي", trash: Bool = false, favorites: Bool = false) -> [Notebook] {
+        notebooks.filter { $0.trashed == trash && (trash || section == nil || $0.section == section) && (!favorites || $0.favorite) }
+    }
     func persist(_ items: [Notebook]) throws {
         try JSONEncoder().encode(items).write(to: root.appendingPathComponent("library.json"), options: .atomic)
     }

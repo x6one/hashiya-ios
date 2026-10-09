@@ -8,7 +8,7 @@ struct LibraryScreen: View {
     @State private var title = "دفتر جديد"
     @State private var query = ""
     @State private var showTrash = false
-    @State private var section: String?
+    @State private var section: String? = "مكتبتي"
     @State private var moving: Notebook?
     @State private var renaming: Notebook?
     @State private var deleting: Notebook?
@@ -23,8 +23,10 @@ struct LibraryScreen: View {
     @State private var importMessage: String?
     @State private var importingFile = false
     @State private var demonstration: Notebook?
+    @AppStorage("tayya.welcomeSeen") private var welcomeSeen = false
+    @State private var welcome = false
     private var filtered: [Notebook] {
-        store.notebooks.filter { $0.trashed == showTrash && (section == nil || showTrash || $0.section == section) && (!favorites || $0.favorite) }
+        store.visibleNotebooks(section: section, trash: showTrash, favorites: favorites)
     }
     var body: some View {
         NavigationStack { libraryPresentation }
@@ -40,6 +42,13 @@ struct LibraryScreen: View {
     }
     private var libraryPresentation: some View {
         libraryNavigation
+            .onAppear { if !welcomeSeen && store.notebooks.isEmpty { welcome = true } }
+            .sheet(isPresented: $welcome) {
+                WelcomeScreen(start: { welcomeSeen = true; welcome = false }, demonstrate: {
+                    do { demonstration = try store.installDemonstration(); welcomeSeen = true; welcome = false }
+                    catch { store.error = error.localizedDescription }
+                })
+            }
             .safeAreaInset(edge: .bottom) {
                 if let importMessage {
                     Text(importMessage).font(.callout).padding(12).frame(maxWidth: .infinity)
@@ -48,7 +57,7 @@ struct LibraryScreen: View {
             }
             .onOpenURL { url in importing = false; finishPicking([url]) }
             .onChange(of: store.sections) { _, sections in
-                if let section, !sections.contains(section) { self.section = nil }
+                if let section, !sections.contains(section) { self.section = "مكتبتي" }
             }
             .sheet(isPresented: $creating) { CreateNotebookScreen(store: store, section: section) }
             .sheet(isPresented: $reviewing) { LibraryCardsScreen(library: store) }
@@ -139,9 +148,10 @@ struct LibraryScreen: View {
                 if !showTrash {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            Button("الكل") { section = nil; favorites = false }.buttonStyle(.bordered)
+                            Button("المكتبة", systemImage: "books.vertical") { section = "مكتبتي"; favorites = false }.buttonStyle(.bordered).accessibilityIdentifier("libraryRoot")
+                            Button("كل الملفات", systemImage: "square.grid.2x2") { section = nil; favorites = false }.buttonStyle(.bordered)
                             Button("المفضلة", systemImage: "star") { favorites.toggle(); section = nil }.buttonStyle(.bordered)
-                            ForEach(store.sections, id: \.self) { name in
+                            ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in
                                 Button(name) { section = name; favorites = false }.buttonStyle(.bordered).tint(section == name ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55))
                             }
                         }
@@ -173,6 +183,7 @@ struct LibraryScreen: View {
     }
     private var librarySidebar: some View {
         List {
+            Button("المكتبة", systemImage: "books.vertical") { showTrash = false; favorites = false; section = "مكتبتي" }.accessibilityIdentifier("libraryRoot")
             Button("كل الملفات", systemImage: "books.vertical") { showTrash = false; favorites = false; section = nil }
             Button("المفضلة", systemImage: "star") { showTrash = false; favorites = true; section = nil }
             Section("الأقسام") {
@@ -202,13 +213,11 @@ struct LibraryScreen: View {
                     Spacer()
                     Button("حذف نهائي", role: .destructive) { deleting = note }
                 } else {
-                    Button("نقل") { moving = note }.frame(minHeight: 44)
+                    Button("نقل", systemImage: "folder") { moving = note }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     Spacer()
-                    Menu {
-                        Button("تسمية") { title = note.title; renaming = note }
-                        Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة") { store.change(note.id) { $0.favorite.toggle() } }
-                        Button("نقل للمحذوفات", role: .destructive) { store.change(note.id) { $0.trashed = true } }
-                    } label: { Image(systemName: "ellipsis").frame(width: 44, height: 44) }.accessibilityLabel("خيارات " + note.title)
+                    Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة", systemImage: note.favorite ? "star.fill" : "star") { store.change(note.id) { $0.favorite.toggle() } }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Button("نقل للمحذوفات", systemImage: "trash", role: .destructive) { store.change(note.id) { $0.trashed = true } }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                 }
             }.font(.subheadline).padding(.horizontal, 20).padding(.vertical, 10)
         }.background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 18)).overlay { RoundedRectangle(cornerRadius: 18).strokeBorder(TayyaTheme.ink.opacity(0.08)) }

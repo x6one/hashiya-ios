@@ -70,6 +70,14 @@ jobs:
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
         run: |
+          python3 - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          apps = list(Path.home().glob('Library/Developer/Xcode/DerivedData/Hashiya-*/Build/Products/Debug-iphonesimulator/Hashiya.app'))
+          if len(apps) != 1:
+              raise SystemExit('Expected exactly one app built by this preflight job')
+          subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
+          PY
           maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
       - name: Verify externally exported fixture bytes
         if: always()

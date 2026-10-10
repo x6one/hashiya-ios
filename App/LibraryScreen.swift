@@ -11,6 +11,7 @@ struct LibraryScreen: View {
     @State private var section: String? = "مكتبتي"
     @State private var moving: Notebook?
     @State private var renaming: Notebook?
+    @State private var showNotebookRename = false
     @State private var deleting: Notebook?
     @State private var confirmNotebookDeletion = false
     @State private var managing = false
@@ -76,9 +77,9 @@ struct LibraryScreen: View {
                     hits = results; searching = false
                 } catch { if !Task.isCancelled { searching = false; store.error = error.localizedDescription } }
             }
-            .alert("تسمية الملف", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            .alert("تسمية الملف", isPresented: $showNotebookRename) {
                 TextField("الاسم", text: $title).accessibilityIdentifier("renameNotebookTitle")
-                Button("حفظ") { if let note = renaming, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { store.change(note.id) { $0.title = title } }; renaming = nil }
+                Button("حفظ") { if let note = renaming, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { store.change(note.id) { $0.title = title } }; renaming = nil; showNotebookRename = false }
                 Button("إلغاء", role: .cancel) { renaming = nil }
             }
             .confirmationDialog("حذف الملف وتعليقاته وتسجيلاته نهائيًا؟", isPresented: $confirmNotebookDeletion, titleVisibility: .visible) {
@@ -217,7 +218,7 @@ struct LibraryScreen: View {
                 } else {
                     Button("نقل", systemImage: "folder") { moving = note }.accessibilityIdentifier("moveNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     Spacer()
-                    Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note }.accessibilityIdentifier("renameNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note; showNotebookRename = true }.accessibilityIdentifier("renameNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة", systemImage: note.favorite ? "star.fill" : "star") { store.change(note.id) { $0.favorite.toggle() } }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     Button("نقل للمحذوفات", systemImage: "trash", role: .destructive) { store.change(note.id) { $0.trashed = true } }.accessibilityIdentifier("trashNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                 }

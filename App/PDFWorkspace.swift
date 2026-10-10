@@ -244,7 +244,57 @@ struct DocumentScreen: View {
     private func splitDivider(size: CGSize, horizontal: Bool) -> some View {
         Rectangle().fill(TayyaTheme.ink.opacity(0.12))
             .frame(width: horizontal ? 16 : nil, height: horizontal ? nil : 16)
-            .overlay { Capsule().fill(TayyaTheme.ink.opacity(0.5)).frame(width: horizontal ?…1383 tokens truncated…rue }.accessibilityIdentifier("openFlashcards")
+            .overlay { Capsule().fill(TayyaTheme.ink.opacity(0.5)).frame(width: horizontal ? 4 : 40, height: horizontal ? 40 : 4) }
+            .contentShape(Rectangle())
+            .gesture(DragGesture().onChanged { value in
+                if dragFraction == nil { dragFraction = boundedFraction }
+                let delta = horizontal ? -value.translation.width / max(1, size.width - 16) : value.translation.height / max(1, size.height - 16)
+                splitFraction = min(0.7, max(0.3, (dragFraction ?? boundedFraction) + delta))
+            }.onEnded { _ in dragFraction = nil })
+            .accessibilityElement().accessibilityLabel("تغيير تقسيم الشاشة")
+            .accessibilityIdentifier("splitDivider")
+            .accessibilityAdjustableAction { direction in splitFraction = min(0.7, max(0.3, boundedFraction + (direction == .increment ? 0.05 : -0.05))) }
+    }
+    private var documentPresentation: some View {
+        documentContent.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
+            .overlay(alignment: .top) { if workspace.tool == .text { Text("المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله.").font(.caption).padding(10).background(.regularMaterial, in: Capsule()).padding(8).allowsHitTesting(false) } }
+            .onChange(of: pageFocused) { _, focused in
+                if focused { pageNumber = "" }
+                else if pageNumber.isEmpty { pageNumber = String(workspace.page) }
+            }
+            .onChange(of: workspace.page) { _, page in pageNumber = String(page) }
+
+    }
+    private var toolsBar: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { toolGroupPicker.frame(width: 240); toolActions.frame(minWidth: 360) }
+            VStack(spacing: 6) { toolGroupPicker; toolActions }
+        }.padding(.horizontal, 8).padding(.top, 6).background(TayyaTheme.surface)
+    }
+    private var toolGroupPicker: some View {
+        Picker("مجموعة الأدوات", selection: $toolGroup) {
+                ForEach(WorkspaceToolGroup.allCases) { group in Text(group.rawValue).tag(group) }
+            }.pickerStyle(.segmented).accessibilityIdentifier("workspaceToolGroups")
+    }
+    private var toolActions: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    switch toolGroup {
+                    case .writing:
+                        WorkspaceAction(title: "قلم", symbol: "pencil.tip", selected: workspace.tool == .ink) { pageFocused = false; workspace.tool = workspace.tool == .ink ? .read : .ink }.accessibilityIdentifier("inkTool").accessibilityValue(String(workspace.inkStrokeCount))
+                        WorkspaceAction(title: "نص", symbol: "textformat", selected: workspace.tool == .text) { pageFocused = false; workspace.tool = .text }.accessibilityIdentifier("textTool")
+                        WorkspaceAction(title: "تحديد", symbol: "lasso", selected: workspace.tool == .lasso) { workspace.tool = .lasso }
+                        WorkspaceAction(title: "تقسيم", symbol: "rectangle.split.2x1", selected: splitNotes && !notesExpanded) { workspace.tool = .read; notesExpanded = false; splitNotes.toggle() }.accessibilityIdentifier("splitDocumentNotes")
+                        WorkspaceAction(title: "الحاشية", symbol: "note.text", selected: notesExpanded) { workspace.tool = .read; splitNotes = true; notesExpanded = true }.accessibilityIdentifier("openMargin")
+                    case .pages:
+                        WorkspaceAction(title: "إضافة ورقة", symbol: "doc.badge.plus") { showPaperPicker = true }.accessibilityIdentifier("addWritingPaper")
+                        WorkspaceAction(title: "كل الصفحات", symbol: "square.grid.2x2") { showDocumentPages = true }.accessibilityIdentifier("documentPages")
+                        WorkspaceAction(title: "حذف الصفحة", symbol: "trash") { deletingPage = workspace.page; confirmDocumentDeletion = true }.disabled(workspace.document.pageCount <= 1).accessibilityIdentifier("deleteDocumentPage")
+                        WorkspaceAction(title: "تراجع الحذف", symbol: "arrow.uturn.backward") { changeDocumentPage(undo: true) }.disabled(!workspace.canUndoPageDeletion).accessibilityIdentifier("undoDocumentPageDeletion")
+                        WorkspaceAction(title: "ملاءمة", symbol: "arrow.up.left.and.arrow.down.right") { workspace.fit() }
+                    case .study:
+                        WorkspaceAction(title: "بطاقة جديدة", symbol: "rectangle.badge.plus") { cardDraft = Flashcard(question: "", answer: workspace.view?.currentSelection?.string ?? "", page: workspace.page) }
+                        WorkspaceAction(title: "البطاقات", symbol: "rectangle.stack") { showCards = true }.accessibilityIdentifier("openFlashcards")
                         WorkspaceAction(title: audio.recording ? "إيقاف التسجيل" : "تسجيل", symbol: audio.recording ? "stop.circle" : "mic", selected: audio.recording) {
                             if audio.recording { audio.stop() } else { splitNotes = true; Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
                         }.accessibilityIdentifier("recordLinkedAudio")

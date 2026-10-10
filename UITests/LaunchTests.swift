@@ -53,6 +53,12 @@ final class LaunchTests: XCTestCase {
         app.buttons["addWritingPaper"].tap(); app.buttons["نقاط"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
         app.buttons["deleteDocumentPage"].tap(); app.sheets.buttons["حذف الصفحة"].tap()
+        let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (app.textFields["pageNumber"].value as? String) == "1"
+                && !app.buttons["nextDocumentPage"].isEnabled
+                && app.buttons["undoDocumentPageDeletion"].isEnabled
+        }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
         XCTAssertTrue(app.buttons["undoDocumentPageDeletion"].isEnabled)
         app.buttons["undoDocumentPageDeletion"].tap()

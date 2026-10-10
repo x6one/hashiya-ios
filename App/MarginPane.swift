@@ -14,6 +14,7 @@ struct MarginPane: View {
     @State private var showPages = false
     @State private var exported: URL?
     @State private var deletingPage: UUID?
+    @State private var confirmMarginDeletion = false
     @FocusState private var textFocused: Bool
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
@@ -50,8 +51,9 @@ struct MarginPane: View {
             .alert("حفظ الحاشية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
                 Button("حاول الحفظ مجددًا") { _ = store.flush() }; Button("حسنًا", role: .cancel) { }
             } message: { Text(store.error ?? "") }
-            .confirmationDialog("نقل صفحة الحاشية إلى المحذوفات؟", isPresented: Binding(get: { deletingPage != nil }, set: { if !$0 { deletingPage = nil } }), titleVisibility: .visible) {
-                Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil }
+            .confirmationDialog("نقل صفحة الحاشية إلى المحذوفات؟", isPresented: $confirmMarginDeletion, titleVisibility: .visible) {
+                Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil; confirmMarginDeletion = false }
+                Button("إلغاء", role: .cancel) { deletingPage = nil }
             } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
             .onChange(of: editor.handwriting) { _, _ in textFocused = false }
             .onDisappear { _ = store.flush() }
@@ -102,7 +104,7 @@ struct MarginPane: View {
                     WorkspaceAction(title: "ربط الصفحة", symbol: "link") { store.linkCurrent(to: sourcePage) }
                     WorkspaceAction(title: "فك الربط", symbol: "link.badge.plus") { store.linkCurrent(to: nil) }.disabled(page.sourcePage == nil)
                     WorkspaceAction(title: "تصدير", symbol: "square.and.arrow.up") { do { exported = try store.export() } catch { store.error = error.localizedDescription } }
-                    WorkspaceAction(title: "حذف", symbol: "trash") { deletingPage = page.id }.disabled(store.pages.count <= 1).accessibilityIdentifier("deleteMarginPage")
+                    WorkspaceAction(title: "حذف", symbol: "trash") { deletingPage = page.id; confirmMarginDeletion = true }.disabled(store.pages.count <= 1).accessibilityIdentifier("deleteMarginPage")
                     WorkspaceAction(title: "المحذوفات", symbol: "trash.circle") { showPages = true }.accessibilityIdentifier("deletedMarginPages")
                 }.padding(.horizontal, 8)
             }

@@ -18,8 +18,10 @@ name: Library create move rename trash restore and delete
 - assertNotVisible:
     id: openNotebook-QA Notebook
 - tapOn:
-    text: QA Section
+    id: librarySections
     index: 0
+- tapOn:
+    id: chooseSection-QA Section
 - assertVisible:
     id: openNotebook-QA Notebook
 - launchApp:
@@ -28,8 +30,10 @@ name: Library create move rename trash restore and delete
 - assertNotVisible:
     id: openNotebook-QA Notebook
 - tapOn:
-    text: QA Section
+    id: librarySections
     index: 0
+- tapOn:
+    id: chooseSection-QA Section
 - assertVisible:
     id: openNotebook-QA Notebook
 - tapOn:

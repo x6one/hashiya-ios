@@ -12,6 +12,7 @@ struct LibraryScreen: View {
     @State private var moving: Notebook?
     @State private var renaming: Notebook?
     @State private var deleting: Notebook?
+    @State private var confirmNotebookDeletion = false
     @State private var managing = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var favorites = false
@@ -80,13 +81,14 @@ struct LibraryScreen: View {
                 Button("حفظ") { if let note = renaming, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { store.change(note.id) { $0.title = title } }; renaming = nil }
                 Button("إلغاء", role: .cancel) { renaming = nil }
             }
-            .confirmationDialog("حذف الملف وتعليقاته وتسجيلاته نهائيًا؟", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
-                Button("حذف نهائي", role: .destructive) { if let note = deleting { store.permanentlyDelete(note) }; deleting = nil }
+            .confirmationDialog("حذف الملف وتعليقاته وتسجيلاته نهائيًا؟", isPresented: $confirmNotebookDeletion, titleVisibility: .visible) {
+                Button("حذف نهائي", role: .destructive) { if let note = deleting { store.permanentlyDelete(note) }; deleting = nil; confirmNotebookDeletion = false }
+                Button("إلغاء", role: .cancel) { deleting = nil }
             }
             .sheet(item: $moving) { note in
                 NavigationStack { List(store.sections, id: \.self) { name in Button(name) { store.change(note.id) { $0.section = name }; moving = nil } }.navigationTitle("نقل إلى قسم").toolbar { Button("إلغاء") { moving = nil } } }.environment(\.layoutDirection, .rightToLeft)
             }
-            .sheet(isPresented: $managing) { SectionsScreen().environmentObject(store) }
+            .sheet(isPresented: $managing) { SectionsScreen(select: { name in section = name; showTrash = false; favorites = false }).environmentObject(store) }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
     }
     private var libraryNavigation: some View {
@@ -211,7 +213,7 @@ struct LibraryScreen: View {
                 if showTrash {
                     Button("استعادة") { store.change(note.id) { $0.trashed = false } }.accessibilityIdentifier("restoreNotebook-" + note.title)
                     Spacer()
-                    Button("حذف نهائي", role: .destructive) { deleting = note }.accessibilityIdentifier("eraseNotebook-" + note.title)
+                    Button("حذف نهائي", role: .destructive) { deleting = note; confirmNotebookDeletion = true }.accessibilityIdentifier("eraseNotebook-" + note.title)
                 } else {
                     Button("نقل", systemImage: "folder") { moving = note }.accessibilityIdentifier("moveNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     Spacer()
@@ -253,6 +255,7 @@ struct LibraryScreen: View {
 struct SectionsScreen: View {
     @EnvironmentObject private var store: LibraryStore
     @Environment(\.dismiss) private var dismiss
+    let select: (String) -> Void
     @State private var name = ""
     var body: some View {
         NavigationStack {
@@ -260,7 +263,7 @@ struct SectionsScreen: View {
                 Section { HStack { TextField("اسم القسم", text: $name).accessibilityIdentifier("sectionName"); Button("إضافة") { store.addSection(name); name = "" }.accessibilityIdentifier("addSection").disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) } }
                 Section("حذف القسم ينقل ملفاته إلى مكتبتي") {
                     ForEach(store.sections, id: \.self) { section in
-                        HStack { Text(section); Spacer(); if section != "مكتبتي" { Button("حذف", role: .destructive) { store.deleteSection(section) }.accessibilityIdentifier("deleteSection-" + section) } }
+                        HStack { Button(section, systemImage: "folder") { select(section); dismiss() }.buttonStyle(.borderless).accessibilityIdentifier("chooseSection-" + section); Spacer(); if section != "مكتبتي" { Button("حذف", role: .destructive) { store.deleteSection(section) }.accessibilityIdentifier("deleteSection-" + section) } }
                     }
                 }
             }.navigationTitle("الأقسام").toolbar { Button("تم") { dismiss() } }

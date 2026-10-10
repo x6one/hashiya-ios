@@ -38,7 +38,7 @@ struct AppEntrance: View {
                 withAnimation(.easeInOut(duration: 0.3)) { folded = true }
                 try await Task.sleep(for: .milliseconds(500))
                 withAnimation(.easeOut(duration: 0.25)) { showing = false }
-            } catch { /* A cancelled scene task must not animate off screen. */ }
+            } catch { showing = false }
         }
     }
 }

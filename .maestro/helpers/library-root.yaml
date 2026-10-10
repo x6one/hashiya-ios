@@ -1,0 +1,13 @@
+appId: com.ahmadalawi.hashiya
+---
+- runFlow:
+    when:
+      notVisible:
+        id: libraryRoot
+    commands:
+      - tapOn:
+          id: libraryTrash
+          index: 0
+- tapOn:
+    id: libraryRoot
+    index: 0

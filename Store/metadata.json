@@ -1,12 +1,12 @@
 {
-  "status": "0.4.1_uploaded_waiting_for_testflight_and_app_store_review",
+  "status": "0.4.2_implementation_preflight_pending",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
     "IOS"
   ],
-  "version": "0.4.1",
-  "build": "9",
+  "version": "0.4.2",
+  "build": "10",
   "primary_locale": "ar-SA",
   "suggested_primary_category": "EDUCATION",
   "suggested_secondary_category": "PRODUCTIVITY",
@@ -18,8 +18,8 @@
       "promotional_text": "صفحاتك بطريقتك: اقرأ ملفاتك، اكتب عليها، واحفظ ملاحظاتك في مكتبة واحدة على الآيفون والآيباد.",
       "description": "طَيّة مساحة عربية مجانية للقراءة والكتابة وتنظيم ملفات الدراسة على الآيفون والآيباد. لا تحتاج إلى حساب أو اشتراك.\n\nاقرأ ملفات PDF وأضف ملاحظاتك بالقلم أو اللمس أو بالنص. للحاشية صفحات مستقلة للنص وخط اليد، مع إضافة الصفحات والتنقل بينها، وتكبير مساحة الكتابة أو عرضها بجانب المستند. غيّر تقسيم الشاشة أو اتجاه الجهاز مع الاحتفاظ بملاحظاتك.\n\nأنشئ دفاتر بأوراق مسطّرة أو منقّطة أو مربعات، وقوالب للمحاضرات والخطة الأسبوعية. أضف أوراق كتابة إلى نهاية المستند، وصدّر PDF بتعليقاتك أو صدّر صفحات الحاشية.\n\nنظّم ملفاتك في أقسام ومفضلة، وابحث في النصوص والحواشي. استورد ملفاتك من تطبيق الملفات، واحفظ نسخة احتياطية من مكتبتك. جرّب الأدوات بملفات جاهزة من بطاقة «جرّب طَيّة بملفات جاهزة» في المكتبة.\n\nاربط تسجيلاتك الصوتية بصفحات الدراسة بعد السماح بالميكروفون، وأنشئ بطاقات للمراجعة.\n\nيمكن تحويل مستندات Office المدعومة محليًا إلى PDF للكتابة عليها. بعد نجاح التحويل، تبقى بيانات البطاقة نفسها ويُحتفظ بنسخة الأصل داخل التطبيق. لا يُحذف الأصل في تطبيق الملفات. قد يختلف تنسيق الملفات والخطوط، ولا تنتقل حركات PowerPoint أو الفيديو إلى PDF.\n\nواجهة عربية تدعم اتجاه الكتابة من اليمين إلى اليسار والوضع الداكن وإعداد تقليل الحركة. ملفاتك وملاحظاتك محفوظة على جهازك، ولا يرفعها التطبيق إلى خوادم المطوّر.",
       "keywords": "PDF,ملاحظات,قلم,دراسة,دفتر,تعليقات,قراءة,ملفات,حاشية,طية",
-      "whats_new": "صفحات مستقلة للحاشية بالنص وخط اليد، إضافة وتنقّل واضح بين الصفحات، وربطها بصفحات المستند. مساحة كتابة ثابتة تحفظ الخط عند تغيير التقسيم والتدوير، وأدوات قلم داخل الواجهة مع أي لون وسماكة وتراجع وإعادة. تكبير الحاشية، قائمة صفحات بعناوين ومعاينات، إضافة أوراق كتابة إلى نهاية المستند، وتصدير جميع الحواشي مع النصوص الطويلة. الحواشي القديمة والنسخ الاحتياطية محفوظة.\n\nجرّب طَيّة بملفات جاهزة دون تسجيل دخول.",
-      "beta_test_description": "افتح المستند والحاشية معًا. اكتب بالنص وخط اليد، وأضف صفحة حاشية ثانية؛ تأكد أن كل صفحة تحفظ محتواها وحدها. غيّر حجم التقسيم ودوّر الآيفون والآيباد ووسّع الحاشية ثم أعد فتح التطبيق. جرّب تحريك الورقة، عرضًا مناسبًا للكتابة وإظهار الورقة كاملة، الألوان والسماكة والممحاة والتراجع والإعادة. تنقّل في المستند والحاشية بصورة مستقلة. أضف ورقة إلى نهاية المستند. صدّر حاشية طويلة ونسخة احتياطية، واستعدها بخيار حفظ النسختين. تأكد من بقاء الحواشي القديمة."
+      "whats_new": "شريط أدوات واضح بأسماء وأيقونات للكتابة والصفحات والدراسة والملفات. حذف صفحات المستند مع التراجع قبل إجراء تعديل جديد، وحذف صفحات الحاشية واستعادتها من المحذوفات. نقل الملف إلى قسم يخرجه من عرض المكتبة الأساسي، مع خيار عرض كل الملفات. بداية واضحة لتجربة ملفات جاهزة بدون حساب.",
+      "beta_test_description": "جرّب البداية بملفات جاهزة، وشريط الأدوات بأسماء وأيقونات. أضف ورقتين واحذف ورقة وسط المستند: تأكد من بقاء خط اليد والنص وروابط الحواشي والصوت على الصفحة الصحيحة، ثم تراجع عن الحذف قبل تعديل جديد. احذف صفحة حاشية واستعدها مع نصها وخط اليد. انقل ملفًا لقسم وتأكد من اختفائه من المكتبة الأساسية وظهوره داخل القسم. جرّب تغيير التقسيم والتدوير وإعادة الفتح على الآيفون والآيباد."
     },
     "en-US": {
       "name": "Tayya — طَيّة",
@@ -27,8 +27,8 @@
       "promotional_text": "Keep your reading, handwritten notes and study files together on iPhone and iPad.",
       "description": "Tayya is a local reading and annotation workspace for iPhone and iPad.\n\nRead PDFs, draw with a stylus or touch, add editable text notes and export an annotated PDF. Organize documents into sections, rename them and mark favorites. Import supported files from the Files app.\n\nRecord audio notes linked to a page after granting microphone access.\n\nConvert supported Office documents locally into a static PDF for annotation. Once conversion and saving succeed, the PDF replaces the same library entry while preserving its name, section and favorite status. The Office original is also retained inside your library for preview and embedded media. Some formatting and fonts may differ; PowerPoint animations and videos are not preserved in the PDF.\n\nDesigned for Arabic and right-to-left reading, with adaptive iPad layouts, system dark appearance and an introduction that respects Reduce Motion.\n\nPaper templates, review cards and full library backups. Search PDF text, modern Office document text and typed annotations. On-device OCR availability depends on the languages supported by your OS. Open a document alongside typed or handwritten notes and link writing to audio timestamps.",
       "keywords": "PDF,notes,study,annotation,handwriting,notebook,documents,Arabic,Tayya",
-      "whats_new": "Independent typed and handwritten margin pages with visible page navigation, source-page links, titles and previews. Stable sheet coordinates preserve ink through split resizing and rotation. Inline pen, pencil, highlighter, eraser, color, width, undo, redo and fit controls replace floating palettes. Expand the margin, append writing sheets, export all margin pages including long text, and retain legacy notes in backups.\n\nTry the populated local demonstration without login.",
-      "beta_test_description": "Open a document with its margin. Draw and type on two independent margin pages. Resize the split, rotate iPhone and iPad, expand the margin and relaunch. Check pan, writing-width fit, whole-sheet fit, colors, width, eraser, undo and redo. Navigate document and margin independently; append a writing sheet. Export long notes and restore a backup with Keep both. Verify legacy notes remain intact."
+      "whats_new": "Visible labeled toolbars for writing, pages, study and files. Delete document pages with undo before further edits; delete and restore independent margin pages. Moving a file into a section removes it from the root library view. Clear first-launch access to populated local demonstration files, without an account.",
+      "beta_test_description": "Check first-launch demonstration access, visible toolbar groups, document page deletion/remapping and undo, recoverable margin deletion, root/section move behavior, split resizing, rotation, relaunch and backup restoration."
     }
   },
   "review": {
@@ -36,17 +36,21 @@
     "contact_name": "Ahmad Alawi",
     "contact_email": null,
     "contact_phone": null,
-    "notes": "No account or login required. Tap the visible library card \"جرّب طَيّة بملفات جاهزة\" to install and open a three-page PDF guide, a three-page notebook and a PowerPoint sample. Each has two populated editable margin pages with text and sample ink. Test document page navigation, pen/Aa annotations, split or full-screen margin, margin arrows and +, resize and rotation, notebook creation and native Files import. All editing/export tools are available. Office conversion is local; layout/fonts may vary and animation/video do not transfer to PDF. Optional recording requests microphone permission. No developer-server document uploads, analytics or tracking. Office may fetch external resources referenced by documents; standard OpenSSL encryption is present. France remains excluded."
+    "notes": "No account, login, subscription or account types exist. All features are available without credentials. On first launch tap \"جرّب بملفات جاهزة\" (Try ready-made files). This opens an editable three-page PDF guide. The library also contains a three-page writing notebook and a PowerPoint sample; each has populated typed and handwritten margins. On later launches use \"جرّب طَيّة بملفات جاهزة\" in the library. The document toolbar has four labeled groups: \"كتابة\" (Writing: pen, text, lasso, split and full-screen margin), \"صفحات\" (Pages: add paper, page list, delete, undo), \"دراسة\" (Study: flashcards, optional recording, linked audio, on-device OCR), and \"ملفات\" (Files: export, retained Office original after conversion). Independent margin pages have arrows, +, page list, delete and recoverable trash. Back in the library tap the presentation sample to preview Office and embedded media, then local PDF conversion. Tap \"دفتر جديد\" to create a notebook, \"استيراد\" for the native Files picker, and \"نسخ احتياطي\" for library export/restore. Microphone permission is requested only for optional recording; denying it leaves reading, writing and all other features available. If any feature remains inaccessible, please identify the screen/control so we can address it. No developer-server uploads or analytics. Unchanged standard OpenSSL encryption; France remains excluded."
   },
   "privacy_url": "https://x6one.github.io/hashiya-ios/privacy.html",
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption in addition to Apple OS encryption; unchanged OpenSSL engine. Standard-encryption questionnaire completed on 2026-10-08; France excluded.",
   "privacy_manifest": "Existing required-reason manifest retained. Native run 37690165583 completed signed archive/export, validation and Apple upload for source e3e0f4da30656265ef9c1d617a9af0ba85c9b73c.",
-  "apple_session": "Verified 2026-10-08: 0.4.1 (9) processed, added to Tayya Beta and Tayya Internal, and submitted to external TestFlight review. Same build attached to App Store version 0.4.1 and resubmitted; both statuses Waiting for Review. No approval or public release claimed.",
+  "apple_session": "Verified 2026-10-09: App Store 0.4.1 (9) rejected under 2.1(a), reviewer unable to access all features. Apple did not identify a specific inaccessible feature. New 0.4.2 (10) candidate is not yet uploaded.",
   "app_store_app_id": "6818288428",
-  "testflight_uploaded": true,
-  "app_store_submitted": true,
-  "required_before_submission": [],
+  "testflight_uploaded": false,
+  "app_store_submitted": false,
+  "required_before_submission": [
+    "Both simulator suites and device build for exact candidate source",
+    "Signed native archive and Apple upload",
+    "Attach new build, save access instructions, submit both reviews"
+  ],
   "apple_team_id": "ZUB6SJFQA3",
   "age_rating": "4+",
   "saved_apple_metadata": [
@@ -68,8 +72,8 @@
   "current_store_release": {
     "version": "0.4.1",
     "build": "9",
-    "status": "Waiting for Review",
-    "verified": "2026-10-08",
+    "status": "Rejected",
+    "verified": "2026-10-09",
     "submission_id": "c0340bad-b3a1-483f-9b49-d20aa46ebcac",
     "submitted_at_qatar": "2026-10-08T15:05:00+03:00",
     "automatically_release_after_approval": true
@@ -96,7 +100,7 @@
     "reason": "Pre-populated demonstration content required",
     "resolution": "Visible Release-mode local demonstration card with editable documents and populated margin pages; precise instructions saved in review notes."
   },
-  "validation": {
+  "validation_previous_release": {
     "source_sha": "e3e0f4da30656265ef9c1d617a9af0ba85c9b73c",
     "push_preflight_run": 37689943878,
     "pr_preflight_run": 37689950884,
@@ -106,5 +110,18 @@
     "total_simulator_tests": 90,
     "all_passed": true,
     "merge_sha": "90dff347b0c460faafd77a31605e7502a7ffb40f"
+  },
+  "validation": {
+    "all_passed": false,
+    "status": "pending"
+  },
+  "latest_store_rejection": {
+    "version": "0.4.1",
+    "build": "9",
+    "date": "2026-10-09",
+    "guideline": "2.1(a) - Information Needed",
+    "device": "iPad Air 11-inch (M3)",
+    "reason": "Reviewer unable to access all or part of app; requests access to all features for all account types. No specific feature identified.",
+    "response": "No account exists. Add explicit first-launch choice for real local demonstration, visible labeled toolbars, exact reviewer paths."
   }
 }

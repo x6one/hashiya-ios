@@ -15,6 +15,7 @@ import ZIPFoundation
             if let data = try? Data(contentsOf: sectionFile) { sections = try JSONDecoder().decode([String].self, from: data) }
             if FileManager.default.fileExists(atPath: file.path) { notebooks = try JSONDecoder().decode([Notebook].self, from: Data(contentsOf: file)) }
             else if seedDemo, let demo = Bundle.main.url(forResource: "english", withExtension: "pdf") { try importPDF(demo, title: "ملف التجربة") }
+            for note in notebooks where note.file.lowercased().hasSuffix(".pdf") { try DocumentPageRemoval.recover(note, root: root) }
             try removeBundledOfficeDemo()
         } catch { self.error = error.localizedDescription }
     }
@@ -62,6 +63,9 @@ import ZIPFoundation
         guard let i = updated.firstIndex(where: { $0.id == id }) else { return }
         mutation(&updated[i])
         do { try persist(updated); notebooks = updated } catch { self.error = error.localizedDescription }
+    }
+    func visibleNotebooks(section: String? = "مكتبتي", trash: Bool = false, favorites: Bool = false) -> [Notebook] {
+        notebooks.filter { $0.trashed == trash && (trash || section == nil || $0.section == section) && (!favorites || $0.favorite) }
     }
     func persist(_ items: [Notebook]) throws {
         try JSONEncoder().encode(items).write(to: root.appendingPathComponent("library.json"), options: .atomic)

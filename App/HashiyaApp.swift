@@ -9,7 +9,14 @@ import ZIPFoundation
     @StateObject private var library: LibraryStore
     init() {
         #if DEBUG
-        let store = LibraryStore(seedDemo: !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures"))
+        // Maestro supplies named arguments directly; XCTest launch defaults
+        // can also expose them through the UserDefaults argument domain.
+        let maestroTesting = ProcessInfo.processInfo.arguments.contains("maestroTesting")
+            || ProcessInfo.processInfo.arguments.contains("-maestroTesting")
+            || UserDefaults.standard.bool(forKey: "maestroTesting")
+        if ProcessInfo.processInfo.arguments.contains("--test-review-entry") { UserDefaults.standard.removeObject(forKey: "tayya.welcomeSeen") }
+        let reviewRoot = ProcessInfo.processInfo.arguments.contains("--test-review-entry") ? FileManager.default.temporaryDirectory.appendingPathComponent("ReviewEntry-" + UUID().uuidString) : nil
+        let store = LibraryStore(root: reviewRoot, seedDemo: !maestroTesting && !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
         if ProcessInfo.processInfo.arguments.contains("--test-office-preview"),
            !store.notebooks.contains(where: { $0.title == "ملف Office للاختبار" }),
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {

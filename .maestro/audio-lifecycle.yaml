@@ -1,0 +1,45 @@
+appId: com.ahmadalawi.hashiya
+name: Linked recording create delete and microphone denial
+---
+- runFlow: helpers/new-notebook.yaml
+- tapOn:
+    id: openNotebook-QA Notebook
+- tapOn: دراسة
+- tapOn:
+    id: recordLinkedAudio
+- assertVisible: إيقاف التسجيل
+- tapOn:
+    id: recordLinkedAudio
+- tapOn:
+    id: openLinkedAudio
+- assertVisible:
+    id: playLinkedRecording
+- tapOn:
+    id: deleteLinkedRecording
+- tapOn: حذف التسجيل
+- assertNotVisible:
+    id: playLinkedRecording
+- tapOn: تم
+- launchApp:
+    permissions:
+      microphone: deny
+    arguments:
+      maestroTesting: true
+- tapOn:
+    id: openNotebook-QA Notebook
+- tapOn: دراسة
+- tapOn:
+    id: openLinkedAudio
+- assertNotVisible:
+    id: playLinkedRecording
+- tapOn: تم
+- tapOn:
+    id: recordLinkedAudio
+- assertVisible: اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز.
+- tapOn: حسناً
+- tapOn: كتابة
+- tapOn:
+    id: openMargin
+- assertVisible:
+    id: addMarginPage
+- takeScreenshot: microphone-denied-writing-available

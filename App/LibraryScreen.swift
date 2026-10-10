@@ -8,10 +8,12 @@ struct LibraryScreen: View {
     @State private var title = "دفتر جديد"
     @State private var query = ""
     @State private var showTrash = false
-    @State private var section: String?
+    @State private var section: String? = "مكتبتي"
     @State private var moving: Notebook?
     @State private var renaming: Notebook?
+    @State private var showNotebookRename = false
     @State private var deleting: Notebook?
+    @State private var confirmNotebookDeletion = false
     @State private var managing = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var favorites = false
@@ -23,8 +25,10 @@ struct LibraryScreen: View {
     @State private var importMessage: String?
     @State private var importingFile = false
     @State private var demonstration: Notebook?
+    @AppStorage("tayya.welcomeSeen") private var welcomeSeen = false
+    @State private var welcome = false
     private var filtered: [Notebook] {
-        store.notebooks.filter { $0.trashed == showTrash && (section == nil || showTrash || $0.section == section) && (!favorites || $0.favorite) }
+        store.visibleNotebooks(section: section, trash: showTrash, favorites: favorites)
     }
     var body: some View {
         NavigationStack { libraryPresentation }
@@ -40,6 +44,13 @@ struct LibraryScreen: View {
     }
     private var libraryPresentation: some View {
         libraryNavigation
+            .onAppear { if !welcomeSeen && store.notebooks.isEmpty { welcome = true } }
+            .sheet(isPresented: $welcome) {
+                WelcomeScreen(start: { welcomeSeen = true; welcome = false }, demonstrate: {
+                    do { demonstration = try store.installDemonstration(); welcomeSeen = true; welcome = false }
+                    catch { store.error = error.localizedDescription }
+                }, error: store.error)
+            }
             .safeAreaInset(edge: .bottom) {
                 if let importMessage {
                     Text(importMessage).font(.callout).padding(12).frame(maxWidth: .infinity)
@@ -48,7 +59,7 @@ struct LibraryScreen: View {
             }
             .onOpenURL { url in importing = false; finishPicking([url]) }
             .onChange(of: store.sections) { _, sections in
-                if let section, !sections.contains(section) { self.section = nil }
+                if let section, !sections.contains(section) { self.section = "مكتبتي" }
             }
             .sheet(isPresented: $creating) { CreateNotebookScreen(store: store, section: section) }
             .sheet(isPresented: $reviewing) { LibraryCardsScreen(library: store) }
@@ -66,18 +77,19 @@ struct LibraryScreen: View {
                     hits = results; searching = false
                 } catch { if !Task.isCancelled { searching = false; store.error = error.localizedDescription } }
             }
-            .alert("تسمية الملف", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-                TextField("الاسم", text: $title)
-                Button("حفظ") { if let note = renaming, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { store.change(note.id) { $0.title = title } }; renaming = nil }
+            .alert("تسمية الملف", isPresented: $showNotebookRename) {
+                TextField("الاسم", text: $title).accessibilityIdentifier("renameNotebookTitle")
+                Button("حفظ") { if let note = renaming, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { store.change(note.id) { $0.title = title } }; renaming = nil; showNotebookRename = false }
                 Button("إلغاء", role: .cancel) { renaming = nil }
             }
-            .confirmationDialog("حذف الملف وتعليقاته وتسجيلاته نهائيًا؟", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
-                Button("حذف نهائي", role: .destructive) { if let note = deleting { store.permanentlyDelete(note) }; deleting = nil }
+            .confirmationDialog("حذف الملف وتعليقاته وتسجيلاته نهائيًا؟", isPresented: $confirmNotebookDeletion, titleVisibility: .visible) {
+                Button("حذف نهائي", role: .destructive) { if let note = deleting { store.permanentlyDelete(note) }; deleting = nil; confirmNotebookDeletion = false }
+                Button("إلغاء", role: .cancel) { deleting = nil }
             }
             .sheet(item: $moving) { note in
                 NavigationStack { List(store.sections, id: \.self) { name in Button(name) { store.change(note.id) { $0.section = name }; moving = nil } }.navigationTitle("نقل إلى قسم").toolbar { Button("إلغاء") { moving = nil } } }.environment(\.layoutDirection, .rightToLeft)
             }
-            .sheet(isPresented: $managing) { SectionsScreen().environmentObject(store) }
+            .sheet(isPresented: $managing) { SectionsScreen(select: { name in section = name; showTrash = false; favorites = false }).environmentObject(store) }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
     }
     private var libraryNavigation: some View {
@@ -103,7 +115,7 @@ struct LibraryScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(showTrash ? "المحذوفات" : "صفحاتك، بطريقتك.").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
+                    Text(showTrash ? "المحذوفات" : favorites ? "المفضلة" : section == "مكتبتي" ? "مكتبتك" : section ?? "كل الملفات").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
                     Text(showTrash ? "استعد ملفاتك أو احذفها نهائيًا." : "اقرأ، دوّن، واترك أثر فكرتك.").foregroundStyle(.secondary)
                 }.padding(.vertical, 18)
                 if !showTrash {
@@ -139,9 +151,10 @@ struct LibraryScreen: View {
                 if !showTrash {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            Button("الكل") { section = nil; favorites = false }.buttonStyle(.bordered)
+                            Button("المكتبة", systemImage: "books.vertical") { showTrash = false; section = "مكتبتي"; favorites = false }.buttonStyle(.bordered).tint(section == "مكتبتي" && !favorites ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55)).accessibilityIdentifier("libraryRoot")
+                            Button("كل الملفات", systemImage: "square.grid.2x2") { section = nil; favorites = false }.buttonStyle(.bordered)
                             Button("المفضلة", systemImage: "star") { favorites.toggle(); section = nil }.buttonStyle(.bordered)
-                            ForEach(store.sections, id: \.self) { name in
+                            ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in
                                 Button(name) { section = name; favorites = false }.buttonStyle(.bordered).tint(section == name ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55))
                             }
                         }
@@ -173,6 +186,7 @@ struct LibraryScreen: View {
     }
     private var librarySidebar: some View {
         List {
+            Button("المكتبة", systemImage: "books.vertical") { showTrash = false; favorites = false; section = "مكتبتي" }.accessibilityIdentifier("libraryRoot")
             Button("كل الملفات", systemImage: "books.vertical") { showTrash = false; favorites = false; section = nil }
             Button("المفضلة", systemImage: "star") { showTrash = false; favorites = true; section = nil }
             Section("الأقسام") {
@@ -194,21 +208,19 @@ struct LibraryScreen: View {
                     Text(note.title).font(.title3.weight(.medium)).lineLimit(2)
                     Text(note.section + " · " + (note.file as NSString).pathExtension.uppercased()).font(.caption).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, minHeight: 140, alignment: .leading).padding(22)
-            }.disabled(showTrash)
+            }.disabled(showTrash).accessibilityIdentifier("openNotebook-" + note.title)
             Divider()
             HStack {
                 if showTrash {
-                    Button("استعادة") { store.change(note.id) { $0.trashed = false } }
+                    Button("استعادة") { store.change(note.id) { $0.trashed = false } }.accessibilityIdentifier("restoreNotebook-" + note.title)
                     Spacer()
-                    Button("حذف نهائي", role: .destructive) { deleting = note }
+                    Button("حذف نهائي", role: .destructive) { deleting = note; confirmNotebookDeletion = true }.accessibilityIdentifier("eraseNotebook-" + note.title)
                 } else {
-                    Button("نقل") { moving = note }.frame(minHeight: 44)
+                    Button("نقل", systemImage: "folder") { moving = note }.accessibilityIdentifier("moveNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     Spacer()
-                    Menu {
-                        Button("تسمية") { title = note.title; renaming = note }
-                        Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة") { store.change(note.id) { $0.favorite.toggle() } }
-                        Button("نقل للمحذوفات", role: .destructive) { store.change(note.id) { $0.trashed = true } }
-                    } label: { Image(systemName: "ellipsis").frame(width: 44, height: 44) }.accessibilityLabel("خيارات " + note.title)
+                    Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note; showNotebookRename = true }.accessibilityIdentifier("renameNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة", systemImage: note.favorite ? "star.fill" : "star") { store.change(note.id) { $0.favorite.toggle() } }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Button("نقل للمحذوفات", systemImage: "trash", role: .destructive) { store.change(note.id) { $0.trashed = true } }.accessibilityIdentifier("trashNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                 }
             }.font(.subheadline).padding(.horizontal, 20).padding(.vertical, 10)
         }.background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 18)).overlay { RoundedRectangle(cornerRadius: 18).strokeBorder(TayyaTheme.ink.opacity(0.08)) }
@@ -244,14 +256,15 @@ struct LibraryScreen: View {
 struct SectionsScreen: View {
     @EnvironmentObject private var store: LibraryStore
     @Environment(\.dismiss) private var dismiss
+    let select: (String) -> Void
     @State private var name = ""
     var body: some View {
         NavigationStack {
             List {
-                Section { HStack { TextField("اسم القسم", text: $name); Button("إضافة") { store.addSection(name); name = "" }.disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) } }
+                Section { HStack { TextField("اسم القسم", text: $name).accessibilityIdentifier("sectionName"); Button("إضافة") { store.addSection(name); name = "" }.accessibilityIdentifier("addSection").disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) } }
                 Section("حذف القسم ينقل ملفاته إلى مكتبتي") {
                     ForEach(store.sections, id: \.self) { section in
-                        HStack { Text(section); Spacer(); if section != "مكتبتي" { Button("حذف", role: .destructive) { store.deleteSection(section) } } }
+                        HStack { Button(section, systemImage: "folder") { select(section); dismiss() }.buttonStyle(.borderless).accessibilityIdentifier("chooseSection-" + section); Spacer(); if section != "مكتبتي" { Button("حذف", role: .destructive) { store.deleteSection(section) }.accessibilityIdentifier("deleteSection-" + section) } }
                     }
                 }
             }.navigationTitle("الأقسام").toolbar { Button("تم") { dismiss() } }

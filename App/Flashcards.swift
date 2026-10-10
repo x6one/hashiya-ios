@@ -61,7 +61,9 @@ struct FlashcardsScreen: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(card.question).font(.headline)
                         if revealed.contains(card.id) { Text(card.answer) }
-                        Button(revealed.contains(card.id) ? "إخفاء الإجابة" : "إظهار الإجابة") { if revealed.contains(card.id) { revealed.remove(card.id) } else { revealed.insert(card.id) } }
+                        Button(revealed.contains(card.id) ? "إخفاء الإجابة" : "إظهار الإجابة", systemImage: revealed.contains(card.id) ? "eye.slash" : "eye") { if revealed.contains(card.id) { revealed.remove(card.id) } else { revealed.insert(card.id) } }
+                            .buttonStyle(.bordered).controlSize(.large)
+                            .accessibilityIdentifier("revealFlashcard-" + card.question)
                         HStack {
                             Button("أعرفها", systemImage: "checkmark") { var updated = card; updated.known = true; store.save(updated) }
                             Button("أراجعها", systemImage: "arrow.clockwise") { var updated = card; updated.known = false; store.save(updated) }
@@ -69,7 +71,7 @@ struct FlashcardsScreen: View {
                         }.buttonStyle(.bordered)
                         Button("حذف", systemImage: "trash", role: .destructive) { store.delete(card.id) }.buttonStyle(.bordered).accessibilityIdentifier("deleteFlashcard-" + card.question)
                         Text("صفحة \(card.page)").font(.caption).foregroundStyle(.secondary)
-                    }.padding(.vertical, 8).swipeActions { Button("حذف", role: .destructive) { store.delete(card.id) } }
+                    }.buttonStyle(.borderless).padding(.vertical, 8).swipeActions { Button("حذف", role: .destructive) { store.delete(card.id) } }
                 }
             }.navigationTitle("بطاقات المراجعة").toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("تم") { dismiss() } }

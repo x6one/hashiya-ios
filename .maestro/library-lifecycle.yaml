@@ -49,7 +49,7 @@ name: Library create move rename trash restore and delete
 - tapOn:
     id: renameNotebook-QA Notebook
 - tapOn:
-    id: renameNotebookTitle
+    text: QA Notebook
 - eraseText
 - inputText: QA Renamed
 - tapOn: حفظ

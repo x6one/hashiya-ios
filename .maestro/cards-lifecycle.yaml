@@ -18,7 +18,8 @@ name: Flashcard create edit persist reveal and delete
 - tapOn:
     id: saveFlashcard
 - assertVisible: QA question
-- tapOn: إظهار الإجابة
+- tapOn:
+    id: revealFlashcard-QA question
 - assertVisible: QA answer
 - tapOn:
     id: editFlashcard-QA question
@@ -38,7 +39,8 @@ name: Flashcard create edit persist reveal and delete
 - tapOn:
     id: openFlashcards
 - assertVisible: QA updated question
-- tapOn: إظهار الإجابة
+- tapOn:
+    id: revealFlashcard-QA updated question
 - assertVisible: QA answer
 - tapOn:
     id: deleteFlashcard-QA updated question

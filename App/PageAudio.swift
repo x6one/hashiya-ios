@@ -51,7 +51,10 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func delete(_ url: URL) {
-        guard !recording, url.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL else { return }
+        // Directory enumeration and appendingPathComponent can represent the
+        // same folder with different trailing-slash URL metadata. Compare
+        // canonical filesystem paths, while still rejecting outside clips.
+        guard !recording, url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path == folder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
         let retained = loadLinks().filter { $0.clip != url.lastPathComponent }
         let parked = folder.appendingPathComponent(".deleting-" + UUID().uuidString)
         do {

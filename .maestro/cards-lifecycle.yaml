@@ -1,0 +1,58 @@
+appId: com.ahmadalawi.hashiya
+name: Flashcard create edit persist reveal and delete
+---
+- runFlow: helpers/new-notebook.yaml
+- tapOn:
+    id: openNotebook-QA Notebook
+- tapOn: دراسة
+- tapOn:
+    id: openFlashcards
+- tapOn:
+    id: addFlashcard
+- tapOn:
+    id: cardQuestion
+- inputText: QA question
+- tapOn:
+    id: cardAnswer
+- inputText: QA answer
+- tapOn:
+    id: saveFlashcard
+- assertVisible: QA question
+- tapOn: إظهار الإجابة
+- assertVisible: QA answer
+- tapOn:
+    id: editFlashcard-QA question
+- tapOn:
+    id: cardQuestion
+- eraseText
+- inputText: QA updated question
+- tapOn:
+    id: saveFlashcard
+- assertVisible: QA updated question
+- launchApp:
+    arguments:
+      maestroTesting: true
+- tapOn:
+    id: openNotebook-QA Notebook
+- tapOn: دراسة
+- tapOn:
+    id: openFlashcards
+- assertVisible: QA updated question
+- tapOn: إظهار الإجابة
+- assertVisible: QA answer
+- tapOn:
+    id: deleteFlashcard-QA updated question
+- assertNotVisible: QA updated question
+- tapOn: تم
+- launchApp:
+    arguments:
+      maestroTesting: true
+- tapOn:
+    id: openNotebook-QA Notebook
+- tapOn: دراسة
+- tapOn:
+    id: openFlashcards
+- assertNotVisible: QA updated question
+- assertVisible:
+    id: addFlashcard
+- takeScreenshot: cards-lifecycle-complete

@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test:
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +49,36 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+      - name: Set up Java for Maestro
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Maestro CLI
+        env:
+          MAESTRO_VERSION: 2.11.0
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
+        run: |
+          curl --fail --location --retry 3 https://get.maestro.mobile.dev -o "$RUNNER_TEMP/install-maestro.sh"
+          bash "$RUNNER_TEMP/install-maestro.sh"
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+      - name: Exercise feature lifecycles with Maestro
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
+          MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
+        run: |
+          python3 - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          apps = list(Path.home().glob('Library/Developer/Xcode/DerivedData/Hashiya-*/Build/Products/Debug-iphonesimulator/Hashiya.app'))
+          if len(apps) != 1:
+              raise SystemExit('Expected exactly one app built by this preflight job')
+          subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
+          PY
+          maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
       - name: Verify externally exported fixture bytes
         if: always()
         run: python3 Tools/seed_files_fixtures.py --verify
@@ -71,6 +101,7 @@ jobs:
             build.log
             file-provider.log
             Screenshots/
+            MaestroResults/
           retention-days: 7
 
   device-package:

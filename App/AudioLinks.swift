@@ -32,6 +32,8 @@ struct LinkedAudioScreen: View {
     @ObservedObject var audio: PageAudio
     let jump: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var deleting: URL?
+    @State private var confirmRecordingDeletion = false
     var body: some View {
         NavigationStack {
             List {
@@ -47,9 +49,20 @@ struct LinkedAudioScreen: View {
                     }.disabled(audio.recording)
                 }
                 Section("التسجيلات الكاملة") {
-                    ForEach(audio.clips, id: \.self) { clip in Button(clip.deletingPathExtension().lastPathComponent, systemImage: "play.fill") { audio.play(clip) }.disabled(audio.recording) }
+                    ForEach(audio.clips, id: \.self) { clip in
+                        HStack {
+                            Button(clip.deletingPathExtension().lastPathComponent, systemImage: "play.fill") { audio.play(clip) }.accessibilityIdentifier("playLinkedRecording")
+                            Spacer()
+                            Button("حذف", systemImage: "trash", role: .destructive) { deleting = clip; confirmRecordingDeletion = true }.accessibilityIdentifier("deleteLinkedRecording")
+                        }.buttonStyle(.borderless).disabled(audio.recording)
+                    }
                 }
             }.navigationTitle("التسجيلات المرتبطة").toolbar { Button("تم") { dismiss() } }
+                .confirmationDialog("حذف التسجيل وروابطه نهائيًا؟", isPresented: $confirmRecordingDeletion, titleVisibility: .visible) {
+                    Button("حذف التسجيل", role: .destructive) { if let deleting { audio.delete(deleting) }; deleting = nil; confirmRecordingDeletion = false }
+                    Button("إلغاء", role: .cancel) { deleting = nil }
+                }
+                .alert("الصوت", isPresented: Binding(get: { audio.error != nil }, set: { if !$0 { audio.error = nil } })) { Button("حسنًا") { audio.error = nil } } message: { Text(audio.error ?? "") }
         }.environment(\.layoutDirection, .rightToLeft)
     }
 }

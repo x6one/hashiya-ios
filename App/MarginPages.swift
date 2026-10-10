@@ -15,6 +15,7 @@ struct MarginIndex: Codable {
     var version = 1
     var pages: [UUID]
     var current: UUID
+    var deleted: [UUID]? = nil
 }
 enum MarginError: LocalizedError {
     case damaged
@@ -26,14 +27,17 @@ enum MarginError: LocalizedError {
 @MainActor final class MarginPages: ObservableObject {
     @Published private(set) var pages: [MarginPage] = []
     @Published private(set) var currentID: UUID?
+    @Published private(set) var deletedPages: [MarginPage] = []
     @Published var error: String?
     @Published private(set) var saved = true
     let editor = MarginEditorState()
     let folder: URL
+    private let notebookID: UUID
     private var pending = Set<UUID>()
     var current: MarginPage? { pages.first { $0.id == currentID } }
     var position: Int { pages.firstIndex { $0.id == currentID } ?? 0 }
     init(root: URL, notebook: UUID) {
+        notebookID = notebook
         folder = root.appendingPathComponent(notebook.uuidString + "-margins")
         do {
             let indexURL = folder.appendingPathComponent("index.json")
@@ -48,6 +52,13 @@ enum MarginError: LocalizedError {
                     if !page.ink.isEmpty { _ = try PKDrawing(data: page.ink) }
                     return page
                 }
+                deletedPages = try (index.deleted ?? []).map { id in
+                    let page = try JSONDecoder().decode(MarginPage.self, from: Data(contentsOf: pageURL(id)))
+                    guard page.id == id, !index.pages.contains(id), page.width.isFinite, page.height.isFinite, page.width > 0, page.height > 0 else { throw MarginError.damaged }
+                    if !page.ink.isEmpty { _ = try PKDrawing(data: page.ink) }
+                    return page
+                }
+                guard Set(deletedPages.map(\.id)).count == deletedPages.count else { throw MarginError.damaged }
                 currentID = index.current
             } else {
                 var page = MarginPage()
@@ -65,12 +76,12 @@ enum MarginError: LocalizedError {
                 try writeIndex([page], current: page.id)
                 pages = [page]; currentID = page.id
             }
-        } catch { self.error = error.localizedDescription }
+        } catch { pages = []; deletedPages = []; currentID = nil; self.error = error.localizedDescription }
     }
     private func pageURL(_ id: UUID) -> URL { folder.appendingPathComponent(id.uuidString + ".json") }
     private func write(_ page: MarginPage) throws { try JSONEncoder().encode(page).write(to: pageURL(page.id), options: .atomic) }
-    private func writeIndex(_ pages: [MarginPage], current: UUID) throws {
-        try JSONEncoder().encode(MarginIndex(pages: pages.map(\.id), current: current))
+    private func writeIndex(_ pages: [MarginPage], current: UUID, deleted: [MarginPage]? = nil) throws {
+        try JSONEncoder().encode(MarginIndex(pages: pages.map(\.id), current: current, deleted: (deleted ?? deletedPages).map(\.id)))
             .write(to: folder.appendingPathComponent("index.json"), options: .atomic)
     }
     @discardableResult func flush() -> Bool {
@@ -115,6 +126,30 @@ enum MarginError: LocalizedError {
             try writeIndex(pages + [page], current: page.id)
             pages.append(page); currentID = page.id; return true
         } catch { self.error = error.localizedDescription; return false }
+    }
+    @discardableResult func delete(_ id: UUID) -> Bool {
+        guard pages.count > 1, let index = pages.firstIndex(where: { $0.id == id }), flush() else { return false }
+        var remaining = pages; let removed = remaining.remove(at: index)
+        let selected = currentID == id ? remaining[min(index, remaining.count - 1)].id : (currentID ?? remaining[0].id)
+        let archived = deletedPages + [removed]
+        do {
+            try writeIndex(remaining, current: selected, deleted: archived)
+            pages = remaining; deletedPages = archived; currentID = selected; return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
+    @discardableResult func restore(_ id: UUID) -> Bool {
+        guard let page = deletedPages.first(where: { $0.id == id }), flush() else { return false }
+        let archived = deletedPages.filter { $0.id != id }
+        do {
+            try writeIndex(pages + [page], current: id, deleted: archived)
+            pages.append(page); deletedPages = archived; currentID = id; return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
+    func reload() {
+        guard flush() else { return }
+        let updated = MarginPages(root: folder.deletingLastPathComponent(), notebook: notebookID)
+        guard updated.error == nil else { error = updated.error; return }
+        pages = updated.pages; deletedPages = updated.deletedPages; currentID = updated.currentID
     }
     func linkCurrent(to source: Int?) {
         guard let id = currentID, let index = pages.firstIndex(where: { $0.id == id }), flush() else { return }

@@ -59,7 +59,7 @@ struct CreateNotebookScreen: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("الاسم", text: $title)
+                TextField("الاسم", text: $title).accessibilityIdentifier("notebookTitle")
                 Picker("قالب الورق", selection: $template) { ForEach(PaperTemplate.allCases) { Text($0.rawValue).tag($0) } }
                 Picker("لون الورق", selection: $color) { ForEach(PaperColor.allCases) { Text($0.rawValue).tag($0) } }
             }.navigationTitle("دفتر جديد").toolbar {
@@ -67,7 +67,7 @@ struct CreateNotebookScreen: View {
                 ToolbarItem(placement: .confirmationAction) { Button("إنشاء") {
                     store.create(title.trimmingCharacters(in: .whitespacesAndNewlines), section: section, template: template, color: color)
                     if store.error == nil { dismiss() }
-                }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+                }.accessibilityIdentifier("saveNotebook").disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
             }
         }.environment(\.layoutDirection, .rightToLeft)
     }

@@ -3,6 +3,19 @@ import PencilKit
 
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
+    // Native UI diagnostics are available only to the dedicated regression test.
+    override var accessibilityLabel: String? {
+        get {
+            let label = super.accessibilityLabel ?? ""
+            guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return label }
+            func describe(_ view: UIView, depth: Int) -> String {
+                let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden)"
+                return own + (depth > 0 ? view.subviews.map { describe($0, depth: depth - 1) }.joined(separator: " | ") : "")
+            }
+            return label + "; zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
+        }
+        set { super.accessibilityLabel = newValue }
+    }
     var sheetSize = CGSize(width: 650, height: 900)
     var followsFit = true
     private var fitsWidth = true

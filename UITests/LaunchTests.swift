@@ -3,11 +3,12 @@ import UIKit
 
 final class LaunchTests: XCTestCase {
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
-        let screenshot = XCUIScreen.main.screenshot().image
+        // Element screenshots already account for orientation and exclude adjacent controls.
+        let screenshot = canvas.screenshot().image
         guard let image = screenshot.cgImage else { return 0 }
         let scale = CGFloat(image.width) / screenshot.size.width
         // A fit-to-sheet canvas can be only 110 pt high; retain ink near its edges.
-        let frame = canvas.frame.insetBy(dx: 2, dy: 2)
+        let frame = CGRect(origin: .zero, size: screenshot.size).insetBy(dx: 2, dy: 2)
         let crop = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale)
         guard let ink = image.cropping(to: crop), ink.width > 0, ink.height > 0 else { return 0 }
         var pixels = [UInt8](repeating: 0, count: ink.width * ink.height * 4)
@@ -28,6 +29,7 @@ final class LaunchTests: XCTestCase {
     private func assertMarginInkVisible(_ canvas: XCUIElement, in app: XCUIApplication, stage: String, file: StaticString = #filePath, line: UInt = #line) {
         let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.visibleMarginInkPixels(canvas, in: app) > 40 }, object: canvas)
         let result = XCTWaiter.wait(for: [visible], timeout: 10)
+        print("Margin viewport " + stage + ": " + (canvas.value as? String ?? "") + "; " + canvas.label)
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
         XCTAssertEqual(result, .completed, "Saved strokes must remain visible in the canvas after " + stage + "; frame: " + String(describing: canvas.frame), file: file, line: line)
     }
@@ -56,7 +58,12 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
         app.buttons["deleteDocumentPage"].tap()
         XCTAssertTrue(app.staticTexts["حذف صفحة المستند 2 وكتابتها؟"].waitForExistence(timeout: 5))
-        app.buttons["confirmDocumentPageDeletion"].tap()
+        let confirmation = app.sheets["حذف صفحة المستند 2 وكتابتها؟"]
+        let actions = confirmation.buttons.matching(identifier: "confirmDocumentPageDeletion").allElementsBoundByIndex
+        let leafActions = actions.filter { $0.descendants(matching: .button).count == 0 }
+        XCTAssertEqual(leafActions.count, 1, "The confirmation must have exactly one deletion action")
+        guard leafActions.count == 1, let confirm = leafActions.first, confirm.exists && confirm.isHittable else { return }
+        confirm.tap()
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (app.textFields["pageNumber"].value as? String) == "1"
                 && !app.buttons["nextDocumentPage"].isEnabled
@@ -466,7 +473,7 @@ final class LaunchTests: XCTestCase {
         let split = XCTAttachment(screenshot: app.screenshot()); split.name = "AdaptiveSplitNotes"; split.lifetime = .keepAlways; add(split)
     }
     func testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch() {
-        let app = XCUIApplication(); app.launch()
+        let app = XCUIApplication(); app.launchArguments = ["--test-margin-viewport"]; app.launch()
         XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 15)); app.buttons["createNotebook"].tap()
         let name = "Margin continuity " + String(UUID().uuidString.prefix(8))
         let title = app.textFields["notebookTitle"]; title.tap(); title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)

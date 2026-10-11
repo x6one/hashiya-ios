@@ -46,8 +46,10 @@ final class LaunchTests: XCTestCase {
     func testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar() {
         let app = XCUIApplication(); app.launch()
         XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 15)); app.buttons["createNotebook"].tap()
+        let name = "Page recovery " + String(UUID().uuidString.prefix(8))
+        let title = app.textFields["notebookTitle"]; title.tap(); title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
         app.buttons["إنشاء"].tap()
-        let note = visibleLibraryDocument("دفتر جديد", in: app); note.tap()
+        let note = visibleLibraryDocument(name, in: app); note.tap()
         let groups = app.segmentedControls["workspaceToolGroups"]
         XCTAssertTrue(groups.waitForExistence(timeout: 10)); groups.buttons["صفحات"].tap()
         app.buttons["addWritingPaper"].tap(); app.buttons["نقاط"].tap()
@@ -178,7 +180,7 @@ final class LaunchTests: XCTestCase {
 
     private func visibleLibraryDocument(_ title: String, in app: XCUIApplication) -> XCUIElement {
         XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 15))
-        let document = app.staticTexts[title].firstMatch
+        let document = app.buttons["openNotebook-" + title].firstMatch
         // Imports add real cards. LazyVGrid instantiates visible rows only;
         // reach the document through the same scrolling a user performs.
         for _ in 0..<6 {
@@ -296,8 +298,10 @@ final class LaunchTests: XCTestCase {
         let create = app.buttons["createNotebook"]
         XCTAssertTrue(create.waitForExistence(timeout: 15))
         create.tap()
+        let name = "Created notebook " + String(UUID().uuidString.prefix(8))
+        let title = app.textFields["notebookTitle"]; title.tap(); title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
         app.buttons["إنشاء"].tap()
-        XCTAssertTrue(app.staticTexts["دفتر جديد"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["openNotebook-" + name].waitForExistence(timeout: 10))
     }
 
     func testLibraryLaunchAndDocumentOpen() {
@@ -402,7 +406,8 @@ final class LaunchTests: XCTestCase {
             return false
         }
         record.tap()
-        app.tap()
+        let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.buttons["Allow"]
+        if permission.waitForExistence(timeout: 5) { permission.tap() }
         let started = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)
         XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 15), .completed)
         XCTAssertFalse(app.buttons["marginPages"].exists, "Microphone must never open the margin")
@@ -460,7 +465,8 @@ final class LaunchTests: XCTestCase {
     func testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch() {
         let app = XCUIApplication(); app.launch()
         XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 15)); app.buttons["createNotebook"].tap()
-        let name = "دفتر جديد"
+        let name = "Margin continuity " + String(UUID().uuidString.prefix(8))
+        let title = app.textFields["notebookTitle"]; title.tap(); title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
         app.buttons["إنشاء"].tap()
         let note = visibleLibraryDocument(name, in: app); XCTAssertTrue(note.waitForExistence(timeout: 10)); note.tap()
         app.buttons["splitDocumentNotes"].tap()

@@ -107,7 +107,6 @@ struct LibraryScreen: View {
         .background(TayyaTheme.paper)
         .navigationTitle(destination == .library ? libraryTitle : destination.title)
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "ابحث في دفاترك")
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if sizeClass != .regular { destinationBar }
         }
@@ -206,7 +205,7 @@ struct LibraryScreen: View {
                     }
                 }
             }.padding(16)
-        }
+        }.searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "ابحث في دفاترك")
     }
     private var gridColumns: [GridItem] {
         if dynamicTypeSize.isAccessibilitySize { return [GridItem(.flexible())] }

@@ -122,7 +122,7 @@ struct LibraryScreen: View {
         showTrash ? "المحذوفات" : favorites ? "المفضلة" : section == "مكتبتي" ? "مكتبتك" : section ?? "كل الملفات"
     }
     private var recentNotebook: Notebook? {
-        store.notebooks.first { $0.id.uuidString == lastOpenedNotebook && !$0.trashed }
+        filtered.first { $0.id.uuidString == lastOpenedNotebook }
     }
     private func selectDestination(_ value: LibraryDestination) {
         destination = value

@@ -57,7 +57,8 @@ struct LinkedAudioScreen: View {
                 Section("التسجيلات الكاملة") {
                     ForEach(audio.clips, id: \.self) { clip in
                         HStack {
-                            Button(clip.deletingPathExtension().lastPathComponent, systemImage: "play.fill") { audio.play(clip) }.accessibilityIdentifier("playLinkedRecording")
+                            Button(audio.playing == clip ? "إيقاف التشغيل" : clip.deletingPathExtension().lastPathComponent,
+                                   systemImage: audio.playing == clip ? "stop.fill" : "play.fill") { audio.play(clip) }.accessibilityIdentifier("playLinkedRecording")
                             Spacer()
                             Button("حذف", systemImage: "trash", role: .destructive) { deleting = clip; confirmRecordingDeletion = true }.accessibilityIdentifier("deleteLinkedRecording")
                         }.buttonStyle(.borderless).disabled(audio.recording || audio.requestingPermission)

@@ -94,9 +94,9 @@ enum LibraryReadingPosition {
     private static func key(for notebook: UUID, root: URL) -> String {
         "tayya.readingPage." + root.standardizedFileURL.path + "." + notebook.uuidString
     }
-    static func page(for notebook: UUID, root: URL) -> Int? {
+    static func page(for notebook: UUID, root: URL, maximum: Int = .max) -> Int? {
         let value = UserDefaults.standard.integer(forKey: key(for: notebook, root: root))
-        return value > 0 ? value : nil
+        return value > 0 && maximum > 0 ? min(value, maximum) : nil
     }
     static func save(page: Int, for notebook: UUID, root: URL) {
         guard page > 0 else { return }

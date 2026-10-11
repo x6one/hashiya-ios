@@ -203,7 +203,7 @@ struct DocumentScreen: View {
                 recognitionLanguages = (try? LibrarySearch.supportedRecognitionLanguages()) ?? []
                 if !restoredReadingPosition {
                     restoredReadingPosition = true
-                    if let target = initialPage ?? LibraryReadingPosition.page(for: note.id, root: root) {
+                    if let target = initialPage ?? LibraryReadingPosition.page(for: note.id, root: root, maximum: workspace.document.pageCount) {
                         workspace.jump(target)
                     }
                 }

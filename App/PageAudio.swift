@@ -1,7 +1,7 @@
 import SwiftUI
 import AVFoundation
 
-@MainActor final class PageAudio: ObservableObject {
+@MainActor final class PageAudio: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     @Published var clips: [URL] = []
     @Published var recording = false
     @Published private(set) var requestingPermission = false
@@ -18,7 +18,9 @@ import AVFoundation
             AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) }
         }
     }) {
-        self.folder = folder; self.requestPermission = requestPermission; reload()
+        self.folder = folder; self.requestPermission = requestPermission
+        super.init()
+        reload()
     }
     func reload() {
         do {
@@ -37,11 +39,12 @@ import AVFoundation
         guard token == generation else { return }
         guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
         do {
-            player?.stop(); playing = nil
+            player?.stop(); player = nil; playing = nil
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
             try AVAudioSession.sharedInstance().setActive(true)
             let url = folder.appendingPathComponent("\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(6)).m4a")
             let recorder = try AVAudioRecorder(url: url, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue])
+            recorder.delegate = self
             guard recorder.record() else { throw CocoaError(.fileWriteUnknown) }
             self.recorder = recorder; recording = true
         } catch { self.error = error.localizedDescription }
@@ -55,18 +58,69 @@ import AVFoundation
         generation += 1
         requestingPermission = false
         recorder?.stop(); recorder = nil; recording = false
-        player?.stop(); playing = nil
+        player?.stop(); player = nil; playing = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         reload()
     }
     func play(_ url: URL, at time: TimeInterval = 0) {
         guard !recording, !requestingPermission else { return }
-        if playing == url && time == 0 { player?.stop(); playing = nil; return }
+        if playing == url && time == 0 {
+            player?.stop(); player = nil; playing = nil
+            deactivateAudioSession()
+            return
+        }
+        player?.stop(); player = nil; playing = nil
+        error = nil
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback)
             try AVAudioSession.sharedInstance().setActive(true)
-            player = try AVAudioPlayer(contentsOf: url); player?.currentTime = time; player?.play(); playing = url
-        } catch { self.error = error.localizedDescription }
+            let next = try AVAudioPlayer(contentsOf: url)
+            next.delegate = self
+            next.currentTime = max(0, time)
+            guard next.play() else { throw CocoaError(.fileReadUnknown) }
+            player = next
+            playing = url
+        } catch {
+            self.error = error.localizedDescription
+            deactivateAudioSession()
+        }
+    }
+    private func deactivateAudioSession() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor [weak self] in
+            guard let self, self.player === player else { return }
+            self.player = nil; self.playing = nil
+            if !flag { self.error = "تعذّر إكمال تشغيل التسجيل." }
+            self.deactivateAudioSession()
+        }
+    }
+    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        Task { @MainActor [weak self] in
+            guard let self, self.player === player else { return }
+            self.player?.stop(); self.player = nil; self.playing = nil
+            self.error = error?.localizedDescription ?? "تعذّر قراءة التسجيل."
+            self.deactivateAudioSession()
+        }
+    }
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor [weak self] in
+            guard let self, self.recorder === recorder else { return }
+            self.recorder = nil; self.recording = false
+            if !flag { self.error = "تعذّر إكمال التسجيل. تحقق من التسجيلات المحفوظة." }
+            self.reload()
+            self.deactivateAudioSession()
+        }
+    }
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        Task { @MainActor [weak self] in
+            guard let self, self.recorder === recorder else { return }
+            self.recorder?.stop(); self.recorder = nil; self.recording = false
+            self.error = error?.localizedDescription ?? "تعذّر حفظ التسجيل."
+            self.reload()
+            self.deactivateAudioSession()
+        }
     }
     func delete(_ url: URL) {
         // Directory enumeration and appendingPathComponent can represent the
@@ -77,7 +131,7 @@ import AVFoundation
         let parked = folder.appendingPathComponent(".deleting-" + UUID().uuidString)
         do {
             let data = try JSONEncoder().encode(retained)
-            if playing == url { player?.stop(); playing = nil }
+            if playing == url { player?.stop(); player = nil; playing = nil; deactivateAudioSession() }
             try FileManager.default.moveItem(at: url, to: parked)
             do { try data.write(to: linksURL, options: .atomic) }
             catch { try? FileManager.default.moveItem(at: parked, to: url); throw error }

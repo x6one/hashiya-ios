@@ -34,7 +34,6 @@ struct MarginPane: View {
                         store.saveInk(ink, page: page.id)
                         if store.saved { inkSaved(ink.strokes.count, page.id) }
                     }, failed: { store.error = $0 })
-                    .clipped()
                 } else {
                     TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
                                              set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))

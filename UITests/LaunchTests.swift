@@ -3,12 +3,19 @@ import UIKit
 
 final class LaunchTests: XCTestCase {
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
-        // Element screenshots already account for orientation and exclude adjacent controls.
-        let screenshot = canvas.screenshot().image
-        guard let image = screenshot.cgImage else { return 0 }
+        inkPixels(in: XCUIScreen.main.screenshot().image, frame: canvas.frame)
+    }
+    private func inkPixels(in screenshot: UIImage, frame canvasFrame: CGRect) -> Int {
+        // CGImage pixels do not apply UIImage's orientation metadata. Normalize
+        // before comparing the screen pixels with XCTest's oriented element frame.
+        let format = UIGraphicsImageRendererFormat(); format.scale = screenshot.scale
+        let upright = UIGraphicsImageRenderer(size: screenshot.size, format: format).image { _ in
+            screenshot.draw(in: CGRect(origin: .zero, size: screenshot.size))
+        }
+        guard let image = upright.cgImage else { return 0 }
         let scale = CGFloat(image.width) / screenshot.size.width
         // A fit-to-sheet canvas can be only 110 pt high; retain ink near its edges.
-        let frame = CGRect(origin: .zero, size: screenshot.size).insetBy(dx: 2, dy: 2)
+        let frame = canvasFrame.insetBy(dx: 2, dy: 2)
         let crop = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale)
         guard let ink = image.cropping(to: crop), ink.width > 0, ink.height > 0 else { return 0 }
         var pixels = [UInt8](repeating: 0, count: ink.width * ink.height * 4)
@@ -26,11 +33,35 @@ final class LaunchTests: XCTestCase {
             return count
         }
     }
+    func testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls() throws {
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1
+        let raw = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 80), format: format).image { _ in
+            UIColor.white.setFill(); UIRectFill(CGRect(x: 0, y: 0, width: 120, height: 80))
+            UIColor(red: 0.07, green: 0.25, blue: 0.22, alpha: 1).setFill()
+            UIRectFill(CGRect(x: 20, y: 10, width: 60, height: 4))
+            UIRectFill(CGRect(x: 2, y: 60, width: 10, height: 10)) // Adjacent toolbar control.
+        }
+        let pixels = try XCTUnwrap(raw.cgImage)
+        let cases: [(UIImage.Orientation, CGRect, CGRect)] = [
+            (.up, CGRect(x: 10, y: 5, width: 80, height: 20), CGRect(x: 80, y: 50, width: 30, height: 20)),
+            (.right, CGRect(x: 60, y: 10, width: 15, height: 80), CGRect(x: 0, y: 20, width: 20, height: 80)),
+            (.left, CGRect(x: 5, y: 30, width: 20, height: 80), CGRect(x: 50, y: 20, width: 20, height: 80)),
+            (.down, CGRect(x: 30, y: 60, width: 80, height: 15), CGRect(x: 0, y: 0, width: 30, height: 30))
+        ]
+        for (orientation, inkFrame, blankFrame) in cases {
+            let screen = UIImage(cgImage: pixels, scale: 1, orientation: orientation)
+            XCTAssertGreaterThan(inkPixels(in: screen, frame: inkFrame), 40, "Visible ink in orientation \(orientation.rawValue)")
+            XCTAssertEqual(inkPixels(in: screen, frame: blankFrame), 0, "Adjacent controls must not qualify as canvas ink")
+        }
+    }
     private func assertMarginInkVisible(_ canvas: XCUIElement, in app: XCUIApplication, stage: String, file: StaticString = #filePath, line: UInt = #line) {
         let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.visibleMarginInkPixels(canvas, in: app) > 40 }, object: canvas)
         let result = XCTWaiter.wait(for: [visible], timeout: 10)
+        let screen = XCUIScreen.main.screenshot().image
+        print("Margin screenshot " + stage + ": size=\(screen.size) scale=\(screen.scale) orientation=\(screen.imageOrientation.rawValue) frame=\(canvas.frame) pixels=\(visibleMarginInkPixels(canvas, in: app))")
         print("Margin viewport " + stage + ": " + (canvas.value as? String ?? "") + "; " + canvas.label)
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
+        let element = XCTAttachment(screenshot: canvas.screenshot()); element.name = "MarginCanvas-" + stage; element.lifetime = .keepAlways; add(element)
         XCTAssertEqual(result, .completed, "Saved strokes must remain visible in the canvas after " + stage + "; frame: " + String(describing: canvas.frame), file: file, line: line)
     }
     func testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin() {
@@ -62,7 +93,10 @@ final class LaunchTests: XCTestCase {
         let actions = confirmation.buttons.matching(identifier: "confirmDocumentPageDeletion").allElementsBoundByIndex
         let leafActions = actions.filter { $0.descendants(matching: .button).count == 0 }
         XCTAssertEqual(leafActions.count, 1, "The confirmation must have exactly one deletion action")
-        guard leafActions.count == 1, let confirm = leafActions.first, confirm.exists && confirm.isHittable else { return }
+        guard leafActions.count == 1, let confirm = leafActions.first else { return }
+        guard confirm.exists && confirm.isHittable else {
+            XCTFail("The native deletion confirmation must be visible and tappable"); return
+        }
         confirm.tap()
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (app.textFields["pageNumber"].value as? String) == "1"
@@ -510,6 +544,12 @@ final class LaunchTests: XCTestCase {
         app.buttons["fitMargin"].tap(); XCTAssertEqual(canvas.value as? String, count)
         assertMarginInkVisible(canvas, in: app, stage: "fit-sheet")
         app.buttons["fitMarginWidth"].tap(); XCTAssertEqual(canvas.value as? String, count)
+        for index in 0..<4 {
+            let handle = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            handle.press(forDuration: 0.1, thenDragTo: handle.withOffset(CGVector(dx: index.isMultiple(of: 2) ? 50 : -50, dy: index.isMultiple(of: 2) ? 30 : -30)))
+            XCTAssertEqual(canvas.value as? String, count, "Resizing must retain every saved stroke")
+            assertMarginInkVisible(canvas, in: app, stage: "resize-\(index + 1)")
+        }
         XCUIDevice.shared.orientation = .landscapeLeft
         let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)

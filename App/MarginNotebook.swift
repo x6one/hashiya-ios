@@ -151,6 +151,9 @@ struct MarginNotebook: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed) }
     func makeUIView(context: Context) -> MarginCanvas {
         let canvas = MarginCanvas()
+        // PencilKit owns clipping of its zoomed tiles at the viewport boundary.
+        // An additional SwiftUI mask must not wrap the native drawing surface.
+        canvas.clipsToBounds = true
         canvas.backgroundColor = PaperColor.cream.uiColor
         canvas.drawingPolicy = .anyInput
         canvas.contentInsetAdjustmentBehavior = .never

@@ -328,12 +328,15 @@ struct DocumentScreen: View {
                 }.padding(.vertical, 2).disabled(toolGroup == .pages && ocrBusy)
             }
     }
-    private func changeDocumentPage(undo: Bool = false) {
+    private func changeDocumentPage(number: Int? = nil, undo: Bool = false) {
         audio.stop(); workspace.tool = .read
         guard margins.flush() else { workspace.error = margins.error; return }
         do {
             if undo { try workspace.undoPageDeletion(note: note, root: root) }
-            else if let deletingPage { try workspace.deletePage(deletingPage, note: note, root: root) }
+            else {
+                guard let number else { throw PageRemovalError.invalid }
+                try workspace.deletePage(number, note: note, root: root)
+            }
             margins.reload(); audio.markers = audio.loadLinks()
             deletingPage = nil
         } catch { workspace.error = error.localizedDescription }
@@ -341,11 +344,17 @@ struct DocumentScreen: View {
     private var documentSheets: some View {
         documentPresentation
             .sheet(isPresented: $showPaperPicker) { WritingPaperPicker(add: workspace.appendPaper) }
-            .sheet(isPresented: $showDocumentPages, onDismiss: { deletingPage = pendingPageDeletion; confirmDocumentDeletion = pendingPageDeletion != nil; pendingPageDeletion = nil }) { DocumentPageList(workspace: workspace, deleting: { pendingPageDeletion = $0 }) }
-            .confirmationDialog("حذف صفحة المستند \(deletingPage ?? 0) وكتابتها؟", isPresented: $confirmDocumentDeletion, titleVisibility: .visible) {
-                Button("حذف الصفحة", role: .destructive) { changeDocumentPage(); confirmDocumentDeletion = false }
+            .sheet(isPresented: $showDocumentPages, onDismiss: {
+                guard let pendingPageDeletion else { return }
+                deletingPage = pendingPageDeletion
+                self.pendingPageDeletion = nil
+                confirmDocumentDeletion = true
+            }) { DocumentPageList(workspace: workspace, deleting: { pendingPageDeletion = $0 }) }
+            .confirmationDialog("حذف صفحة المستند \(deletingPage ?? 0) وكتابتها؟", isPresented: $confirmDocumentDeletion, titleVisibility: .visible, presenting: deletingPage) { number in
+                Button("حذف الصفحة", role: .destructive) { changeDocumentPage(number: number); confirmDocumentDeletion = false }
+                    .accessibilityIdentifier("confirmDocumentPageDeletion")
                 Button("إلغاء", role: .cancel) { deletingPage = nil }
-            } message: { Text("حواشيك المستقلة تبقى محفوظة. يمكنك التراجع عن الحذف ما لم تعدّل المستند بعده.") }
+            } message: { _ in Text("حواشيك المستقلة تبقى محفوظة. يمكنك التراجع عن الحذف ما لم تعدّل المستند بعده.") }
             .sheet(item: $cardDraft) { card in CardEditor(card: card) { updated in
                 let cards = FlashcardStore(url: cardsURL); let saved = cards.save(updated); if let error = cards.error { workspace.error = error }; return saved
             } }

@@ -54,7 +54,9 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(groups.waitForExistence(timeout: 10)); groups.buttons["صفحات"].tap()
         app.buttons["addWritingPaper"].tap(); app.buttons["نقاط"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
-        app.buttons["deleteDocumentPage"].tap(); app.sheets.buttons["حذف الصفحة"].tap()
+        app.buttons["deleteDocumentPage"].tap()
+        XCTAssertTrue(app.staticTexts["حذف صفحة المستند 2 وكتابتها؟"].waitForExistence(timeout: 5))
+        app.buttons["confirmDocumentPageDeletion"].tap()
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (app.textFields["pageNumber"].value as? String) == "1"
                 && !app.buttons["nextDocumentPage"].isEnabled
@@ -286,8 +288,9 @@ final class LaunchTests: XCTestCase {
             XCTFail("Files did not deliver the selected document: " + app.debugDescription); return
         }
         XCTAssertTrue(status.label.contains("تم استيراد"), status.label)
-        let card = app.staticTexts[name].firstMatch
+        let card = visibleLibraryDocument(name, in: app)
         XCTAssertTrue(card.waitForExistence(timeout: 10))
+        XCTAssertTrue(card.isHittable)
         card.tap()
         XCTAssertTrue(app.buttons[editor].waitForExistence(timeout: 10))
     }

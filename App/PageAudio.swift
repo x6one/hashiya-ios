@@ -4,6 +4,7 @@ import AVFoundation
 @MainActor final class PageAudio: ObservableObject {
     @Published var clips: [URL] = []
     @Published var recording = false
+    @Published private(set) var requestingPermission = false
     @Published var playing: URL?
     @Published var error: String?
     @Published var markers: [AudioLink] = []
@@ -11,7 +12,14 @@ import AVFoundation
     var recorder: AVAudioRecorder?
     private var generation = 0
     private var player: AVAudioPlayer?
-    init(folder: URL) { self.folder = folder; reload() }
+    private let requestPermission: () async -> Bool
+    init(folder: URL, requestPermission: @escaping () async -> Bool = {
+        await withCheckedContinuation { continuation in
+            AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) }
+        }
+    }) {
+        self.folder = folder; self.requestPermission = requestPermission; reload()
+    }
     func reload() {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -20,9 +28,12 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func start() async {
-        guard !recording else { return }
+        guard !recording, !requestingPermission else { return }
+        requestingPermission = true
+        error = nil
         generation += 1; let token = generation
-        let allowed = await withCheckedContinuation { continuation in AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) } }
+        defer { if token == generation { requestingPermission = false } }
+        let allowed = await requestPermission()
         guard token == generation else { return }
         guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
         do {
@@ -35,14 +46,21 @@ import AVFoundation
             self.recorder = recorder; recording = true
         } catch { self.error = error.localizedDescription }
     }
+    func handleScenePhase(_ phase: ScenePhase) {
+        // The permission alert may deactivate the scene before recording starts.
+        // Existing recording/playback must stop on calls or other interruptions.
+        if phase == .background || (phase == .inactive && (recording || playing != nil)) { stop() }
+    }
     func stop() {
         generation += 1
+        requestingPermission = false
         recorder?.stop(); recorder = nil; recording = false
         player?.stop(); playing = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         reload()
     }
     func play(_ url: URL, at time: TimeInterval = 0) {
+        guard !recording, !requestingPermission else { return }
         if playing == url && time == 0 { player?.stop(); playing = nil; return }
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback)
@@ -54,7 +72,7 @@ import AVFoundation
         // Directory enumeration and appendingPathComponent can represent the
         // same folder with different trailing-slash URL metadata. Compare
         // canonical filesystem paths, while still rejecting outside clips.
-        guard !recording, url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path == folder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
+        guard !recording, !requestingPermission, url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path == folder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
         let retained = loadLinks().filter { $0.clip != url.lastPathComponent }
         let parked = folder.appendingPathComponent(".deleting-" + UUID().uuidString)
         do {
@@ -73,24 +91,38 @@ struct PageAudioScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var audio: PageAudio
-    init(folder: URL) { _audio = StateObject(wrappedValue: PageAudio(folder: folder)) }
+    @State private var deletingClip: URL?
+    let allowRecording: Bool
+    init(folder: URL, allowRecording: Bool = true) {
+        self.allowRecording = allowRecording
+        _audio = StateObject(wrappedValue: PageAudio(folder: folder))
+    }
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Button(audio.recording ? "إيقاف وحفظ التسجيل" : "تسجيل صوت للصفحة", systemImage: audio.recording ? "stop.circle.fill" : "mic.circle") {
-                        if audio.recording { audio.stop() } else { Task { await audio.start() } }
-                    }.tint(audio.recording ? .red : .blue)
+                    if allowRecording {
+                        Button(audio.recording ? "إيقاف وحفظ التسجيل" : "تسجيل صوت للصفحة", systemImage: audio.recording ? "stop.circle.fill" : "mic.circle") {
+                            if audio.recording { audio.stop() } else { Task { await audio.start() } }
+                        }.tint(audio.recording ? .red : TayyaTheme.ink).disabled(audio.requestingPermission)
+                    }
                     Text("التسجيلات محفوظة على جهازك ومرتبطة بهذه الصفحة.").font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(audio.clips, id: \.self) { url in
                     Button(audio.playing == url ? "إيقاف التشغيل" : url.deletingPathExtension().lastPathComponent, systemImage: audio.playing == url ? "stop.fill" : "play.fill") { audio.play(url) }
-                        .disabled(audio.recording)
-                        .swipeActions { Button("حذف", role: .destructive) { audio.delete(url) } }
+                        .disabled(audio.recording || audio.requestingPermission)
+                        .swipeActions { Button("حذف", role: .destructive) { deletingClip = url } }
                 }
-            }.navigationTitle("صوت الصفحة").toolbar { Button("تم") { audio.stop(); dismiss() } }
+            }.navigationTitle("تسجيلات الصفحة").toolbar { Button("تم") { audio.stop(); dismiss() } }
+                .confirmationDialog("حذف التسجيل نهائيًا؟", isPresented: Binding(get: { deletingClip != nil }, set: { if !$0 { deletingClip = nil } }), titleVisibility: .visible) {
+                    Button("حذف التسجيل", role: .destructive) {
+                        if let deletingClip { audio.delete(deletingClip) }
+                        deletingClip = nil
+                    }
+                    Button("إلغاء", role: .cancel) { deletingClip = nil }
+                }
                 .alert("الصوت", isPresented: Binding(get: { audio.error != nil }, set: { if !$0 { audio.error = nil } })) { Button("حسناً") { audio.error = nil } } message: { Text(audio.error ?? "") }
         }.environment(\.layoutDirection, .rightToLeft).onDisappear { audio.stop() }
-            .onChange(of: scenePhase) { _, phase in if phase != .active { audio.stop() } }
+            .onChange(of: scenePhase) { _, phase in audio.handleScenePhase(phase) }
     }
 }

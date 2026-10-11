@@ -101,8 +101,6 @@ struct MarginPane: View {
             }.font(.caption).padding(.horizontal, 12).padding(.top, 4) }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
-                    WorkspaceAction(title: "ربط الصفحة", symbol: "link") { store.linkCurrent(to: sourcePage) }
-                    WorkspaceAction(title: "فك الربط", symbol: "link.badge.plus") { store.linkCurrent(to: nil) }.disabled(page.sourcePage == nil)
                     WorkspaceAction(title: "تصدير", symbol: "square.and.arrow.up") { do { exported = try store.export() } catch { store.error = error.localizedDescription } }
                     WorkspaceAction(title: "حذف", symbol: "trash") { deletingPage = page.id; confirmMarginDeletion = true }.disabled(store.pages.count <= 1).accessibilityIdentifier("deleteMarginPage")
                     WorkspaceAction(title: "المحذوفات", symbol: "trash.circle") { showPages = true }.accessibilityIdentifier("deletedMarginPages")
@@ -121,8 +119,15 @@ struct MarginPageList: View {
         NavigationStack {
             List {
                 if let page = store.current {
-                    Section("عنوان الصفحة الحالية") {
+                    Section("الصفحة الحالية") {
                         TextField("عنوان اختياري", text: Binding(get: { store.current?.title ?? "" }, set: { store.editTitle($0, page: page.id) }))
+                        if let linked = page.sourcePage {
+                            Button("الانتقال إلى المستند · ص \(linked)", systemImage: "doc.text") { jump(linked); dismiss() }
+                        }
+                        Button("ربط بصفحة المستند \(sourcePage)", systemImage: "link") { store.linkCurrent(to: sourcePage) }
+                            .accessibilityIdentifier("linkMarginPage")
+                        Button("فك ربط الصفحة", systemImage: "link.slash") { store.linkCurrent(to: nil) }
+                            .disabled(page.sourcePage == nil).accessibilityIdentifier("unlinkMarginPage")
                     }
                 }
                 Section("صفحات الحاشية") {

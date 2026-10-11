@@ -32,21 +32,27 @@ struct LinkedAudioScreen: View {
     @ObservedObject var audio: PageAudio
     let jump: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var legacyPages: [LegacyPageRecordings] = []
     @State private var deleting: URL?
     @State private var confirmRecordingDeletion = false
     var body: some View {
         NavigationStack {
             List {
-                if audio.markers.isEmpty { Text("ستظهر هنا الأوقات المرتبطة بالكتابة أثناء التسجيل.").foregroundStyle(.secondary) }
-                ForEach(audio.markers) { marker in
-                    Button {
-                        jump(marker.page); audio.seek(marker)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label("\(Int(marker.time / 60)):\(String(format: "%02d", Int(marker.time) % 60)) — صفحة \(marker.page)", systemImage: "play.circle")
-                            Text(marker.label).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }.disabled(audio.recording)
+                if audio.clips.isEmpty && legacyPages.isEmpty {
+                    ContentUnavailableView("لا توجد تسجيلات", systemImage: "waveform", description: Text("ابدأ التسجيل من أدوات الدراسة. يبقى عرض المستند والحاشية كما اخترته."))
+                }
+                Section("أوقات الكتابة") {
+                    if audio.markers.isEmpty { Text("تُحفظ أوقات الكتابة تلقائيًا أثناء التسجيل.").font(.caption).foregroundStyle(.secondary) }
+                    ForEach(audio.markers) { marker in
+                        Button {
+                            jump(marker.page); audio.seek(marker)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label("\(Int(marker.time / 60)):\(String(format: "%02d", Int(marker.time) % 60)) — صفحة \(marker.page)", systemImage: "play.circle")
+                                Text(marker.label).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }.disabled(audio.recording || audio.requestingPermission)
+                    }
                 }
                 Section("التسجيلات الكاملة") {
                     ForEach(audio.clips, id: \.self) { clip in
@@ -54,15 +60,31 @@ struct LinkedAudioScreen: View {
                             Button(clip.deletingPathExtension().lastPathComponent, systemImage: "play.fill") { audio.play(clip) }.accessibilityIdentifier("playLinkedRecording")
                             Spacer()
                             Button("حذف", systemImage: "trash", role: .destructive) { deleting = clip; confirmRecordingDeletion = true }.accessibilityIdentifier("deleteLinkedRecording")
-                        }.buttonStyle(.borderless).disabled(audio.recording)
+                        }.buttonStyle(.borderless).disabled(audio.recording || audio.requestingPermission)
                     }
                 }
-            }.navigationTitle("التسجيلات المرتبطة").toolbar { Button("تم") { dismiss() } }
+                if !legacyPages.isEmpty {
+                    Section("تسجيلات الصفحات السابقة") {
+                        ForEach(legacyPages) { entry in
+                            NavigationLink {
+                                PageAudioScreen(folder: entry.folder, allowRecording: false)
+                            } label: {
+                                Label("صفحة \(entry.page)", systemImage: "waveform")
+                            }.disabled(audio.recording || audio.requestingPermission)
+                                .accessibilityIdentifier("legacyPageRecording-\(entry.page)")
+                        }
+                    }
+                }
+            }.navigationTitle("التسجيلات").toolbar { Button("تم") { dismiss() } }
                 .confirmationDialog("حذف التسجيل وروابطه نهائيًا؟", isPresented: $confirmRecordingDeletion, titleVisibility: .visible) {
                     Button("حذف التسجيل", role: .destructive) { if let deleting { audio.delete(deleting) }; deleting = nil; confirmRecordingDeletion = false }
                     Button("إلغاء", role: .cancel) { deleting = nil }
                 }
                 .alert("الصوت", isPresented: Binding(get: { audio.error != nil }, set: { if !$0 { audio.error = nil } })) { Button("حسنًا") { audio.error = nil } } message: { Text(audio.error ?? "") }
         }.environment(\.layoutDirection, .rightToLeft)
+            .onAppear {
+                audio.reload()
+                legacyPages = LegacyPageRecordings.folders(in: audio.folder.deletingLastPathComponent())
+            }
     }
 }

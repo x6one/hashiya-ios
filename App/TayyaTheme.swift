@@ -3,8 +3,10 @@ import UIKit
 
 /// Semantic colors adapt to the system appearance without tinting PDF pages.
 enum TayyaTheme {
-    static let paper = adaptive(light: (0.97, 0.95, 0.90), dark: (0.055, 0.09, 0.08))
-    static let surface = adaptive(light: (1, 0.99, 0.96), dark: (0.10, 0.15, 0.13))
+    static let paper = adaptive(light: (0.97, 0.97, 0.95), dark: (0.055, 0.09, 0.08))
+    static let surface = adaptive(light: (1, 1, 0.985), dark: (0.10, 0.15, 0.13))
+    static let separator = adaptive(light: (0.86, 0.88, 0.85), dark: (0.24, 0.30, 0.27))
+    static let selection = adaptive(light: (0.90, 0.94, 0.90), dark: (0.16, 0.25, 0.20))
     static let ink = adaptive(light: (0.07, 0.25, 0.22), dark: (0.75, 0.88, 0.79))
     static let fold = adaptive(light: (0.68, 0.32, 0.19), dark: (0.90, 0.56, 0.36))
     static let brandInk = Color(red: 0.07, green: 0.25, blue: 0.22)

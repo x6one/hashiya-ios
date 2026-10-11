@@ -11,12 +11,12 @@ struct WorkspaceAction: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 5) {
-                Image(systemName: symbol).font(.system(size: 20, weight: .medium))
-                Text(title).font(.caption).fixedSize(horizontal: true, vertical: false)
-            }.frame(minWidth: 52, minHeight: 48).padding(.horizontal, 5).padding(.vertical, 3)
+            VStack(spacing: 3) {
+                Image(systemName: symbol).font(.system(size: 17, weight: .medium))
+                Text(title).font(.system(size: 11, weight: .medium)).fixedSize(horizontal: true, vertical: false)
+            }.frame(minWidth: 54, minHeight: 44).padding(.horizontal, 3)
                 .foregroundStyle(selected ? TayyaTheme.paper : TayyaTheme.ink)
-                .background(selected ? TayyaTheme.ink : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                .background(selected ? TayyaTheme.ink : Color.clear, in: RoundedRectangle(cornerRadius: 8))
         }.buttonStyle(.plain).accessibilityLabel(title).accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

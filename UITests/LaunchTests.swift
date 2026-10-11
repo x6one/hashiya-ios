@@ -82,6 +82,7 @@ final class LaunchTests: XCTestCase {
     func testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages() {
         let app = XCUIApplication()
         app.launch()
+        app.buttons["librarySettings"].tap()
         let demo = app.buttons["openDemonstration"]
         XCTAssertTrue(demo.waitForExistence(timeout: 15))
         if !demo.isHittable { app.swipeDown() }
@@ -306,7 +307,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
         let opening = app.otherElements["openingAnimation"]
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: opening)], timeout: 5)
-        XCTAssertTrue(app.navigationBars["طَيّة"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["مكتبتك"].waitForExistence(timeout: 15))
         let demo = visibleLibraryDocument("ملف التجربة", in: app)
         XCTAssertTrue(demo.waitForExistence(timeout: 10))
         let library = XCTAttachment(screenshot: app.screenshot())
@@ -384,6 +385,63 @@ final class LaunchTests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
     }
+    func testRecordingDoesNotOpenOrResizeMargins() {
+        let app = XCUIApplication(); app.launch()
+        visibleLibraryDocument("ملف التجربة", in: app).tap()
+        let canvas = app.otherElements["pdfCanvas"]
+        XCTAssertTrue(canvas.waitForExistence(timeout: 10))
+        app.segmentedControls["workspaceToolGroups"].buttons["دراسة"].tap()
+        let initial = canvas.frame
+        let record = app.buttons["recordLinkedAudio"]
+        XCTAssertTrue(record.isHittable)
+        addUIInterruptionMonitor(withDescription: "Microphone permission") { alert in
+            let allow = alert.buttons["Allow"]
+            if allow.exists { allow.tap(); return true }
+            let ok = alert.buttons["OK"]
+            if ok.exists { ok.tap(); return true }
+            return false
+        }
+        record.tap()
+        app.tap()
+        let started = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)
+        XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 15), .completed)
+        XCTAssertFalse(app.buttons["marginPages"].exists, "Microphone must never open the margin")
+        XCTAssertFalse(app.descendants(matching: .any)["splitDivider"].firstMatch.exists)
+        XCTAssertEqual(canvas.frame, initial, "Recording must preserve reading area")
+        record.tap()
+        XCTAssertFalse(app.buttons["marginPages"].exists)
+        XCTAssertEqual(canvas.frame, initial)
+        app.segmentedControls["workspaceToolGroups"].buttons["كتابة"].tap()
+        app.buttons["splitDocumentNotes"].tap()
+        let pages = app.buttons["marginPages"]
+        XCTAssertTrue(pages.waitForExistence(timeout: 5))
+        app.segmentedControls["workspaceToolGroups"].buttons["دراسة"].tap()
+        let splitFrame = canvas.frame, position = pages.value as? String
+        record.tap()
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)], timeout: 10), .completed)
+        XCTAssertEqual(canvas.frame, splitFrame)
+        XCTAssertEqual(pages.value as? String, position)
+        record.tap()
+        XCTAssertEqual(canvas.frame, splitFrame)
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "RecordingPreservesWorkspace"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testPersistentLibraryDestinations() {
+        let app = XCUIApplication(); app.launch()
+        for id in ["libraryHome", "librarySections", "libraryReview", "librarySettings"] {
+            XCTAssertTrue(app.buttons[id].waitForExistence(timeout: 15))
+            XCTAssertTrue(app.buttons[id].isHittable)
+        }
+        app.buttons["libraryReview"].tap()
+        XCTAssertTrue(app.navigationBars["المراجعة"].waitForExistence(timeout: 5))
+        app.buttons["librarySettings"].tap()
+        XCTAssertTrue(app.buttons["openDemonstration"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["libraryBackup"].exists)
+        app.buttons["libraryHome"].tap()
+        XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 5))
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "CalmLibraryNavigation"; shot.lifetime = .keepAlways; add(shot)
+    }
+
     func testVisibleSectionsTrashAndSplitNotes() {
         let app = XCUIApplication(); app.launch()
         let sections = app.buttons["librarySections"]

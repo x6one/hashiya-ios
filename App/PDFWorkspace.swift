@@ -167,6 +167,7 @@ struct DocumentScreen: View {
     let root: URL
     @StateObject private var workspace: PDFWorkspace
     @State private var pageNumber = "1"
+    @State private var restoredReadingPosition = false
     @FocusState private var pageFocused: Bool
     @State private var toolGroup: WorkspaceToolGroup = .writing
     @State private var showPaperPicker = false
@@ -174,7 +175,6 @@ struct DocumentScreen: View {
     @State private var deletingPage: Int?
     @State private var confirmDocumentDeletion = false
     @State private var pendingPageDeletion: Int?
-    @State private var showAudio = false
     @State private var showLinkedAudio = false
     @StateObject private var margins: MarginPages
     @State private var notesExpanded = false
@@ -185,6 +185,7 @@ struct DocumentScreen: View {
     @State private var showCards = false
     @State private var original = false
     @State private var showMedia = false
+    @State private var recognitionLanguages: [String] = []
     @State private var ocrBusy = false
     @State private var ocrMessage = ""
     @StateObject private var audio: PageAudio
@@ -199,13 +200,19 @@ struct DocumentScreen: View {
     var body: some View {
         documentSheets
             .onAppear {
-                if let initialPage { workspace.jump(initialPage) }
+                recognitionLanguages = (try? LibrarySearch.supportedRecognitionLanguages()) ?? []
+                if !restoredReadingPosition {
+                    restoredReadingPosition = true
+                    if let target = initialPage ?? LibraryReadingPosition.page(for: note.id, root: root) {
+                        workspace.jump(target)
+                    }
+                }
                 workspace.onTextSaved = { item in do { try audio.link(page: item.page + 1, textID: item.id, label: String(item.text.prefix(70))) } catch { workspace.error = error.localizedDescription } }
                 workspace.onInkSaved = { page, count in do { try audio.link(page: page + 1, strokeCount: count, label: "كتابة بخط اليد — صفحة \(page + 1)") } catch { workspace.error = error.localizedDescription } }
                 workspace.onTextTapped = { id in if !audio.recording, let marker = audio.markers.last(where: { $0.textID == id }) { audio.seek(marker) } }
             }
             .onDisappear { audio.stop(); _ = margins.flush() }
-            .onChange(of: scenePhase) { _, phase in if phase != .active { audio.stop() } }
+            .onChange(of: scenePhase) { _, phase in audio.handleScenePhase(phase) }
             .overlay(alignment: .bottom) { if ocrBusy { ProgressView("قراءة الصفحات على الجهاز…").padding().background(.regularMaterial) } }
             .alert("قراءة الصفحات", isPresented: Binding(get: { !ocrMessage.isEmpty }, set: { if !$0 { ocrMessage = "" } })) { Button("حسنًا") { ocrMessage = "" } } message: { Text(ocrMessage) }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { workspace.error != nil }, set: { if !$0 { workspace.error = nil } })) { Button("حسناً") { workspace.error = nil } } message: { Text(workspace.error ?? "") }
@@ -237,7 +244,6 @@ struct DocumentScreen: View {
                 } else { NativePDF(workspace: workspace) }
             }
             if workspace.tool == .lasso && !notesExpanded { lassoControls }
-            if audio.recording { Label("جارٍ التسجيل — الملاحظات مرتبطة بزمن الصوت", systemImage: "record.circle").font(.caption).foregroundStyle(.red).padding(8) }
         }
     }
     private var boundedFraction: Double { min(0.7, max(0.3, splitFraction)) }
@@ -262,13 +268,16 @@ struct DocumentScreen: View {
                 if focused { pageNumber = "" }
                 else if pageNumber.isEmpty { pageNumber = String(workspace.page) }
             }
-            .onChange(of: workspace.page) { _, page in pageNumber = String(page) }
+            .onChange(of: workspace.page) { _, page in
+                pageNumber = String(page)
+                LibraryReadingPosition.save(page: page, for: note.id, root: root)
+            }
 
     }
     private var toolsBar: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { toolGroupPicker.frame(width: 240); toolActions.frame(minWidth: 360) }
-            VStack(spacing: 6) { toolGroupPicker; toolActions }
+            HStack(spacing: 12) { toolGroupPicker.frame(width: 240); toolActions.frame(minWidth: 310) }
+            VStack(spacing: 4) { toolGroupPicker; toolActions }
         }.padding(.horizontal, 8).padding(.top, 6).background(TayyaTheme.surface)
     }
     private var toolGroupPicker: some View {
@@ -295,13 +304,23 @@ struct DocumentScreen: View {
                     case .study:
                         WorkspaceAction(title: "بطاقة جديدة", symbol: "rectangle.badge.plus") { cardDraft = Flashcard(question: "", answer: workspace.view?.currentSelection?.string ?? "", page: workspace.page) }
                         WorkspaceAction(title: "البطاقات", symbol: "rectangle.stack") { showCards = true }.accessibilityIdentifier("openFlashcards")
-                        WorkspaceAction(title: audio.recording ? "إيقاف التسجيل" : "تسجيل", symbol: audio.recording ? "stop.circle" : "mic", selected: audio.recording) {
-                            if audio.recording { audio.stop() } else { splitNotes = true; Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
-                        }.accessibilityIdentifier("recordLinkedAudio")
-                        WorkspaceAction(title: "الصوت المرتبط", symbol: "waveform") { showLinkedAudio = true }.accessibilityIdentifier("openLinkedAudio")
-                        WorkspaceAction(title: "صوت الصفحة", symbol: "mic.circle") { showAudio = true }
-                        WorkspaceAction(title: "قراءة العربية", symbol: "text.viewfinder") { recognize("ar") }.disabled(ocrBusy)
-                        WorkspaceAction(title: "قراءة الإنجليزية", symbol: "text.viewfinder") { recognize("en") }.disabled(ocrBusy)
+                        WorkspaceAction(title: audio.recording ? "إيقاف" : "تسجيل", symbol: audio.recording ? "stop.circle" : "mic", selected: audio.recording) {
+                            if audio.recording { audio.stop() } else { Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
+                        }.disabled(audio.requestingPermission).accessibilityIdentifier("recordLinkedAudio")
+                            .accessibilityValue(audio.recording ? "جارٍ التسجيل" : audio.requestingPermission ? "انتظار إذن الميكروفون" : "متوقف")
+                        WorkspaceAction(title: "التسجيلات", symbol: "waveform") { showLinkedAudio = true }.accessibilityIdentifier("openLinkedAudio")
+                        if !recognitionLanguages.isEmpty {
+                            Menu {
+                                ForEach(recognitionLanguages, id: \.self) { language in
+                                    Button(Locale(identifier: "ar").localizedString(forIdentifier: language) ?? language) { recognize(language) }
+                                }
+                            } label: {
+                                VStack(spacing: 3) {
+                                    Image(systemName: "text.viewfinder").font(.system(size: 17, weight: .medium))
+                                    Text("قراءة الصور").font(.system(size: 11, weight: .medium))
+                                }.frame(minWidth: 66, minHeight: 44).foregroundStyle(TayyaTheme.ink)
+                            }.disabled(ocrBusy).accessibilityIdentifier("recognizeDocumentText")
+                        }
                     case .files:
                         WorkspaceAction(title: "تصدير PDF", symbol: "square.and.arrow.up") { workspace.export() }
                         if note.originalFile != nil { WorkspaceAction(title: "أصل Office", symbol: "doc") { original = true } }
@@ -339,7 +358,6 @@ struct DocumentScreen: View {
             } }
             .sheet(item: $workspace.editing) { item in TextEditorSheet(item: item, save: workspace.saveText) }
             .sheet(isPresented: $showLinkedAudio) { LinkedAudioScreen(audio: audio, jump: workspace.jump) }
-            .sheet(isPresented: $showAudio) { PageAudioScreen(folder: root.appendingPathComponent(note.id.uuidString + "-audio").appendingPathComponent(String(workspace.page))) }
             .sheet(isPresented: Binding(get: { workspace.exported != nil }, set: { if !$0 { workspace.exported = nil } })) {
                 if let url = workspace.exported { ShareDocument(url: url) }
             }
@@ -382,14 +400,18 @@ struct DocumentScreen: View {
         }
     }
     private var pageControls: some View {
-        HStack {
+        HStack(spacing: 4) {
                 Button("السابق في المستند", systemImage: "chevron.right") { workspace.jump(workspace.page - 1) }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.page <= 1).accessibilityIdentifier("previousDocumentPage")
-                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 55).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
+                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 44).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
                 Text("من \(workspace.document.pageCount)").font(.caption)
                 Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.accessibilityIdentifier("goToPage")
                 Button("التالي في المستند", systemImage: "chevron.left") { workspace.jump(workspace.page + 1) }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.page >= workspace.document.pageCount).accessibilityIdentifier("nextDocumentPage")
                 Spacer(minLength: 4)
-                Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly)
+                Image(systemName: "record.circle.fill").foregroundStyle(.red)
+                    .opacity(audio.recording ? 1 : 0).frame(width: 16)
+                    .accessibilityLabel("جارٍ التسجيل").accessibilityHidden(!audio.recording)
+                    .accessibilityIdentifier("recordingIndicator")
+                Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("fitDocumentPage")
             }.padding(.horizontal, 8).background(TayyaTheme.surface)
     }
 }

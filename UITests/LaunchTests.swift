@@ -183,6 +183,26 @@ final class LaunchTests: XCTestCase {
         app.terminate()
         return true
     }
+    func testDrawingToolDoesNotTurnPagesInDocumentOrSplit() {
+        let app = XCUIApplication(); app.launch()
+        visibleLibraryDocument("ملف التجربة", in: app).tap()
+        let page = app.textFields["pageNumber"]
+        XCTAssertTrue(page.waitForExistence(timeout: 10))
+        let previous = app.buttons["previousDocumentPage"]
+        if previous.isEnabled { previous.tap() }
+        let pen = app.buttons["inkTool"]
+        for stage in ["document", "split"] {
+            if stage == "split" { app.buttons["splitDocumentNotes"].tap() }
+            let initial = page.value as? String
+            for _ in 0..<12 {
+                pen.tap()
+                XCTAssertEqual(page.value as? String, initial, "Toggling the pen must not turn pages in " + stage)
+            }
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = "PenKeepsPage-" + stage; shot.lifetime = .keepAlways; add(shot)
+        }
+    }
+
     func testTouchInkPersistsAfterRelaunch() {
         let app = XCUIApplication()
         app.launch()

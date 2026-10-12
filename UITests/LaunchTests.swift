@@ -194,13 +194,66 @@ final class LaunchTests: XCTestCase {
         for stage in ["document", "split"] {
             if stage == "split" { app.buttons["splitDocumentNotes"].tap() }
             let initial = page.value as? String
+            let margin = app.buttons["marginPages"].value as? String
             for _ in 0..<12 {
                 pen.tap()
                 XCTAssertEqual(page.value as? String, initial, "Toggling the pen must not turn pages in " + stage)
+                if stage == "split" { XCTAssertEqual(app.buttons["marginPages"].value as? String, margin) }
             }
+            pen.tap()
+            let before = Int(pen.value as? String ?? "") ?? 0
+            let canvas = app.otherElements["pdfCanvas"]
+            canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.3)).press(forDuration: 0.1,
+                thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.4)))
+            let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                (Int(pen.value as? String ?? "") ?? 0) > before
+            }, object: pen)
+            XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Document ink must work in " + stage)
+            XCTAssertEqual(page.value as? String, initial, "Writing must not change the document page")
+            pen.tap()
             let shot = XCTAttachment(screenshot: app.screenshot())
             shot.name = "PenKeepsPage-" + stage; shot.lifetime = .keepAlways; add(shot)
         }
+    }
+
+    func testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion() {
+        let app = XCUIApplication(); app.launch()
+        XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 15)); app.buttons["createNotebook"].tap()
+        let name = "Handwriting stages " + String(UUID().uuidString.prefix(8))
+        let title = app.textFields["notebookTitle"]; title.tap()
+        title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
+        app.buttons["إنشاء"].tap(); visibleLibraryDocument(name, in: app).tap()
+        app.buttons["splitDocumentNotes"].tap()
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
+        let canvas = app.scrollViews["marginInkCanvas"]
+        XCTAssertTrue(canvas.waitForExistence(timeout: 5))
+        for stage in ["split", "resized", "landscape", "expanded"] {
+            if stage == "resized" {
+                let previousFrame = canvas.frame
+                let divider = app.descendants(matching: .any)["splitDivider"].firstMatch
+                let start = divider.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: -50, dy: -40)))
+                XCTAssertNotEqual(canvas.frame.size, previousFrame.size, "The divider must really resize the handwriting viewport")
+            } else if stage == "landscape" {
+                XCUIDevice.shared.orientation = .landscapeLeft
+                let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
+                XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
+            } else if stage == "expanded" { app.buttons["expandMargin"].tap() }
+            let initial = Int(canvas.value as? String ?? "") ?? 0
+            canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.3)).press(forDuration: 0.1,
+                thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.6)))
+            let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                (Int(canvas.value as? String ?? "") ?? 0) > initial
+            }, object: canvas)
+            XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "A new stroke must be accepted after " + stage)
+            assertMarginInkVisible(canvas, in: app, stage: "new-stroke-" + stage)
+        }
+        let count = canvas.value as? String
+        XCUIDevice.shared.orientation = .portrait
+        app.terminate(); app.launch()
+        visibleLibraryDocument(name, in: app).tap(); app.buttons["splitDocumentNotes"].tap()
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
+        XCTAssertEqual(canvas.value as? String, count, "All newly drawn strokes must survive reopening")
     }
 
     func testTouchInkPersistsAfterRelaunch() {

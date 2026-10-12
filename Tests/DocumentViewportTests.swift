@@ -30,9 +30,12 @@ final class DocumentViewportTests: XCTestCase {
             view.setNeedsLayout(); view.layoutIfNeeded()
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
             let current = try XCTUnwrap(view.currentDestination)
+            print("PDF toolbar resize \(index): page=\(current.page.map { document.index(for: $0) } ?? -1) point=\(current.point) scale=\(view.scaleFactor) fit=\(view.scaleFactorForSizeToFit)")
             XCTAssertTrue(current.page === initial.page, "Showing the pen toolbar must not turn a slide, resize \(index)")
             XCTAssertEqual(current.point.y, initial.point.y, accuracy: 3,
                 "Keep the reading offset rather than snapping to a page, resize \(index)")
+            XCTAssertEqual(view.scaleFactor, view.scaleFactorForSizeToFit, accuracy: 0.01,
+                "Restoring a reading location must retain the resized fit scale")
         }
     }
 }

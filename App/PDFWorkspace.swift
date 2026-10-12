@@ -469,11 +469,17 @@ final class ResizingPDFView: PDFView {
     override func layoutSubviews() {
         let resized = bounds.size != previousSize
         previousSize = bounds.size
-        let page = currentPage
+        // In a continuous slide deck, currentPage can be a later visible page.
+        // Repeatedly going to that page when the pen toolbar changes height
+        // advances the deck and discards the reader's offset within the page.
+        let destination = currentDestination
         super.layoutSubviews()
         guard resized, autoScales, bounds.width > 0, bounds.height > 0 else { return }
         scaleFactor = scaleFactorForSizeToFit
-        if let page { go(to: page) }
+        if let destination, let page = destination.page {
+            // Copy only the page-space location, retaining the new fit scale.
+            go(to: PDFDestination(page: page, at: destination.point))
+        }
     }
 }
 struct NativePDF: UIViewRepresentable {

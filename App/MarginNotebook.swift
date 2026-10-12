@@ -171,7 +171,9 @@ struct MarginNotebook: UIViewRepresentable {
     private func configure(_ canvas: MarginCanvas, context: Context) {
         let coordinator = context.coordinator
         coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas
-        if coordinator.pageID != page.id || coordinator.lastInk != page.ink {
+        // Keep PencilKit's live strokes authoritative until the active gesture ends.
+        // A SwiftUI re-render must not reload stale bytes over an in-flight stroke.
+        if coordinator.pageID != page.id || (!coordinator.isStroking && coordinator.lastInk != page.ink) {
             coordinator.loading = true
             do {
                 let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
@@ -201,6 +203,8 @@ struct MarginNotebook: UIViewRepresentable {
         var pageID: UUID?
         var lastInk: Data?
         var loading = false
+        var isStroking = false
+        private var hasUncommittedStroke = false
         private var appliedBrush: InkBrush?
         private var appliedColor: Color?
         private var appliedWidth: Double?
@@ -214,13 +218,34 @@ struct MarginNotebook: UIViewRepresentable {
             canvas.tool = brush.tool(color: UIColor(color), width: width)
             appliedBrush = brush; appliedColor = color; appliedWidth = width
         }
+        private func persist(_ canvas: PKCanvasView) {
+            let data = canvas.drawing.dataRepresentation()
+            guard data != lastInk else { return }
+            lastInk = data
+            saved(canvas.drawing)
+        }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             guard !loading else { return }
-            lastInk = canvas.drawing.dataRepresentation()
-            canvas.accessibilityValue = String(canvas.drawing.strokes.count); saved(canvas.drawing)
+            canvas.accessibilityValue = String(canvas.drawing.strokes.count)
+            if isStroking {
+                // Do not serialize and synchronously write every PencilKit frame.
+                hasUncommittedStroke = true
+            } else {
+                persist(canvas) // Undo, redo, and programmatic drawing changes.
+            }
         }
-        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) { (canvasView as? MarginCanvas)?.usingTool = true }
-        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) { (canvasView as? MarginCanvas)?.finishedUsingTool() }
+        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            isStroking = true
+            (canvasView as? MarginCanvas)?.usingTool = true
+        }
+        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            isStroking = false
+            if hasUncommittedStroke {
+                hasUncommittedStroke = false
+                persist(canvasView)
+            }
+            (canvasView as? MarginCanvas)?.finishedUsingTool()
+        }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.beganUserZooming() }
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }

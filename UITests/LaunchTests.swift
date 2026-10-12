@@ -194,7 +194,7 @@ final class LaunchTests: XCTestCase {
         for stage in ["document", "split"] {
             if stage == "split" { app.buttons["splitDocumentNotes"].tap() }
             let initial = page.value as? String
-            let margin = app.buttons["marginPages"].value as? String
+            let margin = stage == "split" ? app.buttons["marginPages"].value as? String : nil
             for _ in 0..<12 {
                 pen.tap()
                 XCTAssertEqual(page.value as? String, initial, "Toggling the pen must not turn pages in " + stage)
@@ -224,6 +224,8 @@ final class LaunchTests: XCTestCase {
         title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
         app.buttons["إنشاء"].tap(); visibleLibraryDocument(name, in: app).tap()
         app.buttons["splitDocumentNotes"].tap()
+        let text = app.textViews["splitNotes"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap(); text.typeText("Switch from text to handwriting")
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
         let canvas = app.scrollViews["marginInkCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))

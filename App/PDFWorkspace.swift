@@ -506,16 +506,28 @@ struct NativePDF: UIViewRepresentable {
         if view.document !== workspace.document {
             for canvas in context.coordinator.canvases.values { canvas.delegate = nil; canvas.resignFirstResponder() }
             context.coordinator.canvases.removeAll(); context.coordinator.lastStrokeCounts.removeAll()
+            context.coordinator.resetInkTracking()
             view.document = workspace.document
             if let page = workspace.document.page(at: workspace.page - 1) { view.go(to: page) }
         }
         context.coordinator.setDrawing(workspace.tool == .ink || workspace.tool == .lasso)
+    }
+    static func dismantleUIView(_ view: PDFView, coordinator: Coordinator) {
+        coordinator.flushPendingInk()
+        for canvas in coordinator.canvases.values { canvas.delegate = nil }
+        view.pageOverlayViewProvider = nil
     }
     @MainActor final class Coordinator: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, UIGestureRecognizerDelegate {
         let workspace: PDFWorkspace
         var canvases: [Int: LassoCanvas] = [:]
         var copiedInk: PKDrawing?
         var lastStrokeCounts: [Int: Int] = [:]
+        private var activeInk = Set<ObjectIdentifier>()
+        private var pendingInk = Set<ObjectIdentifier>()
+        private var lastSavedInk: [Int: Data] = [:]
+        private var appliedBrush: InkBrush?
+        private var appliedColor: Color?
+        private var appliedWidth: Double?
         var enabled = false
         var dragging: PageText?
         var dragOrigin: CGPoint?
@@ -565,11 +577,13 @@ struct NativePDF: UIViewRepresentable {
             if gesture.state == .cancelled || gesture.state == .failed { if let original = dragging { workspace.previewPosition(original) }; dragging = nil; dragOrigin = nil }
         }
         func setDrawing(_ value: Bool) {
-            workspace.view?.isInMarkupMode = value
+            if let view = workspace.view, view.isInMarkupMode != value { view.isInMarkupMode = value }
+            let toolChanged = appliedBrush != workspace.brush || appliedColor != workspace.inkColor || appliedWidth != workspace.inkWidth
             for canvas in canvases.values {
                 canvas.enableLasso(workspace.tool == .lasso)
-                canvas.tool = workspace.brush.tool(color: UIColor(workspace.inkColor), width: workspace.inkWidth)
+                if toolChanged { canvas.tool = workspace.brush.tool(color: UIColor(workspace.inkColor), width: workspace.inkWidth) }
             }
+            appliedBrush = workspace.brush; appliedColor = workspace.inkColor; appliedWidth = workspace.inkWidth
             guard enabled != value else { return }; enabled = value
             for canvas in canvases.values {
                 canvas.isUserInteractionEnabled = value
@@ -592,7 +606,9 @@ struct NativePDF: UIViewRepresentable {
             canvas.isAccessibilityElement = true
             canvas.accessibilityLabel = "مساحة القلم، عدد الخطوط"
             canvas.tool = workspace.brush.tool(color: UIColor(workspace.inkColor), width: workspace.inkWidth)
-            if let data = try? Data(contentsOf: workspace.storage.appendingPathComponent("\(index).drawing")), let ink = try? PKDrawing(data: data) { canvas.drawing = ink }
+            if let data = try? Data(contentsOf: workspace.storage.appendingPathComponent("\(index).drawing")), let ink = try? PKDrawing(data: data) {
+                canvas.drawing = ink; lastSavedInk[index] = data
+            }
             canvas.delegate = self
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             canvas.enableLasso(workspace.tool == .lasso)
@@ -632,14 +648,40 @@ struct NativePDF: UIViewRepresentable {
             canvas.points = canvas.points.map { $0.applying(transform) }; canvas.setNeedsDisplay()
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
-            canvas.accessibilityValue = String(canvas.drawing.strokes.count)
+            let count = String(canvas.drawing.strokes.count)
+            if canvas.accessibilityValue != count { canvas.accessibilityValue = count }
+            if activeInk.contains(ObjectIdentifier(canvas)) {
+                pendingInk.insert(ObjectIdentifier(canvas))
+            } else { persistInk(canvas) } // Undo, erasing and lasso edits.
+        }
+        func canvasViewDidBeginUsingTool(_ canvas: PKCanvasView) {
+            activeInk.insert(ObjectIdentifier(canvas))
+        }
+        func canvasViewDidEndUsingTool(_ canvas: PKCanvasView) {
+            activeInk.remove(ObjectIdentifier(canvas))
+            pendingInk.remove(ObjectIdentifier(canvas))
+            persistInk(canvas)
+        }
+        func resetInkTracking() {
+            activeInk.removeAll(); pendingInk.removeAll(); lastSavedInk.removeAll()
+        }
+        func flushPendingInk() {
+            for canvas in canvases.values where activeInk.contains(ObjectIdentifier(canvas)) || pendingInk.contains(ObjectIdentifier(canvas)) {
+                persistInk(canvas)
+            }
+            activeInk.removeAll(); pendingInk.removeAll()
+        }
+        private func persistInk(_ canvas: PKCanvasView) {
             do {
-                try canvas.drawing.dataRepresentation().write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic)
-                workspace.canUndoPageDeletion = false
+                let data = canvas.drawing.dataRepresentation()
+                guard lastSavedInk[canvas.tag] != data else { return }
+                try data.write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic)
+                lastSavedInk[canvas.tag] = data
+                if workspace.canUndoPageDeletion { workspace.canUndoPageDeletion = false }
                 let count = canvas.drawing.strokes.count
                 if count > (lastStrokeCounts[canvas.tag] ?? 0) { workspace.onInkSaved?(canvas.tag, count) }
                 lastStrokeCounts[canvas.tag] = count
-                if canvas.tag == workspace.page - 1 { workspace.inkStrokeCount = canvas.drawing.strokes.count }
+                if canvas.tag == workspace.page - 1, workspace.inkStrokeCount != count { workspace.inkStrokeCount = count }
             }
             catch { workspace.error = error.localizedDescription }
         }

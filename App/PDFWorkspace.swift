@@ -468,15 +468,31 @@ struct ShareDocument: UIViewControllerRepresentable {
 }
 final class ResizingPDFView: PDFView {
     private var previousSize = CGSize.zero
-    private var pendingAnchor: (page: PDFPage, point: CGPoint)?
+    private var pendingAnchor: (page: PDFPage, point: CGPoint, atEnd: Bool)?
     private var restoringViewport = false
     // PDFKit's currentPage/currentDestination can refer to a later visible
     // slide in continuous mode. Reading starts at the viewport's upper edge.
     private var readingPoint: CGPoint { CGPoint(x: bounds.midX, y: bounds.minY + 1) }
-    var readingPage: PDFPage? { page(for: readingPoint, nearest: true) }
-    private var readingAnchor: (page: PDFPage, point: CGPoint)? {
-        guard bounds.width > 0, bounds.height > 0, let page = readingPage else { return nil }
-        return (page, convert(readingPoint, to: page))
+    private var documentScrollView: UIScrollView? {
+        var ancestor = documentView?.superview
+        while let view = ancestor, !(view is UIScrollView), view !== self { ancestor = view.superview }
+        return ancestor as? UIScrollView
+    }
+    private var isAtDocumentEnd: Bool {
+        guard let scroll = documentScrollView else { return false }
+        let maximum = scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom
+        return maximum > -scroll.adjustedContentInset.top + 1 && scroll.contentOffset.y >= maximum - 1
+    }
+    var readingPage: PDFPage? {
+        // PDFKit clamps navigation at the scroll limit. A short final page
+        // cannot reach the upper edge, even though it is the requested page.
+        if isAtDocumentEnd, let document { return document.page(at: document.pageCount - 1) }
+        return page(for: readingPoint, nearest: true)
+    }
+    private var readingAnchor: (page: PDFPage, point: CGPoint, atEnd: Bool)? {
+        guard bounds.width > 0, bounds.height > 0,
+              let page = page(for: readingPoint, nearest: true) else { return nil }
+        return (page, convert(readingPoint, to: page), isAtDocumentEnd)
     }
     override var frame: CGRect {
         willSet { if newValue.size != frame.size { captureAnchor() } }
@@ -529,9 +545,7 @@ final class ResizingPDFView: PDFView {
               document.index(for: anchor.page) < document.pageCount else { return }
         // Adjust UIKit's scroll position by the actual on-screen displacement.
         // Do not issue a page-navigation command during a layout change.
-        var ancestor = documentView?.superview
-        while let view = ancestor, !(view is UIScrollView), view !== self { ancestor = view.superview }
-        if let scroll = ancestor as? UIScrollView {
+        if let scroll = documentScrollView {
             let moved = convert(anchor.point, from: anchor.page)
             let proposed = CGPoint(x: scroll.contentOffset.x + moved.x - readingPoint.x,
                                    y: scroll.contentOffset.y + moved.y - readingPoint.y)
@@ -540,7 +554,7 @@ final class ResizingPDFView: PDFView {
             let maxX = max(minX, scroll.contentSize.width - scroll.bounds.width + inset.right)
             let maxY = max(minY, scroll.contentSize.height - scroll.bounds.height + inset.bottom)
             scroll.setContentOffset(CGPoint(x: min(maxX, max(minX, proposed.x)),
-                                          y: min(maxY, max(minY, proposed.y))), animated: false)
+                                          y: anchor.atEnd ? maxY : min(maxY, max(minY, proposed.y))), animated: false)
         }
     }
 }

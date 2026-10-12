@@ -3,6 +3,42 @@ import PDFKit
 @testable import Hashiya
 
 final class DocumentViewportTests: XCTestCase {
+    @MainActor func testFinalAddedPageRemainsSelectedWhenItCannotReachTheViewportTop() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let library = LibraryStore(root: root, seedDemo: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("paper.pdf")
+        try PaperTemplate.ruled.render(color: .cream).write(to: source)
+        try library.importPDF(source, title: "Final page")
+        let workspace = PDFWorkspace(note: try XCTUnwrap(library.notebooks.first), root: root)
+        let controller = UIViewController()
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousWindow = scene.windows.first { $0.isKeyWindow }
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 440, height: 956)
+        window.rootViewController = controller; window.makeKeyAndVisible()
+        defer { window.isHidden = true; previousWindow?.makeKeyAndVisible() }
+        let view = ResizingPDFView(frame: CGRect(x: 0, y: 0, width: 440, height: 673))
+        workspace.view = view
+        let coordinator = NativePDF.Coordinator(workspace: workspace)
+        controller.view.addSubview(view)
+        view.document = workspace.document; view.displayMode = .singlePageContinuous; view.autoScales = true
+        view.layoutIfNeeded()
+        workspace.appendPaper(.dots)
+        view.layoutIfNeeded(); RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        XCTAssertEqual(workspace.document.pageCount, 2)
+        coordinator.pageChanged()
+        XCTAssertEqual(workspace.page, 2, "The final requested page must remain selected at PDFKit's scroll limit")
+        for size in [CGSize(width: 440, height: 625), CGSize(width: 440, height: 673),
+                     CGSize(width: 600, height: 1137), CGSize(width: 440, height: 300)] {
+            view.frame.size = size; view.layoutIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            coordinator.pageChanged()
+            XCTAssertEqual(workspace.page, 2, "Toolbars and split resizing must retain the final page")
+        }
+        workspace.jump(1); view.layoutIfNeeded(); coordinator.pageChanged()
+        XCTAssertEqual(workspace.page, 1, "Previous-page navigation must leave the scroll limit")
+    }
     @MainActor func testRepeatedToolbarResizesKeepTheReadingLocationOnLandscapePages() throws {
         let paper = CGRect(x: 0, y: 0, width: 960, height: 540)
         let data = UIGraphicsPDFRenderer(bounds: paper).pdfData { context in

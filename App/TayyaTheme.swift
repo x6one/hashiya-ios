@@ -3,12 +3,16 @@ import UIKit
 
 /// Semantic colors adapt to the system appearance without tinting PDF pages.
 enum TayyaTheme {
-    static let paper = adaptive(light: (0.97, 0.97, 0.95), dark: (0.055, 0.09, 0.08))
-    static let surface = adaptive(light: (1, 1, 0.985), dark: (0.10, 0.15, 0.13))
-    static let separator = adaptive(light: (0.86, 0.88, 0.85), dark: (0.24, 0.30, 0.27))
-    static let selection = adaptive(light: (0.90, 0.94, 0.90), dark: (0.16, 0.25, 0.20))
+    static let paper = adaptive(light: (0.975, 0.96, 0.925), dark: (0.065, 0.085, 0.075))
+    static let surface = adaptive(light: (1, 1, 0.99), dark: (0.11, 0.145, 0.125))
+    static let mutedSurface = adaptive(light: (0.945, 0.93, 0.89), dark: (0.145, 0.18, 0.155))
+    static let separator = adaptive(light: (0.83, 0.84, 0.79), dark: (0.29, 0.35, 0.30))
+    static let selection = adaptive(light: (0.88, 0.925, 0.88), dark: (0.16, 0.25, 0.20))
+    static let text = adaptive(light: (0.14, 0.19, 0.17), dark: (0.925, 0.94, 0.90))
+    static let detail = adaptive(light: (0.38, 0.43, 0.40), dark: (0.67, 0.74, 0.69))
     static let ink = adaptive(light: (0.07, 0.25, 0.22), dark: (0.75, 0.88, 0.79))
-    static let fold = adaptive(light: (0.68, 0.32, 0.19), dark: (0.90, 0.56, 0.36))
+    static let copper = adaptive(light: (0.59, 0.30, 0.18), dark: (0.90, 0.60, 0.41))
+    static let fold = copper
     static let brandInk = Color(red: 0.07, green: 0.25, blue: 0.22)
     static let ivory = Color(red: 0.965, green: 0.925, blue: 0.85)
     private static func adaptive(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
@@ -16,6 +20,32 @@ enum TayyaTheme {
             let value = traits.userInterfaceStyle == .dark ? dark : light
             return UIColor(red: value.0, green: value.1, blue: value.2, alpha: 1)
         })
+    }
+}
+
+/// A decorative dog-ear, independent of the notebook's contents or layout direction.
+struct FoldedPageCorner: View {
+    var size: CGFloat = 24
+    var color: Color = TayyaTheme.fold
+
+    var body: some View {
+        Path { path in
+            path.move(to: .zero)
+            path.addLine(to: CGPoint(x: size, y: size))
+            path.addLine(to: CGPoint(x: 0, y: size))
+            path.closeSubpath()
+        }
+        .fill(color)
+        .overlay {
+            Path { path in
+                path.move(to: .zero)
+                path.addLine(to: CGPoint(x: size, y: size))
+            }
+            .stroke(TayyaTheme.surface.opacity(0.6), lineWidth: 1)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
 }
 

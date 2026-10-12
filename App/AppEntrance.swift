@@ -2,43 +2,99 @@ import SwiftUI
 
 struct AppEntrance: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("tayya.openingSeen") private var openingSeen = false
     @State private var showing = true
-    @State private var drawn = false
     @State private var folded = false
+
+    private var showsEntrance: Bool { showing && !openingSeen && !reduceMotion }
+
     var body: some View {
         ZStack {
-            LibraryScreen().allowsHitTesting(!showing).accessibilityHidden(showing)
-            if showing {
-                ZStack {
-                    TayyaTheme.paper.ignoresSafeArea()
-                    VStack(spacing: 20) {
-                        ZStack {
-                            TayyaFold().trim(from: 0, to: drawn ? 1 : 0)
-                                .stroke(TayyaTheme.ink, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                            TayyaFold().fill(TayyaTheme.ink).opacity(folded ? 1 : 0)
-                            Path { p in
-                                p.move(to: CGPoint(x: 117, y: 56))
-                                p.addLine(to: CGPoint(x: 161, y: 76))
-                                p.addLine(to: CGPoint(x: 153, y: 61))
-                                p.closeSubpath()
-                            }.fill(TayyaTheme.fold).opacity(folded ? 1 : 0)
-                        }.frame(width: 180, height: 180)
-                            .rotation3DEffect(.degrees(folded ? 0 : -25), axis: (x: 0, y: 1, z: 0))
-                            .accessibilityHidden(true)
-                        Text("طَيّة").font(.system(size: 46, weight: .semibold, design: .serif)).foregroundStyle(TayyaTheme.ink)
-                        Text("صفحاتك، بطريقتك.").font(.title3).foregroundStyle(.secondary)
-                    }.padding(24)
-                }.transition(.opacity).accessibilityIdentifier("openingAnimation")
+            // Keep document URL intake and library state mounted during branding.
+            LibraryScreen(allowsInitialWelcome: !showsEntrance)
+                .allowsHitTesting(!showsEntrance)
+                .accessibilityHidden(showsEntrance)
+            if showsEntrance {
+                entrance
+                    .transition(.opacity)
+                    .accessibilityIdentifier("openingAnimation")
             }
-        }.task {
-            if reduceMotion { showing = false; return }
-            withAnimation(.easeInOut(duration: 0.45)) { drawn = true }
-            do {
-                try await Task.sleep(for: .milliseconds(450))
-                withAnimation(.easeInOut(duration: 0.3)) { folded = true }
-                try await Task.sleep(for: .milliseconds(500))
-                withAnimation(.easeOut(duration: 0.25)) { showing = false }
-            } catch { showing = false }
         }
+        .task(id: reduceMotion) { await runEntrance() }
+    }
+
+    private var entrance: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 16) {
+                    paperToFold
+                    Text("طَيّة")
+                        .font(.largeTitle.weight(.semibold))
+                        .foregroundStyle(TayyaTheme.ink)
+                    Text("صفحاتك، بطريقتك.")
+                        .font(.title3)
+                        .foregroundStyle(TayyaTheme.detail)
+                    Text("By Ahmad Al-awi")
+                        .font(.footnote)
+                        .foregroundStyle(TayyaTheme.detail)
+                        .environment(\.layoutDirection, .leftToRight)
+                }
+                .multilineTextAlignment(.center)
+                .padding(24)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .background(TayyaTheme.paper.ignoresSafeArea())
+    }
+
+    private var paperToFold: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(TayyaTheme.surface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(TayyaTheme.separator, lineWidth: 1)
+                }
+                .overlay(alignment: .topTrailing) { FoldedPageCorner(size: 28) }
+                .frame(width: 116, height: 148)
+                .rotationEffect(.degrees(folded ? 0 : -6))
+                .scaleEffect(folded ? 0.9 : 1)
+                .opacity(folded ? 0 : 1)
+            TayyaFold()
+                .fill(TayyaTheme.ink)
+                .overlay(alignment: .topTrailing) {
+                    FoldedPageCorner(size: 20)
+                        .offset(x: -18, y: 38)
+                }
+                .frame(width: 164, height: 164)
+                .scaleEffect(folded ? 1 : 0.94)
+                .opacity(folded ? 1 : 0)
+        }
+        .frame(width: 180, height: 180)
+        .accessibilityHidden(true)
+    }
+
+    @MainActor
+    private func runEntrance() async {
+        guard !openingSeen else { showing = false; return }
+        guard !reduceMotion else { finishEntrance(); return }
+        do {
+            try Task.checkCancellation()
+            try await Task.sleep(for: .milliseconds(200))
+            withAnimation(.easeInOut(duration: 0.35)) { folded = true }
+            try await Task.sleep(for: .milliseconds(600))
+            try Task.checkCancellation()
+            withAnimation(.easeOut(duration: 0.2)) { finishEntrance() }
+        } catch {
+            // Cancellation must never leave an overlay blocking the library.
+            finishEntrance()
+        }
+    }
+
+    @MainActor
+    private func finishEntrance() {
+        openingSeen = true
+        showing = false
     }
 }

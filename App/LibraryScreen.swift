@@ -2,6 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct LibraryScreen: View {
+    var allowsInitialWelcome: Bool = true
     @EnvironmentObject private var store: LibraryStore
     @State private var importing = false
     @State private var creating = false
@@ -46,7 +47,10 @@ struct LibraryScreen: View {
     }
     private var libraryPresentation: some View {
         libraryNavigation
-            .onAppear { if !welcomeSeen && store.notebooks.isEmpty { welcome = true } }
+            .onAppear { presentInitialWelcomeIfNeeded() }
+            .onChange(of: allowsInitialWelcome) { _, allowed in
+                if allowed { presentInitialWelcomeIfNeeded() }
+            }
             .sheet(isPresented: $welcome) {
                 WelcomeScreen(start: { welcomeSeen = true; welcome = false }, demonstrate: {
                     do { demonstration = try store.installDemonstration(); welcomeSeen = true; welcome = false }
@@ -91,6 +95,11 @@ struct LibraryScreen: View {
                 NavigationStack { List(store.sections, id: \.self) { name in Button(name) { store.change(note.id) { $0.section = name }; moving = nil } }.navigationTitle("نقل إلى قسم").toolbar { Button("إلغاء") { moving = nil } } }.environment(\.layoutDirection, .rightToLeft)
             }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
+    }
+    private func presentInitialWelcomeIfNeeded() {
+        guard allowsInitialWelcome, !welcomeSeen, store.notebooks.isEmpty,
+              !importing, !importingFile else { return }
+        welcome = true
     }
     private var libraryNavigation: some View {
         HStack(spacing: 0) {

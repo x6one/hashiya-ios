@@ -37,22 +37,28 @@ private final class LibraryThumbnailCache: @unchecked Sendable {
 struct LibraryThumbnail: View {
     let url: URL
     @State private var cover: UIImage?
+    @State private var loadedURL: URL?
     var body: some View {
         Group {
-            if let cover {
-                Image(uiImage: cover).resizable().scaledToFit().padding(6)
+            if loadedURL == url, let cover {
+                // Leave the real page white, including in dark appearance.
+                Image(uiImage: cover).resizable().scaledToFit()
             } else {
                 VStack(spacing: 5) {
                     Image(systemName: url.pathExtension.lowercased() == "pdf" ? "doc.richtext" : "doc.text")
                         .font(.system(size: 27, weight: .light))
                     Text(url.pathExtension.uppercased()).font(.caption2)
-                }.foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+                }.foregroundStyle(TayyaTheme.detail).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .accessibilityHidden(true)
         .task(id: url) {
-            let image = await LibraryThumbnailCache.shared.image(for: url)
-            guard !Task.isCancelled else { return }
+            let requestedURL = url
+            cover = nil
+            loadedURL = nil
+            let image = await LibraryThumbnailCache.shared.image(for: requestedURL)
+            guard !Task.isCancelled, requestedURL == url else { return }
+            loadedURL = requestedURL
             cover = image
         }
     }

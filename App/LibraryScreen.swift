@@ -17,6 +17,7 @@ struct LibraryScreen: View {
     @State private var confirmNotebookDeletion = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var favorites = false
     @State private var backup = false
     @State private var destination: LibraryDestination = .library
@@ -103,7 +104,10 @@ struct LibraryScreen: View {
     }
     private var libraryNavigation: some View {
         HStack(spacing: 0) {
-            if sizeClass == .regular { librarySidebar.frame(width: 220); Divider() }
+            if sizeClass == .regular {
+                librarySidebar.frame(width: dynamicTypeSize.isAccessibilitySize ? 280 : 220)
+                Rectangle().fill(TayyaTheme.separator).frame(width: 1)
+            }
             Group {
                 switch destination {
                 case .library: libraryContent
@@ -114,8 +118,10 @@ struct LibraryScreen: View {
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(TayyaTheme.paper)
+        .foregroundStyle(TayyaTheme.text)
         .navigationTitle(destination == .library ? libraryTitle : destination.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(TayyaTheme.paper, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if sizeClass != .regular { destinationBar }
         }
@@ -145,10 +151,12 @@ struct LibraryScreen: View {
                     VStack(spacing: 4) {
                         Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
                         Text(item.title).font(.caption.weight(destination == item ? .semibold : .regular))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
-                    .foregroundStyle(destination == item ? TayyaTheme.ink : Color.secondary)
+                    .foregroundStyle(destination == item ? TayyaTheme.ink : TayyaTheme.detail)
                     .background(destination == item ? TayyaTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: destination == item)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier(item.accessibilityID)
@@ -161,64 +169,87 @@ struct LibraryScreen: View {
     }
     private var libraryContent: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 20) {
+                libraryHeading
                 if !showTrash {
-                    HStack(spacing: 10) {
-                        Button { creating = true } label: { Label("دفتر جديد", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 34) }
-                            .buttonStyle(.borderedProminent).accessibilityIdentifier("createNotebook")
-                        Button { importing = true } label: { Label("استيراد ملف", systemImage: "square.and.arrow.down").frame(maxWidth: .infinity, minHeight: 34) }
-                            .buttonStyle(.bordered).accessibilityIdentifier("importDocument").disabled(importingFile)
-                    }.font(.subheadline.weight(.medium))
+                    libraryActions
                     if let note = recentNotebook, query.isEmpty {
                         NavigationLink {
                             NotebookScreen(id: note.id, store: store).onAppear { lastOpenedNotebook = note.id.uuidString }
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "book").font(.title3)
+                                Image(systemName: "book.closed").font(.title3)
+                                    .frame(width: 44, height: 44)
+                                    .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 10))
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text("تابع القراءة").font(.caption).foregroundStyle(.secondary)
-                                    Text(note.title).font(.subheadline.weight(.medium)).lineLimit(1)
+                                    Text("تابع القراءة").font(.caption).foregroundStyle(TayyaTheme.detail)
+                                    Text(note.title).font(.subheadline.weight(.semibold))
+                                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                                 }
                                 Spacer(minLength: 0)
                                 Image(systemName: "chevron.left").font(.caption)
-                            }.padding(12).background(TayyaTheme.selection, in: RoundedRectangle(cornerRadius: 12))
-                        }.buttonStyle(.plain).accessibilityIdentifier("continueNotebook")
+                            }.padding(12).background(TayyaTheme.selection, in: RoundedRectangle(cornerRadius: 14))
+                        }.buttonStyle(LibraryPressStyle()).accessibilityIdentifier("continueNotebook")
                     }
                     libraryFilters
                 }
                 HStack {
-                    Text(showTrash ? "يمكنك استعادة الملفات المحذوفة." : "\(filtered.count) ملف").font(.caption).foregroundStyle(.secondary)
+                    Text(showTrash ? "يمكنك استعادة الملفات المحذوفة." : "\(filtered.count) ملف").font(.caption).foregroundStyle(TayyaTheme.detail)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Button(showTrash ? "المكتبة" : "المحذوفات", systemImage: showTrash ? "books.vertical" : "trash") {
                         showTrash.toggle(); favorites = false
-                    }.font(.caption).accessibilityIdentifier("libraryTrash")
-                }.frame(minHeight: 32)
+                    }.font(.caption).frame(minHeight: 44).accessibilityIdentifier("libraryTrash")
+                }
                 if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     if searching { ProgressView("جارٍ البحث في الملفات…") }
                     else if hits.isEmpty { ContentUnavailableView.search(text: query) }
                     ForEach(hits) { hit in
                         Button { route = hit; lastOpenedNotebook = hit.notebook.uuidString } label: {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(hit.title).font(.headline)
-                                if let page = hit.page { Text("صفحة \(page)").font(.caption) }
-                                Text(hit.snippet).font(.subheadline).lineLimit(3)
+                                Text(hit.title).font(.headline).foregroundStyle(TayyaTheme.text)
+                                if let page = hit.page { Text("صفحة \(page)").font(.caption).foregroundStyle(TayyaTheme.copper) }
+                                Text(hit.snippet).font(.subheadline).foregroundStyle(TayyaTheme.detail)
+                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                             }.frame(maxWidth: .infinity, alignment: .leading).padding().background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-                        }
+                        }.buttonStyle(LibraryPressStyle())
                     }
                 } else {
                     if filtered.isEmpty {
                         ContentUnavailableView(showTrash ? "لا توجد ملفات محذوفة" : "لا توجد ملفات هنا", systemImage: showTrash ? "trash" : "books.vertical", description: Text(showTrash ? "ستظهر هنا الملفات التي تنقلها للمحذوفات." : "استورد ملفًا أو أنشئ دفترًا جديدًا."))
                     }
-                    LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
+                    LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 16) {
                         ForEach(filtered) { note in notebookCard(note) }
                     }
                 }
-            }.padding(16)
+            }.padding(sizeClass == .regular ? 24 : 16)
         }.searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "ابحث في دفاترك")
     }
     private var gridColumns: [GridItem] {
         if dynamicTypeSize.isAccessibilitySize { return [GridItem(.flexible())] }
-        return sizeClass == .regular ? [GridItem(.adaptive(minimum: 170, maximum: 240), spacing: 12)] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+        return sizeClass == .regular ? [GridItem(.adaptive(minimum: 180, maximum: 250), spacing: 16)] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    }
+    private var libraryHeading: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(libraryTitle).font(.largeTitle.weight(.bold)).foregroundStyle(TayyaTheme.text)
+                .fixedSize(horizontal: false, vertical: true)
+            if !showTrash {
+                Text("مساحة للقراءة والكتابة").font(.subheadline).foregroundStyle(TayyaTheme.detail)
+            }
+        }.accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
+    }
+    private var libraryActions: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+            Button { creating = true } label: {
+                Label("دفتر جديد", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.buttonStyle(.borderedProminent).accessibilityIdentifier("createNotebook")
+            Button { importing = true } label: {
+                Label("استيراد ملف", systemImage: "square.and.arrow.down").frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.buttonStyle(.bordered).accessibilityIdentifier("importDocument").disabled(importingFile)
+        }.font(.subheadline.weight(.semibold))
     }
     private var libraryFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -234,19 +265,27 @@ struct LibraryScreen: View {
         }
     }
     private func filterButton(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(title, action: action).font(.subheadline)
-            .padding(.horizontal, 12).frame(minHeight: 40)
-            .background(selected ? TayyaTheme.selection : TayyaTheme.surface, in: Capsule())
-            .buttonStyle(.plain).foregroundStyle(selected ? TayyaTheme.ink : Color.secondary)
+        Button(title, action: action).font(.subheadline.weight(selected ? .semibold : .regular))
+            .padding(.horizontal, 14).frame(minHeight: 44)
+            .background(selected ? TayyaTheme.selection : TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+            .buttonStyle(.plain).foregroundStyle(selected ? TayyaTheme.ink : TayyaTheme.detail)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: selected)
             .accessibilityAddTraits(selected ? .isSelected : [])
     }
     private var librarySidebar: some View {
         List {
             Section("طَيّة") {
                 ForEach(LibraryDestination.allCases) { item in
-                    Button { selectDestination(item) } label: { Label(item.title, systemImage: item.symbol) }
+                    Button { selectDestination(item) } label: {
+                        Label(item.title, systemImage: item.symbol)
+                            .font(.body.weight(destination == item ? .semibold : .regular))
+                            .frame(minHeight: 44, alignment: .leading)
+                            .foregroundStyle(destination == item ? TayyaTheme.ink : TayyaTheme.detail)
+                    }
                         .accessibilityIdentifier(item.accessibilityID)
                         .listRowBackground(destination == item ? TayyaTheme.selection : Color.clear)
+                        .accessibilityAddTraits(destination == item ? .isSelected : [])
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: destination == item)
                 }
             }
             Section("ملفاتك") {
@@ -262,6 +301,8 @@ struct LibraryScreen: View {
                 Button("النسخ الاحتياطي", systemImage: "externaldrive") { backup = true }
             }
         }.listStyle(.sidebar).scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 44)
+            .background(TayyaTheme.mutedSurface.opacity(0.5))
     }
     private var sectionsContent: some View {
         List {
@@ -269,6 +310,7 @@ struct LibraryScreen: View {
                 HStack {
                     TextField("اسم القسم", text: $sectionName).accessibilityIdentifier("sectionName")
                     Button("إضافة") { store.addSection(sectionName); sectionName = "" }
+                        .frame(minWidth: 44, minHeight: 44)
                         .accessibilityIdentifier("addSection").disabled(sectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -280,16 +322,17 @@ struct LibraryScreen: View {
                                 Label(name, systemImage: "folder")
                                 Spacer()
                                 Text("\(store.notebooks.filter { !$0.trashed && $0.section == name }.count)").foregroundStyle(.secondary)
-                            }
+                            }.frame(minHeight: 44)
                         }.buttonStyle(.borderless).accessibilityIdentifier("chooseSection-" + name)
                         if name != "مكتبتي" {
                             Button("حذف", role: .destructive) { store.deleteSection(name) }
+                                .frame(minWidth: 44, minHeight: 44)
                                 .buttonStyle(.borderless).accessibilityIdentifier("deleteSection-" + name)
                         }
                     }
                 }
             } footer: { Text("حذف القسم ينقل ملفاته إلى مكتبتي.") }
-        }.scrollContentBackground(.hidden)
+        }.scrollContentBackground(.hidden).environment(\.defaultMinListRowHeight, 44)
     }
     private var settingsContent: some View {
         List {
@@ -305,39 +348,38 @@ struct LibraryScreen: View {
                 Button("دليل البداية", systemImage: "questionmark.circle") { welcome = true }
             }
             Section("عن طَيّة") {
-                Text("ملفاتك وكتابتك وتسجيلاتك محفوظة على جهازك.").font(.subheadline).foregroundStyle(.secondary)
-                Text("By Ahmad Al-awi").font(.footnote).foregroundStyle(.secondary)
+                Text("ملفاتك وكتابتك وتسجيلاتك محفوظة على جهازك.").font(.subheadline).foregroundStyle(TayyaTheme.detail)
+                Text("By Ahmad Al-awi").font(.footnote).foregroundStyle(TayyaTheme.detail)
             }
-        }.scrollContentBackground(.hidden)
+        }.scrollContentBackground(.hidden).environment(\.defaultMinListRowHeight, 44)
     }
     private func notebookCard(_ note: Notebook) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             NavigationLink {
                 NotebookScreen(id: note.id, store: store).onAppear { lastOpenedNotebook = note.id.uuidString }
             } label: {
-                VStack(alignment: .leading, spacing: 9) {
-                    LibraryThumbnail(url: store.root.appendingPathComponent(note.file))
-                        .frame(height: 118).frame(maxWidth: .infinity)
-                        .background(TayyaTheme.paper, in: RoundedRectangle(cornerRadius: 7))
-                    Text(note.title).font(.subheadline.weight(.medium)).lineLimit(2)
-                        .frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading)
-                    HStack(spacing: 4) {
-                        Text((note.file as NSString).pathExtension.uppercased())
-                        Text("·")
-                        Text(note.section).lineLimit(1)
-                        Spacer(minLength: 0)
-                        if note.favorite { Image(systemName: "star.fill").foregroundStyle(TayyaTheme.fold) }
-                    }.font(.caption2).foregroundStyle(.secondary)
-                }.padding(10).contentShape(Rectangle())
-            }.buttonStyle(.plain).foregroundStyle(.primary).disabled(showTrash).accessibilityIdentifier("openNotebook-" + note.title)
-            Divider()
+                VStack(alignment: .leading, spacing: 12) {
+                    notebookCover(note)
+                    VStack(alignment: .leading, spacing: 8) {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            Text(note.title).font(.subheadline.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text(note.title).font(.subheadline.weight(.semibold))
+                                .lineLimit(2, reservesSpace: true)
+                        }
+                        notebookMetadata(note)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(12).contentShape(Rectangle())
+            }.buttonStyle(LibraryPressStyle()).foregroundStyle(TayyaTheme.text).disabled(showTrash).accessibilityIdentifier("openNotebook-" + note.title)
+            Rectangle().fill(TayyaTheme.separator).frame(height: 0.5)
             if showTrash {
                 VStack(spacing: 0) {
                     Button("استعادة") { store.change(note.id) { $0.trashed = false } }
                         .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("restoreNotebook-" + note.title)
                     Button("حذف نهائي", role: .destructive) { deleting = note; confirmNotebookDeletion = true }
                         .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("eraseNotebook-" + note.title)
-                }.font(.caption)
+                }.font(.caption.weight(.medium)).buttonStyle(.borderless)
             } else {
                 Menu {
                     Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note; showNotebookRename = true }.accessibilityIdentifier("renameNotebook-" + note.title)
@@ -345,12 +387,51 @@ struct LibraryScreen: View {
                     Button(note.favorite ? "إلغاء المفضلة" : "إضافة للمفضلة", systemImage: note.favorite ? "star.slash" : "star") { store.change(note.id) { $0.favorite.toggle() } }
                     Button("نقل للمحذوفات", systemImage: "trash", role: .destructive) { store.change(note.id) { $0.trashed = true } }.accessibilityIdentifier("trashNotebook-" + note.title)
                 } label: {
-                    Label("تنظيم الملف", systemImage: "folder.badge.gearshape").font(.caption).frame(maxWidth: .infinity, minHeight: 44)
+                    Label("تنظيم الملف", systemImage: "folder.badge.gearshape").font(.caption.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.horizontal, 8)
+                        .fixedSize(horizontal: false, vertical: true)
                 }.accessibilityIdentifier("notebookActions-" + note.title)
             }
         }
-        .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(TayyaTheme.separator, lineWidth: 0.5) }
+        .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(TayyaTheme.separator, lineWidth: 0.5) }
+    }
+    private func notebookCover(_ note: Notebook) -> some View {
+        let color = NotebookCoverStyle.color(for: note.id)
+        return LibraryThumbnail(url: store.root.appendingPathComponent(note.file))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 3))
+            .padding(.leading, 18).padding(.trailing, 12).padding(.vertical, 12)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 180 : 148)
+            .background(color, in: RoundedRectangle(cornerRadius: 9))
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1).fill(Color.black.opacity(0.18))
+                    .frame(width: 3).padding(.vertical, 8).padding(.leading, 6)
+                    .accessibilityHidden(true).allowsHitTesting(false)
+            }
+            .overlay(alignment: .topTrailing) {
+                FoldedPageCorner(size: 18, color: TayyaTheme.copper)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .accessibilityHidden(true)
+    }
+    private func notebookMetadata(_ note: Notebook) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 5)) : AnyLayout(HStackLayout(spacing: 5))
+        return layout {
+            HStack(spacing: 4) {
+                Text((note.file as NSString).pathExtension.uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(TayyaTheme.mutedSurface, in: RoundedRectangle(cornerRadius: 4))
+                    .fixedSize()
+                if note.favorite {
+                    Image(systemName: "star.fill").foregroundStyle(TayyaTheme.copper)
+                        .accessibilityLabel("المفضلة")
+                }
+            }
+            Text(note.section).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.font(.caption).foregroundStyle(TayyaTheme.detail)
     }
     private func finishPicking(_ urls: [URL]) {
         guard !importingFile, !urls.isEmpty else { return }
@@ -379,4 +460,15 @@ struct LibraryScreen: View {
         }
     }
 
+}
+
+/// Feedback belongs to library chrome; it never animates reader or ink geometry.
+private struct LibraryPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
+    }
 }

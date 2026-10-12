@@ -177,7 +177,10 @@ final class LaunchTests: XCTestCase {
         let status = app.staticTexts["fixtureExportStatus"]
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format:
             "exists == true AND label == %@", "Fixtures exported"), object: status)
-        guard XCTWaiter.wait(for: [saved], timeout: 25) == .completed else {
+        // Files can finish its provider write before delivering the export
+        // callback. Keep waiting for the real completion, rather than failing
+        // just before "Fixtures exported" appears on a cold simulator.
+        guard XCTWaiter.wait(for: [saved], timeout: 60) == .completed else {
             XCTFail("Files export did not complete: " + app.debugDescription); return false
         }
         app.terminate()

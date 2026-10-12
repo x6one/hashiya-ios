@@ -74,7 +74,9 @@ final class MarginCanvas: PKCanvasView {
         zoomScale = scale
         contentSize = CGSize(width: sheetSize.width * scale, height: sheetSize.height * scale)
         let horizontalGap = max(0, (bounds.width - sheet.width * scale) / 2)
-        let verticalGap = max(0, (bounds.height - sheet.height * scale) / 2)
+        // Writing starts at the top of a width-fit pane. Centering a short
+        // sheet in a tall split leaves an invisible, non-drawable gap above it.
+        let verticalGap = fitsWidth ? 0 : max(0, (bounds.height - sheet.height * scale) / 2)
         contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale) + verticalGap,
                                    left: max(0, -sheet.minX * scale) + horizontalGap,
                                    bottom: verticalGap, right: horizontalGap)

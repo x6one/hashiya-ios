@@ -74,6 +74,22 @@ final class MarginPageTests: XCTestCase {
             XCTAssertEqual(canvas.drawing.dataRepresentation(), original)
         }
     }
+    @MainActor func testWidthFitStartsTheWritingSheetAtTheTopOfTallSplitPanes() {
+        let canvas = MarginCanvas(frame: CGRect(x: 0, y: 0, width: 419.5, height: 970.5))
+        canvas.sheetSize = CGSize(width: 650, height: 900); canvas.contentSize = canvas.sheetSize
+        canvas.drawing = ink()
+        let original = canvas.drawing.dataRepresentation()
+        for size in [CGSize(width: 419.5, height: 970.5), CGSize(width: 388.5, height: 970.5),
+                     CGSize(width: 520.5, height: 626.5)] {
+            canvas.frame.size = size; canvas.layoutIfNeeded(); canvas.fitWidth()
+            XCTAssertEqual(canvas.contentOffset.y, 0, accuracy: 0.5,
+                "A new line near the top must start on the paper, not invisible padding")
+            let firstTouchY = (canvas.contentOffset.y + canvas.bounds.height * 0.2) / canvas.zoomScale
+            XCTAssertGreaterThanOrEqual(firstTouchY, 0)
+            XCTAssertLessThan(firstTouchY, canvas.sheetSize.height)
+            XCTAssertEqual(canvas.drawing.dataRepresentation(), original, "Alignment must preserve saved strokes")
+        }
+    }
     @MainActor func testInkOutsideOriginalSheetRemainsReachableAfterSaveAndReopen() throws {
         let root = try directory(), id = UUID(); defer { try? FileManager.default.removeItem(at: root) }
         let store = MarginPages(root: root, notebook: id), page = try XCTUnwrap(store.currentID)

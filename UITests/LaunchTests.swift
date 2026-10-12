@@ -242,8 +242,10 @@ final class LaunchTests: XCTestCase {
                 XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
             } else if stage == "expanded" { app.buttons["expandMargin"].tap() }
             let initial = Int(canvas.value as? String ?? "") ?? 0
-            canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.3)).press(forDuration: 0.1,
-                thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.6)))
+            let start = stage == "split" ? CGVector(dx: 0.2, dy: 0.2) : CGVector(dx: 0.2, dy: 0.3)
+            let end = stage == "split" ? CGVector(dx: 0.4, dy: 0.85) : CGVector(dx: 0.7, dy: 0.6)
+            canvas.coordinate(withNormalizedOffset: start).press(forDuration: 0.1,
+                thenDragTo: canvas.coordinate(withNormalizedOffset: end))
             let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
                 (Int(canvas.value as? String ?? "") ?? 0) > initial
             }, object: canvas)
@@ -302,7 +304,16 @@ final class LaunchTests: XCTestCase {
         // Imports add real cards. LazyVGrid instantiates visible rows only;
         // reach the document through the same scrolling a user performs.
         for _ in 0..<6 {
-            if document.exists && document.isHittable { return document }
+            if document.exists && document.isHittable {
+                // A partially visible card can be hittable while its default
+                // tap lands under the phone's persistent bottom navigation.
+                let center = document.frame.midY
+                let navigation = app.navigationBars.firstMatch
+                let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+                let home = app.buttons["libraryHome"]
+                let bottom = home.exists && home.frame.minY > app.frame.midY ? home.frame.minY : app.frame.maxY
+                if center > top + 8 && center < bottom - 8 { return document }
+            }
             app.scrollViews.firstMatch.swipeUp()
         }
         XCTFail("Library document was not reachable: " + title + "\n" + app.debugDescription)

@@ -466,19 +466,53 @@ struct ShareDocument: UIViewControllerRepresentable {
 }
 final class ResizingPDFView: PDFView {
     private var previousSize = CGSize.zero
+    private var pendingAnchor: (page: PDFPage, point: CGPoint)?
+    private var restoringViewport = false
+    // PDFKit's currentPage/currentDestination can refer to a later visible
+    // slide in continuous mode. Reading starts at the viewport's upper edge.
+    private var readingPoint: CGPoint { CGPoint(x: bounds.midX, y: bounds.minY + 1) }
+    var readingPage: PDFPage? { page(for: readingPoint, nearest: true) }
+    private var readingAnchor: (page: PDFPage, point: CGPoint)? {
+        guard bounds.width > 0, bounds.height > 0, let page = readingPage else { return nil }
+        return (page, convert(readingPoint, to: page))
+    }
+    override var frame: CGRect {
+        willSet { if newValue.size != frame.size { captureAnchor() } }
+    }
+    override var bounds: CGRect {
+        willSet { if newValue.size != bounds.size { captureAnchor() } }
+    }
+    private func captureAnchor() {
+        if !restoringViewport, pendingAnchor == nil { pendingAnchor = readingAnchor }
+    }
     override func layoutSubviews() {
+        guard !restoringViewport else { super.layoutSubviews(); return }
         let resized = bounds.size != previousSize
         previousSize = bounds.size
-        // In a continuous slide deck, currentPage can be a later visible page.
-        // Repeatedly going to that page when the pen toolbar changes height
-        // advances the deck and discards the reader's offset within the page.
-        let destination = currentDestination
+        let anchor = pendingAnchor ?? (resized ? readingAnchor : nil)
+        pendingAnchor = nil
+        if resized { restoringViewport = true }
+        defer { if resized { restoringViewport = false } }
         super.layoutSubviews()
-        guard resized, autoScales, bounds.width > 0, bounds.height > 0 else { return }
-        scaleFactor = scaleFactorForSizeToFit
-        if let destination, let page = destination.page {
-            // Copy only the page-space location, retaining the new fit scale.
-            go(to: PDFDestination(page: page, at: destination.point))
+        guard resized, bounds.width > 0, bounds.height > 0 else { return }
+        if autoScales { scaleFactor = scaleFactorForSizeToFit }
+        layoutDocumentView()
+        guard let anchor, let document,
+              document.index(for: anchor.page) < document.pageCount else { return }
+        // Adjust UIKit's scroll position by the actual on-screen displacement.
+        // Do not issue a page-navigation command during a layout change.
+        var ancestor = documentView?.superview
+        while let view = ancestor, !(view is UIScrollView), view !== self { ancestor = view.superview }
+        if let scroll = ancestor as? UIScrollView {
+            let moved = convert(anchor.point, from: anchor.page)
+            let proposed = CGPoint(x: scroll.contentOffset.x + moved.x - readingPoint.x,
+                                   y: scroll.contentOffset.y + moved.y - readingPoint.y)
+            let inset = scroll.adjustedContentInset
+            let minX = -inset.left, minY = -inset.top
+            let maxX = max(minX, scroll.contentSize.width - scroll.bounds.width + inset.right)
+            let maxY = max(minY, scroll.contentSize.height - scroll.bounds.height + inset.bottom)
+            scroll.setContentOffset(CGPoint(x: min(maxX, max(minX, proposed.x)),
+                                          y: min(maxY, max(minY, proposed.y))), animated: false)
         }
     }
 }
@@ -503,6 +537,7 @@ struct NativePDF: UIViewRepresentable {
         }
         view.addGestureRecognizer(single); view.addGestureRecognizer(double); view.addGestureRecognizer(hold); view.addGestureRecognizer(secondary); view.addGestureRecognizer(drag)
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged), name: .PDFViewPageChanged, object: view)
+        NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged), name: .PDFViewVisiblePagesChanged, object: view)
         if let target = workspace.document.page(at: workspace.page - 1) { view.go(to: target) }
         view.accessibilityIdentifier = "pdfCanvas"
         workspace.inkAction = { [weak coordinator = context.coordinator] action in coordinator?.applyInkAction(action) }
@@ -540,11 +575,12 @@ struct NativePDF: UIViewRepresentable {
         init(workspace: PDFWorkspace) { self.workspace = workspace }
         deinit { NotificationCenter.default.removeObserver(self) }
         @objc func pageChanged() {
-            guard let view = workspace.view, let page = view.currentPage else { return }
+            guard let view = workspace.view, let page = (view as? ResizingPDFView)?.readingPage ?? view.currentPage else { return }
             let index = workspace.document.index(for: page)
             guard index >= 0, index < workspace.document.pageCount else { return }
-            workspace.page = index + 1
-            workspace.inkStrokeCount = canvases[workspace.page - 1]?.drawing.strokes.count ?? workspace.savedInkCount(on: workspace.page - 1)
+            if workspace.page != index + 1 { workspace.page = index + 1 }
+            let count = canvases[index]?.drawing.strokes.count ?? workspace.savedInkCount(on: index)
+            if workspace.inkStrokeCount != count { workspace.inkStrokeCount = count }
             if enabled { activateCurrentCanvas() }
         }
         @objc func tap(_ gesture: UITapGestureRecognizer) {
@@ -598,7 +634,7 @@ struct NativePDF: UIViewRepresentable {
             if value { activateCurrentCanvas() }
         }
         private func activateCurrentCanvas() {
-            guard let view = workspace.view, let page = view.currentPage,
+            guard let view = workspace.view, let page = (view as? ResizingPDFView)?.readingPage ?? view.currentPage,
                   let canvas = canvases[workspace.document.index(for: page)], canvas.window != nil else { return }
             canvas.becomeFirstResponder()
         }

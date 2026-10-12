@@ -24,15 +24,25 @@ final class DocumentViewportTests: XCTestCase {
         controller.view.addSubview(view)
         view.document = workspace.document; view.displayMode = .singlePageContinuous; view.autoScales = true
         view.layoutIfNeeded()
+        func trace(_ stage: String) {
+            var ancestor = view.documentView?.superview
+            while let current = ancestor, !(current is UIScrollView), current !== view { ancestor = current.superview }
+            let scroll = ancestor as? UIScrollView
+            let top = view.page(for: CGPoint(x: view.bounds.midX, y: 1), nearest: true)
+            print("Final-page trace \(stage): frame=\(view.frame) scale=\(view.scaleFactor) reading=\(view.readingPage.map { workspace.document.index(for: $0) } ?? -1) top=\(top.map { workspace.document.index(for: $0) } ?? -1) offset=\(String(describing: scroll?.contentOffset)) content=\(String(describing: scroll?.contentSize)) viewport=\(String(describing: scroll?.bounds.size)) inset=\(String(describing: scroll?.adjustedContentInset))")
+        }
         workspace.appendPaper(.dots)
         view.layoutIfNeeded(); RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        trace("appended")
         XCTAssertEqual(workspace.document.pageCount, 2)
         coordinator.pageChanged()
         XCTAssertEqual(workspace.page, 2, "The final requested page must remain selected at PDFKit's scroll limit")
         for size in [CGSize(width: 440, height: 625), CGSize(width: 440, height: 673),
                      CGSize(width: 600, height: 1137), CGSize(width: 440, height: 300)] {
-            view.frame.size = size; view.layoutIfNeeded()
+            trace("before-\(size)")
+            view.frame.size = size; trace("frame-\(size)"); view.layoutIfNeeded(); trace("layout-\(size)")
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            trace("idle-\(size)")
             coordinator.pageChanged()
             XCTAssertEqual(workspace.page, 2, "Toolbars and split resizing must retain the final page")
         }

@@ -489,6 +489,8 @@ final class ResizingPDFView: PDFView {
     }
     func navigate(to page: PDFPage) {
         pendingAnchor = nil
+        // Inserted/replaced pages need current layout before coordinate conversion.
+        layoutDocumentView()
         let box = page.bounds(for: displayBox)
         guard box.width.isFinite, box.height.isFinite, box.width > 0, box.height > 0 else { go(to: page); return }
         let inset = min(1, min(box.width, box.height) / 4)
@@ -510,7 +512,6 @@ final class ResizingPDFView: PDFView {
             top = visibleTop
         }
         go(to: PDFDestination(page: page, at: top))
-        pendingAnchor = readingAnchor
     }
     override func layoutSubviews() {
         guard !restoringViewport else { super.layoutSubviews(); return }

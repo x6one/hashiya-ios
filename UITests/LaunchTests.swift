@@ -309,15 +309,14 @@ final class LaunchTests: XCTestCase {
         pickerShot.lifetime = .keepAlways
         add(pickerShot)
         XCTAssertTrue(file.isEnabled, "Files must permit this document type")
-        // The provider is a remote UI process. Use its observed thumbnail frame
-        // in screen coordinates instead of its synthesized accessibility hit
-        // point. The tap still goes through the real Files picker and callback.
-        let thumbnail = file.images.firstMatch
-        let frame = thumbnail.exists ? thumbnail.frame : file.frame
-        let target = XCTAttachment(string: "File frame: \(file.frame); tap frame: \(frame)")
+        // External provider files remain visible after thumbnail taps on iPadOS 26.
+        // Tap the real filename rather than the thumbnail inside Files' list row.
+        let filename = file.staticTexts.matching(NSPredicate(format: "label == %@", name)).firstMatch
+        XCTAssertTrue(filename.waitForExistence(timeout: 10), "Files must expose the filename")
+        XCTAssertTrue(filename.isHittable, "The selected filename must be visible in Files")
+        let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
-        app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
+        filename.tap()
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts.matching(NSPredicate(format:
             "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",

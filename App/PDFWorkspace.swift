@@ -480,7 +480,9 @@ final class ResizingPDFView: PDFView {
     }
     private var isAtDocumentEnd: Bool {
         guard let scroll = documentScrollView else { return false }
-        let maximum = scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom
+        // Automatic safe-area padding can change after PDFKit lays out.
+        // The end of PDF content does not include that empty bottom padding.
+        let maximum = scroll.contentSize.height - scroll.bounds.height
         return maximum > -scroll.adjustedContentInset.top + 1 && scroll.contentOffset.y >= maximum - 1
     }
     var readingPage: PDFPage? {

@@ -91,7 +91,9 @@ struct PageText: Codable, Identifiable {
     }
     func jump(_ number: Int) {
         guard number > 0, number <= document.pageCount, let target = document.page(at: number - 1) else { error = "أدخل رقمًا بين 1 و\(document.pageCount)."; return }
-        view?.go(to: target); page = number
+        if let view = view as? ResizingPDFView { view.navigate(to: target) }
+        else { view?.go(to: target) }
+        page = number
     }
     func fit() { view?.autoScales = true; if let view { view.scaleFactor = view.scaleFactorForSizeToFit } }
     func edit(at location: CGPoint, in pdf: PDFView, allowNew: Bool) {
@@ -485,6 +487,31 @@ final class ResizingPDFView: PDFView {
     private func captureAnchor() {
         if !restoringViewport, pendingAnchor == nil { pendingAnchor = readingAnchor }
     }
+    func navigate(to page: PDFPage) {
+        pendingAnchor = nil
+        let box = page.bounds(for: displayBox)
+        guard box.width.isFinite, box.height.isFinite, box.width > 0, box.height > 0 else { go(to: page); return }
+        let inset = min(1, min(box.width, box.height) / 4)
+        let inner = box.insetBy(dx: inset, dy: inset)
+        let corners = [CGPoint(x: inner.minX, y: inner.minY), CGPoint(x: inner.maxX, y: inner.minY),
+                       CGPoint(x: inner.minX, y: inner.maxY), CGPoint(x: inner.maxX, y: inner.maxY)]
+        // Pick the visual top-left corner, including rotated PDF pages.
+        var top = CGPoint(x: inner.minX, y: inner.maxY)
+        switch ((page.rotation % 360) + 360) % 360 {
+        case 90: top = CGPoint(x: inner.minX, y: inner.minY)
+        case 180: top = CGPoint(x: inner.maxX, y: inner.minY)
+        case 270: top = CGPoint(x: inner.maxX, y: inner.maxY)
+        default: break
+        }
+        if bounds.width > 0, bounds.height > 0, let visibleTop = corners.min(by: { first, second in
+            let a = convert(first, from: page), b = convert(second, from: page)
+            return abs(a.y - b.y) > 0.01 ? a.y < b.y : a.x < b.x
+        }) {
+            top = visibleTop
+        }
+        go(to: PDFDestination(page: page, at: top))
+        pendingAnchor = readingAnchor
+    }
     override func layoutSubviews() {
         guard !restoringViewport else { super.layoutSubviews(); return }
         let resized = bounds.size != previousSize
@@ -538,7 +565,7 @@ struct NativePDF: UIViewRepresentable {
         view.addGestureRecognizer(single); view.addGestureRecognizer(double); view.addGestureRecognizer(hold); view.addGestureRecognizer(secondary); view.addGestureRecognizer(drag)
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged), name: .PDFViewPageChanged, object: view)
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged), name: .PDFViewVisiblePagesChanged, object: view)
-        if let target = workspace.document.page(at: workspace.page - 1) { view.go(to: target) }
+        if let target = workspace.document.page(at: workspace.page - 1) { view.navigate(to: target) }
         view.accessibilityIdentifier = "pdfCanvas"
         workspace.inkAction = { [weak coordinator = context.coordinator] action in coordinator?.applyInkAction(action) }
         return view
@@ -549,7 +576,9 @@ struct NativePDF: UIViewRepresentable {
             context.coordinator.canvases.removeAll(); context.coordinator.lastStrokeCounts.removeAll()
             context.coordinator.resetInkTracking()
             view.document = workspace.document
-            if let page = workspace.document.page(at: workspace.page - 1) { view.go(to: page) }
+            if let page = workspace.document.page(at: workspace.page - 1) {
+                if let view = view as? ResizingPDFView { view.navigate(to: page) } else { view.go(to: page) }
+            }
         }
         context.coordinator.setDrawing(workspace.tool == .ink || workspace.tool == .lasso)
     }

@@ -82,5 +82,8 @@ final class DocumentViewportTests: XCTestCase {
         XCTAssertEqual(view.scaleFactor, 0.8, accuracy: 0.01, "Toolbars must retain manual zoom")
         XCTAssertTrue(view.page(for: CGPoint(x: view.bounds.midX, y: 1), nearest: true) === zoomPage)
         XCTAssertEqual(view.convert(CGPoint(x: view.bounds.midX, y: 1), to: zoomPage).y, zoomPoint.y, accuracy: 3)
+        let rotated = try XCTUnwrap(document.page(at: 8)); rotated.rotation = 90
+        view.layoutDocumentView(); workspace.jump(9); view.layoutIfNeeded(); coordinator.pageChanged()
+        XCTAssertEqual(workspace.page, 9, "Explicit navigation must identify a rotated target page")
     }
 }

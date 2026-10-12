@@ -188,17 +188,32 @@ struct MarginNotebook: UIViewRepresentable {
         if canvas.sheetSize != size {
             canvas.setSheetSize(size)
         }
-        canvas.drawingGestureRecognizer.isEnabled = drawing
-        canvas.panGestureRecognizer.minimumNumberOfTouches = drawing ? 2 : 1
-        canvas.tool = brush.tool(color: UIColor(color), width: width)
+        if canvas.drawingGestureRecognizer.isEnabled != drawing {
+            canvas.drawingGestureRecognizer.isEnabled = drawing
+        }
+        let panTouches = drawing ? 2 : 1
+        if canvas.panGestureRecognizer.minimumNumberOfTouches != panTouches {
+            canvas.panGestureRecognizer.minimumNumberOfTouches = panTouches
+        }
+        coordinator.applyTool(to: canvas, brush: brush, color: UIColor(color), width: width)
     }
     @MainActor final class Coordinator: NSObject, PKCanvasViewDelegate {
         var pageID: UUID?
         var lastInk: Data?
         var loading = false
+        private var appliedBrush: InkBrush?
+        private var appliedColor: UIColor?
+        private var appliedWidth: Double?
         var saved: (PKDrawing) -> Void
         var failed: (String) -> Void
         init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void) { self.saved = saved; self.failed = failed }
+        func applyTool(to canvas: PKCanvasView, brush: InkBrush, color: UIColor, width: Double) {
+            // Saving a stroke publishes a new page and updates this representable.
+            // Do not replace PencilKit's tool while that same stroke is committing.
+            guard appliedBrush != brush || appliedColor?.isEqual(color) != true || appliedWidth != width else { return }
+            canvas.tool = brush.tool(color: color, width: width)
+            appliedBrush = brush; appliedColor = color; appliedWidth = width
+        }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             guard !loading else { return }
             lastInk = canvas.drawing.dataRepresentation()

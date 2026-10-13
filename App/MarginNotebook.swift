@@ -121,6 +121,7 @@ struct InkToolbar: View {
     @Binding var brush: InkBrush
     @Binding var color: Color
     @Binding var width: Double
+    @State private var showingColorPicker = false
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     var allowsWidthFit = false
     let action: (String) -> Void
@@ -132,12 +133,12 @@ struct InkToolbar: View {
                     Label(brush.rawValue, systemImage: brush.symbol)
                         .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                 }.accessibilityIdentifier("inkBrush")
-                ColorPicker("لون الحبر", selection: $color, supportsOpacity: false)
-                    // The native swatch is smaller than its 44pt SwiftUI frame.
-                    // Scale the actual control so taps near the frame edge open it.
-                    .labelsHidden().scaleEffect(1.5)
-                    .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                    .accessibilityLabel("لون الحبر").accessibilityIdentifier("inkColor")
+                Button { showingColorPicker = true } label: {
+                    Circle().fill(color)
+                        .overlay(Circle().strokeBorder(TayyaTheme.detail, lineWidth: 1))
+                        .frame(width: 28, height: 28)
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                }.accessibilityLabel("لون الحبر").accessibilityIdentifier("inkColor")
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
                 label: {
                     Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle())
@@ -156,10 +157,54 @@ struct InkToolbar: View {
             }.buttonStyle(.plain).padding(.horizontal, 12)
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
         }.background(TayyaTheme.surface).accessibilityIdentifier("inkToolbar")
+            .sheet(isPresented: $showingColorPicker) {
+                NavigationStack {
+                    NativeInkColorPicker(color: $color)
+                        .navigationTitle("لون الحبر")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button { showingColorPicker = false } label: {
+                                    Text("تم").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                                }
+                                    .accessibilityIdentifier("closeInkColorPicker")
+                            }
+                        }
+                }
+            }
     }
     private func inkTarget(_ title: String, symbol: String) -> some View {
         Label(title, systemImage: symbol).labelStyle(.iconOnly)
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+    }
+}
+private struct NativeInkColorPicker: UIViewControllerRepresentable {
+    @Binding var color: Color
+
+    func makeCoordinator() -> Coordinator { Coordinator(color: $color) }
+
+    func makeUIViewController(context: Context) -> UIColorPickerViewController {
+        let picker = UIColorPickerViewController()
+        picker.supportsAlpha = false
+        picker.selectedColor = UIColor(color)
+        picker.delegate = context.coordinator
+        picker.view.accessibilityIdentifier = "nativeInkColorPicker"
+        return picker
+    }
+
+    func updateUIViewController(_ picker: UIColorPickerViewController, context: Context) {
+        context.coordinator.color = $color
+    }
+
+    final class Coordinator: NSObject, UIColorPickerViewControllerDelegate {
+        var color: Binding<Color>
+
+        init(color: Binding<Color>) { self.color = color }
+
+        func colorPickerViewController(_ viewController: UIColorPickerViewController,
+                                       didSelect selectedColor: UIColor, continuously: Bool) {
+            color.wrappedValue = Color(uiColor: selectedColor)
+        }
     }
 }
 struct MarginNotebook: UIViewRepresentable {

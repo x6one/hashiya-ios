@@ -912,8 +912,8 @@ final class LaunchTests: XCTestCase {
         // Accessibility can report an offscreen HStack child as hittable.
         // Require its entire rendered target inside this toolbar's viewport.
         for _ in 0..<12 {
-            if control.isHittable && toolbar.frame.insetBy(dx: -0.5, dy: -0.5).contains(control.frame) { break }
             let viewport = toolbar.frame, target = control.frame
+            if viewport.insetBy(dx: -0.5, dy: -0.5).contains(target) && control.isHittable { break }
             let distance = target.minX < viewport.minX
                 ? viewport.minX - target.minX + 12 : viewport.maxX - target.maxX - 12
             // Small, measured drags avoid oscillating past a partially visible
@@ -922,7 +922,7 @@ final class LaunchTests: XCTestCase {
             let start = toolbar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: delta, dy: 0)))
         }
-        guard control.isHittable, toolbar.frame.insetBy(dx: -0.5, dy: -0.5).contains(control.frame) else {
+        guard toolbar.frame.insetBy(dx: -0.5, dy: -0.5).contains(control.frame), control.isHittable else {
             XCTFail("Cannot scroll the complete ink target into view: " + identifier); return false
         }
         XCTAssertGreaterThanOrEqual(control.frame.width + targetFrameTolerance, 44, identifier)
@@ -946,22 +946,21 @@ final class LaunchTests: XCTestCase {
         width.tap()
         XCTAssertEqual(app.buttons["inkWidth"].value as? String, "8")
         guard tapInkTarget("inkColor", in: app) else { return }
-        // UIKit places the iPad popover and its close button inside this
-        // presentation host, as a sibling of the inner UIColorPicker view.
-        let host = app.otherElements["UIColorPickerView"].firstMatch
-        let picker = host.otherElements["UIColorPicker"].firstMatch
-        guard host.waitForExistence(timeout: 5), picker.waitForExistence(timeout: 5) else {
+        let picker = app.otherElements["nativeInkColorPicker"].firstMatch
+        guard picker.waitForExistence(timeout: 5), picker.segmentedControls.firstMatch.waitForExistence(timeout: 5) else {
             XCTFail("Color target must present the native color picker: " + app.debugDescription); return
         }
-        let close = host.buttons.matching(NSPredicate(format: "label ==[c] %@", "close")).firstMatch
+        let close = app.buttons["closeInkColorPicker"].firstMatch
         guard close.waitForExistence(timeout: 5), close.isHittable else {
             XCTFail("Native color picker must expose its close action: " + app.debugDescription); return
         }
+        XCTAssertGreaterThanOrEqual(close.frame.width + targetFrameTolerance, 44)
+        XCTAssertGreaterThanOrEqual(close.frame.height + targetFrameTolerance, 44)
         capturePaperStudio(name + "-NativeColorPicker", in: app)
         close.tap()
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            !host.exists && !picker.exists && !close.exists
-        }, object: host)
+            !picker.exists && !close.exists
+        }, object: picker)
         guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
             XCTFail("Native color picker must dismiss before testing ink actions"); return
         }

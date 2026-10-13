@@ -133,7 +133,10 @@ struct InkToolbar: View {
                         .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                 }.accessibilityIdentifier("inkBrush")
                 ColorPicker("لون الحبر", selection: $color, supportsOpacity: false)
-                    .labelsHidden().frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    // The native swatch is smaller than its 44pt SwiftUI frame.
+                    // Scale the actual control so taps near the frame edge open it.
+                    .labelsHidden().scaleEffect(1.5)
+                    .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     .accessibilityLabel("لون الحبر").accessibilityIdentifier("inkColor")
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
                 label: {

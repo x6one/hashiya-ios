@@ -946,25 +946,22 @@ final class LaunchTests: XCTestCase {
         width.tap()
         XCTAssertEqual(app.buttons["inkWidth"].value as? String, "8")
         guard tapInkTarget("inkColor", in: app) else { return }
-        let picker = app.otherElements["UIColorPicker"].firstMatch
-        guard picker.waitForExistence(timeout: 5) else {
+        // UIKit places the iPad popover and its close button inside this
+        // presentation host, as a sibling of the inner UIColorPicker view.
+        let host = app.otherElements["UIColorPickerView"].firstMatch
+        let picker = host.otherElements["UIColorPicker"].firstMatch
+        guard host.waitForExistence(timeout: 5), picker.waitForExistence(timeout: 5) else {
             XCTFail("Color target must present the native color picker: " + app.debugDescription); return
         }
-        let popover = app.popovers.containing(.other, identifier: "UIColorPicker").firstMatch
-        let sheet = app.sheets.containing(.other, identifier: "UIColorPicker").firstMatch
-        // UIKit exposes the iPad picker as a popover. On iPhone its modal
-        // presentation can be a sheet or a picker-hosting window in XCTest.
-        let presentation = popover.exists ? popover : sheet.exists ? sheet
-            : app.windows.containing(.other, identifier: "UIColorPicker").firstMatch
-        let close = presentation.buttons.matching(NSPredicate(format: "label ==[c] %@", "close")).firstMatch
+        let close = host.buttons.matching(NSPredicate(format: "label ==[c] %@", "close")).firstMatch
         guard close.waitForExistence(timeout: 5), close.isHittable else {
             XCTFail("Native color picker must expose its close action: " + app.debugDescription); return
         }
         capturePaperStudio(name + "-NativeColorPicker", in: app)
         close.tap()
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            !picker.exists && !close.exists
-        }, object: picker)
+            !host.exists && !picker.exists && !close.exists
+        }, object: host)
         guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
             XCTFail("Native color picker must dismiss before testing ink actions"); return
         }

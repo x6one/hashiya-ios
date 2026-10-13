@@ -194,7 +194,6 @@ struct DocumentScreen: View {
     @StateObject private var audio: PageAudio
     let initialPage: Int?
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     init(note: Notebook, root: URL, initialPage: Int? = nil) {
         self.note = note; self.root = root; self.initialPage = initialPage
         _workspace = StateObject(wrappedValue: PDFWorkspace(note: note, root: root))
@@ -311,18 +310,12 @@ struct DocumentScreen: View {
             .accessibilityIdentifier("workspaceToolGroups")
     }
     private var workspaceNavigation: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                stackedNavigation
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 0) {
-                        pageControls.frame(width: 350)
-                        RecordingStrip(audio: audio, action: toggleRecording).frame(minWidth: 300)
-                    }
-                    stackedNavigation
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) {
+                pageControls.frame(width: 350)
+                RecordingStrip(audio: audio, action: toggleRecording).frame(minWidth: 300)
             }
+            stackedNavigation
         }
         .background(TayyaTheme.mutedSurface)
         .overlay(alignment: .bottom) { TayyaTheme.separator.frame(height: 1).allowsHitTesting(false) }

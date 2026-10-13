@@ -19,35 +19,30 @@ struct MarginPane: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            if let page = store.current {
-                if verticalSizeClass == .compact && editor.handwriting {
-                    modeControls
-                    HStack(spacing: 0) {
-                        inkControls
-                        TayyaTheme.separator.frame(width: 1, height: 28).accessibilityHidden(true)
-                        footer(page)
-                    }.background(TayyaTheme.surface)
-                } else {
-                    modeControls
+        GeometryReader { geometry in
+            // The height offered by a portrait split can be smaller than landscape.
+            let compactChrome = verticalSizeClass == .compact || geometry.size.height < 350
+            VStack(spacing: 0) {
+                header(compactChrome: compactChrome)
+                if let page = store.current {
+                    modeControls(compactChrome: compactChrome)
                     if editor.handwriting { inkControls }
-                }
-                if editor.handwriting {
-                    MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
-                                   saved: { ink in
-                        store.saveInk(ink, page: page.id)
-                        if store.saved { inkSaved(ink.strokes.count, page.id) }
-                    }, failed: { store.error = $0 })
+                    if editor.handwriting {
+                        MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
+                                       saved: { ink in
+                            store.saveInk(ink, page: page.id)
+                            if store.saved { inkSaved(ink.strokes.count, page.id) }
+                        }, failed: { store.error = $0 })
+                    } else {
+                        TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
+                                                 set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
+                            .font(.title3).padding(8).scrollContentBackground(.hidden)
+                            .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
+                    }
+                    if !textFocused && !compactChrome { footer(page) }
                 } else {
-                    TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
-                                             set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
-                        .font(.title3).padding(8).scrollContentBackground(.hidden)
-                        .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
+                    ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
                 }
-                if !textFocused && !(verticalSizeClass == .compact && editor.handwriting) { footer(page) }
-            } else {
-                ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
             }
         }.background(TayyaTheme.paper)
             .sheet(isPresented: $showPages) { MarginPageList(store: store, sourcePage: sourcePage, jump: jump) }
@@ -63,11 +58,11 @@ struct MarginPane: View {
             .onDisappear { _ = store.flush() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
     }
-    private var modeControls: some View {
+    private func modeControls(compactChrome: Bool) -> some View {
         HStack(spacing: 8) {
             Picker("طريقة تدوين الحاشية", selection: $editor.handwriting) { Text("نص").tag(false); Text("خط اليد").tag(true) }
                 .pickerStyle(.segmented).tint(TayyaTheme.ink)
-                .frame(minWidth: verticalSizeClass == .compact ? 140 : 160, minHeight: 44)
+                .frame(minWidth: compactChrome ? 140 : 160, minHeight: 44)
                 .accessibilityIdentifier("marginMode")
             if editor.handwriting {
                 Button { editor.drawing.toggle() } label: {
@@ -81,19 +76,19 @@ struct MarginPane: View {
                 }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink)
                 .accessibilityLabel(editor.drawing ? "تحريك" : "كتابة").accessibilityIdentifier("marginPan")
             }
-        }.padding(.horizontal, verticalSizeClass == .compact ? 8 : 12)
-            .padding(.vertical, verticalSizeClass == .compact ? 2 : 6)
+        }.padding(.horizontal, compactChrome ? 8 : 12)
+            .padding(.vertical, compactChrome ? 2 : 6)
     }
     private var inkControls: some View {
         InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
             .frame(minHeight: 44)
     }
-    private var header: some View {
+    private func header(compactChrome: Bool) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            headerControls
+            headerControls(compactChrome: compactChrome)
         }.background(TayyaTheme.surface).foregroundStyle(TayyaTheme.ink)
     }
-    private var headerControls: some View {
+    private func headerControls(compactChrome: Bool) -> some View {
         HStack(spacing: 6) {
             Button { store.move(-1) } label: {
                 marginHeaderTarget("السابق في الحاشية", symbol: "chevron.right")
@@ -116,6 +111,26 @@ struct MarginPane: View {
                 marginHeaderTarget(expanded ? "العودة إلى المستند" : "تكبير الحاشية",
                     symbol: expanded ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right")
             }.accessibilityIdentifier("expandMargin")
+            if compactChrome, let page = store.current {
+                TayyaTheme.separator.frame(width: 1, height: 28).accessibilityHidden(true)
+                if let linked = page.sourcePage {
+                    Button { jump(linked) } label: {
+                        Label("المستند · ص \(linked)", systemImage: "link")
+                            .font(.caption).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    }
+                }
+                Button { do { exported = try store.export() } catch { store.error = error.localizedDescription } } label: {
+                    marginHeaderTarget("تصدير", symbol: "square.and.arrow.up")
+                }
+                Button { deletingPage = page.id; confirmMarginDeletion = true } label: {
+                    marginHeaderTarget("حذف", symbol: "trash")
+                }.disabled(store.pages.count <= 1).accessibilityIdentifier("deleteMarginPage")
+                Button { showPages = true } label: {
+                    marginHeaderTarget("المحذوفات", symbol: "trash.circle")
+                }.accessibilityIdentifier("deletedMarginPages")
+                Text(store.saved ? "محفوظ" : "لم يُحفظ")
+                    .font(.caption).foregroundStyle(store.saved ? TayyaTheme.ink : Color.red)
+            }
         }.buttonStyle(.plain).padding(.horizontal, 8).background(TayyaTheme.surface)
     }
     private func marginHeaderTarget(_ title: String, symbol: String) -> some View {

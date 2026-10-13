@@ -17,7 +17,7 @@ struct LibraryScreen: View {
     @State private var confirmNotebookDeletion = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tayyaReduceMotion) private var reduceMotion
     @State private var favorites = false
     @State private var backup = false
     @State private var destination: LibraryDestination = .library
@@ -471,7 +471,7 @@ struct LibraryScreen: View {
 
 /// Feedback belongs to library chrome; it never animates reader or ink geometry.
 private struct LibraryPressStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tayyaReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

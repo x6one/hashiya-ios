@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AppEntrance: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tayyaReduceMotion) private var reduceMotion
     @AppStorage("tayya.openingSeen") private var openingSeen = false
     @State private var showing = true
     @State private var folded = false

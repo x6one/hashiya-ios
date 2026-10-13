@@ -12,16 +12,19 @@ struct DebugVisualEnvironment: ViewModifier {
         return nil
     }
 
+    private var reduceMotionOverride: Bool? {
+        if arguments.contains("--test-reduce-motion") { return true }
+        if arguments.contains("--test-motion-enabled") { return false }
+        return nil
+    }
+
     func body(content: Content) -> some View {
         content
             .preferredColorScheme(appearance)
             .transformEnvironment(\.dynamicTypeSize) { size in
                 if arguments.contains("--test-accessibility-type") { size = .accessibility1 }
             }
-            .transformEnvironment(\.accessibilityReduceMotion) { reduced in
-                if arguments.contains("--test-reduce-motion") { reduced = true }
-                else if arguments.contains("--test-motion-enabled") { reduced = false }
-            }
+            .environment(\.debugReduceMotionOverride, reduceMotionOverride)
     }
 }
 #endif

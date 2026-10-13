@@ -77,7 +77,8 @@ struct MarginPane: View {
                         Image(systemName: editor.drawing ? "hand.draw" : "pencil.tip")
                     }
                     .font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44)
-                }
+                    .contentShape(Rectangle())
+                }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink)
                 .accessibilityLabel(editor.drawing ? "تحريك" : "كتابة").accessibilityIdentifier("marginPan")
             }
         }.padding(.horizontal, verticalSizeClass == .compact ? 8 : 12)
@@ -94,27 +95,42 @@ struct MarginPane: View {
     }
     private var headerControls: some View {
         HStack(spacing: 6) {
-            Button("السابق في الحاشية", systemImage: "chevron.right") { store.move(-1) }
-                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(store.position == 0).accessibilityIdentifier("previousMarginPage")
+            Button { store.move(-1) } label: {
+                marginHeaderTarget("السابق في الحاشية", symbol: "chevron.right")
+            }.disabled(store.position == 0).accessibilityIdentifier("previousMarginPage")
             Button { showPages = true } label: {
                 VStack(spacing: 2) {
                     Text("الحاشية").font(.headline).foregroundStyle(TayyaTheme.text)
                     Text("\(store.position + 1) من \(store.pages.count)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail)
-                }.fixedSize(horizontal: true, vertical: true).frame(minHeight: 44)
+                }.fixedSize(horizontal: true, vertical: true)
+                    .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
             }.accessibilityIdentifier("marginPages").accessibilityValue("\(store.position + 1)/\(store.pages.count)")
-            Button("التالي في الحاشية", systemImage: "chevron.left") { store.move(1) }
-                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(store.position + 1 >= store.pages.count).accessibilityIdentifier("nextMarginPage")
+            Button { store.move(1) } label: {
+                marginHeaderTarget("التالي في الحاشية", symbol: "chevron.left")
+            }.disabled(store.position + 1 >= store.pages.count).accessibilityIdentifier("nextMarginPage")
             Spacer(minLength: 0)
-            Button("إضافة صفحة حاشية", systemImage: "plus") { _ = store.add(linkedTo: sourcePage) }
-                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("addMarginPage")
-            Button(expanded ? "العودة إلى المستند" : "تكبير الحاشية", systemImage: expanded ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right") { toggleExpanded() }
-                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("expandMargin")
-        }.padding(.horizontal, 8).background(TayyaTheme.surface)
+            Button { _ = store.add(linkedTo: sourcePage) } label: {
+                marginHeaderTarget("إضافة صفحة حاشية", symbol: "plus")
+            }.accessibilityIdentifier("addMarginPage")
+            Button { toggleExpanded() } label: {
+                marginHeaderTarget(expanded ? "العودة إلى المستند" : "تكبير الحاشية",
+                    symbol: expanded ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right")
+            }.accessibilityIdentifier("expandMargin")
+        }.buttonStyle(.plain).padding(.horizontal, 8).background(TayyaTheme.surface)
+    }
+    private func marginHeaderTarget(_ title: String, symbol: String) -> some View {
+        Label(title, systemImage: symbol).labelStyle(.iconOnly)
+            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
     private func footer(_ page: MarginPage) -> some View {
         VStack(spacing: 0) {
             if verticalSizeClass != .compact { HStack {
-                if let linked = page.sourcePage { Button("المستند · ص \(linked)", systemImage: "link") { jump(linked) } }
+                if let linked = page.sourcePage {
+                    Button { jump(linked) } label: {
+                        Label("المستند · ص \(linked)", systemImage: "link")
+                            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink)
+                }
                 else { Text("حاشية عامة").foregroundStyle(.secondary) }
                 Spacer()
                 Label(store.saved ? "محفوظ" : "لم يُحفظ", systemImage: store.saved ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(store.saved ? TayyaTheme.ink : Color.red)

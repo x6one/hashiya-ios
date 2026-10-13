@@ -457,19 +457,32 @@ struct DocumentScreen: View {
     private var pageControls: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Button("السابق في المستند", systemImage: "chevron.right") { workspace.jump(workspace.page - 1) }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.page <= 1).accessibilityIdentifier("previousDocumentPage")
+                Button { workspace.jump(workspace.page - 1) } label: {
+                    documentPageTarget("السابق في المستند", symbol: "chevron.right")
+                }.disabled(workspace.page <= 1).accessibilityIdentifier("previousDocumentPage")
                 TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).font(.body.monospacedDigit()).frame(width: pageFieldWidth).frame(minHeight: 44).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
                 Text("من \(workspace.document.pageCount)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail).fixedSize()
-                Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("goToPage")
-                Button("التالي في المستند", systemImage: "chevron.left") { workspace.jump(workspace.page + 1) }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.page >= workspace.document.pageCount).accessibilityIdentifier("nextDocumentPage")
+                Button { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) } label: {
+                    Text("اذهب").font(.subheadline.weight(.medium))
+                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.accessibilityIdentifier("goToPage")
+                Button { workspace.jump(workspace.page + 1) } label: {
+                    documentPageTarget("التالي في المستند", symbol: "chevron.left")
+                }.disabled(workspace.page >= workspace.document.pageCount).accessibilityIdentifier("nextDocumentPage")
                 Spacer(minLength: 4)
                 Image(systemName: "record.circle.fill").foregroundStyle(.red)
                     .opacity(audio.recording ? 1 : 0).frame(width: 16)
                     .accessibilityLabel("جارٍ التسجيل").accessibilityHidden(!audio.recording)
                     .accessibilityIdentifier("recordingIndicator")
-                Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("fitDocumentPage")
-            }.padding(.horizontal, 10).frame(minHeight: 44)
+                Button { workspace.fit() } label: {
+                    documentPageTarget("ملاءمة", symbol: "arrow.up.left.and.arrow.down.right")
+                }.accessibilityIdentifier("fitDocumentPage")
+            }.buttonStyle(.plain).padding(.horizontal, 10).frame(minHeight: 44)
         }.background(TayyaTheme.mutedSurface).foregroundStyle(TayyaTheme.ink)
+    }
+    private func documentPageTarget(_ title: String, symbol: String) -> some View {
+        Label(title, systemImage: symbol).labelStyle(.iconOnly)
+            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
 }
 struct TextEditorSheet: View {

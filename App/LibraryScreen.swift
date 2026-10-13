@@ -251,6 +251,7 @@ struct LibraryScreen: View {
             Button { creating = true } label: {
                 Label("دفتر جديد", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
                     .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(TayyaTheme.paper)
             }.buttonStyle(.borderedProminent).accessibilityIdentifier("createNotebook")
             Button { importing = true } label: {
                 Label("استيراد ملف", systemImage: "square.and.arrow.down").frame(maxWidth: .infinity, minHeight: 44)

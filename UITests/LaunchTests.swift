@@ -673,8 +673,14 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, "Second margin page")
     }
 
+    // CGRect edge subtraction can report 43.99999999999994 for a 44pt target.
+    // Allow only 1e-6pt arithmetic noise; 43.99pt remains an undersized target.
+    private let targetFrameTolerance: CGFloat = 1e-6
+
     private func capturePaperStudio(_ name: String, in app: XCUIApplication) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // Capture the complete simulator display after rotation, avoiding an
+        // application-rectangle screenshot that can clip landscape content.
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = "PaperStudio-" + name
         attachment.lifetime = .keepAlways
         add(attachment)
@@ -742,61 +748,72 @@ final class LaunchTests: XCTestCase {
         if let marginFrame, let margin { XCTAssertEqual(margin.frame, marginFrame) }
     }
 
-    func testPaperStudioVisualCaptureJourney() {
-        // CI executes this same journey on both device families. Real rotation
-        // exercises wide and compact-height layouts; no fake size class is used.
+    private func capturePaperStudioAppearanceJourney(_ appearance: String) {
+        // CI executes each real appearance journey on both device families.
+        // Each fresh launch has its own unchanged 240-second XCTest allowance.
         defer { XCUIDevice.shared.orientation = .portrait }
-        for appearance in ["light", "dark"] {
-            XCUIDevice.shared.orientation = .portrait
-            let app = XCUIApplication()
-            app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-" + appearance, "--test-motion-enabled"]
-            app.launch()
-            let demo = app.buttons["welcomeDemonstration"]
-            XCTAssertTrue(demo.waitForExistence(timeout: 15))
-            XCTAssertTrue(demo.isHittable)
-            capturePaperStudio(appearance + "-FirstLaunchWelcome", in: app)
-            demo.tap()
-            let pdf = app.otherElements["pdfCanvas"]
-            XCTAssertTrue(pdf.waitForExistence(timeout: 15))
-            app.navigationBars.buttons.element(boundBy: 0).tap()
-            XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 10))
-            capturePaperStudio(appearance + "-LibraryPortrait", in: app)
-            visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
-            XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 10))
-            capturePaperStudio(appearance + "-DocumentToolsPortrait", in: app)
-            app.buttons["splitDocumentNotes"].tap()
-            app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
-            let margin = app.scrollViews["marginInkCanvas"]
-            XCTAssertTrue(margin.waitForExistence(timeout: 5))
-            let before = Int(margin.value as? String ?? "") ?? 0
-            margin.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.3)).press(forDuration: 0.1,
-                thenDragTo: margin.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.6)))
-            let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                (Int(margin.value as? String ?? "") ?? 0) > before
-            }, object: margin)
-            XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed)
-            assertMarginInkVisible(margin, in: app, stage: "paper-studio-" + appearance)
-            capturePaperStudio(appearance + "-SplitHandwritingPortrait", in: app)
-            XCUIDevice.shared.orientation = .landscapeLeft
-            let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
-            XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
-            XCTAssertGreaterThan(margin.frame.height, 44, "Compact landscape must retain handwriting space")
-            for identifier in ["addMarginPage", "nextDocumentPage"] {
-                let control = app.buttons[identifier]
-                XCTAssertTrue(control.isHittable)
-                XCTAssertGreaterThanOrEqual(control.frame.width, 44, identifier)
-                XCTAssertGreaterThanOrEqual(control.frame.height, 44, identifier)
-            }
-            capturePaperStudio(appearance + "-SplitHandwritingLandscape", in: app)
-            captureAdvancingRecording(in: app, name: appearance + "-Landscape", requiresDocument: true, margin: margin)
-            // Return to the library in landscape to capture the adaptive covers/navigation.
-            app.navigationBars.buttons.element(boundBy: 0).tap()
-            XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 10))
-            capturePaperStudio(appearance + "-LibraryLandscape", in: app)
-            app.terminate()
-        }
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
+        defer { app.terminate() }
+        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-" + appearance, "--test-motion-enabled"]
+        app.launch()
+        let demo = app.buttons["welcomeDemonstration"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        XCTAssertTrue(demo.isHittable)
+        capturePaperStudio(appearance + "-FirstLaunchWelcome", in: app)
+        demo.tap()
+        let pdf = app.otherElements["pdfCanvas"]
+        XCTAssertTrue(pdf.waitForExistence(timeout: 15))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 10))
+        capturePaperStudio(appearance + "-LibraryPortrait", in: app)
+        visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
+        XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 10))
+        capturePaperStudio(appearance + "-DocumentToolsPortrait", in: app)
+        app.buttons["splitDocumentNotes"].tap()
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
+        let margin = app.scrollViews["marginInkCanvas"]
+        XCTAssertTrue(margin.waitForExistence(timeout: 5))
+        let before = Int(margin.value as? String ?? "") ?? 0
+        margin.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.3)).press(forDuration: 0.1,
+            thenDragTo: margin.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.6)))
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (Int(margin.value as? String ?? "") ?? 0) > before
+        }, object: margin)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed)
+        assertMarginInkVisible(margin, in: app, stage: "paper-studio-" + appearance)
+        capturePaperStudio(appearance + "-SplitHandwritingPortrait", in: app)
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
+        XCTAssertGreaterThan(margin.frame.height, 44, "Compact landscape must retain handwriting space")
+        for identifier in ["addMarginPage", "nextDocumentPage"] {
+            let control = app.buttons[identifier]
+            XCTAssertTrue(control.isHittable)
+            XCTAssertGreaterThanOrEqual(control.frame.width + targetFrameTolerance, 44, identifier)
+            XCTAssertGreaterThanOrEqual(control.frame.height + targetFrameTolerance, 44, identifier)
+        }
+        capturePaperStudio(appearance + "-SplitHandwritingLandscape", in: app)
+        captureAdvancingRecording(in: app, name: appearance + "-Landscape", requiresDocument: true, margin: margin)
+        // Return to the library in landscape to capture the adaptive covers/navigation.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 10))
+        capturePaperStudio(appearance + "-LibraryLandscape", in: app)
+    }
+
+    func testPaperStudioLightVisualCaptureJourney() {
+        capturePaperStudioAppearanceJourney("light")
+    }
+
+    func testPaperStudioDarkVisualCaptureJourney() {
+        capturePaperStudioAppearanceJourney("dark")
+    }
+
+    func testPaperStudioAccessibilityReduceMotionVisualCaptureJourney() {
+        defer { XCUIDevice.shared.orientation = .portrait }
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        defer { app.terminate() }
         app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-light", "--test-accessibility-type", "--test-reduce-motion"]
         app.launch()
         let demo = app.buttons["welcomeDemonstration"]
@@ -816,7 +833,6 @@ final class LaunchTests: XCTestCase {
         XCTAssertGreaterThan(margin.frame.height, 44)
         capturePaperStudio("AccessibilityType-ExpandedHandwriting", in: app)
         captureAdvancingRecording(in: app, name: "AccessibilityType-Expanded", requiresDocument: false, margin: margin)
-        app.terminate()
     }
 
     func testColdExternalPDFIntakeSurvivesFirstLaunchEntrance() throws {
@@ -909,8 +925,8 @@ final class LaunchTests: XCTestCase {
         guard control.isHittable, toolbar.frame.insetBy(dx: -0.5, dy: -0.5).contains(control.frame) else {
             XCTFail("Cannot scroll the complete ink target into view: " + identifier); return false
         }
-        XCTAssertGreaterThanOrEqual(control.frame.width, 44, identifier)
-        XCTAssertGreaterThanOrEqual(control.frame.height, 44, identifier)
+        XCTAssertGreaterThanOrEqual(control.frame.width + targetFrameTolerance, 44, identifier)
+        XCTAssertGreaterThanOrEqual(control.frame.height + targetFrameTolerance, 44, identifier)
         // Tap the lower edge of the 44pt target, outside the small icon/swatch.
         control.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1))
             .withOffset(CGVector(dx: 0, dy: -2)).tap()
@@ -930,13 +946,25 @@ final class LaunchTests: XCTestCase {
         width.tap()
         XCTAssertEqual(app.buttons["inkWidth"].value as? String, "8")
         guard tapInkTarget("inkColor", in: app) else { return }
-        let close = app.buttons["Close"].firstMatch
-        guard close.waitForExistence(timeout: 5) else {
+        let picker = app.otherElements["UIColorPicker"].firstMatch
+        guard picker.waitForExistence(timeout: 5) else {
             XCTFail("Color target must present the native color picker: " + app.debugDescription); return
+        }
+        let popover = app.popovers.containing(.other, identifier: "UIColorPicker").firstMatch
+        let sheet = app.sheets.containing(.other, identifier: "UIColorPicker").firstMatch
+        // UIKit exposes the iPad picker as a popover. On iPhone its modal
+        // presentation can be a sheet or a picker-hosting window in XCTest.
+        let presentation = popover.exists ? popover : sheet.exists ? sheet
+            : app.windows.containing(.other, identifier: "UIColorPicker").firstMatch
+        let close = presentation.buttons.matching(NSPredicate(format: "label ==[c] %@", "close")).firstMatch
+        guard close.waitForExistence(timeout: 5), close.isHittable else {
+            XCTFail("Native color picker must expose its close action: " + app.debugDescription); return
         }
         capturePaperStudio(name + "-NativeColorPicker", in: app)
         close.tap()
-        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: close)
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            !picker.exists && !close.exists
+        }, object: picker)
         guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
             XCTFail("Native color picker must dismiss before testing ink actions"); return
         }

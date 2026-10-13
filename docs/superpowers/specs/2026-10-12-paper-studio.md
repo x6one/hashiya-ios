@@ -21,4 +21,3 @@ User approved all eight in-chat proposals and requested implementation and the f
 
 ## Scope decisions
 Covers get deterministic colors from notebook UUID, not a new persisted customization model. Waveform is driven by recording metering, never a fabricated microphone trace. System fonts avoid new font licensing/dependencies. Existing neutral UI may be refined; no rebuilding of the application.
-

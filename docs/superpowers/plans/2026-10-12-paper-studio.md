@@ -65,4 +65,3 @@
 - [ ] Increase test job timeout from 40 to 60 minutes: the prior real PR attempt finished all three Maestro flows then was cancelled during shutdown at 40 minutes. Keep individual test timeout 240 seconds and all checks enabled.
 - [ ] Document current candidate state without claiming tests or build before they run. Run git diff --check and Python release-tool tests where available.
 - [ ] Commit and write report; controller publishes combined source to authorized branch, runs exact-source CI and inspects screenshots, fixes material findings through implementer review, then builds full native Office IPA with archive-only signing, persists verified outputs and updates actual evidence.
-

@@ -57,7 +57,7 @@ struct LibraryThumbnail: View {
             cover = nil
             loadedURL = nil
             let image = await LibraryThumbnailCache.shared.image(for: requestedURL)
-            guard !Task.isCancelled, requestedURL == url else { return }
+            guard !Task.isCancelled else { return }
             loadedURL = requestedURL
             cover = image
         }

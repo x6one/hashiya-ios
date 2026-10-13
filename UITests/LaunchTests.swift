@@ -687,7 +687,7 @@ final class LaunchTests: XCTestCase {
         return components.reduce(0) { $0 * 60 + $1 }
     }
 
-    private func captureAdvancingRecording(in app: XCUIApplication, name: String, margin: XCUIElement? = nil) {
+    private func captureAdvancingRecording(in app: XCUIApplication, name: String, requiresDocument: Bool, margin: XCUIElement? = nil) {
         let strip = app.descendants(matching: .any)["recordingStrip"].firstMatch
         let record = app.buttons["recordLinkedAudio"]
         let elapsed = app.staticTexts["recordingElapsed"]
@@ -696,7 +696,14 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(record.isHittable)
         XCTAssertGreaterThanOrEqual(record.frame.width, 44)
         XCTAssertGreaterThanOrEqual(record.frame.height, 44)
-        let stripFrame = strip.frame, documentFrame = document.exists ? document.frame : nil
+        if requiresDocument {
+            guard document.waitForExistence(timeout: 5) else {
+                XCTFail("Split recording must retain the PDF canvas"); return
+            }
+        } else {
+            XCTAssertFalse(document.exists, "Only a deliberately expanded margin may hide the PDF")
+        }
+        let stripFrame = strip.frame, documentFrame = requiresDocument ? document.frame : nil
         let marginFrame = margin?.frame
         let marginPosition = app.buttons["marginPages"].value as? String
         let initialSeconds = recordingSeconds(elapsed) ?? 0
@@ -713,7 +720,10 @@ final class LaunchTests: XCTestCase {
         }, object: elapsed)
         XCTAssertEqual(XCTWaiter.wait(for: [advancing], timeout: 10), .completed, "Duration must advance from actual recording")
         XCTAssertEqual(strip.frame, stripFrame, "The strip must retain its idle geometry")
-        if let documentFrame { XCTAssertEqual(document.frame, documentFrame, "Recording must preserve the document viewport") }
+        if let documentFrame {
+            XCTAssertTrue(document.exists, "PDF must remain present during split recording")
+            XCTAssertEqual(document.frame, documentFrame, "Recording must preserve the document viewport")
+        }
         if let marginFrame, let margin { XCTAssertEqual(margin.frame, marginFrame, "Recording must preserve the handwriting viewport") }
         XCTAssertEqual(app.buttons["marginPages"].value as? String, marginPosition)
         let level = app.descendants(matching: .any)["recordingLevel"].firstMatch
@@ -725,7 +735,10 @@ final class LaunchTests: XCTestCase {
         let stopped = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "متوقف"), object: record)
         XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 5), .completed)
         XCTAssertEqual(strip.frame, stripFrame)
-        if let documentFrame { XCTAssertEqual(document.frame, documentFrame) }
+        if let documentFrame {
+            XCTAssertTrue(document.exists, "PDF must remain present after split recording")
+            XCTAssertEqual(document.frame, documentFrame)
+        }
         if let marginFrame, let margin { XCTAssertEqual(margin.frame, marginFrame) }
     }
 
@@ -775,7 +788,7 @@ final class LaunchTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(control.frame.height, 44, identifier)
             }
             capturePaperStudio(appearance + "-SplitHandwritingLandscape", in: app)
-            captureAdvancingRecording(in: app, name: appearance + "-Landscape", margin: margin)
+            captureAdvancingRecording(in: app, name: appearance + "-Landscape", requiresDocument: true, margin: margin)
             // Return to the library in landscape to capture the adaptive covers/navigation.
             app.navigationBars.buttons.element(boundBy: 0).tap()
             XCTAssertTrue(app.buttons["librarySections"].waitForExistence(timeout: 10))
@@ -802,14 +815,36 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(margin.waitForExistence(timeout: 5))
         XCTAssertGreaterThan(margin.frame.height, 44)
         capturePaperStudio("AccessibilityType-ExpandedHandwriting", in: app)
-        captureAdvancingRecording(in: app, name: "AccessibilityType-Expanded", margin: margin)
+        captureAdvancingRecording(in: app, name: "AccessibilityType-Expanded", requiresDocument: false, margin: margin)
         app.terminate()
     }
 
     func testColdExternalPDFIntakeSurvivesFirstLaunchEntrance() throws {
+        try verifyExternalPDFIntake(reduceMotion: false, welcomeAlreadyVisible: false)
+    }
+
+    func testColdExternalPDFIntakeWithReduceMotion() throws {
+        try verifyExternalPDFIntake(reduceMotion: true, welcomeAlreadyVisible: false)
+    }
+
+    func testExternalPDFIntakeDismissesAlreadyVisibleWelcome() throws {
+        try verifyExternalPDFIntake(reduceMotion: false, welcomeAlreadyVisible: true)
+    }
+
+    private func verifyExternalPDFIntake(reduceMotion: Bool, welcomeAlreadyVisible: Bool) throws {
         let app = XCUIApplication()
         app.terminate()
-        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-motion-enabled"]
+        app.launchArguments = ["--test-review-entry", "--test-reset-entrance",
+            reduceMotion ? "--test-reduce-motion" : "--test-motion-enabled"]
+        if welcomeAlreadyVisible {
+            app.launch()
+            let welcome = app.buttons["welcomeDemonstration"]
+            guard welcome.waitForExistence(timeout: 15), welcome.isHittable else {
+                XCTFail("External intake must be delivered while welcome is already presented"); return
+            }
+            capturePaperStudio("ExternalIntake-WelcomeBeforeDelivery", in: app)
+        }
+        let variant = welcomeAlreadyVisible ? "VisibleWelcome" : reduceMotion ? "ColdReduceMotion" : "ColdMotion"
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("ColdIntake-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -823,8 +858,8 @@ final class LaunchTests: XCTestCase {
                 ((marker + " page \(page)") as NSString).draw(at: CGPoint(x: 40, y: 60), withAttributes: [.font: UIFont.systemFont(ofSize: 24)])
             }
         }
-        // XCTest launches by URL: this exercises onOpenURL, without a hidden
-        // import button, direct LibraryStore call, or a warm app launch first.
+        // Cold variants launch by URL; the visible-welcome variant delivers
+        // to the running app. Every variant exercises the same real onOpenURL.
         app.open(url)
         let status = app.staticTexts.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@",
             "importStatus", "تم استيراد " + title)).firstMatch
@@ -833,7 +868,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertFalse(app.buttons["welcomeDemonstration"].exists, "Welcome must not interrupt external intake")
         let card = visibleLibraryDocument(title, in: app)
         XCTAssertTrue(card.isHittable)
-        capturePaperStudio("ColdExternalIntake-Library", in: app)
+        capturePaperStudio("ExternalIntake-" + variant + "-Library", in: app)
         // Search the actual PDF contents, then open the imported card through
         // the real library. The filename alone cannot satisfy this check.
         let search = app.searchFields.firstMatch
@@ -843,12 +878,145 @@ final class LaunchTests: XCTestCase {
         content.tap()
         let page = app.textFields["pageNumber"]
         XCTAssertTrue(page.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.otherElements["pdfCanvas"].exists, "Actual imported content must open in the native PDF reader")
         XCTAssertEqual(page.value as? String, "1")
         XCTAssertTrue(app.buttons["nextDocumentPage"].isEnabled)
         app.buttons["nextDocumentPage"].tap()
         XCTAssertEqual(page.value as? String, "2", "Both generated PDF pages must reach the real reader")
         XCTAssertFalse(app.buttons["nextDocumentPage"].isEnabled)
-        capturePaperStudio("ColdExternalIntake-ImportedDocument", in: app)
+        capturePaperStudio("ExternalIntake-" + variant + "-ImportedDocument", in: app)
+    }
+
+    private func tapInkTarget(_ identifier: String, in app: XCUIApplication) -> Bool {
+        let toolbar = app.scrollViews["inkToolbar"].firstMatch
+        let control = toolbar.descendants(matching: .any)[identifier].firstMatch
+        guard toolbar.waitForExistence(timeout: 5), control.waitForExistence(timeout: 5) else {
+            XCTFail("Missing individual ink control: " + identifier); return false
+        }
+        // Accessibility can report an offscreen HStack child as hittable.
+        // Require its entire rendered target inside this toolbar's viewport.
+        for _ in 0..<12 {
+            if control.isHittable && toolbar.frame.insetBy(dx: -0.5, dy: -0.5).contains(control.frame) { break }
+            let viewport = toolbar.frame, target = control.frame
+            let distance = target.minX < viewport.minX
+                ? viewport.minX - target.minX + 12 : viewport.maxX - target.maxX - 12
+            // Small, measured drags avoid oscillating past a partially visible
+            // target when the compact toolbar is narrower than its contents.
+            let delta = max(-viewport.width * 0.4, min(viewport.width * 0.4, distance))
+            let start = toolbar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: delta, dy: 0)))
+        }
+        guard control.isHittable, toolbar.frame.insetBy(dx: -0.5, dy: -0.5).contains(control.frame) else {
+            XCTFail("Cannot scroll the complete ink target into view: " + identifier); return false
+        }
+        XCTAssertGreaterThanOrEqual(control.frame.width, 44, identifier)
+        XCTAssertGreaterThanOrEqual(control.frame.height, 44, identifier)
+        // Tap the lower edge of the 44pt target, outside the small icon/swatch.
+        control.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1))
+            .withOffset(CGVector(dx: 0, dy: -2)).tap()
+        return true
+    }
+
+    private func exerciseIndividualInkTargets(in app: XCUIApplication, canvas: XCUIElement,
+                                             count: XCUIElement, allowsWidthFit: Bool, name: String) {
+        guard tapInkTarget("inkBrush", in: app) else { return }
+        let pencil = app.buttons["رصاص"].firstMatch
+        guard pencil.waitForExistence(timeout: 5) else { XCTFail("Brush target must open its menu"); return }
+        pencil.tap()
+        XCTAssertTrue(app.buttons["inkBrush"].label.contains("رصاص"))
+        guard tapInkTarget("inkWidth", in: app) else { return }
+        let width = app.buttons["سماكة 8"].firstMatch
+        guard width.waitForExistence(timeout: 5) else { XCTFail("Width target must open its menu"); return }
+        width.tap()
+        XCTAssertEqual(app.buttons["inkWidth"].value as? String, "8")
+        guard tapInkTarget("inkColor", in: app) else { return }
+        let close = app.buttons["Close"].firstMatch
+        guard close.waitForExistence(timeout: 5) else {
+            XCTFail("Color target must present the native color picker: " + app.debugDescription); return
+        }
+        capturePaperStudio(name + "-NativeColorPicker", in: app)
+        close.tap()
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: close)
+        guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
+            XCTFail("Native color picker must dismiss before testing ink actions"); return
+        }
+        let before = Int(count.value as? String ?? "") ?? 0
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.35)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (Int(count.value as? String ?? "") ?? 0) > before
+        }, object: count)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Targets must leave a usable native writing surface")
+        let savedCount = count.value as? String
+        guard tapInkTarget("inkUndo", in: app) else { return }
+        let undone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (Int(count.value as? String ?? "") ?? -1) == before
+        }, object: count)
+        XCTAssertEqual(XCTWaiter.wait(for: [undone], timeout: 5), .completed, "Undo edge tap must remove the actual stroke")
+        guard tapInkTarget("inkRedo", in: app) else { return }
+        let redone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", savedCount ?? ""), object: count)
+        XCTAssertEqual(XCTWaiter.wait(for: [redone], timeout: 5), .completed, "Redo edge tap must restore the actual stroke")
+        let frame = canvas.frame, page = app.textFields["pageNumber"].value as? String
+        guard tapInkTarget("fitMargin", in: app) else { return }
+        XCTAssertEqual(canvas.frame, frame, "Fit must not move the native viewport")
+        XCTAssertEqual(count.value as? String, savedCount)
+        capturePaperStudio(name + "-FitSheet", in: app)
+        if allowsWidthFit {
+            let sheetViewport = canvas.label
+            guard tapInkTarget("fitMarginWidth", in: app) else { return }
+            let refitted = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                canvas.label != sheetViewport
+            }, object: canvas)
+            XCTAssertEqual(XCTWaiter.wait(for: [refitted], timeout: 5), .completed,
+                "Width-fit edge tap must change the native margin viewport diagnostics")
+            XCTAssertEqual(canvas.frame, frame)
+            XCTAssertEqual(count.value as? String, savedCount)
+        }
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, page)
+        XCTAssertGreaterThan(canvas.frame.height, 44, "Ink targets must retain usable writing space")
+        capturePaperStudio(name + "-IndividualInkTargets", in: app)
+    }
+
+    private func verifyIndividualInkTargets(accessibilityType: Bool) {
+        defer { XCUIDevice.shared.orientation = .portrait }
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
+            + (accessibilityType ? ["--test-accessibility-type"] : [])
+        app.launch()
+        let demo = app.buttons["welcomeDemonstration"]
+        guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }
+        if !demo.isHittable { app.swipeUp() }
+        demo.tap()
+        let pdf = app.otherElements["pdfCanvas"]
+        guard pdf.waitForExistence(timeout: 15) else { XCTFail("Demonstration must open its native PDF"); return }
+        let variant = accessibilityType ? "AccessibilityType" : "StandardType"
+        app.buttons["inkTool"].tap()
+        exerciseIndividualInkTargets(in: app, canvas: pdf, count: app.buttons["inkTool"],
+            allowsWidthFit: false, name: variant + "-DocumentInk")
+        app.buttons["splitDocumentNotes"].tap()
+        app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
+        let margin = app.scrollViews["marginInkCanvas"]
+        guard margin.waitForExistence(timeout: 5) else { XCTFail("Split must retain its native margin canvas"); return }
+        XCTAssertTrue(pdf.exists, "Compact split must retain the PDF beside handwriting")
+        let pdfFrame = pdf.frame
+        exerciseIndividualInkTargets(in: app, canvas: margin, count: margin,
+            allowsWidthFit: true, name: variant + "-CompactSplitInk")
+        XCTAssertTrue(pdf.exists)
+        XCTAssertEqual(pdf.frame, pdfFrame, "Ink toolbar taps must preserve the split PDF viewport")
+        XCTAssertGreaterThan(margin.frame.height, 44)
+        app.terminate()
+    }
+
+    func testIndividualInkTargetsInDocumentAndCompactSplit() {
+        verifyIndividualInkTargets(accessibilityType: false)
+    }
+
+    func testIndividualInkTargetsAtAccessibilityTextSize() {
+        verifyIndividualInkTargets(accessibilityType: true)
     }
 
 }

@@ -79,6 +79,81 @@ jobs:
           subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
           PY
           maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
+      - name: Capture actual first-launch entrance and Reduce Motion
+        run: |
+          python3 - <<'PY_CAPTURE'
+          import json, os, selectors, signal, subprocess, time
+          from pathlib import Path
+
+          simulator = os.environ['SIMULATOR_ID']
+          bundle = 'com.ahmadalawi.hashiya'
+          output = Path('EntranceCaptures')
+          output.mkdir(exist_ok=True)
+          report = {'commit': os.environ['GITHUB_SHA'], 'family': '${{ matrix.family }}',
+                    'simulator': simulator, 'captures': []}
+          try:
+              for name, motion in [('normal', '--test-motion-enabled'), ('reduce-motion', '--test-reduce-motion')]:
+                  # Maestro already finished. Each DEBUG launch creates its own
+                  # review root and resets flags without changing the animation.
+                  subprocess.run(['xcrun', 'simctl', 'terminate', simulator, bundle], capture_output=True, timeout=10)
+                  movie = output / (name + '.mov')
+                  entry = {'name': name, 'movie': str(movie), 'status': 'pending',
+                           'arguments': ['--test-review-entry', '--test-reset-entrance', motion]}
+                  report['captures'].append(entry)
+                  recorder = None
+                  with (output / (name + '.log')).open('wb') as log:
+                      try:
+                          recorder = subprocess.Popen(['xcrun', 'simctl', 'io', simulator,
+                              'recordVideo', '--codec', 'h264', str(movie)], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+                          # Wait for the actual recorder readiness message before
+                          # launch so its setup cannot miss the subsecond entrance.
+                          pending = b''
+                          with selectors.DefaultSelector() as selector:
+                              selector.register(recorder.stdout, selectors.EVENT_READ)
+                              deadline = time.monotonic() + 15
+                              while b'Recording started' not in pending:
+                                  if time.monotonic() >= deadline or recorder.poll() is not None:
+                                      raise RuntimeError('Simulator recorder did not report readiness')
+                                  for key, _ in selector.select(timeout=0.5):
+                                      chunk = os.read(key.fileobj.fileno(), 4096)
+                                      log.write(chunk); log.flush()
+                                      pending += chunk
+                                      if not chunk:
+                                          raise RuntimeError('Simulator recorder closed before readiness')
+                          launch = subprocess.run(['xcrun', 'simctl', 'launch', simulator, bundle]
+                              + entry['arguments'], capture_output=True, check=True, timeout=30)
+                          log.write(launch.stdout + launch.stderr); log.flush()
+                          # Record the real entrance and subsequent welcome; this
+                          # does not extend/freeze production or wait on XCTest idle.
+                          time.sleep(3)
+                          recorder.send_signal(signal.SIGINT)
+                          remaining, _ = recorder.communicate(timeout=20)
+                          log.write(remaining); log.flush()
+                          entry['recorder_exit'] = recorder.returncode
+                          if recorder.returncode != 0:
+                              raise RuntimeError('Simulator recorder failed to finalize the movie')
+                          if not movie.is_file() or movie.stat().st_size == 0:
+                              raise RuntimeError('Simulator recorder produced no movie bytes')
+                          entry.update(status='recorded-pending-visual-review', bytes=movie.stat().st_size)
+                          print('Actual simulator capture:', name, movie.stat().st_size, 'bytes; visual review pending')
+                      except Exception as error:
+                          entry.update(status='failed', error=str(error))
+                          log.write(('Capture failed: ' + str(error) + '\n').encode()); log.flush()
+                          raise
+                      finally:
+                          if recorder is not None and recorder.poll() is None:
+                              recorder.send_signal(signal.SIGINT)
+                              try:
+                                  remaining, _ = recorder.communicate(timeout=20)
+                              except subprocess.TimeoutExpired:
+                                  recorder.kill()
+                                  remaining, _ = recorder.communicate()
+                              log.write(remaining)
+                          subprocess.run(['xcrun', 'simctl', 'terminate', simulator, bundle], capture_output=True, timeout=10)
+          finally:
+              (output / 'capture-report.json').write_text(json.dumps(report, indent=2) + '\n')
+          PY_CAPTURE
       - name: Verify externally exported fixture bytes
         if: always()
         run: python3 Tools/seed_files_fixtures.py --verify
@@ -102,6 +177,7 @@ jobs:
             file-provider.log
             Screenshots/
             MaestroResults/
+            EntranceCaptures/
           retention-days: 7
 
   device-package:

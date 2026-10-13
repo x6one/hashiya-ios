@@ -31,6 +31,8 @@ struct LibraryScreen: View {
     @State private var demonstration: Notebook?
     @AppStorage("tayya.welcomeSeen") private var welcomeSeen = false
     @State private var welcome = false
+    // Session-only UI gating keeps external intake/status ahead of onboarding.
+    @State private var receivedExternalFile = false
     private var filtered: [Notebook] {
         store.visibleNotebooks(section: section, trash: showTrash, favorites: favorites)
     }
@@ -64,7 +66,12 @@ struct LibraryScreen: View {
                         .background(.regularMaterial).accessibilityIdentifier("importStatus")
                 }
             }
-            .onOpenURL { url in importing = false; finishPicking([url]) }
+            .onOpenURL { url in
+                receivedExternalFile = true
+                welcome = false
+                importing = false
+                finishPicking([url])
+            }
             .onChange(of: store.sections) { _, sections in
                 if let section, !sections.contains(section) { self.section = "مكتبتي" }
             }
@@ -98,7 +105,7 @@ struct LibraryScreen: View {
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
     }
     private func presentInitialWelcomeIfNeeded() {
-        guard allowsInitialWelcome, !welcomeSeen, store.notebooks.isEmpty,
+        guard allowsInitialWelcome, !receivedExternalFile, !welcomeSeen, store.notebooks.isEmpty,
               !importing, !importingFile else { return }
         welcome = true
     }

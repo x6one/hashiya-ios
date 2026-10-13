@@ -121,24 +121,42 @@ struct InkToolbar: View {
     @Binding var brush: InkBrush
     @Binding var color: Color
     @Binding var width: Double
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     var allowsWidthFit = false
     let action: (String) -> Void
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
                 Menu { ForEach(InkBrush.allCases) { item in Button(item.rawValue, systemImage: item.symbol) { brush = item } } }
-                label: { Label(brush.rawValue, systemImage: brush.symbol) }
-                ColorPicker("لون الحبر", selection: $color, supportsOpacity: false).labelsHidden().accessibilityLabel("لون الحبر")
+                label: {
+                    Label(brush.rawValue, systemImage: brush.symbol)
+                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.accessibilityIdentifier("inkBrush")
+                ColorPicker("لون الحبر", selection: $color, supportsOpacity: false)
+                    .labelsHidden().frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    .accessibilityLabel("لون الحبر").accessibilityIdentifier("inkColor")
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
-                label: { Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle()) }.accessibilityLabel("سماكة القلم")
-                Button("تراجع", systemImage: "arrow.uturn.backward") { action("undo") }.labelStyle(.iconOnly)
-                Button("إعادة", systemImage: "arrow.uturn.forward") { action("redo") }.labelStyle(.iconOnly)
-                Button("إظهار الورقة كاملة", systemImage: "arrow.up.left.and.arrow.down.right") { action("fit") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMargin")
+                label: {
+                    Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle())
+                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.accessibilityLabel("سماكة القلم").accessibilityValue("\(Int(width))").accessibilityIdentifier("inkWidth")
+                Button { action("undo") } label: { inkTarget("تراجع", symbol: "arrow.uturn.backward") }
+                    .accessibilityIdentifier("inkUndo")
+                Button { action("redo") } label: { inkTarget("إعادة", symbol: "arrow.uturn.forward") }
+                    .accessibilityIdentifier("inkRedo")
+                Button { action("fit") } label: { inkTarget("إظهار الورقة كاملة", symbol: "arrow.up.left.and.arrow.down.right") }
+                    .accessibilityIdentifier("fitMargin")
                 if allowsWidthFit {
-                    Button("عرض مناسب للكتابة", systemImage: "arrow.left.and.right") { action("fitWidth") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMarginWidth")
+                    Button { action("fitWidth") } label: { inkTarget("عرض مناسب للكتابة", symbol: "arrow.left.and.right") }
+                        .accessibilityIdentifier("fitMarginWidth")
                 }
-            }.padding(.horizontal, 12).padding(.vertical, 8)
-        }.background(TayyaTheme.surface)
+            }.buttonStyle(.plain).padding(.horizontal, 12)
+                .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
+        }.background(TayyaTheme.surface).accessibilityIdentifier("inkToolbar")
+    }
+    private func inkTarget(_ title: String, symbol: String) -> some View {
+        Label(title, systemImage: symbol).labelStyle(.iconOnly)
+            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
 }
 struct MarginNotebook: UIViewRepresentable {

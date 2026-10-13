@@ -171,6 +171,7 @@ struct DocumentScreen: View {
     @State private var pageNumber = "1"
     @State private var restoredReadingPosition = false
     @FocusState private var pageFocused: Bool
+    @ScaledMetric(relativeTo: .body) private var pageFieldWidth: CGFloat = 48
     @State private var toolGroup: WorkspaceToolGroup = .writing
     @State private var showPaperPicker = false
     @State private var showDocumentPages = false
@@ -193,6 +194,7 @@ struct DocumentScreen: View {
     @StateObject private var audio: PageAudio
     let initialPage: Int?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     init(note: Notebook, root: URL, initialPage: Int? = nil) {
         self.note = note; self.root = root; self.initialPage = initialPage
         _workspace = StateObject(wrappedValue: PDFWorkspace(note: note, root: root))
@@ -221,9 +223,13 @@ struct DocumentScreen: View {
     }
     private var documentContent: some View {
         VStack(spacing: 0) {
-            if !notesExpanded { toolsBar }
-            // Navigation is outside the drawing area and tool picker on every device.
-            if !notesExpanded { pageControls }
+            if notesExpanded {
+                RecordingStrip(audio: audio, action: toggleRecording)
+            } else {
+                toolsBar
+                // Wide layouts share one row to retain landscape writing space.
+                workspaceNavigation
+            }
             if workspace.tool == .ink && !notesExpanded {
                 InkToolbar(brush: $workspace.brush, color: $workspace.inkColor, width: $workspace.inkWidth) { action in
                     if action == "fit" { workspace.fit() } else { workspace.inkAction?(action) }
@@ -250,15 +256,26 @@ struct DocumentScreen: View {
     }
     private var boundedFraction: Double { min(0.7, max(0.3, splitFraction)) }
     private func splitDivider(size: CGSize, horizontal: Bool) -> some View {
-        Rectangle().fill(TayyaTheme.ink.opacity(0.12))
+        Rectangle().fill(TayyaTheme.paper)
             .frame(width: horizontal ? 16 : nil, height: horizontal ? nil : 16)
-            .overlay { Capsule().fill(TayyaTheme.ink.opacity(0.5)).frame(width: horizontal ? 4 : 40, height: horizontal ? 40 : 4) }
+            .overlay {
+                TayyaTheme.separator.frame(width: horizontal ? 1 : nil, height: horizontal ? nil : 1)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                Capsule().fill(TayyaTheme.detail).frame(width: horizontal ? 4 : 40, height: horizontal ? 40 : 4)
+                    .padding(4).background(TayyaTheme.mutedSurface, in: Capsule()).allowsHitTesting(false)
+            }
+            // Grow the gesture target to 44pt, then restore the reserved 16pt.
+            // The document and note frames keep their original split geometry.
+            .padding(.horizontal, horizontal ? 14 : 0).padding(.vertical, horizontal ? 0 : 14)
             .contentShape(Rectangle())
             .gesture(DragGesture().onChanged { value in
                 if dragFraction == nil { dragFraction = boundedFraction }
                 let delta = horizontal ? -value.translation.width / max(1, size.width - 16) : value.translation.height / max(1, size.height - 16)
                 splitFraction = min(0.7, max(0.3, (dragFraction ?? boundedFraction) + delta))
             }.onEnded { _ in dragFraction = nil })
+            .padding(.horizontal, horizontal ? -14 : 0).padding(.vertical, horizontal ? 0 : -14)
             .accessibilityElement().accessibilityLabel("تغيير تقسيم الشاشة")
             .accessibilityIdentifier("splitDivider")
             .accessibilityAdjustableAction { direction in splitFraction = min(0.7, max(0.3, boundedFraction + (direction == .increment ? 0.05 : -0.05))) }
@@ -278,14 +295,43 @@ struct DocumentScreen: View {
     }
     private var toolsBar: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { toolGroupPicker.frame(width: 240); toolActions.frame(minWidth: 310) }
+            HStack(spacing: 14) {
+                toolGroupPicker.frame(minWidth: 240, idealWidth: 280, maxWidth: 320)
+                toolActions.frame(minWidth: 350)
+            }
             VStack(spacing: 4) { toolGroupPicker; toolActions }
-        }.padding(.horizontal, 8).padding(.top, 6).background(TayyaTheme.surface)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 4)
+        .background(TayyaTheme.surface)
     }
     private var toolGroupPicker: some View {
         Picker("مجموعة الأدوات", selection: $toolGroup) {
                 ForEach(WorkspaceToolGroup.allCases) { group in Text(group.rawValue).tag(group) }
-            }.pickerStyle(.segmented).accessibilityIdentifier("workspaceToolGroups")
+            }.pickerStyle(.segmented).tint(TayyaTheme.ink).frame(minHeight: 44)
+            .accessibilityIdentifier("workspaceToolGroups")
+    }
+    private var workspaceNavigation: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                stackedNavigation
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 0) {
+                        pageControls.frame(width: 350)
+                        RecordingStrip(audio: audio, action: toggleRecording).frame(minWidth: 300)
+                    }
+                    stackedNavigation
+                }
+            }
+        }
+        .background(TayyaTheme.mutedSurface)
+        .overlay(alignment: .bottom) { TayyaTheme.separator.frame(height: 1).allowsHitTesting(false) }
+    }
+    private var stackedNavigation: some View {
+        VStack(spacing: 0) {
+            pageControls
+            RecordingStrip(audio: audio, action: toggleRecording)
+        }
     }
     private var toolActions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -306,10 +352,6 @@ struct DocumentScreen: View {
                     case .study:
                         WorkspaceAction(title: "بطاقة جديدة", symbol: "rectangle.badge.plus") { cardDraft = Flashcard(question: "", answer: workspace.view?.currentSelection?.string ?? "", page: workspace.page) }
                         WorkspaceAction(title: "البطاقات", symbol: "rectangle.stack") { showCards = true }.accessibilityIdentifier("openFlashcards")
-                        WorkspaceAction(title: audio.recording ? "إيقاف" : "تسجيل", symbol: audio.recording ? "stop.circle" : "mic", selected: audio.recording) {
-                            if audio.recording { audio.stop() } else { Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
-                        }.disabled(audio.requestingPermission).accessibilityIdentifier("recordLinkedAudio")
-                            .accessibilityValue(audio.recording ? "جارٍ التسجيل" : audio.requestingPermission ? "انتظار إذن الميكروفون" : "متوقف")
                         WorkspaceAction(title: "التسجيلات", symbol: "waveform") { showLinkedAudio = true }.accessibilityIdentifier("openLinkedAudio")
                         if !recognitionLanguages.isEmpty {
                             Menu {
@@ -317,10 +359,8 @@ struct DocumentScreen: View {
                                     Button(Locale(identifier: "ar").localizedString(forIdentifier: language) ?? language) { recognize(language) }
                                 }
                             } label: {
-                                VStack(spacing: 3) {
-                                    Image(systemName: "text.viewfinder").font(.system(size: 17, weight: .medium))
-                                    Text("قراءة الصور").font(.system(size: 11, weight: .medium))
-                                }.frame(minWidth: 66, minHeight: 44).foregroundStyle(TayyaTheme.ink)
+                                WorkspaceActionLabel(title: "قراءة الصور", symbol: "text.viewfinder")
+                                    .foregroundStyle(TayyaTheme.ink)
                             }.disabled(ocrBusy).accessibilityIdentifier("recognizeDocumentText")
                         }
                     case .files:
@@ -329,6 +369,10 @@ struct DocumentScreen: View {
                     }
                 }.padding(.vertical, 2).disabled(toolGroup == .pages && ocrBusy)
             }
+    }
+    private func toggleRecording() {
+        if audio.recording { audio.stop() }
+        else { Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
     }
     private func changeDocumentPage(number: Int? = nil, undo: Bool = false) {
         audio.stop(); workspace.tool = .read
@@ -411,11 +455,12 @@ struct DocumentScreen: View {
         }
     }
     private var pageControls: some View {
-        HStack(spacing: 4) {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Button("السابق في المستند", systemImage: "chevron.right") { workspace.jump(workspace.page - 1) }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.page <= 1).accessibilityIdentifier("previousDocumentPage")
-                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).frame(width: 44).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
-                Text("من \(workspace.document.pageCount)").font(.caption)
-                Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.accessibilityIdentifier("goToPage")
+                TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).font(.body.monospacedDigit()).frame(width: pageFieldWidth).frame(minHeight: 44).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
+                Text("من \(workspace.document.pageCount)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail).fixedSize()
+                Button("اذهب") { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) }.font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("goToPage")
                 Button("التالي في المستند", systemImage: "chevron.left") { workspace.jump(workspace.page + 1) }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.page >= workspace.document.pageCount).accessibilityIdentifier("nextDocumentPage")
                 Spacer(minLength: 4)
                 Image(systemName: "record.circle.fill").foregroundStyle(.red)
@@ -423,7 +468,8 @@ struct DocumentScreen: View {
                     .accessibilityLabel("جارٍ التسجيل").accessibilityHidden(!audio.recording)
                     .accessibilityIdentifier("recordingIndicator")
                 Button("ملاءمة", systemImage: "arrow.up.left.and.arrow.down.right") { workspace.fit() }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("fitDocumentPage")
-            }.padding(.horizontal, 8).background(TayyaTheme.surface)
+            }.padding(.horizontal, 10).frame(minHeight: 44)
+        }.background(TayyaTheme.mutedSurface).foregroundStyle(TayyaTheme.ink)
     }
 }
 struct TextEditorSheet: View {

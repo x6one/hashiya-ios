@@ -23,7 +23,12 @@ struct MarginPane: View {
             header
             if let page = store.current {
                 if verticalSizeClass == .compact && editor.handwriting {
-                    HStack(spacing: 0) { modeControls.frame(width: 195); inkControls }
+                    modeControls
+                    HStack(spacing: 0) {
+                        inkControls
+                        TayyaTheme.separator.frame(width: 1, height: 28).accessibilityHidden(true)
+                        footer(page)
+                    }.background(TayyaTheme.surface)
                 } else {
                     modeControls
                     if editor.handwriting { inkControls }
@@ -37,10 +42,10 @@ struct MarginPane: View {
                 } else {
                     TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
                                              set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
-                        .font(.system(size: 20)).padding(8).scrollContentBackground(.hidden)
-                        .background(TayyaTheme.surface).accessibilityIdentifier("splitNotes").focused($textFocused)
+                        .font(.title3).padding(8).scrollContentBackground(.hidden)
+                        .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
                 }
-                if !textFocused { footer(page) }
+                if !textFocused && !(verticalSizeClass == .compact && editor.handwriting) { footer(page) }
             } else {
                 ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
             }
@@ -61,33 +66,49 @@ struct MarginPane: View {
     private var modeControls: some View {
         HStack(spacing: 8) {
             Picker("طريقة تدوين الحاشية", selection: $editor.handwriting) { Text("نص").tag(false); Text("خط اليد").tag(true) }
-                .pickerStyle(.segmented).accessibilityIdentifier("marginMode")
+                .pickerStyle(.segmented).tint(TayyaTheme.ink)
+                .frame(minWidth: verticalSizeClass == .compact ? 140 : 160, minHeight: 44)
+                .accessibilityIdentifier("marginMode")
             if editor.handwriting {
-                Button(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip") { editor.drawing.toggle() }
-                    .font(.subheadline).accessibilityIdentifier("marginPan")
+                Button { editor.drawing.toggle() } label: {
+                    ViewThatFits(in: .horizontal) {
+                        Label(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip")
+                            .fixedSize(horizontal: true, vertical: true)
+                        Image(systemName: editor.drawing ? "hand.draw" : "pencil.tip")
+                    }
+                    .font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityLabel(editor.drawing ? "تحريك" : "كتابة").accessibilityIdentifier("marginPan")
             }
-        }.padding(.horizontal, 12).padding(.vertical, 6)
+        }.padding(.horizontal, verticalSizeClass == .compact ? 8 : 12)
+            .padding(.vertical, verticalSizeClass == .compact ? 2 : 6)
     }
     private var inkControls: some View {
         InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
+            .frame(minHeight: 44)
     }
     private var header: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            headerControls
+        }.background(TayyaTheme.surface).foregroundStyle(TayyaTheme.ink)
+    }
+    private var headerControls: some View {
         HStack(spacing: 6) {
             Button("السابق في الحاشية", systemImage: "chevron.right") { store.move(-1) }
-                .labelStyle(.iconOnly).frame(minWidth: 40, minHeight: 44).disabled(store.position == 0).accessibilityIdentifier("previousMarginPage")
+                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(store.position == 0).accessibilityIdentifier("previousMarginPage")
             Button { showPages = true } label: {
                 VStack(spacing: 2) {
-                    Text("الحاشية").font(.headline)
-                    Text("\(store.position + 1) من \(store.pages.count)").font(.caption).monospacedDigit()
-                }
+                    Text("الحاشية").font(.headline).foregroundStyle(TayyaTheme.text)
+                    Text("\(store.position + 1) من \(store.pages.count)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail)
+                }.fixedSize(horizontal: true, vertical: true).frame(minHeight: 44)
             }.accessibilityIdentifier("marginPages").accessibilityValue("\(store.position + 1)/\(store.pages.count)")
             Button("التالي في الحاشية", systemImage: "chevron.left") { store.move(1) }
-                .labelStyle(.iconOnly).frame(minWidth: 40, minHeight: 44).disabled(store.position + 1 >= store.pages.count).accessibilityIdentifier("nextMarginPage")
+                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(store.position + 1 >= store.pages.count).accessibilityIdentifier("nextMarginPage")
             Spacer(minLength: 0)
             Button("إضافة صفحة حاشية", systemImage: "plus") { _ = store.add(linkedTo: sourcePage) }
-                .labelStyle(.iconOnly).frame(minWidth: 40, minHeight: 44).accessibilityIdentifier("addMarginPage")
+                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("addMarginPage")
             Button(expanded ? "العودة إلى المستند" : "تكبير الحاشية", systemImage: expanded ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right") { toggleExpanded() }
-                .labelStyle(.iconOnly).frame(minWidth: 40, minHeight: 44).accessibilityIdentifier("expandMargin")
+                .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("expandMargin")
         }.padding(.horizontal, 8).background(TayyaTheme.surface)
     }
     private func footer(_ page: MarginPage) -> some View {

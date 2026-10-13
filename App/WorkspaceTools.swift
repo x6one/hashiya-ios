@@ -11,13 +11,21 @@ struct WorkspaceAction: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: symbol).font(.system(size: 17, weight: .medium))
-                Text(title).font(.system(size: 11, weight: .medium)).fixedSize(horizontal: true, vertical: false)
-            }.frame(minWidth: 54, minHeight: 44).padding(.horizontal, 3)
+            WorkspaceActionLabel(title: title, symbol: symbol)
                 .foregroundStyle(selected ? TayyaTheme.paper : TayyaTheme.ink)
-                .background(selected ? TayyaTheme.ink : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+                .background(selected ? TayyaTheme.ink : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }.buttonStyle(.plain).accessibilityLabel(title).accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+struct WorkspaceActionLabel: View {
+    let title: String
+    let symbol: String
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: symbol).font(.body.weight(.medium)).symbolRenderingMode(.hierarchical)
+            Text(title).font(.caption2.weight(.medium)).fixedSize(horizontal: true, vertical: true)
+        }.frame(minWidth: 54, minHeight: 44).padding(.horizontal, 6).padding(.vertical, 4)
+            .contentShape(Rectangle())
     }
 }
 struct WritingPaperPicker: View {

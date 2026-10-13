@@ -40,9 +40,53 @@ final class AudioPlaybackTests: XCTestCase {
         XCTAssertNotNil(audio.error)
     }
 
+    @MainActor func testLegacyAndLinkedPlaybackHandOffInBothDirections() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let linked = PageAudio(folder: root.appendingPathComponent("linked"))
+        let legacy = PageAudio(folder: root.appendingPathComponent("1"))
+        defer { linked.stop(); legacy.stop(); try? FileManager.default.removeItem(at: root) }
+        let linkedClip = linked.folder.appendingPathComponent("linked.wav")
+        let legacyClip = legacy.folder.appendingPathComponent("legacy.wav")
+        let wave = shortWave(frames: 16000)
+        try wave.write(to: linkedClip)
+        try wave.write(to: legacyClip)
+        legacy.coordinatePlayback(with: linked)
+
+        linked.play(linkedClip)
+        XCTAssertEqual(linked.playing, linkedClip)
+        legacy.play(legacyClip)
+        XCTAssertNil(legacy.error)
+        XCTAssertNil(linked.playing, "Opening a legacy clip must stop linked playback")
+        XCTAssertEqual(legacy.playing, legacyClip)
+        linked.play(linkedClip)
+        XCTAssertNil(linked.error)
+        XCTAssertNil(legacy.playing, "Returning to linked playback must stop the legacy clip")
+        XCTAssertEqual(linked.playing, linkedClip)
+        XCTAssertEqual(try Data(contentsOf: linkedClip), wave)
+        XCTAssertEqual(try Data(contentsOf: legacyClip), wave, "Playback handoff must preserve older files")
+    }
+
+    @MainActor func testIdleLegacyScreenCleanupDoesNotInterruptLinkedPlayback() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let linked = PageAudio(folder: root.appendingPathComponent("linked"))
+        let legacy = PageAudio(folder: root.appendingPathComponent("1"))
+        defer { linked.stop(); legacy.stop(); try? FileManager.default.removeItem(at: root) }
+        legacy.coordinatePlayback(with: linked)
+        let clip = linked.folder.appendingPathComponent("linked.wav")
+        try shortWave(frames: 8000).write(to: clip)
+        let finished = expectation(description: "linked clip completes after legacy cleanup")
+        let subscription = linked.$playing.drop(while: { $0 == nil }).filter { $0 == nil }.prefix(1).sink { _ in finished.fulfill() }
+        linked.play(clip)
+        XCTAssertEqual(linked.playing, clip)
+        legacy.stop()
+        XCTAssertEqual(linked.playing, clip)
+        await fulfillment(of: [finished], timeout: 5)
+        XCTAssertNil(linked.error)
+        subscription.cancel()
+    }
+
     /// Valid mono 16-bit PCM WAV, 0.2 seconds at 8 kHz; no microphone or fixtures needed.
-    private func shortWave() -> Data {
-        let frames = 1600
+    private func shortWave(frames: Int = 1600) -> Data {
         var data = Data()
         func word<T: FixedWidthInteger>(_ value: T) {
             var little = value.littleEndian

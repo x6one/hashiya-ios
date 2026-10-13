@@ -68,7 +68,7 @@ struct LinkedAudioScreen: View {
                     Section("تسجيلات الصفحات السابقة") {
                         ForEach(legacyPages) { entry in
                             NavigationLink {
-                                PageAudioScreen(folder: entry.folder, allowRecording: false)
+                                PageAudioScreen(folder: entry.folder, allowRecording: false, playbackPeer: audio)
                             } label: {
                                 Label("صفحة \(entry.page)", systemImage: "waveform")
                             }.disabled(audio.recording || audio.requestingPermission)
@@ -87,5 +87,6 @@ struct LinkedAudioScreen: View {
                 audio.reload()
                 legacyPages = LegacyPageRecordings.folders(in: audio.folder.deletingLastPathComponent())
             }
+            .onDisappear { audio.stopPlayback() }
     }
 }

@@ -1,6 +1,26 @@
 import SwiftUI
 import AVFoundation
 
+/// Frequent samples belong to the recording readout, never the PDF workspace.
+@MainActor final class RecordingActivity: ObservableObject {
+    @Published private(set) var elapsed: TimeInterval = 0
+    @Published private(set) var level: Double = 0
+    @Published private(set) var samples = Array(repeating: 0.0, count: 16)
+
+    func update(elapsed: TimeInterval, averagePower: Float) {
+        self.elapsed = elapsed.isFinite ? max(0, elapsed) : 0
+        // AVAudioRecorder supplies decibels. Silence and invalid samples stay flat.
+        level = averagePower.isFinite ? min(1, max(0, pow(10, Double(averagePower) / 20))) : 0
+        samples.removeFirst()
+        samples.append(level)
+    }
+
+    func reset() {
+        elapsed = 0; level = 0
+        samples = Array(repeating: 0, count: samples.count)
+    }
+}
+
 @MainActor final class PageAudio: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     @Published var clips: [URL] = []
     @Published var recording = false
@@ -8,10 +28,14 @@ import AVFoundation
     @Published var playing: URL?
     @Published var error: String?
     @Published var markers: [AudioLink] = []
+    let activity = RecordingActivity()
     let folder: URL
     var recorder: AVAudioRecorder?
     private var generation = 0
     private var player: AVAudioPlayer?
+    private weak var playbackPeer: PageAudio?
+    private var activityTimer: Timer?
+    private var interruptionObserver: NSObjectProtocol?
     private let requestPermission: () async -> Bool
     init(folder: URL, requestPermission: @escaping () async -> Bool = {
         await withCheckedContinuation { continuation in
@@ -21,6 +45,28 @@ import AVFoundation
         self.folder = folder; self.requestPermission = requestPermission
         super.init()
         reload()
+        interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  type == AVAudioSession.InterruptionType.began.rawValue else { return }
+            Task { @MainActor [weak self] in self?.stop() }
+        }
+    }
+    deinit {
+        activityTimer?.invalidate()
+        if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
+        recorder?.stop(); player?.stop()
+    }
+    /// The legacy destination and linked sheet retain separate folders and files.
+    /// Weak peers only hand off playback while those screens are alive.
+    func coordinatePlayback(with other: PageAudio) {
+        guard other !== self else { return }
+        playbackPeer = other
+        other.playbackPeer = self
+    }
+    func stopPlayback() {
+        guard player != nil || playing != nil else { return }
+        player?.stop(); player = nil; playing = nil
+        deactivateAudioSession()
     }
     func reload() {
         do {
@@ -30,7 +76,9 @@ import AVFoundation
         } catch { self.error = error.localizedDescription }
     }
     func start() async {
-        guard !recording, !requestingPermission else { return }
+        guard !recording, !requestingPermission,
+              playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
+        stopActivity()
         requestingPermission = true
         error = nil
         generation += 1; let token = generation
@@ -38,16 +86,44 @@ import AVFoundation
         let allowed = await requestPermission()
         guard token == generation else { return }
         guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
+        guard playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
         do {
-            player?.stop(); player = nil; playing = nil
+            stopPlayback(); playbackPeer?.stopPlayback()
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
             try AVAudioSession.sharedInstance().setActive(true)
             let url = folder.appendingPathComponent("\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(6)).m4a")
             let recorder = try AVAudioRecorder(url: url, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue])
             recorder.delegate = self
+            recorder.isMeteringEnabled = true
             guard recorder.record() else { throw CocoaError(.fileWriteUnknown) }
             self.recorder = recorder; recording = true
-        } catch { self.error = error.localizedDescription }
+            startActivity()
+        } catch {
+            stopActivity()
+            self.error = error.localizedDescription
+            deactivateAudioSession()
+        }
+    }
+    private func startActivity() {
+        activityTimer?.invalidate()
+        sampleActivity()
+        let timer = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.sampleActivity() }
+        }
+        activityTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+    private func sampleActivity() {
+        guard recording, let recorder, recorder.isRecording else {
+            stopActivity()
+            return
+        }
+        recorder.updateMeters()
+        activity.update(elapsed: recorder.currentTime, averagePower: recorder.averagePower(forChannel: 0))
+    }
+    private func stopActivity() {
+        activityTimer?.invalidate(); activityTimer = nil
+        activity.reset()
     }
     func handleScenePhase(_ phase: ScenePhase) {
         // The permission alert may deactivate the scene before recording starts.
@@ -55,21 +131,26 @@ import AVFoundation
         if phase == .background || (phase == .inactive && (recording || playing != nil)) { stop() }
     }
     func stop() {
+        let wasUsingAudioSession = recorder != nil || player != nil
         generation += 1
         requestingPermission = false
+        stopActivity()
         recorder?.stop(); recorder = nil; recording = false
         player?.stop(); player = nil; playing = nil
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        // An idle legacy destination must not deactivate its peer's new playback.
+        if wasUsingAudioSession { deactivateAudioSession() }
         reload()
     }
     func play(_ url: URL, at time: TimeInterval = 0) {
-        guard !recording, !requestingPermission else { return }
+        guard !recording, !requestingPermission,
+              playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
         if playing == url && time == 0 {
             player?.stop(); player = nil; playing = nil
             deactivateAudioSession()
             return
         }
         player?.stop(); player = nil; playing = nil
+        playbackPeer?.stopPlayback()
         error = nil
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback)
@@ -107,6 +188,7 @@ import AVFoundation
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         Task { @MainActor [weak self] in
             guard let self, self.recorder === recorder else { return }
+            self.stopActivity()
             self.recorder = nil; self.recording = false
             if !flag { self.error = "تعذّر إكمال التسجيل. تحقق من التسجيلات المحفوظة." }
             self.reload()
@@ -116,6 +198,7 @@ import AVFoundation
     nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         Task { @MainActor [weak self] in
             guard let self, self.recorder === recorder else { return }
+            self.stopActivity()
             self.recorder?.stop(); self.recorder = nil; self.recording = false
             self.error = error?.localizedDescription ?? "تعذّر حفظ التسجيل."
             self.reload()
@@ -147,8 +230,10 @@ struct PageAudioScreen: View {
     @StateObject private var audio: PageAudio
     @State private var deletingClip: URL?
     let allowRecording: Bool
-    init(folder: URL, allowRecording: Bool = true) {
+    private let playbackPeer: PageAudio?
+    init(folder: URL, allowRecording: Bool = true, playbackPeer: PageAudio? = nil) {
         self.allowRecording = allowRecording
+        self.playbackPeer = playbackPeer
         _audio = StateObject(wrappedValue: PageAudio(folder: folder))
     }
     var body: some View {
@@ -176,7 +261,14 @@ struct PageAudioScreen: View {
                     Button("إلغاء", role: .cancel) { deletingClip = nil }
                 }
                 .alert("الصوت", isPresented: Binding(get: { audio.error != nil }, set: { if !$0 { audio.error = nil } })) { Button("حسناً") { audio.error = nil } } message: { Text(audio.error ?? "") }
-        }.environment(\.layoutDirection, .rightToLeft).onDisappear { audio.stop() }
+        }.environment(\.layoutDirection, .rightToLeft)
+            .onAppear {
+                if let playbackPeer {
+                    audio.coordinatePlayback(with: playbackPeer)
+                    playbackPeer.stopPlayback()
+                }
+            }
+            .onDisappear { audio.stop() }
             .onChange(of: scenePhase) { _, phase in audio.handleScenePhase(phase) }
     }
 }

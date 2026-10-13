@@ -1,0 +1,38 @@
+{
+  "version": "0.6.0",
+  "build": "13",
+  "candidate_date": "2026-10-13",
+  "status": "source-authored; native execution and visual acceptance pending",
+  "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
+  "bundle_identifier": "com.ahmadalawi.hashiya",
+  "deployment_target": "17.0",
+  "device_families": [1, 2],
+  "local_checks": {
+    "release_tools_command": "PYTHONPATH=Tools python3 -m unittest discover -s Tools -p 'test_*.py' -v",
+    "release_tool_tests_passed": 5,
+    "release_tool_tests_failed": 0,
+    "git_diff_check": "passed"
+  },
+  "native_validation": {
+    "exact_source_commit": null,
+    "preflight_run": null,
+    "xctest": "not run for this candidate",
+    "xcuitest": "not run for this candidate",
+    "maestro": "not run for this candidate",
+    "families_required": ["iPhone", "iPad"],
+    "screenshots_captured": false,
+    "screenshots_reviewed": false
+  },
+  "distribution": {
+    "native_office_unsigned_ipa": null,
+    "archive_only_signed_ipa": null,
+    "apple_upload_performed_for_candidate": false
+  },
+  "limitations": [
+    "Linux authoring environment has no Xcode, iOS simulator, Swift compiler or xcodegen",
+    "New UI tests and DEBUG appearance overrides have not been compiled or executed",
+    "Cold file URL delivery, advancing microphone duration, compact handwriting geometry and actual screenshots require exact-source native CI",
+    "Existing XCTest, XCUITest and all three Maestro flow gates remain enabled; no result from a previous release is evidence for this candidate",
+    "Physical-device microphone, pen, zoom and rotation validation remains necessary"
+  ]
+}

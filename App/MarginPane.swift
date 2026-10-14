@@ -83,8 +83,8 @@ private struct MarginPaneContent: View {
             header(compactChrome: compactChrome)
             if let page = store.current {
                 modeControls(compactChrome: compactChrome)
-                if handwriting { inkControls }
-                if handwriting {
+                if editor.handwriting { inkControls }
+                if editor.handwriting {
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)

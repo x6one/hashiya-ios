@@ -587,7 +587,34 @@ final class ResizingPDFView: PDFView {
             ancestors.append("\(type(of: view)) id=\(ObjectIdentifier(view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden) alpha=\(view.alpha) clips=\(view.clipsToBounds) layerOpacity=\(view.layer.opacity) mask=\(view.layer.mask != nil)")
             ancestor = view.superview
         }
-        return "\(source); canvas=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); windowFrame=\(canvas.convert(canvas.bounds, to: nil)); zoom=\(canvas.zoomScale); content=\(canvas.contentSize); offset=\(canvas.contentOffset); inset=\(canvas.contentInset); opaque=\(canvas.isOpaque); tool=\(nativeTool); count=\(drawing.strokes.count); inkBounds=\(drawing.bounds); \(strokes); ancestors=[" + ancestors.joined(separator: " > ") + "]"
+        var pending: [(UIView, Int)] = []
+        var descendants: [String] = []
+        var omittedChildren = max(0, canvas.subviews.count - 6)
+        for view in canvas.subviews.prefix(6) { pending.append((view, 1)) }
+        while descendants.count < 24, let (view, depth) = pending.popLast() {
+            descendants.append("depth=\(depth) " + diagnosticDisplayView(view))
+            if depth < 4 {
+                omittedChildren += max(0, view.subviews.count - 6)
+                for child in view.subviews.prefix(6) { pending.append((child, depth + 1)) }
+            } else { omittedChildren += view.subviews.count }
+        }
+        let siblings: String
+        if let parent = canvas.superview {
+            let sample = parent.subviews.prefix(6).enumerated().map { index, view in
+                "index=\(index) canvas=\(view === canvas) " + diagnosticDisplayView(view)
+            }
+            siblings = "total=\(parent.subviews.count) sampled=\(sample.count) omitted=\(max(0, parent.subviews.count - sample.count)) [" + sample.joined(separator: " | ") + "]"
+        } else { siblings = "parent=none" }
+        let recognizers = canvas.gestureRecognizers ?? []
+        let gestures = recognizers.prefix(4).map {
+            "\(type(of: $0)) enabled=\($0.isEnabled) state=\($0.state.rawValue)"
+        }
+        let display = "root=[\(diagnosticDisplayView(canvas))]; descendantsSample=\(descendants.count) scanPending=\(pending.count) omittedChildren=\(omittedChildren) [" + descendants.joined(separator: " | ") + "]; siblingsSample=" + siblings + "; firstResponder=\(canvas.isFirstResponder) drawingGestureEnabled=\(canvas.drawingGestureRecognizer.isEnabled) drawingGestureState=\(canvas.drawingGestureRecognizer.state.rawValue) gesturesTotal=\(recognizers.count) gesturesSample=\(gestures.count) gesturesOmitted=\(max(0, recognizers.count - gestures.count)) [" + gestures.joined(separator: " | ") + "]"
+        return "\(source); canvas=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); windowFrame=\(canvas.convert(canvas.bounds, to: nil)); zoom=\(canvas.zoomScale); content=\(canvas.contentSize); offset=\(canvas.contentOffset); inset=\(canvas.contentInset); opaque=\(canvas.isOpaque); tool=\(nativeTool); count=\(drawing.strokes.count); inkBounds=\(drawing.bounds); \(strokes); ancestors=[" + ancestors.joined(separator: " > ") + "]; display=[" + display + "]"
+    }
+    private func diagnosticDisplayView(_ view: UIView) -> String {
+        let layer = view.layer
+        return "\(type(of: view)) id=\(ObjectIdentifier(view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden) alpha=\(view.alpha) opaque=\(view.isOpaque) clips=\(view.clipsToBounds) layerHidden=\(layer.isHidden) layerOpaque=\(layer.isOpaque) layerOpacity=\(layer.opacity) z=\(layer.zPosition) masksToBounds=\(layer.masksToBounds) rasterize=\(layer.shouldRasterize) rasterScale=\(layer.rasterizationScale) mask=\(layer.mask != nil) contents=\(layer.contents != nil) children=\(view.subviews.count)"
     }
     #endif
     private var previousSize = CGSize.zero

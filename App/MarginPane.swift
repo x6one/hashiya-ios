@@ -1,5 +1,6 @@
 import SwiftUI
 import PencilKit
+import Combine
 
 struct MarginPane: View {
     @ObservedObject var store: MarginPages
@@ -21,7 +22,9 @@ struct MarginPane: View {
     var body: some View {
         // Read the retained editor at this view's body boundary.
         let handwriting = editor.handwriting
+        let _ = traceMarginRender("body snapshot=\(handwriting)")
         GeometryReader { geometry in
+            let _ = traceMarginRender("geometry snapshot=\(handwriting) live=\(editor.handwriting) size=\(geometry.size)")
             // The height offered by a portrait split can be smaller than landscape.
             let compactChrome = verticalSizeClass == .compact || geometry.size.height < 350
             VStack(spacing: 0) {
@@ -56,15 +59,37 @@ struct MarginPane: View {
                 Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil; confirmMarginDeletion = false }
                 Button("إلغاء", role: .cancel) { deletingPage = nil }
             } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
-            .onChange(of: editor.handwriting) { _, _ in textFocused = false }
+            .onReceive(diagnosticEditorChanges) { _ in
+                traceMarginRender("publisher received live=\(editor.handwriting)")
+            }
+            .onChange(of: editor.handwriting) { old, new in
+                traceMarginRender("onChange old=\(old) new=\(new)")
+                textFocused = false
+            }
             .onDisappear { _ = store.flush() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
+    }
+    private var diagnosticEditorChanges: AnyPublisher<Void, Never> {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+            return editor.objectWillChange.eraseToAnyPublisher()
+        }
+        #endif
+        return Empty<Void, Never>().eraseToAnyPublisher()
+    }
+    private func traceMarginRender(_ event: String) {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)")
+        #endif
     }
     private func modeControls(compactChrome: Bool) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 MarginModeControl(handwriting: Binding(get: { editor.handwriting }, set: { value in
+                    traceMarginRender("binding before requested=\(value) live=\(editor.handwriting)")
                     editor.handwriting = value
+                    traceMarginRender("binding after live=\(editor.handwriting)")
                     textFocused = false
                 }))
                 .fixedSize(horizontal: true, vertical: true)
@@ -166,6 +191,38 @@ struct MarginPane: View {
     }
 
 }
+// Read-only, bounded native diagnostics. This buffer is not observable and never
+// writes view/model state or sends a publisher event. XCTest retrieves it through
+// the public AX label getter, so app stdout transport is not required.
+private enum MarginRenderDiagnostics {
+    #if DEBUG
+    private static var events: [String] = []
+    private static var sequence = 0
+    static func record(_ event: String) {
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+        sequence += 1
+        events.append("\(sequence): " + event)
+        if events.count > 80 { events.removeFirst(events.count - 80) }
+    }
+    static var labelSuffix: String {
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return "" }
+        return "; MarginRenderTrace=[" + events.joined(separator: " | ") + "]"
+    }
+    #else
+    static func record(_ event: String) {}
+    static var labelSuffix: String { "" }
+    #endif
+}
+
+#if DEBUG
+private final class TracedMarginModeControl: UISegmentedControl {
+    override var accessibilityLabel: String? {
+        get { (super.accessibilityLabel ?? "") + MarginRenderDiagnostics.labelSuffix }
+        set { super.accessibilityLabel = newValue }
+    }
+}
+#endif
+
 // Explicit native valueChanged delivery writes the existing retained editor.
 // The accessibility value reads the binding, rather than reporting UI selection.
 private struct MarginModeControl: UIViewRepresentable {
@@ -175,7 +232,14 @@ private struct MarginModeControl: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(handwriting: $handwriting) }
 
     func makeUIView(context: Context) -> UISegmentedControl {
-        let control = UISegmentedControl(items: titles)
+        let control: UISegmentedControl
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+            control = TracedMarginModeControl(items: titles)
+        } else { control = UISegmentedControl(items: titles) }
+        #else
+        control = UISegmentedControl(items: titles)
+        #endif
         control.accessibilityIdentifier = "marginMode"
         control.accessibilityLabel = "طريقة تدوين الحاشية"
         control.semanticContentAttribute = .forceRightToLeft

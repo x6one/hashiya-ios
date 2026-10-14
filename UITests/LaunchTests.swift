@@ -1049,8 +1049,11 @@ final class LaunchTests: XCTestCase {
             XCTFail("Native swatch must change the actual bound ink color; before=\(initialColor), after=\(colorControl.value as? String ?? "missing")"); return false
         }
         let strokeFrame = canvas.frame
-        let beforeRed = redInkPixels(in: XCUIScreen.main.screenshot().image,
+        let beforeStroke = XCUIScreen.main.screenshot()
+        let beforeRed = redInkPixels(in: beforeStroke.image,
             frame: strokeFrame.intersection(app.frame))
+        let baseline = XCTAttachment(screenshot: beforeStroke)
+        baseline.name = name + "-RedPixelBaseline"; baseline.lifetime = .keepAlways; add(baseline)
         let before = Int(count.value as? String ?? "") ?? 0
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.35)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
@@ -1063,6 +1066,12 @@ final class LaunchTests: XCTestCase {
                 frame: canvas.frame.intersection(app.frame)) - beforeRed > 40
         }, object: canvas)
         guard XCTWaiter.wait(for: [visibleRed], timeout: 5) == .completed else {
+            let afterStroke = XCUIScreen.main.screenshot()
+            let evidence = XCTAttachment(screenshot: afterStroke)
+            evidence.name = name + "-RedPixelFailure"; evidence.lifetime = .keepAlways; add(evidence)
+            let measured = redInkPixels(in: afterStroke.image, frame: canvas.frame.intersection(app.frame))
+            let geometry = XCTAttachment(string: "beforeRed=\(beforeRed); afterRed=\(measured); delta=\(measured - beforeRed); beforeCount=\(before); afterCount=\(count.value as? String ?? "missing"); rgba=\(colorControl.value as? String ?? "missing"); beforeFrame=\(strokeFrame); afterFrame=\(canvas.frame); appFrame=\(app.frame); screenshotSize=\(afterStroke.image.size); screenshotScale=\(afterStroke.image.scale); screenshotOrientation=\(afterStroke.image.imageOrientation.rawValue); canvasLabel=\(canvas.label)")
+            geometry.name = name + "-RedPixelFailureMeasurement"; geometry.lifetime = .keepAlways; add(geometry)
             XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke"); return false
         }
         XCTAssertEqual(canvas.frame, strokeFrame, "Color stroke must preserve the measured writing surface")
@@ -1145,7 +1154,10 @@ final class LaunchTests: XCTestCase {
         let switched = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             mode.value as? String == "handwriting" && margin.exists && !app.textViews["splitNotes"].exists
         }, object: mode)
-        guard XCTWaiter.wait(for: [switched], timeout: 5) == .completed else {
+        let switchedResult = XCTWaiter.wait(for: [switched], timeout: 5)
+        let renderTrace = XCTAttachment(string: "modeValue=\(mode.value as? String ?? "missing"); canvasExists=\(margin.exists); textExists=\(app.textViews["splitNotes"].exists); label=\(mode.label)")
+        renderTrace.name = variant + "-MarginRenderBoundaryTrace"; renderTrace.lifetime = .keepAlways; add(renderTrace)
+        guard switchedResult == .completed else {
             XCTFail("Selecting handwriting must update the retained model and replace the native text editor before rotation: " + app.debugDescription); return
         }
         XCTAssertFalse(app.textViews["splitNotes"].exists)

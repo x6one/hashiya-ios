@@ -158,18 +158,18 @@ struct InkToolbar: View {
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
         }.background(TayyaTheme.surface).accessibilityIdentifier("inkToolbar")
             .sheet(isPresented: $showingColorPicker) {
-                NavigationStack {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("لون الحبر").font(.headline)
+                        Spacer()
+                        Button { showingColorPicker = false } label: {
+                            Text("تم").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                            .accessibilityIdentifier("closeInkColorPicker")
+                    }.padding(.horizontal, 16).padding(.top, 8)
+                    // Navigation toolbar items are compressed to 36pt on the
+                    // native sheet. Keep the real close target in sheet content.
                     NativeInkColorPicker(color: $color)
-                        .navigationTitle("لون الحبر")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button { showingColorPicker = false } label: {
-                                    Text("تم").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                                }
-                                    .accessibilityIdentifier("closeInkColorPicker")
-                            }
-                        }
                 }
             }
     }

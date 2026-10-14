@@ -19,6 +19,10 @@ struct MarginPane: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
+        // Observe the editor at this view's body boundary, before the deferred
+        // GeometryReader closure. The native Picker can update its selection
+        // while a retained geometry subtree still displays the previous mode.
+        let handwriting = editor.handwriting
         GeometryReader { geometry in
             // The height offered by a portrait split can be smaller than landscape.
             let compactChrome = verticalSizeClass == .compact || geometry.size.height < 350
@@ -26,8 +30,8 @@ struct MarginPane: View {
                 header(compactChrome: compactChrome)
                 if let page = store.current {
                     modeControls(compactChrome: compactChrome)
-                    if editor.handwriting { inkControls }
-                    if editor.handwriting {
+                    if handwriting { inkControls }
+                    if handwriting {
                         MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                        saved: { ink in
                             store.saveInk(ink, page: page.id)

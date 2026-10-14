@@ -82,15 +82,29 @@ private struct MarginPaneContent: View {
         VStack(spacing: 0) {
             header(compactChrome: compactChrome)
             if let page = store.current {
+                #if DEBUG
+                let _ = traceMarginRender("page branch page=\(page.id) current=\(store.currentID?.uuidString ?? "missing") live=\(editor.handwriting)")
+                #endif
                 modeControls(compactChrome: compactChrome)
-                if editor.handwriting { inkControls }
                 if editor.handwriting {
+                    #if DEBUG
+                    let _ = traceMarginRender("toolbar branch live=\(editor.handwriting)")
+                    #endif
+                    inkControls
+                }
+                if editor.handwriting {
+                    #if DEBUG
+                    let _ = traceMarginRender("notebook branch page=\(page.id) live=\(editor.handwriting)")
+                    #endif
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)
                         if store.saved { inkSaved(ink.strokes.count, page.id) }
                     }, failed: { store.error = $0 })
                 } else {
+                    #if DEBUG
+                    let _ = traceMarginRender("text branch page=\(page.id) live=\(editor.handwriting)")
+                    #endif
                     TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
                                              set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
                         .font(.title3).padding(8).scrollContentBackground(.hidden)

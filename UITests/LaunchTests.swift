@@ -998,8 +998,10 @@ final class LaunchTests: XCTestCase {
             tapInkTarget(identifier, in: app, writingSurface: canvas)
         }
         func recordState(_ stage: String, expected: String? = nil) {
-            let trace = XCTAttachment(string: "expected=\(expected ?? "unset"); actual=\(count.value as? String ?? "missing"); frame=\(canvas.frame); label=\(canvas.label)")
+            let state = "expected=\(expected ?? "unset"); actual=\(count.value as? String ?? "missing"); frame=\(canvas.frame); label=\(canvas.label)"
+            let trace = XCTAttachment(string: state)
             trace.name = name + "-" + stage + "-NativeInkState"; trace.lifetime = .keepAlways; add(trace)
+            print("NativeInkEvidence stage=\(name)-\(stage); \(state)")
         }
         guard tapTarget("inkBrush") else { return false }
         let pencil = app.buttons["رصاص"].firstMatch
@@ -1159,8 +1161,10 @@ final class LaunchTests: XCTestCase {
             mode.value as? String == "handwriting" && margin.exists && !app.textViews["splitNotes"].exists
         }, object: mode)
         let switchedResult = XCTWaiter.wait(for: [switched], timeout: 5)
-        let renderTrace = XCTAttachment(string: "modeValue=\(mode.value as? String ?? "missing"); canvasExists=\(margin.exists); textExists=\(app.textViews["splitNotes"].exists); label=\(mode.label)")
+        let state = "modeValue=\(mode.value as? String ?? "missing"); canvasExists=\(margin.exists); textExists=\(app.textViews["splitNotes"].exists); label=\(mode.label)"
+        let renderTrace = XCTAttachment(string: state)
         renderTrace.name = variant + "-MarginRenderBoundaryTrace"; renderTrace.lifetime = .keepAlways; add(renderTrace)
+        print("NativeMarginEvidence variant=\(variant); \(state)")
         guard switchedResult == .completed else {
             XCTFail("Selecting handwriting must update the retained model and replace the native text editor before rotation: " + app.debugDescription); return
         }

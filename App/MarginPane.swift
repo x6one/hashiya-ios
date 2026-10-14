@@ -19,9 +19,7 @@ struct MarginPane: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
-        // Observe the editor at this view's body boundary, before the deferred
-        // GeometryReader closure. The native Picker can update its selection
-        // while a retained geometry subtree still displays the previous mode.
+        // Read the retained editor at this view's body boundary.
         let handwriting = editor.handwriting
         GeometryReader { geometry in
             // The height offered by a portrait split can be smaller than landscape.
@@ -63,25 +61,28 @@ struct MarginPane: View {
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
     }
     private func modeControls(compactChrome: Bool) -> some View {
-        HStack(spacing: 8) {
-            Picker("طريقة تدوين الحاشية", selection: $editor.handwriting) { Text("نص").tag(false); Text("خط اليد").tag(true) }
-                .pickerStyle(.segmented).tint(TayyaTheme.ink)
-                .frame(minWidth: compactChrome ? 140 : 160, minHeight: 44)
-                .accessibilityIdentifier("marginMode")
-            if editor.handwriting {
-                Button { editor.drawing.toggle() } label: {
-                    ViewThatFits(in: .horizontal) {
-                        Label(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip")
-                            .fixedSize(horizontal: true, vertical: true)
-                        Image(systemName: editor.drawing ? "hand.draw" : "pencil.tip")
-                    }
-                    .font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-                }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink)
-                .accessibilityLabel(editor.drawing ? "تحريك" : "كتابة").accessibilityIdentifier("marginPan")
-            }
-        }.padding(.horizontal, compactChrome ? 8 : 12)
-            .padding(.vertical, compactChrome ? 2 : 6)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                MarginModeControl(handwriting: Binding(get: { editor.handwriting }, set: { value in
+                    editor.handwriting = value
+                    textFocused = false
+                }))
+                .fixedSize(horizontal: true, vertical: true)
+                if editor.handwriting {
+                    Button { editor.drawing.toggle() } label: {
+                        ViewThatFits(in: .horizontal) {
+                            Label(editor.drawing ? "تحريك" : "كتابة", systemImage: editor.drawing ? "hand.draw" : "pencil.tip")
+                                .fixedSize(horizontal: true, vertical: true)
+                            Image(systemName: editor.drawing ? "hand.draw" : "pencil.tip")
+                        }
+                        .font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                    }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink)
+                    .accessibilityLabel(editor.drawing ? "تحريك" : "كتابة").accessibilityIdentifier("marginPan")
+                }
+            }.padding(.horizontal, compactChrome ? 8 : 12)
+                .padding(.vertical, compactChrome ? 2 : 6)
+        }
     }
     private var inkControls: some View {
         InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
@@ -165,6 +166,78 @@ struct MarginPane: View {
     }
 
 }
+// Explicit native valueChanged delivery writes the existing retained editor.
+// The accessibility value reads the binding, rather than reporting UI selection.
+private struct MarginModeControl: UIViewRepresentable {
+    @Binding var handwriting: Bool
+    private let titles = ["نص", "خط اليد"]
+
+    func makeCoordinator() -> Coordinator { Coordinator(handwriting: $handwriting) }
+
+    func makeUIView(context: Context) -> UISegmentedControl {
+        let control = UISegmentedControl(items: titles)
+        control.accessibilityIdentifier = "marginMode"
+        control.accessibilityLabel = "طريقة تدوين الحاشية"
+        control.semanticContentAttribute = .forceRightToLeft
+        control.apportionsSegmentWidthsByContent = false
+        control.selectedSegmentTintColor = UIColor(TayyaTheme.ink)
+        control.addTarget(context.coordinator, action: #selector(Coordinator.modeChanged(_:)), for: .valueChanged)
+        configure(control, context: context)
+        return control
+    }
+
+    func updateUIView(_ control: UISegmentedControl, context: Context) {
+        context.coordinator.handwriting = $handwriting
+        configure(control, context: context)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {
+        let font = titleFont(context.environment.dynamicTypeSize)
+        let maxTitleWidth = titles.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
+        return CGSize(width: ceil(max(44, maxTitleWidth + 24) * CGFloat(titles.count)),
+                      height: ceil(max(44, font.lineHeight + 8)))
+    }
+
+    private func configure(_ control: UISegmentedControl, context: Context) {
+        control.selectedSegmentIndex = handwriting ? 1 : 0
+        control.accessibilityValue = handwriting ? "handwriting" : "text"
+        let font = titleFont(context.environment.dynamicTypeSize)
+        control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor(TayyaTheme.text)], for: .normal)
+        control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor(TayyaTheme.paper)], for: .selected)
+        control.invalidateIntrinsicContentSize()
+    }
+
+    private func titleFont(_ size: DynamicTypeSize) -> UIFont {
+        let category: UIContentSizeCategory
+        switch size {
+        case .xSmall: category = .extraSmall
+        case .small: category = .small
+        case .medium: category = .medium
+        case .large: category = .large
+        case .xLarge: category = .extraLarge
+        case .xxLarge: category = .extraExtraLarge
+        case .xxxLarge: category = .extraExtraExtraLarge
+        case .accessibility1: category = .accessibilityMedium
+        case .accessibility2: category = .accessibilityLarge
+        case .accessibility3: category = .accessibilityExtraLarge
+        case .accessibility4: category = .accessibilityExtraExtraLarge
+        case .accessibility5: category = .accessibilityExtraExtraExtraLarge
+        @unknown default: category = .large
+        }
+        return UIFont.preferredFont(forTextStyle: .subheadline,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: category))
+    }
+
+    final class Coordinator: NSObject {
+        var handwriting: Binding<Bool>
+        init(handwriting: Binding<Bool>) { self.handwriting = handwriting }
+        @objc func modeChanged(_ control: UISegmentedControl) {
+            handwriting.wrappedValue = control.selectedSegmentIndex == 1
+            control.accessibilityValue = handwriting.wrappedValue ? "handwriting" : "text"
+        }
+    }
+}
+
 struct MarginPageList: View {
     @ObservedObject var store: MarginPages
     let sourcePage: Int

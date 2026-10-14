@@ -138,7 +138,7 @@ struct InkToolbar: View {
                         .overlay(Circle().strokeBorder(TayyaTheme.detail, lineWidth: 1))
                         .frame(width: 28, height: 28)
                         .frame(width: 44, height: 44).contentShape(Rectangle())
-                }.accessibilityLabel("لون الحبر").accessibilityIdentifier("inkColor")
+                }.accessibilityLabel("لون الحبر").accessibilityValue(currentColorValue).accessibilityIdentifier("inkColor")
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
                 label: {
                     Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle())
@@ -158,20 +158,13 @@ struct InkToolbar: View {
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
         }.background(TayyaTheme.surface).accessibilityIdentifier("inkToolbar")
             .sheet(isPresented: $showingColorPicker) {
-                VStack(spacing: 0) {
-                    HStack {
-                        Text("لون الحبر").font(.headline)
-                        Spacer()
-                        Button { showingColorPicker = false } label: {
-                            Text("تم").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                        }.buttonStyle(.plain)
-                            .accessibilityIdentifier("closeInkColorPicker")
-                    }.padding(.horizontal, 16).padding(.top, 8)
-                    // Navigation toolbar items are compressed to 36pt on the
-                    // native sheet. Keep the real close target in sheet content.
-                    NativeInkColorPicker(color: $color)
-                }
+                NativeInkColorPicker(color: $color, dismiss: { showingColorPicker = false })
             }
+    }
+    private var currentColorValue: String {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        guard UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return "" }
+        return String(format: "rgba:%.4f,%.4f,%.4f,%.4f", Double(red), Double(green), Double(blue), Double(alpha))
     }
     private func inkTarget(_ title: String, symbol: String) -> some View {
         Label(title, systemImage: symbol).labelStyle(.iconOnly)
@@ -180,32 +173,81 @@ struct InkToolbar: View {
 }
 private struct NativeInkColorPicker: UIViewControllerRepresentable {
     @Binding var color: Color
+    let dismiss: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(color: $color) }
 
-    func makeUIViewController(context: Context) -> UIColorPickerViewController {
-        let picker = UIColorPickerViewController()
-        picker.supportsAlpha = false
-        picker.selectedColor = UIColor(color)
-        picker.delegate = context.coordinator
-        picker.view.accessibilityIdentifier = "nativeInkColorPicker"
-        return picker
+    func makeUIViewController(context: Context) -> InkColorPickerContainer {
+        let container = InkColorPickerContainer()
+        container.dismissPicker = dismiss
+        container.picker.supportsAlpha = false
+        container.picker.selectedColor = UIColor(color)
+        container.picker.delegate = context.coordinator
+        return container
     }
 
-    func updateUIViewController(_ picker: UIColorPickerViewController, context: Context) {
+    func updateUIViewController(_ container: InkColorPickerContainer, context: Context) {
         context.coordinator.color = $color
+        container.dismissPicker = dismiss
     }
 
     final class Coordinator: NSObject, UIColorPickerViewControllerDelegate {
         var color: Binding<Color>
-
         init(color: Binding<Color>) { self.color = color }
-
         func colorPickerViewController(_ viewController: UIColorPickerViewController,
                                        didSelect selectedColor: UIColor, continuously: Bool) {
             color.wrappedValue = Color(uiColor: selectedColor)
         }
     }
+}
+
+// Both the public picker child and Done belong to the same presented controller.
+// The retained native failure showed the direct picker's adapted modal covering
+// the SwiftUI sibling header. Child containment is the bounded native hypothesis.
+private final class InkColorPickerContainer: UIViewController {
+    let picker = UIColorPickerViewController()
+    var dismissPicker: () -> Void = {}
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        let title = UILabel()
+        title.text = "لون الحبر"
+        title.font = .preferredFont(forTextStyle: .headline)
+        title.adjustsFontForContentSizeCategory = true
+        let done = UIButton(type: .system)
+        done.setTitle("تم", for: .normal)
+        done.titleLabel?.font = .preferredFont(forTextStyle: .headline)
+        done.titleLabel?.adjustsFontForContentSizeCategory = true
+        done.accessibilityIdentifier = "closeInkColorPicker"
+        done.addTarget(self, action: #selector(closePicker), for: .touchUpInside)
+        let header = UIStackView(arrangedSubviews: [title, UIView(), done])
+        header.axis = .horizontal
+        header.alignment = .center
+        header.spacing = 8
+        header.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(header)
+        addChild(picker)
+        picker.view.translatesAutoresizingMaskIntoConstraints = false
+        picker.view.accessibilityIdentifier = "nativeInkColorPicker"
+        view.addSubview(picker.view)
+        let safe = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            header.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            header.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
+            header.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            header.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            done.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            done.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            picker.view.topAnchor.constraint(equalTo: header.bottomAnchor),
+            picker.view.leadingAnchor.constraint(equalTo: safe.leadingAnchor),
+            picker.view.trailingAnchor.constraint(equalTo: safe.trailingAnchor),
+            picker.view.bottomAnchor.constraint(equalTo: safe.bottomAnchor)
+        ])
+        picker.didMove(toParent: self)
+    }
+
+    @objc private func closePicker() { dismissPicker() }
 }
 struct MarginNotebook: UIViewRepresentable {
     let page: MarginPage

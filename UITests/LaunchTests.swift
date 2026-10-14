@@ -1055,6 +1055,7 @@ final class LaunchTests: XCTestCase {
         let baseline = XCTAttachment(screenshot: beforeStroke)
         baseline.name = name + "-RedPixelBaseline"; baseline.lifetime = .keepAlways; add(baseline)
         let before = Int(count.value as? String ?? "") ?? 0
+        recordState("BeforeStroke", expected: String(before))
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.35)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -1072,6 +1073,9 @@ final class LaunchTests: XCTestCase {
             let measured = redInkPixels(in: afterStroke.image, frame: canvas.frame.intersection(app.frame))
             let geometry = XCTAttachment(string: "beforeRed=\(beforeRed); afterRed=\(measured); delta=\(measured - beforeRed); beforeCount=\(before); afterCount=\(count.value as? String ?? "missing"); rgba=\(colorControl.value as? String ?? "missing"); beforeFrame=\(strokeFrame); afterFrame=\(canvas.frame); appFrame=\(app.frame); screenshotSize=\(afterStroke.image.size); screenshotScale=\(afterStroke.image.scale); screenshotOrientation=\(afterStroke.image.imageOrientation.rawValue); canvasLabel=\(canvas.label)")
             geometry.name = name + "-RedPixelFailureMeasurement"; geometry.lifetime = .keepAlways; add(geometry)
+            recordState("StrokeNotVisible", expected: String(before))
+            let elementEvidence = XCTAttachment(screenshot: canvas.screenshot())
+            elementEvidence.name = name + "-RedPixelFailureElement"; elementEvidence.lifetime = .keepAlways; add(elementEvidence)
             XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke"); return false
         }
         XCTAssertEqual(canvas.frame, strokeFrame, "Color stroke must preserve the measured writing surface")

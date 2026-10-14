@@ -519,6 +519,76 @@ struct ShareDocument: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 final class ResizingPDFView: PDFView {
+    #if DEBUG
+    // Weak, read-only AX transport for the dedicated native regression. It does
+    // not subscribe to changes, retain the coordinator, or update the canvas.
+    fileprivate weak var diagnosticInkCoordinator: NativePDF.Coordinator?
+    override var accessibilityLabel: String? {
+        get {
+            let label = super.accessibilityLabel ?? ""
+            guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport"),
+                  let coordinator = diagnosticInkCoordinator else { return label }
+            var pending: [(UIView, Int)] = [(self, 0)]
+            var attached: [PKCanvasView] = []
+            var visited = 0
+            while let (view, depth) = pending.popLast(), visited < 128 {
+                visited += 1
+                if let canvas = view as? PKCanvasView, attached.count < 4 { attached.append(canvas) }
+                if depth < 8 {
+                    for child in view.subviews.prefix(16) { pending.append((child, depth + 1)) }
+                }
+            }
+            let current = coordinator.workspace.page - 1
+            let pages = coordinator.canvases.keys.sorted {
+                if $0 == current { return $1 != current }
+                if $1 == current { return false }
+                return $0 < $1
+            }.prefix(4)
+            var rows = pages.compactMap { page -> String? in
+                guard let canvas = coordinator.canvases[page] else { return nil }
+                return diagnosticInkRow(canvas, source: "registered page=\(page) inPDF=\(canvas.isDescendant(of: self))")
+            }
+            let registeredIDs = Set(pages.compactMap { coordinator.canvases[$0] }.map { ObjectIdentifier($0) })
+            for canvas in attached where !registeredIDs.contains(ObjectIdentifier(canvas)) {
+                if rows.count == 4 { break }
+                rows.append(diagnosticInkRow(canvas, source: "attached unlisted page=\(canvas.tag)"))
+            }
+            let workspace = coordinator.workspace
+            let trace = "main=\(Thread.isMainThread); page=\(workspace.page); registered=\(coordinator.canvases.count); attachedSample=\(attached.count); scanned=\(visited); scanPending=\(pending.count); modelBrush=\(workspace.brush.rawValue); modelRGBA=\(diagnosticRGBA(UIColor(workspace.inkColor))); modelWidth=\(workspace.inkWidth); " + rows.joined(separator: " | ")
+            return label + "; PDFInkTrace=[" + String(trace.prefix(24_000)) + (trace.count > 24_000 ? "; truncated=true" : "") + "]"
+        }
+        set { super.accessibilityLabel = newValue }
+    }
+    private func diagnosticRGBA(_ color: UIColor) -> String {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return "unavailable" }
+        return String(format: "%.4f,%.4f,%.4f,%.4f", Double(red), Double(green), Double(blue), Double(alpha))
+    }
+    private func diagnosticInkRow(_ canvas: PKCanvasView, source: String) -> String {
+        let nativeTool: String
+        if let tool = canvas.tool as? PKInkingTool {
+            nativeTool = "\(tool.inkType.rawValue) rgba=\(diagnosticRGBA(tool.color)) width=\(tool.width)"
+        } else { nativeTool = "\(type(of: canvas.tool))" }
+        let drawing = canvas.drawing
+        let strokeIndices = drawing.strokes.isEmpty ? [] : Array(Set([0, drawing.strokes.count - 1])).sorted()
+        let strokes = strokeIndices.map { index -> String in
+            let stroke = drawing.strokes[index], path = stroke.path
+            let pointIndices = path.count == 0 ? [] : Array(Set([0, path.count - 1])).sorted()
+            let points = pointIndices.map { pointIndex -> String in
+                let point = path[pointIndex]
+                return "point\(pointIndex) location=\(point.location) size=\(point.size) opacity=\(point.opacity) force=\(point.force)"
+            }.joined(separator: "; ")
+            return "stroke\(index) type=\(stroke.ink.inkType.rawValue) rgba=\(diagnosticRGBA(stroke.ink.color)) renderBounds=\(stroke.renderBounds) transform=\(stroke.transform) points=\(path.count) \(points)"
+        }.joined(separator: "; ")
+        var ancestors: [String] = []
+        var ancestor: UIView? = canvas
+        while let view = ancestor, ancestors.count < 8 {
+            ancestors.append("\(type(of: view)) id=\(ObjectIdentifier(view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden) alpha=\(view.alpha) clips=\(view.clipsToBounds) layerOpacity=\(view.layer.opacity) mask=\(view.layer.mask != nil)")
+            ancestor = view.superview
+        }
+        return "\(source); canvas=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); windowFrame=\(canvas.convert(canvas.bounds, to: nil)); zoom=\(canvas.zoomScale); content=\(canvas.contentSize); offset=\(canvas.contentOffset); inset=\(canvas.contentInset); opaque=\(canvas.isOpaque); tool=\(nativeTool); count=\(drawing.strokes.count); inkBounds=\(drawing.bounds); \(strokes); ancestors=[" + ancestors.joined(separator: " > ") + "]"
+    }
+    #endif
     private var previousSize = CGSize.zero
     private var pendingAnchor: (page: PDFPage, point: CGPoint, atEnd: Bool)?
     private var restoringViewport = false
@@ -617,6 +687,11 @@ struct NativePDF: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(workspace: workspace) }
     func makeUIView(context: Context) -> PDFView {
         let view = ResizingPDFView()
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+            view.diagnosticInkCoordinator = context.coordinator
+        }
+        #endif
         // Register the overlay provider before PDFKit creates visible page views.
         // Assigning it after the document can leave the first page without ink.
         workspace.view = view

@@ -2,17 +2,22 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-14",
-  "status": "pre-acceptance snapshot; reviewed follow-up requires fresh native gates",
+  "status": "pre-acceptance snapshot; native024 rejected; reconstructed lifecycle candidate requires fresh exact-source gates",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
   "deployment_target": "17.0",
-  "device_families": [1, 2],
+  "device_families": [
+    1,
+    2
+  ],
   "local_checks": {
-    "release_tools_command": "PYTHONPATH=Tools python3 -m unittest discover -s Tools -p 'test_*.py' -v",
+    "release_tools_command": "python3 -m unittest discover -s Tools -p 'test_*.py' -v",
     "release_tool_tests_passed": 5,
     "release_tool_tests_failed": 0,
-    "git_diff_check": "passed"
+    "git_diff_check": "passed",
+    "fixture_destination_tests_passed": 6,
+    "total_tools_tests_passed": 11
   },
   "native_validation": {
     "exact_source_commit": null,
@@ -20,23 +25,46 @@
     "xctest": "fresh follow-up execution pending",
     "xcuitest": "fresh follow-up execution pending",
     "maestro": "fresh follow-up execution pending",
-    "required_cases_per_family": {"xctest": 65, "xcuitest": 26, "maestro_flows": 3},
-    "families_required": ["iPhone", "iPad"],
+    "required_cases_per_family": {
+      "xctest": 65,
+      "xcuitest": 26,
+      "maestro_flows": 3
+    },
+    "families_required": [
+      "iPhone",
+      "iPad"
+    ],
     "screenshots_captured": false,
     "screenshots_reviewed": false
   },
   "latest_rejected_native_source": {
-    "commit": "5b8b44020df90a678c7603b7db126861e2144da0",
-    "push_run": 38430205032,
-    "push_attempt": 2,
-    "pull_request_run": 38430219853,
+    "commit": "024eee8e704b04b56ffad90378fd0822f8aea25a",
+    "push_run": 38536109344,
+    "push_attempt": 1,
+    "pull_request_run": 38536116761,
     "xctest_cases_passed_per_family": 65,
     "xctest_failures": 0,
     "xcuitest_cases_per_family": 26,
-    "push_ui_assertion_failures": {"iPhone": 11, "iPad": 4},
-    "pull_request_ui_assertion_failures": {"iPhone": 11, "iPad": 5},
+    "push_ui_assertion_failures": {
+      "iPhone": 4,
+      "iPad": 3
+    },
+    "pull_request_ui_assertion_failures": {
+      "iPhone": 4,
+      "iPad": 2
+    },
+    "failures": [
+      "native palette presentation hides or occludes wrapper close",
+      "pristine split handwriting selection does not replace native text editor"
+    ],
+    "external_fixture_bytes": {
+      "push_iPhone": "missing provider-root Picker-fixture.pdf despite passing native export/import; actual screenshot shows app Documents destination",
+      "pull_request_iPhone": "passed",
+      "pull_request_iPad": "passed"
+    },
     "maestro_and_package": "skipped after UI failures",
-    "actual_screenshots_and_test_recordings_inspected": true,
+    "actual_screenshots_inspected": true,
+    "entrance_movies_captured": false,
     "acceptance": false
   },
   "distribution": {
@@ -46,9 +74,17 @@
   },
   "limitations": [
     "Linux authoring environment has no Xcode, iOS simulator, Swift compiler or xcodegen",
-    "Prior 0.6.0 source compiled and ran; follow-up mode observation and count-refresh hypotheses still require fresh native proof",
+    "Current024 compiled and ran all65unit/26UI cases per family; reconstructed palette containment and explicit mode delivery remain native hypotheses",
     "Actual close target sizing, compact handwriting, fit actions, orientation restoration, recording stability and entrance movies remain mandatory native gates",
     "Existing XCTest, XCUITest and all three Maestro flow gates remain enabled; no result from a previous release is evidence for this candidate",
     "Physical-device microphone, pen, zoom and rotation validation remains necessary"
-  ]
+  ],
+  "source_review": {
+    "code_checkpoint": "2786e27cca66c9655247f4445b8d1e0816bd48cf",
+    "code_tree": "c2f3a0206fac08c006e080fbf433dc989157e933",
+    "specification": "passed",
+    "quality": "passed",
+    "native_execution": "pending",
+    "scope": "native color container, explicit scaled native mode control, actual chosen-color stroke proof, exact exported-file resolver, byte gate before Maestro reset"
+  }
 }

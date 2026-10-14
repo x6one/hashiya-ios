@@ -539,11 +539,12 @@ final class ResizingPDFView: PDFView {
                 }
             }
             let current = coordinator.workspace.page - 1
-            let pages = coordinator.canvases.keys.sorted {
-                if $0 == current { return $1 != current }
-                if $1 == current { return false }
-                return $0 < $1
-            }.prefix(4)
+            // Current-page handoff uses a direct lookup even if it falls
+            // outside the bounded registry sample. Never sort all visited pages.
+            let sampledPages = Array(coordinator.canvases.keys.prefix(4))
+            var pages: [Int] = []
+            if coordinator.canvases[current] != nil { pages.append(current) }
+            pages.append(contentsOf: sampledPages.filter { $0 != current }.sorted().prefix(4 - pages.count))
             var rows = pages.compactMap { page -> String? in
                 guard let canvas = coordinator.canvases[page] else { return nil }
                 return diagnosticInkRow(canvas, source: "registered page=\(page) inPDF=\(canvas.isDescendant(of: self))")
@@ -554,7 +555,7 @@ final class ResizingPDFView: PDFView {
                 rows.append(diagnosticInkRow(canvas, source: "attached unlisted page=\(canvas.tag)"))
             }
             let workspace = coordinator.workspace
-            let trace = "main=\(Thread.isMainThread); page=\(workspace.page); registered=\(coordinator.canvases.count); attachedSample=\(attached.count); scanned=\(visited); scanPending=\(pending.count); modelBrush=\(workspace.brush.rawValue); modelRGBA=\(diagnosticRGBA(UIColor(workspace.inkColor))); modelWidth=\(workspace.inkWidth); " + rows.joined(separator: " | ")
+            let trace = "main=\(Thread.isMainThread); page=\(workspace.page); registered=\(coordinator.canvases.count); registrySample=\(sampledPages.count); registrySampledOut=\(coordinator.canvases.count > pages.count); attachedSample=\(attached.count); scanned=\(visited); scanPending=\(pending.count); modelBrush=\(workspace.brush.rawValue); modelRGBA=\(diagnosticRGBA(UIColor(workspace.inkColor))); modelWidth=\(workspace.inkWidth); " + rows.joined(separator: " | ")
             return label + "; PDFInkTrace=[" + String(trace.prefix(24_000)) + (trace.count > 24_000 ? "; truncated=true" : "") + "]"
         }
         set { super.accessibilityLabel = newValue }

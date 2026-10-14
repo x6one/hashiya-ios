@@ -1,6 +1,5 @@
 import SwiftUI
 import PencilKit
-import Combine
 
 struct MarginPane: View {
     @ObservedObject var store: MarginPages
@@ -20,35 +19,18 @@ struct MarginPane: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
-        // Read the retained editor at this view's body boundary.
+        // Parent diagnostics retain the original boundary trace; content observes directly below.
         let handwriting = editor.handwriting
         let _ = traceMarginRender("body snapshot=\(handwriting)")
         GeometryReader { geometry in
             let _ = traceMarginRender("geometry snapshot=\(handwriting) live=\(editor.handwriting) size=\(geometry.size)")
             // The height offered by a portrait split can be smaller than landscape.
             let compactChrome = verticalSizeClass == .compact || geometry.size.height < 350
-            VStack(spacing: 0) {
-                header(compactChrome: compactChrome)
-                if let page = store.current {
-                    modeControls(compactChrome: compactChrome)
-                    if handwriting { inkControls }
-                    if handwriting {
-                        MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
-                                       saved: { ink in
-                            store.saveInk(ink, page: page.id)
-                            if store.saved { inkSaved(ink.strokes.count, page.id) }
-                        }, failed: { store.error = $0 })
-                    } else {
-                        TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
-                                                 set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
-                            .font(.title3).padding(8).scrollContentBackground(.hidden)
-                            .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
-                    }
-                    if !textFocused && !compactChrome { footer(page) }
-                } else {
-                    ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
-                }
-            }
+            MarginPaneContent(store: store, editor: editor, sourcePage: sourcePage,
+                expanded: expanded, compactChrome: compactChrome, toggleExpanded: toggleExpanded,
+                jump: jump, inkSaved: inkSaved, textSaved: textSaved, canvasControl: canvasControl,
+                showPages: $showPages, exported: $exported, deletingPage: $deletingPage,
+                confirmMarginDeletion: $confirmMarginDeletion, textFocused: $textFocused)
         }.background(TayyaTheme.paper)
             .sheet(isPresented: $showPages) { MarginPageList(store: store, sourcePage: sourcePage, jump: jump) }
             .sheet(isPresented: Binding(get: { exported != nil }, set: { if !$0 { exported = nil } })) { if let exported { ShareDocument(url: exported) } }
@@ -59,9 +41,6 @@ struct MarginPane: View {
                 Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil; confirmMarginDeletion = false }
                 Button("إلغاء", role: .cancel) { deletingPage = nil }
             } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
-            .onReceive(diagnosticEditorChanges) { _ in
-                traceMarginRender("publisher received live=\(editor.handwriting)")
-            }
             .onChange(of: editor.handwriting) { old, new in
                 traceMarginRender("onChange old=\(old) new=\(new)")
                 textFocused = false
@@ -69,13 +48,59 @@ struct MarginPane: View {
             .onDisappear { _ = store.flush() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
     }
-    private var diagnosticEditorChanges: AnyPublisher<Void, Never> {
+    private func traceMarginRender(_ event: String) {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
-            return editor.objectWillChange.eraseToAnyPublisher()
-        }
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)")
         #endif
-        return Empty<Void, Never>().eraseToAnyPublisher()
+    }
+}
+
+// GeometryReader may retain its content when only the injected editor changes.
+// Observe the retained models where the actual text/ink subtree is consumed.
+private struct MarginPaneContent: View {
+    @ObservedObject var store: MarginPages
+    @ObservedObject var editor: MarginEditorState
+    let sourcePage: Int
+    let expanded: Bool
+    let compactChrome: Bool
+    let toggleExpanded: () -> Void
+    let jump: (Int) -> Void
+    let inkSaved: (Int, UUID) -> Void
+    let textSaved: (String, UUID) -> Void
+    let canvasControl: MarginCanvasControl
+    @Binding var showPages: Bool
+    @Binding var exported: URL?
+    @Binding var deletingPage: UUID?
+    @Binding var confirmMarginDeletion: Bool
+    @FocusState.Binding var textFocused: Bool
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    var body: some View {
+        let handwriting = editor.handwriting
+        let _ = traceMarginRender("content snapshot=\(handwriting) compact=\(compactChrome)")
+        VStack(spacing: 0) {
+            header(compactChrome: compactChrome)
+            if let page = store.current {
+                modeControls(compactChrome: compactChrome)
+                if handwriting { inkControls }
+                if handwriting {
+                    MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
+                                   saved: { ink in
+                        store.saveInk(ink, page: page.id)
+                        if store.saved { inkSaved(ink.strokes.count, page.id) }
+                    }, failed: { store.error = $0 })
+                } else {
+                    TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
+                                             set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
+                        .font(.title3).padding(8).scrollContentBackground(.hidden)
+                        .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
+                }
+                if !textFocused && !compactChrome { footer(page) }
+            } else {
+                ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
+            }
+        }
     }
     private func traceMarginRender(_ event: String) {
         #if DEBUG

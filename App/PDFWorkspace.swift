@@ -642,8 +642,8 @@ final class ResizingPDFView: PDFView {
         let budget = max(0, 23_000 - row.count)
         guard budget >= 512 else { return row + "; composition=[omittedForCap=true]" }
         let tree = diagnosticLayerTree(canvas.layer, characterLimit: min(6_000, budget / 2))
-        let siblings = diagnosticAncestorSiblings(canvas, characterLimit: max(0, budget - tree.count - 64))
-        return row + "; composition=[" + tree + "; " + siblings + "]"
+        let ancestorSiblingComposition = diagnosticAncestorSiblings(canvas, characterLimit: max(0, budget - tree.count - 64))
+        return row + "; composition=[" + tree + "; " + ancestorSiblingComposition + "]"
     }
     private func diagnosticLayerTree(_ root: CALayer, characterLimit: Int) -> String {
         var pending: [(CALayer, Int, String)] = [(root, 0, "0")]

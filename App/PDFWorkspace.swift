@@ -1,6 +1,9 @@
 import SwiftUI
 import PDFKit
 import PencilKit
+#if DEBUG
+import QuartzCore
+#endif
 
 struct PageText: Codable, Identifiable {
     var id = UUID()
@@ -547,15 +550,24 @@ final class ResizingPDFView: PDFView {
             pages.append(contentsOf: sampledPages.filter { $0 != current }.sorted().prefix(4 - pages.count))
             var rows = pages.compactMap { page -> String? in
                 guard let canvas = coordinator.canvases[page] else { return nil }
-                return diagnosticInkRow(canvas, source: "registered page=\(page) inPDF=\(canvas.isDescendant(of: self))")
+                return diagnosticInkRow(canvas, source: "registered page=\(page) inPDF=\(canvas.isDescendant(of: self))", composition: page == current)
             }
             let registeredIDs = Set(pages.compactMap { coordinator.canvases[$0] }.map { ObjectIdentifier($0) })
             for canvas in attached where !registeredIDs.contains(ObjectIdentifier(canvas)) {
                 if rows.count == 4 { break }
-                rows.append(diagnosticInkRow(canvas, source: "attached unlisted page=\(canvas.tag)"))
+                rows.append(diagnosticInkRow(canvas, source: "attached unlisted page=\(canvas.tag)", composition: rows.isEmpty))
             }
             let workspace = coordinator.workspace
-            let trace = "main=\(Thread.isMainThread); page=\(workspace.page); registered=\(coordinator.canvases.count); registrySample=\(sampledPages.count); registrySampledOut=\(coordinator.canvases.count > pages.count); attachedSample=\(attached.count); scanned=\(visited); scanPending=\(pending.count); modelBrush=\(workspace.brush.rawValue); modelRGBA=\(diagnosticRGBA(UIColor(workspace.inkColor))); modelWidth=\(workspace.inkWidth); " + rows.joined(separator: " | ")
+            var trace = "main=\(Thread.isMainThread); page=\(workspace.page); registered=\(coordinator.canvases.count); registrySample=\(sampledPages.count); registrySampledOut=\(coordinator.canvases.count > pages.count); attachedSample=\(attached.count); scanned=\(visited); scanPending=\(pending.count); modelBrush=\(workspace.brush.rawValue); modelRGBA=\(diagnosticRGBA(UIColor(workspace.inkColor))); modelWidth=\(workspace.inkWidth); "
+            // Keep the complete current-page row ahead of other registry rows.
+            // Reserve room for an explicit omission count within the AX cap.
+            var omittedRows = 0
+            for (index, row) in rows.enumerated() {
+                if index == 0 || trace.count + row.count + 96 <= 24_000 {
+                    trace += (index == 0 ? "" : " | ") + row
+                } else { omittedRows += 1 }
+            }
+            trace += "; rowsOmittedForCap=\(omittedRows)"
             return label + "; PDFInkTrace=[" + String(trace.prefix(24_000)) + (trace.count > 24_000 ? "; truncated=true" : "") + "]"
         }
         set { super.accessibilityLabel = newValue }
@@ -565,7 +577,7 @@ final class ResizingPDFView: PDFView {
         guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return "unavailable" }
         return String(format: "%.4f,%.4f,%.4f,%.4f", Double(red), Double(green), Double(blue), Double(alpha))
     }
-    private func diagnosticInkRow(_ canvas: PKCanvasView, source: String) -> String {
+    private func diagnosticInkRow(_ canvas: PKCanvasView, source: String, composition: Bool) -> String {
         let nativeTool: String
         if let tool = canvas.tool as? PKInkingTool {
             nativeTool = "\(tool.inkType.rawValue) rgba=\(diagnosticRGBA(tool.color)) width=\(tool.width)"
@@ -610,7 +622,76 @@ final class ResizingPDFView: PDFView {
             "\(type(of: $0)) enabled=\($0.isEnabled) state=\($0.state.rawValue)"
         }
         let display = "root=[\(diagnosticDisplayView(canvas))]; descendantsSample=\(descendants.count) scanPending=\(pending.count) omittedChildren=\(omittedChildren) [" + descendants.joined(separator: " | ") + "]; siblingsSample=" + siblings + "; firstResponder=\(canvas.isFirstResponder) drawingGestureEnabled=\(canvas.drawingGestureRecognizer.isEnabled) drawingGestureState=\(canvas.drawingGestureRecognizer.state.rawValue) gesturesTotal=\(recognizers.count) gesturesSample=\(gestures.count) gesturesOmitted=\(max(0, recognizers.count - gestures.count)) [" + gestures.joined(separator: " | ") + "]"
-        return "\(source); canvas=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); windowFrame=\(canvas.convert(canvas.bounds, to: nil)); zoom=\(canvas.zoomScale); content=\(canvas.contentSize); offset=\(canvas.contentOffset); inset=\(canvas.contentInset); opaque=\(canvas.isOpaque); tool=\(nativeTool); count=\(drawing.strokes.count); inkBounds=\(drawing.bounds); \(strokes); ancestors=[" + ancestors.joined(separator: " > ") + "]; display=[" + display + "]"
+        let row = "\(source); canvas=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); windowFrame=\(canvas.convert(canvas.bounds, to: nil)); zoom=\(canvas.zoomScale); content=\(canvas.contentSize); offset=\(canvas.contentOffset); inset=\(canvas.contentInset); opaque=\(canvas.isOpaque); tool=\(nativeTool); count=\(drawing.strokes.count); inkBounds=\(drawing.bounds); \(strokes); ancestors=[" + ancestors.joined(separator: " > ") + "]; display=[" + display + "]"
+        guard composition else { return row }
+        // Bound additions independently, preserving complete snapshot rows and
+        // the existing current-canvas metadata before sampling other canvases.
+        let budget = max(0, 23_000 - row.count)
+        guard budget >= 512 else { return row + "; composition=[omittedForCap=true]" }
+        let tree = diagnosticLayerTree(canvas.layer, characterLimit: min(6_000, budget / 2))
+        let siblings = diagnosticAncestorSiblings(canvas, characterLimit: max(0, budget - tree.count - 64))
+        return row + "; composition=[" + tree + "; " + siblings + "]"
+    }
+    private func diagnosticLayerTree(_ root: CALayer, characterLimit: Int) -> String {
+        var pending: [(CALayer, Int, String)] = [(root, 0, "0")]
+        var rows: [String] = []
+        var omittedChildren = 0
+        while rows.count < 12, let (layer, depth, path) = pending.popLast() {
+            rows.append("path=\(path) " + diagnosticCompositionLayer(layer))
+            let children = layer.sublayers ?? []
+            if depth < 4 {
+                omittedChildren += max(0, children.count - 4)
+                // Reverse only this bounded prefix so output retains layer order.
+                for (index, child) in children.prefix(4).enumerated().reversed() {
+                    pending.append((child, depth + 1, path + ".\(index)"))
+                }
+            } else { omittedChildren += children.count }
+        }
+        return diagnosticCompositionRows(rows, header: "layerTree nodes=\(rows.count) pending=\(pending.count) omittedChildren=\(omittedChildren) maxNodes=12 maxDepth=4 maxChildren=4", separator: " | ", characterLimit: characterLimit)
+    }
+    private func diagnosticAncestorSiblings(_ canvas: UIView, characterLimit: Int) -> String {
+        var ancestor: UIView? = canvas
+        var rows: [String] = []
+        while let view = ancestor, rows.count < 8 {
+            guard let parent = view.superview else {
+                rows.append("depth=\(rows.count) parent=nil"); ancestor = nil; break
+            }
+            let sample = parent.subviews.prefix(4).enumerated().map { index, sibling in
+                "index=\(index) path=\(sibling === view) view=\(type(of: sibling)) hidden=\(sibling.isHidden) alpha=\(String(format: "%.2f", Double(sibling.alpha))) " + diagnosticCompositionLayer(sibling.layer)
+            }
+            rows.append("depth=\(rows.count) parent=\(type(of: parent)) id=\(ObjectIdentifier(parent)) children=\(parent.subviews.count) sampled=\(sample.count) omitted=\(max(0, parent.subviews.count - sample.count)) [" + sample.joined(separator: " | ") + "]")
+            ancestor = parent
+        }
+        return diagnosticCompositionRows(rows, header: "ancestorSiblings nodes=\(rows.count) ancestorPending=\(ancestor != nil) maxAncestors=8 maxChildren=4", separator: " > ", characterLimit: characterLimit)
+    }
+    private func diagnosticCompositionRows(_ rows: [String], header: String, separator: String, characterLimit: Int) -> String {
+        var sample: [String] = []
+        var count = header.count + 96
+        for row in rows {
+            guard count + row.count + separator.count <= characterLimit else { break }
+            sample.append(row); count += row.count + separator.count
+        }
+        return header + " emitted=\(sample.count) omittedForCap=\(rows.count - sample.count) [" + sample.joined(separator: separator) + "]"
+    }
+    private func diagnosticCompositionLayer(_ layer: CALayer) -> String {
+        let backingView = layer.delegate as? UIView
+        let viewBacked = backingView.map { $0.layer === layer } ?? false
+        let model = diagnosticLayerState(layer)
+        let presentation = layer.presentation().map { presentation -> String in
+            let state = diagnosticLayerState(presentation)
+            return state == model ? "sameAsModel" : state
+        } ?? "nil"
+        return "\(type(of: layer)) id=\(ObjectIdentifier(layer)) viewBacked=\(viewBacked) model=[\(model)] presentation=[\(presentation)]"
+    }
+    private func diagnosticLayerState(_ layer: CALayer) -> String {
+        func rect(_ value: CGRect) -> String {
+            String(format: "%.2f,%.2f,%.2f,%.2f", Double(value.origin.x), Double(value.origin.y), Double(value.size.width), Double(value.size.height))
+        }
+        let metal: String
+        if let layer = layer as? CAMetalLayer {
+            metal = String(format: " drawable=%.2f,%.2f", Double(layer.drawableSize.width), Double(layer.drawableSize.height)) + " pixelFormat=\(layer.pixelFormat.rawValue)"
+        } else { metal = "" }
+        return "hidden=\(layer.isHidden) opacity=\(String(format: "%.2f", Double(layer.opacity))) z=\(String(format: "%.2f", Double(layer.zPosition))) frame=\(rect(layer.frame)) bounds=\(rect(layer.bounds)) scale=\(String(format: "%.2f", Double(layer.contentsScale))) identity=\(CATransform3DIsIdentity(layer.transform)) mask=\(layer.mask != nil) contents=\(layer.contents != nil) children=\(layer.sublayers?.count ?? 0)" + metal
     }
     private func diagnosticDisplayView(_ view: UIView) -> String {
         let layer = view.layer

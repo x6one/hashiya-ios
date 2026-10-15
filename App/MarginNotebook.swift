@@ -39,8 +39,17 @@ final class MarginCanvas: PKCanvasView {
         if !updatingViewport, pinchGestureRecognizer?.state == .began { followsFit = false }
     }
     override func didMoveToWindow() {
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("didMoveToWindow enter", canvas: self)
+        #endif
         super.didMoveToWindow()
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("didMoveToWindow before responder", canvas: self)
+        #endif
         if window != nil { becomeFirstResponder() }
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("didMoveToWindow return", canvas: self)
+        #endif
     }
     override func layoutSubviews() {
         let changed = bounds.size != previousBounds
@@ -49,6 +58,9 @@ final class MarginCanvas: PKCanvasView {
                              y: (contentOffset.y + oldSize.height / 2) / max(zoomScale, 0.01))
         previousBounds = bounds.size
         super.layoutSubviews()
+        #if DEBUG
+        if changed { MarginRenderDiagnostics.recordCanvas("layout bounds changed old=\(oldSize)", canvas: self) }
+        #endif
         guard changed, bounds.width > 0, bounds.height > 0 else { return }
         if followsFit { fitContent() }
         else {
@@ -260,6 +272,9 @@ struct MarginNotebook: UIViewRepresentable {
     let failed: (String) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed) }
     func makeUIView(context: Context) -> MarginCanvas {
+        #if DEBUG
+        MarginRenderDiagnostics.record("makeUIView enter page=\(page.id); control=\(ObjectIdentifier(control))")
+        #endif
         let canvas = MarginCanvas()
         // PencilKit owns clipping of its zoomed tiles at the viewport boundary.
         // An additional SwiftUI mask must not wrap the native drawing surface.
@@ -275,9 +290,23 @@ struct MarginNotebook: UIViewRepresentable {
         canvas.accessibilityIdentifier = "marginInkCanvas"
         canvas.accessibilityLabel = "ورقة الحاشية بخط اليد"
         configure(canvas, context: context)
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("makeUIView return page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
+        #endif
         return canvas
     }
+    #if DEBUG
+    func updateUIView(_ canvas: MarginCanvas, context: Context) {
+        MarginRenderDiagnostics.recordCanvas("updateUIView enter page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
+        configure(canvas, context: context)
+        MarginRenderDiagnostics.recordCanvas("updateUIView return page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
+    }
+    static func dismantleUIView(_ canvas: MarginCanvas, coordinator: Coordinator) {
+        MarginRenderDiagnostics.recordCanvas("dismantleUIView page=\(coordinator.pageID?.uuidString ?? "missing")", canvas: canvas)
+    }
+    #else
     func updateUIView(_ canvas: MarginCanvas, context: Context) { configure(canvas, context: context) }
+    #endif
     private func configure(_ canvas: MarginCanvas, context: Context) {
         let coordinator = context.coordinator
         coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas

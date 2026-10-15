@@ -51,7 +51,7 @@ struct MarginPane: View {
     private func traceMarginRender(_ event: String) {
         #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
-        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)")
+        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)", control: canvasControl)
         #endif
     }
 }
@@ -119,7 +119,7 @@ private struct MarginPaneContent: View {
     private func traceMarginRender(_ event: String) {
         #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
-        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)")
+        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)", control: canvasControl)
         #endif
     }
     private func modeControls(compactChrome: Bool) -> some View {
@@ -233,30 +233,67 @@ private struct MarginPaneContent: View {
 // Read-only, bounded native diagnostics. This buffer is not observable and never
 // writes view/model state or sends a publisher event. XCTest retrieves it through
 // the public AX label getter, so app stdout transport is not required.
-private enum MarginRenderDiagnostics {
-    #if DEBUG
+#if DEBUG
+@MainActor enum MarginRenderDiagnostics {
     private static var events: [String] = []
     private static var sequence = 0
-    static func record(_ event: String) {
+    private static weak var currentControl: MarginCanvasControl?
+    static func record(_ event: String, control: MarginCanvasControl? = nil) {
         guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+        if let control { currentControl = control }
         sequence += 1
         events.append("\(sequence): " + event)
         if events.count > 80 { events.removeFirst(events.count - 80) }
     }
+    static func recordCanvas(_ event: String, canvas: MarginCanvas) {
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+        record(event + "; " + canvasState(canvas))
+    }
+    private static func canvasState(_ canvas: MarginCanvas) -> String {
+        "canvas=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); superview=\(canvas.superview != nil); bounds=\(canvas.bounds); windowFrame=\(canvas.convert(canvas.bounds, to: canvas.window)); hidden=\(canvas.isHidden); alpha=\(canvas.alpha); responder=\(canvas.isFirstResponder)"
+    }
+    private static func childSample(_ view: UIView, limit: Int) -> String {
+        let children = view.subviews
+        let sample = children.prefix(limit).map {
+            "\(type(of: $0)) id=\(ObjectIdentifier($0)) window=\($0.window != nil) frame=\($0.frame)"
+        }
+        return "total=\(children.count) omitted=\(max(0, children.count - limit)) [" + sample.joined(separator: " | ") + "]"
+    }
     static var labelSuffix: String {
         guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return "" }
-        return "; MarginRenderTrace=[" + events.joined(separator: " | ") + "]"
+        let live: String
+        if let control = currentControl {
+            if let canvas = control.canvas {
+                var ancestors: [String] = []
+                var next = canvas.superview
+                while let view = next, ancestors.count < 8 {
+                    ancestors.append("\(type(of: view)) id=\(ObjectIdentifier(view)) frame=\(view.frame) bounds=\(view.bounds) hidden=\(view.isHidden) alpha=\(view.alpha) clips=\(view.clipsToBounds); children=" + childSample(view, limit: 4))
+                    next = view.superview
+                }
+                live = "control=\(ObjectIdentifier(control)); " + canvasState(canvas)
+                    + "; children=" + childSample(canvas, limit: 4)
+                    + "; siblings=" + (canvas.superview.map { childSample($0, limit: 6) } ?? "none")
+                    + "; ancestors=[" + ancestors.joined(separator: " > ") + "]; ancestorsCapped=\(next != nil)"
+            } else { live = "control=\(ObjectIdentifier(control)); canvas=nil" }
+        } else { live = "control=nil; canvas=unknown" }
+        let trace = events.joined(separator: " | ")
+        let prefix = "; MarginNativeLive=[" + live + "]; totalEvents=\(sequence); retainedEvents=\(events.count); evictedEvents=\(sequence - events.count); ringCap=80; labelCap=24000"
+        // Leave room for the static Arabic label and the explicit truncation marker.
+        let budget = max(0, 23800 - prefix.count)
+        return prefix + "; traceTruncated=\(trace.count > budget); MarginRenderTrace=[" + String(trace.prefix(budget)) + "]"
     }
-    #else
+}
+#else
+private enum MarginRenderDiagnostics {
     static func record(_ event: String) {}
     static var labelSuffix: String { "" }
-    #endif
 }
+#endif
 
 #if DEBUG
 private final class TracedMarginModeControl: UISegmentedControl {
     override var accessibilityLabel: String? {
-        get { (super.accessibilityLabel ?? "") + MarginRenderDiagnostics.labelSuffix }
+        get { String(((super.accessibilityLabel ?? "") + MarginRenderDiagnostics.labelSuffix).prefix(24000)) }
         set { super.accessibilityLabel = newValue }
     }
 }
@@ -290,13 +327,22 @@ private struct MarginModeControl: UIViewRepresentable {
     }
 
     func updateUIView(_ control: UISegmentedControl, context: Context) {
+        #if DEBUG
+        MarginRenderDiagnostics.record("mode updateUIView enter control=\(ObjectIdentifier(control)); handwriting=\(handwriting)")
+        #endif
         context.coordinator.handwriting = $handwriting
         configure(control, context: context)
+        #if DEBUG
+        MarginRenderDiagnostics.record("mode updateUIView return control=\(ObjectIdentifier(control)); handwriting=\(handwriting)")
+        #endif
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UISegmentedControl, context: Context) -> CGSize? {
         let font = titleFont(context.environment.dynamicTypeSize)
         let maxTitleWidth = titles.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
+        #if DEBUG
+        MarginRenderDiagnostics.record("mode sizeThatFits control=\(ObjectIdentifier(uiView)); handwriting=\(handwriting); proposalWidth=\(String(describing: proposal.width)); proposalHeight=\(String(describing: proposal.height)); fontLineHeight=\(font.lineHeight); maxTitleWidth=\(maxTitleWidth)")
+        #endif
         return CGSize(width: ceil(max(44, maxTitleWidth + 24) * CGFloat(titles.count)),
                       height: ceil(max(44, font.lineHeight + 8)))
     }
@@ -307,7 +353,13 @@ private struct MarginModeControl: UIViewRepresentable {
         let font = titleFont(context.environment.dynamicTypeSize)
         control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor(TayyaTheme.text)], for: .normal)
         control.setTitleTextAttributes([.font: font, .foregroundColor: UIColor(TayyaTheme.paper)], for: .selected)
+        #if DEBUG
+        MarginRenderDiagnostics.record("mode configure before invalidate control=\(ObjectIdentifier(control)); handwriting=\(handwriting); frame=\(control.frame)")
+        #endif
         control.invalidateIntrinsicContentSize()
+        #if DEBUG
+        MarginRenderDiagnostics.record("mode configure after invalidate control=\(ObjectIdentifier(control)); handwriting=\(handwriting); frame=\(control.frame)")
+        #endif
     }
 
     private func titleFont(_ size: DynamicTypeSize) -> UIFont {

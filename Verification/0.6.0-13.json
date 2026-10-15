@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked: post-crash-fix committed stroke is blank; isolated page content extent hypothesis awaiting native validation",
+  "status": "blocked on native margin editor replacement; PDF visible ink/undo/redo now passed targeted scenarios on both families",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -304,5 +304,24 @@
     "candidate_change": "Initialize PDF overlay contentSize from canvas.bounds.size; rendering hypothesis, not yet proven",
     "remaining": "Native color picker child presentation failure; full suites and Maestro not reached; actual screenshots required",
     "native_office_build": "38819378930 device build successful; packaging gated on exact-source preflight"
+  },
+  "pdf_content_extent_validation": {
+    "source": "473dcb25cc0d33e085dca6944895724d5b058c14",
+    "push_run": 38821072283,
+    "pr_run": 38821079507,
+    "pr_phone_artifact": 12013703341,
+    "artifact_sha256": "a924e8a5632610f06154913e346c72a129b39bc4f91bd4a90f7aef86b89aa26b",
+    "result": "Both targeted cases on both families reached margin switch after document visible-color stroke, count, undo, redo and fit assertions; cases still fail at1169",
+    "push_iPad_caveat": "runner restarted during first case; not accepted full pass",
+    "full_suites_and_maestro": "not reached",
+    "native_office_build": 38821396249,
+    "ipa": null
+  },
+  "margin_editor_reconciliation": {
+    "failure_line": "UITests/LaunchTests.swift:1169",
+    "evidence": "Mode binding, observed content body and notebook branch all true; same retained models; native makeUIView absent; splitNotes TextEditor still exists",
+    "candidate_change": "Key only Group containing text/ink editor by handwriting mode",
+    "native_validation": "pending",
+    "data_model_or_format_changes": false
   }
 }

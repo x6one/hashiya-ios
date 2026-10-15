@@ -92,24 +92,28 @@ private struct MarginPaneContent: View {
                     #endif
                     inkControls
                 }
-                if editor.handwriting {
-                    #if DEBUG
-                    let _ = traceMarginRender("notebook branch page=\(page.id) live=\(editor.handwriting)")
-                    #endif
-                    MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
-                                   saved: { ink in
-                        store.saveInk(ink, page: page.id)
-                        if store.saved { inkSaved(ink.strokes.count, page.id) }
-                    }, failed: { store.error = $0 })
-                } else {
-                    #if DEBUG
-                    let _ = traceMarginRender("text branch page=\(page.id) live=\(editor.handwriting)")
-                    #endif
-                    TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
-                                             set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
-                        .font(.title3).padding(8).scrollContentBackground(.hidden)
-                        .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
-                }
+                // Text and ink own different native editors. Replace only the
+                // editor host when mode changes; retain the notebook and page.
+                Group {
+                    if editor.handwriting {
+                        #if DEBUG
+                        let _ = traceMarginRender("notebook branch page=\(page.id) live=\(editor.handwriting)")
+                        #endif
+                        MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
+                                       saved: { ink in
+                            store.saveInk(ink, page: page.id)
+                            if store.saved { inkSaved(ink.strokes.count, page.id) }
+                        }, failed: { store.error = $0 })
+                    } else {
+                        #if DEBUG
+                        let _ = traceMarginRender("text branch page=\(page.id) live=\(editor.handwriting)")
+                        #endif
+                        TextEditor(text: Binding(get: { store.pages.first { $0.id == page.id }?.text ?? "" },
+                                                 set: { value in store.editText(value, page: page.id); if store.saved { textSaved(value, page.id) } }))
+                            .font(.title3).padding(8).scrollContentBackground(.hidden)
+                            .background(TayyaTheme.paper).accessibilityIdentifier("splitNotes").focused($textFocused)
+                    }
+                }.id(editor.handwriting)
                 if !textFocused && !compactChrome { footer(page) }
             } else {
                 ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))

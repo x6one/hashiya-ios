@@ -1,8 +1,8 @@
 {
   "version": "0.6.0",
   "build": "13",
-  "candidate_date": "2026-10-14",
-  "status": "pre-acceptance snapshot; native024 rejected; reconstructed lifecycle candidate requires fresh exact-source gates",
+  "candidate_date": "2026-10-15",
+  "status": "blocked: native ink failures reproduced on 033eb4d; crash evidence collection pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -38,33 +38,25 @@
     "screenshots_reviewed": false
   },
   "latest_rejected_native_source": {
-    "commit": "024eee8e704b04b56ffad90378fd0822f8aea25a",
-    "push_run": 38536109344,
-    "push_attempt": 1,
-    "pull_request_run": 38536116761,
+    "commit": "033eb4dd05add52b081053cdf327319522670a3c",
+    "push_run": 38781681904,
+    "pull_request_run": 38781686314,
     "xctest_cases_passed_per_family": 65,
-    "xctest_failures": 0,
     "xcuitest_cases_per_family": 26,
     "push_ui_assertion_failures": {
       "iPhone": 4,
-      "iPad": 3
+      "iPad": 4
     },
     "pull_request_ui_assertion_failures": {
       "iPhone": 4,
-      "iPad": 2
+      "iPad": 5
     },
-    "failures": [
-      "native palette presentation hides or occludes wrapper close",
-      "pristine split handwriting selection does not replace native text editor"
+    "failed_cases": [
+      "testIndividualInkTargetsAtAccessibilityTextSize",
+      "testIndividualInkTargetsInDocumentAndCompactSplit",
+      "testCreateNotebookFromLibrary (PR iPad only)"
     ],
-    "external_fixture_bytes": {
-      "push_iPhone": "missing provider-root Picker-fixture.pdf despite passing native export/import; actual screenshot shows app Documents destination",
-      "pull_request_iPhone": "passed",
-      "pull_request_iPad": "passed"
-    },
     "maestro_and_package": "skipped after UI failures",
-    "actual_screenshots_inspected": true,
-    "entrance_movies_captured": false,
     "acceptance": false
   },
   "distribution": {
@@ -86,5 +78,18 @@
     "quality": "passed",
     "native_execution": "pending",
     "scope": "native color container, explicit scaled native mode control, actual chosen-color stroke proof, exact exported-file resolver, byte gate before Maestro reset"
+  },
+  "investigation_2026_10_15": {
+    "source": "033eb4dd05add52b081053cdf327319522670a3c",
+    "artifact_id": 11998216557,
+    "artifact_sha256": "fc4c3e8ebad303d582760c2c363a86a95163ffba7224bacc1592794c50fa1141",
+    "observations": [
+      "Actual bound model and native PKInkingTool both pencil, width 8, RGBA 1.0000,0.7098,0.6863,1.0000 before stroke.",
+      "iPhone processes 28035 and 33218 log Began drawing, Ended drawing and recognition snapshot with 1 visible stroke.",
+      "Last Hashiya log in both failures is XCTest AX hierarchy capture after stroke (18:12:44.942 and 18:14:52.768 UTC).",
+      "Existing artifacts contain no actual crash reports or full xcresult bundle; unexpected termination alone does not prove its cause."
+    ],
+    "hypothesis": "AX diagnostic getter after a nonempty PKDrawing may be implicated; not yet proven. No production ink change made.",
+    "next_step": "Collect host/simulator crash reports, runningboard/system logs and full xcresult on the same production source; inspect failing thread before fixing."
   }
 }

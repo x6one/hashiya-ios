@@ -42,6 +42,8 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
           PY
+      - name: Mark native diagnostic session
+        run: touch "$RUNNER_TEMP/tayya-native-start"
       - name: Build and test
         run: |
           set -o pipefail
@@ -167,6 +169,42 @@ jobs:
         if: failure()
         run: |
           xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --info --debug --predicate 'process == "Hashiya" OR subsystem BEGINSWITH "com.apple.FileProvider" OR process CONTAINS "DocumentManager" OR process CONTAINS "fileprovider"' > file-provider.log 2>&1 || true
+      - name: Retain native crash reports and result bundle
+        if: failure()
+        run: |
+          python3 - <<'PY_CRASH'
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          out = Path('NativeFailure'); out.mkdir(exist_ok=True)
+          started = Path(os.environ['RUNNER_TEMP']) / 'tayya-native-start'
+          since = started.stat().st_mtime if started.exists() else 0
+          roots = [Path.home() / 'Library/Logs/DiagnosticReports',
+                   Path.home() / 'Library/Developer/CoreSimulator/Devices' / os.environ['SIMULATOR_ID'] / 'data/Library/Logs/CrashReporter']
+          reports = []
+          for index, root in enumerate(roots):
+              if not root.exists():
+                  continue
+              for source in root.rglob('*'):
+                  if not source.is_file() or source.stat().st_mtime < since:
+                      continue
+                  if source.suffix not in ('.ips', '.crash', '.diag', '.hang', '.spin'):
+                      continue
+                  target = out / 'reports' / str(index) / source.relative_to(root)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+                  reports.append(str(target))
+          (out / 'collection.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'],
+              'run': os.environ['GITHUB_RUN_ID'], 'reports': reports,
+              'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}, indent=2) + '\n')
+          predicate = 'process == "Hashiya" OR process == "ReportCrash" OR process == "runningboardd" OR process == "SpringBoard" OR process == "kernel" OR subsystem BEGINSWITH "com.apple.pencilkit" OR subsystem BEGINSWITH "com.apple.PDFKit"'
+          with (out / 'native-system.log').open('wb') as log:
+              subprocess.run(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log',
+                  'show', '--last', '45m', '--style', 'compact', '--info', '--debug',
+                  '--predicate', predicate], stdout=log, stderr=subprocess.STDOUT, timeout=120)
+          if Path('TestResults.xcresult').exists():
+              subprocess.run(['ditto', '-c', '-k', '--keepParent', 'TestResults.xcresult',
+                  str(out / 'TestResults.xcresult.zip')], check=True)
+          PY_CRASH
       - name: Save diagnostics and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -175,6 +213,7 @@ jobs:
           path: |
             build.log
             file-provider.log
+            NativeFailure/
             Screenshots/
             MaestroResults/
             EntranceCaptures/

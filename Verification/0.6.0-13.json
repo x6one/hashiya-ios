@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked pending native red-to-green validation of proven post-stroke DEBUG Metal diagnostic crash",
+  "status": "blocked: post-crash-fix committed stroke is blank; isolated page content extent hypothesis awaiting native validation",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -280,5 +280,29 @@
       }
     ],
     "remedy": "Remove subclass resource getters (drawableSize/pixelFormat) from AX diagnostics; retain generic CALayer state. No drawing, storage, test assertion, timeout or design changes."
+  },
+  "committed_ink_rendering_investigation": {
+    "source": "c06625e07de2fe49244451c4ce9068a8ee2fcf05",
+    "run": 38819037612,
+    "artifact": 12012253524,
+    "sha256": "345a69876eab5361f883ebcfcad9912b19a087acff057a46d6fb9d516bf43571",
+    "iPhone_target_cases": 2,
+    "failures": 2,
+    "stroke_count": [
+      0,
+      1
+    ],
+    "red_pixel_delta": 0,
+    "canvas_bounds": [
+      650,
+      900
+    ],
+    "canvas_content_size": [
+      0,
+      0
+    ],
+    "candidate_change": "Initialize PDF overlay contentSize from canvas.bounds.size; rendering hypothesis, not yet proven",
+    "remaining": "Native color picker child presentation failure; full suites and Maestro not reached; actual screenshots required",
+    "native_office_build": "38819378930 device build successful; packaging gated on exact-source preflight"
   }
 }

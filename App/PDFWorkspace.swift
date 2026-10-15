@@ -937,6 +937,9 @@ struct NativePDF: UIViewRepresentable {
             let index = workspace.document.index(for: page)
             if let canvas = canvases[index] { return canvas }
             let canvas = LassoCanvas(frame: page.bounds(for: .mediaBox))
+            // PDFKit scales the overlay; PencilKit still needs the page extent
+            // in its own coordinates when committing live ink into drawing tiles.
+            canvas.contentSize = canvas.bounds.size
             canvas.backgroundColor = .clear; canvas.isOpaque = false; canvas.drawingPolicy = .anyInput; canvas.tag = index; canvas.isUserInteractionEnabled = enabled
             canvas.isScrollEnabled = false
             canvas.accessibilityIdentifier = "inkCanvas-\(index)"

@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked: native ink failures reproduced on 033eb4d; crash evidence collection pending",
+  "status": "blocked pending native red-to-green validation of proven post-stroke DEBUG Metal diagnostic crash",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -89,7 +89,196 @@
       "Last Hashiya log in both failures is XCTest AX hierarchy capture after stroke (18:12:44.942 and 18:14:52.768 UTC).",
       "Existing artifacts contain no actual crash reports or full xcresult bundle; unexpected termination alone does not prove its cause."
     ],
-    "hypothesis": "AX diagnostic getter after a nonempty PKDrawing may be implicated; not yet proven. No production ink change made.",
-    "next_step": "Collect host/simulator crash reports, runningboard/system logs and full xcresult on the same production source; inspect failing thread before fixing."
+    "next_step": "Run the two unchanged failing UI cases first on each family, then complete original 65 XCTest/26 XCUITest/3 Maestro flows and review actual images. GREEN not yet established.",
+    "root_cause": "Both actual .ips reports identify SIGSEGV at CAMetalLayer.drawableSize invoked on a presentation-layer snapshot by ResizingPDFView.diagnosticLayerState during post-stroke AX capture. This is not a jetsam/timeout in these reports.",
+    "red_source": "37d86ee74dbca680a1318c131b02813bc5e387f0",
+    "red_push_run": 38788546525,
+    "red_iPhone": {
+      "xctest_passed": 65,
+      "xcuitest_cases": 26,
+      "xcuitest_assertion_failures": 4,
+      "failed_cases": [
+        "testIndividualInkTargetsAtAccessibilityTextSize",
+        "testIndividualInkTargetsInDocumentAndCompactSplit"
+      ],
+      "create_notebook": "passed"
+    },
+    "crash_artifact": {
+      "id": 12000617803,
+      "sha256": "8e49789f7cebf84230bd52ae30748b6f39118bccb4879e3a029313e9131312c9"
+    },
+    "crash_reports": [
+      {
+        "file": "Hashiya-2026-10-15-190113.ips",
+        "sha256": "29ac5d5e440fd681dee7d09ee96f5382775b2aa7fb27e07f125a70381befe2d7",
+        "exception": {
+          "codes": "0x0000000000000001, 0x0000000000000078",
+          "rawCodes": [
+            1,
+            120
+          ],
+          "type": "EXC_BAD_ACCESS",
+          "signal": "SIGSEGV",
+          "subtype": "KERN_INVALID_ADDRESS at 0x0000000000000078"
+        },
+        "termination": {
+          "flags": 0,
+          "code": 11,
+          "namespace": "SIGNAL",
+          "indicator": "Segmentation fault: 11",
+          "byProc": "exc handler",
+          "byPid": 27874
+        },
+        "faulting_thread": 0,
+        "frames": [
+          {
+            "imageOffset": 1705776,
+            "symbol": "-[CAMetalLayer drawableSize]",
+            "symbolLocation": 12,
+            "imageIndex": 11
+          },
+          {
+            "imageOffset": 2285384,
+            "sourceLine": 705,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticLayerState(_:)",
+            "imageIndex": 4,
+            "symbolLocation": 296
+          },
+          {
+            "imageOffset": 2288508,
+            "sourceLine": 694,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "closure #2 in ResizingPDFView.diagnosticCompositionLayer(_:)",
+            "imageIndex": 4,
+            "symbolLocation": 88
+          },
+          {
+            "imageOffset": 2420172,
+            "sourceFile": "/<compiler-generated>",
+            "symbol": "partial apply for closure #2 in ResizingPDFView.diagnosticCompositionLayer(_:)",
+            "symbolLocation": 36,
+            "imageIndex": 4
+          },
+          {
+            "imageOffset": 343044,
+            "sourceFile": "/<compiler-generated>",
+            "symbol": "Optional.map<A, B>(_:)",
+            "symbolLocation": 336,
+            "imageIndex": 4
+          },
+          {
+            "imageOffset": 2281468,
+            "sourceLine": 693,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticCompositionLayer(_:)",
+            "imageIndex": 4,
+            "symbolLocation": 844
+          },
+          {
+            "imageOffset": 2275492,
+            "sourceLine": 653,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticLayerTree(_:characterLimit:)",
+            "imageIndex": 4,
+            "symbolLocation": 856
+          },
+          {
+            "imageOffset": 2265964,
+            "sourceLine": 644,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticInkRow(_:source:composition:)",
+            "imageIndex": 4,
+            "symbolLocation": 12904
+          }
+        ]
+      },
+      {
+        "file": "Hashiya-2026-10-15-190222.ips",
+        "sha256": "7d62aebb67bb88132dd13b7abda7ab86ed527c5168dae2f0ed236f2a3b46a5ea",
+        "exception": {
+          "codes": "0x0000000000000001, 0x0000000000000078",
+          "rawCodes": [
+            1,
+            120
+          ],
+          "type": "EXC_BAD_ACCESS",
+          "signal": "SIGSEGV",
+          "subtype": "KERN_INVALID_ADDRESS at 0x0000000000000078"
+        },
+        "termination": {
+          "flags": 0,
+          "code": 11,
+          "namespace": "SIGNAL",
+          "indicator": "Segmentation fault: 11",
+          "byProc": "exc handler",
+          "byPid": 33439
+        },
+        "faulting_thread": 0,
+        "frames": [
+          {
+            "imageOffset": 1705776,
+            "symbol": "-[CAMetalLayer drawableSize]",
+            "symbolLocation": 12,
+            "imageIndex": 11
+          },
+          {
+            "imageOffset": 2285384,
+            "sourceLine": 705,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticLayerState(_:)",
+            "imageIndex": 4,
+            "symbolLocation": 296
+          },
+          {
+            "imageOffset": 2288508,
+            "sourceLine": 694,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "closure #2 in ResizingPDFView.diagnosticCompositionLayer(_:)",
+            "imageIndex": 4,
+            "symbolLocation": 88
+          },
+          {
+            "imageOffset": 2420172,
+            "sourceFile": "/<compiler-generated>",
+            "symbol": "partial apply for closure #2 in ResizingPDFView.diagnosticCompositionLayer(_:)",
+            "symbolLocation": 36,
+            "imageIndex": 4
+          },
+          {
+            "imageOffset": 343044,
+            "sourceFile": "/<compiler-generated>",
+            "symbol": "Optional.map<A, B>(_:)",
+            "symbolLocation": 336,
+            "imageIndex": 4
+          },
+          {
+            "imageOffset": 2281468,
+            "sourceLine": 693,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticCompositionLayer(_:)",
+            "imageIndex": 4,
+            "symbolLocation": 844
+          },
+          {
+            "imageOffset": 2275492,
+            "sourceLine": 653,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticLayerTree(_:characterLimit:)",
+            "imageIndex": 4,
+            "symbolLocation": 856
+          },
+          {
+            "imageOffset": 2265964,
+            "sourceLine": 644,
+            "sourceFile": "PDFWorkspace.swift",
+            "symbol": "ResizingPDFView.diagnosticInkRow(_:source:composition:)",
+            "imageIndex": 4,
+            "symbolLocation": 12904
+          }
+        ]
+      }
+    ],
+    "remedy": "Remove subclass resource getters (drawableSize/pixelFormat) from AX diagnostics; retain generic CALayer state. No drawing, storage, test assertion, timeout or design changes."
   }
 }

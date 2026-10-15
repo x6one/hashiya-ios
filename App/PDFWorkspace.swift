@@ -700,11 +700,11 @@ final class ResizingPDFView: PDFView {
         func rect(_ value: CGRect) -> String {
             String(format: "%.2f,%.2f,%.2f,%.2f", Double(value.origin.x), Double(value.origin.y), Double(value.size.width), Double(value.size.height))
         }
-        let metal: String
-        if let layer = layer as? CAMetalLayer {
-            metal = String(format: " drawable=%.2f,%.2f", Double(layer.drawableSize.width), Double(layer.drawableSize.height)) + " pixelFormat=\(layer.pixelFormat.rawValue)"
-        } else { metal = "" }
-        return "hidden=\(layer.isHidden) opacity=\(String(format: "%.2f", Double(layer.opacity))) z=\(String(format: "%.2f", Double(layer.zPosition))) frame=\(rect(layer.frame)) bounds=\(rect(layer.bounds)) scale=\(String(format: "%.2f", Double(layer.contentsScale))) identity=\(CATransform3DIsIdentity(layer.transform)) mask=\(layer.mask != nil) contents=\(layer.contents != nil) children=\(layer.sublayers?.count ?? 0)" + metal
+        // Both native post-stroke AX reports crashed in the presentation
+        // snapshot's -[CAMetalLayer drawableSize] getter (SIGSEGV, 0x78).
+        // Read only CALayer state shared by model and presentation snapshots;
+        // subclass resource getters must never run while AX captures the tree.
+        return "hidden=\(layer.isHidden) opacity=\(String(format: "%.2f", Double(layer.opacity))) z=\(String(format: "%.2f", Double(layer.zPosition))) frame=\(rect(layer.frame)) bounds=\(rect(layer.bounds)) scale=\(String(format: "%.2f", Double(layer.contentsScale))) identity=\(CATransform3DIsIdentity(layer.transform)) mask=\(layer.mask != nil) contents=\(layer.contents != nil) children=\(layer.sublayers?.count ?? 0)"
     }
     private func diagnosticDisplayView(_ view: UIView) -> String {
         let layer = view.layer

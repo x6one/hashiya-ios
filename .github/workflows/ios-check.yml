@@ -50,6 +50,8 @@ jobs:
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
+          # Prove the two unchanged failing gestures first, then run every test.
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -resultBundlePath InkRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee ink-regression.log
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Verify externally exported fixture bytes
         if: always()
@@ -162,6 +164,9 @@ jobs:
       - name: Export UI screenshots
         if: always()
         run: |
+          if [ -d InkRegression.xcresult ]; then
+            xcrun xcresulttool export attachments --path InkRegression.xcresult --output-path InkRegressionScreenshots
+          fi
           if [ -d TestResults.xcresult ]; then
             xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Screenshots
           fi
@@ -193,17 +198,29 @@ jobs:
                   target.parent.mkdir(parents=True, exist_ok=True)
                   shutil.copy2(source, target)
                   reports.append(str(target))
-          (out / 'collection.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'],
-              'run': os.environ['GITHUB_RUN_ID'], 'reports': reports,
-              'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}, indent=2) + '\n')
+          result = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+              'reports': reports, 'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}
+          # A failed archive must not prevent other independent evidence collection.
+          for bundle in ('InkRegression.xcresult', 'TestResults.xcresult'):
+              if Path(bundle).exists():
+                  try:
+                      subprocess.run(['ditto', '-c', '-k', '--keepParent', bundle,
+                          str(out / (bundle + '.zip'))], check=True)
+                  except subprocess.CalledProcessError as error:
+                      result.setdefault('bundle_errors', {})[bundle] = str(error)
           predicate = 'process == "Hashiya" OR process == "ReportCrash" OR process == "runningboardd" OR process == "SpringBoard" OR process == "kernel" OR subsystem BEGINSWITH "com.apple.pencilkit" OR subsystem BEGINSWITH "com.apple.PDFKit"'
-          with (out / 'native-system.log').open('wb') as log:
-              subprocess.run(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log',
-                  'show', '--last', '45m', '--style', 'compact', '--info', '--debug',
-                  '--predicate', predicate], stdout=log, stderr=subprocess.STDOUT, timeout=120)
-          if Path('TestResults.xcresult').exists():
-              subprocess.run(['ditto', '-c', '-k', '--keepParent', 'TestResults.xcresult',
-                  str(out / 'TestResults.xcresult.zip')], check=True)
+          try:
+              with (out / 'native-system.log').open('wb') as log:
+                  subprocess.run(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log',
+                      'show', '--last', '60m', '--style', 'compact', '--info', '--debug',
+                      '--predicate', predicate], stdout=log, stderr=subprocess.STDOUT, timeout=120, check=True)
+              result['system_log_status'] = 'collected'
+          except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+              result['system_log_status'] = 'failed'
+              result['system_log_error'] = str(error)
+              print('Native unified log collection failed:', error)
+          finally:
+              (out / 'collection.json').write_text(json.dumps(result, indent=2) + '\n')
           PY_CRASH
       - name: Save diagnostics and screenshots
         if: always()
@@ -212,6 +229,8 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
+            ink-regression.log
+            InkRegressionScreenshots/
             file-provider.log
             NativeFailure/
             Screenshots/

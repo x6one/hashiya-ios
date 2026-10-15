@@ -560,15 +560,28 @@ final class ResizingPDFView: PDFView {
             let workspace = coordinator.workspace
             var trace = "main=\(Thread.isMainThread); page=\(workspace.page); registered=\(coordinator.canvases.count); registrySample=\(sampledPages.count); registrySampledOut=\(coordinator.canvases.count > pages.count); attachedSample=\(attached.count); scanned=\(visited); scanPending=\(pending.count); modelBrush=\(workspace.brush.rawValue); modelRGBA=\(diagnosticRGBA(UIColor(workspace.inkColor))); modelWidth=\(workspace.inkWidth); "
             // Keep the complete current-page row ahead of other registry rows.
-            // Reserve room for an explicit omission count within the AX cap.
+            // Budget the whole AX label, including the original label, wrapper,
+            // omission count, and a truncation marker for the hard fallback.
+            let characterLimit = 24_000
+            let opening = label + "; PDFInkTrace=["
+            let truncation = "; truncated=true"
+            let omissionReserve = "; rowsOmittedForCap=\(rows.count)"
+            let traceBudget = max(0, characterLimit - opening.count - omissionReserve.count - truncation.count - 1)
             var omittedRows = 0
             for (index, row) in rows.enumerated() {
-                if index == 0 || trace.count + row.count + 96 <= 24_000 {
-                    trace += (index == 0 ? "" : " | ") + row
+                let separator = index == 0 ? "" : " | "
+                if index == 0 || trace.count + separator.count + row.count <= traceBudget {
+                    trace += separator + row
                 } else { omittedRows += 1 }
             }
-            trace += "; rowsOmittedForCap=\(omittedRows)"
-            return label + "; PDFInkTrace=[" + String(trace.prefix(24_000)) + (trace.count > 24_000 ? "; truncated=true" : "") + "]"
+            let omission = "; rowsOmittedForCap=\(omittedRows)"
+            let complete = opening + trace + omission + "]"
+            if complete.count <= characterLimit { return complete }
+            // An oversized original label or current row must still disclose
+            // truncation and retain the count of completely omitted extra rows.
+            let ending = omission + truncation + "]"
+            let prefixBudget = max(0, characterLimit - ending.count)
+            return String((opening + trace).prefix(prefixBudget)) + ending
         }
         set { super.accessibilityLabel = newValue }
     }

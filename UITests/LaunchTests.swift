@@ -1134,6 +1134,40 @@ final class LaunchTests: XCTestCase {
         return true
     }
 
+    private func marginMountExpectation(in app: XCUIApplication,
+                                        sample: @escaping (String) -> Void) -> XCTNSPredicateExpectation {
+        let pollingStarted = ProcessInfo.processInfo.systemUptime
+        return XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let started = ProcessInfo.processInfo.systemUptime
+            do {
+                // All three conditions come from one fresh native AX hierarchy.
+                // Serial element queries can exhaust the deadline between reads.
+                let root = try app.snapshot()
+                let captured = ProcessInfo.processInfo.systemUptime
+                var pending: [any XCUIElementSnapshot] = [root]
+                var modeCount = 0, canvasCount = 0, textCount = 0, nodes = 0
+                var handwriting = false
+                while let node = pending.popLast() {
+                    nodes += 1
+                    if node.elementType == .segmentedControl && node.identifier == "marginMode" {
+                        modeCount += 1
+                        handwriting = node.value as? String == "handwriting"
+                    }
+                    if node.elementType == .scrollView && node.identifier == "marginInkCanvas" { canvasCount += 1 }
+                    if node.elementType == .textView && node.identifier == "splitNotes" { textCount += 1 }
+                    // Do not cap or exit early: a remaining text editor can
+                    // occur after the mode and canvas in the same hierarchy.
+                    pending.append(contentsOf: node.children)
+                }
+                sample("start=\(started - pollingStarted); captured=\(captured - pollingStarted); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); nodes=\(nodes); modes=\(modeCount); handwriting=\(handwriting); canvases=\(canvasCount); texts=\(textCount)")
+                return modeCount == 1 && handwriting && canvasCount > 0 && textCount == 0
+            } catch {
+                sample("start=\(started - pollingStarted); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); snapshotError=\(error.localizedDescription)")
+                return false
+            }
+        }, object: app)
+    }
+
     func testMarginHandwritingMountsWithoutTextInteraction() {
         verifyMarginHandwritingMount(name: "Untouched", focusesText: false, typesText: false)
     }
@@ -1146,7 +1180,18 @@ final class LaunchTests: XCTestCase {
         verifyMarginHandwritingMount(name: "Edited", focusesText: true, typesText: true)
     }
 
-    private func verifyMarginHandwritingMount(name: String, focusesText: Bool, typesText: Bool) {
+    func testMarginHandwritingMountsAfterDocumentInkMode() {
+        verifyMarginHandwritingMount(name: "DocumentInkMode", focusesText: false, typesText: false,
+                                     usesDocumentInk: true)
+    }
+
+    func testMarginHandwritingMountsAfterDocumentFit() {
+        verifyMarginHandwritingMount(name: "DocumentFit", focusesText: false, typesText: false,
+                                     usesDocumentInk: true, fitsDocument: true)
+    }
+
+    private func verifyMarginHandwritingMount(name: String, focusesText: Bool, typesText: Bool,
+                                              usesDocumentInk: Bool = false, fitsDocument: Bool = false) {
         XCUIDevice.shared.orientation = .portrait
         XCTContext.runActivity(named: name) { activity in
             let app = XCUIApplication()
@@ -1157,6 +1202,28 @@ final class LaunchTests: XCTestCase {
             guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }
             if !demo.isHittable { app.swipeUp() }
             demo.tap()
+            if usesDocumentInk {
+                let pen = app.buttons["inkTool"]
+                guard pen.waitForExistence(timeout: 15), pen.isHittable else {
+                    XCTFail("The real document pen must be available before splitting"); return
+                }
+                pen.tap()
+                XCTAssertTrue(pen.isSelected, "The probe must really activate document ink before splitting")
+                let pdf = app.otherElements["pdfCanvas"]
+                let before = "frame=\(pdf.frame); label=\(pdf.label)"
+                if fitsDocument {
+                    let fit = app.buttons["fitMargin"]
+                    guard fit.waitForExistence(timeout: 5), fit.isHittable else {
+                        XCTFail("The actual document fit action must be available"); return
+                    }
+                    fit.tap()
+                }
+                // Both ink-mode probes take the same viewport observations;
+                // the second probe adds only the real document fit action.
+                let viewport = XCTAttachment(string: "fitRequested=\(fitsDocument)\nbefore=\(before)\nafter=frame=\(pdf.frame); label=\(pdf.label)")
+                viewport.name = "MarginMount-" + name + "-DocumentViewport"
+                viewport.lifetime = .keepAlways; activity.add(viewport)
+            }
             let split = app.buttons["splitDocumentNotes"]
             guard split.waitForExistence(timeout: 15) else { XCTFail("Native document must expose split"); return }
             split.tap()
@@ -1171,9 +1238,8 @@ final class LaunchTests: XCTestCase {
             }
             handwriting.tap()
             let canvas = app.scrollViews["marginInkCanvas"]
-            let mounted = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                mode.value as? String == "handwriting" && canvas.exists && !text.exists
-            }, object: mode)
+            var mountSamples: [String] = []
+            let mounted = marginMountExpectation(in: app) { mountSamples.append($0) }
             let result = XCTWaiter.wait(for: [mounted], timeout: 5)
             // Capture the transition outcome before collecting expensive evidence.
             let selectedMode = mode.value as? String
@@ -1183,7 +1249,7 @@ final class LaunchTests: XCTestCase {
             XCTAssertEqual(selectedMode, "handwriting", "The retained mode must be handwriting")
             XCTAssertTrue(canvasMounted, "The actual PencilKit canvas must be mounted")
             XCTAssertFalse(textMounted, "The text editor must be removed after switching")
-            let evidence = XCTAttachment(string: "interaction=\(name); result=\(result.rawValue); mode=\(selectedMode ?? "missing"); canvas=\(canvasMounted); text=\(textMounted); trace=\(mode.label)")
+            let evidence = XCTAttachment(string: "interaction=\(name); result=\(result.rawValue); mode=\(selectedMode ?? "missing"); canvas=\(canvasMounted); text=\(textMounted); trace=\(mode.label)\npolls=\(mountSamples.joined(separator: "\n"))")
             evidence.name = "MarginMount-" + name
             evidence.lifetime = .keepAlways
             activity.add(evidence)
@@ -1230,10 +1296,11 @@ final class LaunchTests: XCTestCase {
         modeGeometry.name = variant + "-NativeMarginModeGeometry"; modeGeometry.lifetime = .keepAlways; add(modeGeometry)
         handwriting.tap()
         let margin = app.scrollViews["marginInkCanvas"]
-        let switched = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            mode.value as? String == "handwriting" && margin.exists && !app.textViews["splitNotes"].exists
-        }, object: mode)
+        var mountSamples: [String] = []
+        let switched = marginMountExpectation(in: app) { mountSamples.append($0) }
         let switchedResult = XCTWaiter.wait(for: [switched], timeout: 5)
+        let polling = XCTAttachment(string: mountSamples.joined(separator: "\n"))
+        polling.name = variant + "-NativeMarginPolling"; polling.lifetime = .keepAlways; add(polling)
         let state = "modeValue=\(mode.value as? String ?? "missing"); canvasExists=\(margin.exists); textExists=\(app.textViews["splitNotes"].exists); label=\(mode.label)"
         let renderTrace = XCTAttachment(string: state)
         renderTrace.name = variant + "-MarginRenderBoundaryTrace"; renderTrace.lifetime = .keepAlways; add(renderTrace)

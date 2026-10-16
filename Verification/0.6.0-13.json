@@ -27,7 +27,7 @@
     "maestro": "fresh follow-up execution pending",
     "required_cases_per_family": {
       "xctest": 65,
-      "xcuitest": 29,
+      "xcuitest": 31,
       "maestro_flows": 3
     },
     "families_required": [
@@ -377,7 +377,51 @@
     "change": "Cache both frames and crop before gesture; no AX queries in pixel polling; assert both frames unchanged on success/failure; record per-poll screenshot/measurement times and red pixels.",
     "threshold_pixels": 40,
     "timeout_seconds": 5,
-    "native_validation": "pending",
+    "native_validation": "3e88692 push38849331527: both PDF cases pass on iPad and iPhone, then original margin switch fails. iPad first-poll measurement finishes1.496/1.478seconds.",
     "production_behavior_changed": false
+  },
+  "joint_snapshot_observation": {
+    "basis_source": "799421000862ffca87f8231f7e11f7437e8cc0fe",
+    "public_api": "XCUIApplication.snapshot() -> XCUIElementSnapshot; full children traversal and public element attributes",
+    "joint_requirements": [
+      "exactly one marginMode SegmentedControl with valuehandwriting",
+      "marginInkCanvas ScrollView exists",
+      "splitNotes TextView absent"
+    ],
+    "timeout_seconds": 5,
+    "conditions_checked_in_same_snapshot": true,
+    "traversal_capped": false,
+    "snapshot_errors_pass": false,
+    "scope": "Both original individual ink cases and five direct mounting cases; original assertions/timeouts retained.",
+    "evidence": "Per-poll capture start/end, traversal end, visited nodes, mode/canvas/text counts.",
+    "review": "Independent source review found no blocking issue; Xcode compile and real native results pending.",
+    "native_validation": "pending",
+    "production_behavior_changed": false,
+    "additional_probes": [
+      "testMarginHandwritingMountsAfterDocumentInkMode",
+      "testMarginHandwritingMountsAfterDocumentFit"
+    ]
+  },
+  "source_3e_ipad_evidence": {
+    "source": "3e886929584adac1a441f7d537dda91f94bcc4e6",
+    "run": 38849331527,
+    "artifact_id": 12025186178,
+    "sha256": "e87166fea31346c3e2420690207a085896ccbd333674ee4e9a13ef24c7362e87",
+    "direct_mounting": "All3cases pass103.911seconds; actual attached457x888canvases, modehandwriting, textfalse.",
+    "pdf_ink": "Both original cases pass real visible stroke,count,Undo,Redo,Fit; pixel samples12831/13069, baseline0, measurement done1.496/1.478seconds.",
+    "remaining_failure": "Both original cases fail margin switch at1242; modehandwriting, canvasfalse,texttrue,control.canvasnil;40untruncated events;body/notebookbranchtrue;zero makeUIView.",
+    "full_suites_and_maestro": "blocked; not accepted",
+    "ipa": null
+  },
+  "source_3e_phone_evidence": {
+    "source": "3e886929584adac1a441f7d537dda91f94bcc4e6",
+    "run": 38849331527,
+    "artifact_id": 12025346311,
+    "github_artifact_digest": "sha256:4dd05289661eb0b0514455662eb8208e1b3ac07688088511fbd34bea9547fa0c",
+    "download_hash_independently_verified": false,
+    "direct_cases": "Untouched passes36.025seconds; Focused/Edited fail only joint deadline65.437/57.907seconds; later individual native-state assertions pass.",
+    "original_cases": "Both PDF visible-stroke/count/Undo/Redo/Fit stages pass; margin switch fails1242,164.538/138.301seconds.",
+    "full_suites_and_maestro": "blocked; not accepted",
+    "ipa": null
   }
 }

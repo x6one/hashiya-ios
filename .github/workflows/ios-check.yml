@@ -51,9 +51,13 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
           # Isolate native editor mounting before the longer drawing journeys.
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsBeforeAndAfterTextInteraction -resultBundlePath MarginModeRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee margin-mode-regression.log
-          # Prove the two unchanged failing gestures first, then run every test.
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -resultBundlePath InkRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee ink-regression.log
+          margin_status=0
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsWithoutTextInteraction -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextFocus -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextEditing -resultBundlePath MarginModeRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee margin-mode-regression.log || margin_status=$?
+          # Run both focused groups even if one fails; both must pass before the full suite.
+          ink_status=0
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -resultBundlePath InkRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee ink-regression.log || ink_status=$?
+          test "$margin_status" -eq 0
+          test "$ink_status" -eq 0
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Verify externally exported fixture bytes
         if: always()

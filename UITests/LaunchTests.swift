@@ -1051,9 +1051,10 @@ final class LaunchTests: XCTestCase {
             XCTFail("Native swatch must change the actual bound ink color; before=\(initialColor), after=\(colorControl.value as? String ?? "missing")"); return false
         }
         let strokeFrame = canvas.frame
+        let applicationFrame = app.frame
+        let pixelFrame = strokeFrame.intersection(applicationFrame)
         let beforeStroke = XCUIScreen.main.screenshot()
-        let beforeRed = redInkPixels(in: beforeStroke.image,
-            frame: strokeFrame.intersection(app.frame))
+        let beforeRed = redInkPixels(in: beforeStroke.image, frame: pixelFrame)
         let baseline = XCTAttachment(screenshot: beforeStroke)
         baseline.name = name + "-RedPixelBaseline"; baseline.lifetime = .keepAlways; add(baseline)
         let before = Int(count.value as? String ?? "") ?? 0
@@ -1064,15 +1065,30 @@ final class LaunchTests: XCTestCase {
             (Int(count.value as? String ?? "") ?? 0) > before
         }, object: count)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Targets must leave a usable native writing surface")
+        // AX geometry reads can consume the entire visibility deadline. The
+        // gesture does not change geometry; verify both frames after polling.
+        let pollingStarted = ProcessInfo.processInfo.systemUptime
+        var pixelSamples: [(started: Double, captured: Double, measured: Double, pixels: Int)] = []
         let visibleRed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            self.redInkPixels(in: XCUIScreen.main.screenshot().image,
-                frame: canvas.frame.intersection(app.frame)) - beforeRed > 40
+            let started = ProcessInfo.processInfo.systemUptime
+            let screenshot = XCUIScreen.main.screenshot()
+            let captured = ProcessInfo.processInfo.systemUptime
+            let pixels = self.redInkPixels(in: screenshot.image, frame: pixelFrame)
+            pixelSamples.append((started - pollingStarted, captured - pollingStarted,
+                ProcessInfo.processInfo.systemUptime - pollingStarted, pixels))
+            return pixels - beforeRed > 40
         }, object: canvas)
-        guard XCTWaiter.wait(for: [visibleRed], timeout: 5) == .completed else {
+        let visibleResult = XCTWaiter.wait(for: [visibleRed], timeout: 5)
+        XCTAssertEqual(canvas.frame, strokeFrame, "Color stroke must preserve the measured writing surface")
+        XCTAssertEqual(app.frame, applicationFrame, "Color stroke must preserve the measured application frame")
+        let polling = XCTAttachment(string: "result=\(visibleResult.rawValue); baseline=\(beforeRed); crop=\(pixelFrame)\n"
+            + pixelSamples.map { "start=\($0.started); captured=\($0.captured); measured=\($0.measured); red=\($0.pixels); delta=\($0.pixels - beforeRed)" }.joined(separator: "\n"))
+        polling.name = name + "-RedPixelPolling"; polling.lifetime = .keepAlways; add(polling)
+        guard visibleResult == .completed else {
             let afterStroke = XCUIScreen.main.screenshot()
             let evidence = XCTAttachment(screenshot: afterStroke)
             evidence.name = name + "-RedPixelFailure"; evidence.lifetime = .keepAlways; add(evidence)
-            let measured = redInkPixels(in: afterStroke.image, frame: canvas.frame.intersection(app.frame))
+            let measured = redInkPixels(in: afterStroke.image, frame: pixelFrame)
             let geometry = XCTAttachment(string: "beforeRed=\(beforeRed); afterRed=\(measured); delta=\(measured - beforeRed); beforeCount=\(before); afterCount=\(count.value as? String ?? "missing"); rgba=\(colorControl.value as? String ?? "missing"); beforeFrame=\(strokeFrame); afterFrame=\(canvas.frame); appFrame=\(app.frame); screenshotSize=\(afterStroke.image.size); screenshotScale=\(afterStroke.image.scale); screenshotOrientation=\(afterStroke.image.imageOrientation.rawValue); canvasLabel=\(canvas.label)")
             geometry.name = name + "-RedPixelFailureMeasurement"; geometry.lifetime = .keepAlways; add(geometry)
             recordState("StrokeNotVisible", expected: String(before))
@@ -1080,7 +1096,6 @@ final class LaunchTests: XCTestCase {
             elementEvidence.name = name + "-RedPixelFailureElement"; elementEvidence.lifetime = .keepAlways; add(elementEvidence)
             XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke"); return false
         }
-        XCTAssertEqual(canvas.frame, strokeFrame, "Color stroke must preserve the measured writing surface")
         let savedCount = count.value as? String
         recordState("StrokeSaved", expected: savedCount)
         guard tapTarget("inkUndo") else { return false }
@@ -1119,49 +1134,61 @@ final class LaunchTests: XCTestCase {
         return true
     }
 
-    func testMarginHandwritingMountsBeforeAndAfterTextInteraction() {
+    func testMarginHandwritingMountsWithoutTextInteraction() {
+        verifyMarginHandwritingMount(name: "Untouched", focusesText: false, typesText: false)
+    }
+
+    func testMarginHandwritingMountsAfterTextFocus() {
+        verifyMarginHandwritingMount(name: "Focused", focusesText: true, typesText: false)
+    }
+
+    func testMarginHandwritingMountsAfterTextEditing() {
+        verifyMarginHandwritingMount(name: "Edited", focusesText: true, typesText: true)
+    }
+
+    private func verifyMarginHandwritingMount(name: String, focusesText: Bool, typesText: Bool) {
         XCUIDevice.shared.orientation = .portrait
-        let scenarios = [(name: "Untouched", focusesText: false, typesText: false),
-                         (name: "Focused", focusesText: true, typesText: false),
-                         (name: "Edited", focusesText: true, typesText: true)]
-        for scenario in scenarios {
-            XCTContext.runActivity(named: scenario.name) { activity in
-                let app = XCUIApplication()
-                defer { app.terminate() }
-                app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
-                app.launch()
-                let demo = app.buttons["welcomeDemonstration"]
-                guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }
-                if !demo.isHittable { app.swipeUp() }
-                demo.tap()
-                let split = app.buttons["splitDocumentNotes"]
-                guard split.waitForExistence(timeout: 15) else { XCTFail("Native document must expose split"); return }
-                split.tap()
-                let text = app.textViews["splitNotes"]
-                guard text.waitForExistence(timeout: 5) else { XCTFail("Split must initially mount the text editor"); return }
-                if scenario.focusesText { text.tap() }
-                if scenario.typesText { text.typeText("Margin mounting probe") }
-                let mode = app.segmentedControls["marginMode"]
-                let handwriting = mode.buttons["خط اليد"]
-                guard handwriting.waitForExistence(timeout: 5), handwriting.isHittable else {
-                    XCTFail("The handwriting segment must be usable before switching"); return
-                }
-                handwriting.tap()
-                let canvas = app.scrollViews["marginInkCanvas"]
-                let mounted = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                    mode.value as? String == "handwriting" && canvas.exists && !text.exists
-                }, object: mode)
-                let result = XCTWaiter.wait(for: [mounted], timeout: 5)
-                let evidence = XCTAttachment(string: "interaction=\(scenario.name); result=\(result.rawValue); mode=\(mode.value as? String ?? "missing"); canvas=\(canvas.exists); text=\(text.exists); trace=\(mode.label)")
-                evidence.name = "MarginMount-" + scenario.name
-                evidence.lifetime = .keepAlways
-                activity.add(evidence)
-                let screenshot = XCTAttachment(screenshot: app.screenshot())
-                screenshot.name = evidence.name; screenshot.lifetime = .keepAlways; activity.add(screenshot)
-                XCTAssertEqual(result, .completed, "Handwriting must mount without requiring earlier text editing")
-                XCTAssertTrue(canvas.exists, "The actual PencilKit canvas must be mounted")
-                XCTAssertFalse(text.exists, "The text editor must be removed after switching")
+        XCTContext.runActivity(named: name) { activity in
+            let app = XCUIApplication()
+            defer { app.terminate() }
+            app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
+            app.launch()
+            let demo = app.buttons["welcomeDemonstration"]
+            guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }
+            if !demo.isHittable { app.swipeUp() }
+            demo.tap()
+            let split = app.buttons["splitDocumentNotes"]
+            guard split.waitForExistence(timeout: 15) else { XCTFail("Native document must expose split"); return }
+            split.tap()
+            let text = app.textViews["splitNotes"]
+            guard text.waitForExistence(timeout: 5) else { XCTFail("Split must initially mount the text editor"); return }
+            if focusesText { text.tap() }
+            if typesText { text.typeText("Margin mounting probe") }
+            let mode = app.segmentedControls["marginMode"]
+            let handwriting = mode.buttons["خط اليد"]
+            guard handwriting.waitForExistence(timeout: 5), handwriting.isHittable else {
+                XCTFail("The handwriting segment must be usable before switching"); return
             }
+            handwriting.tap()
+            let canvas = app.scrollViews["marginInkCanvas"]
+            let mounted = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                mode.value as? String == "handwriting" && canvas.exists && !text.exists
+            }, object: mode)
+            let result = XCTWaiter.wait(for: [mounted], timeout: 5)
+            // Capture the transition outcome before collecting expensive evidence.
+            let selectedMode = mode.value as? String
+            let canvasMounted = canvas.exists
+            let textMounted = text.exists
+            XCTAssertEqual(result, .completed, "Handwriting must mount without requiring earlier text editing")
+            XCTAssertEqual(selectedMode, "handwriting", "The retained mode must be handwriting")
+            XCTAssertTrue(canvasMounted, "The actual PencilKit canvas must be mounted")
+            XCTAssertFalse(textMounted, "The text editor must be removed after switching")
+            let evidence = XCTAttachment(string: "interaction=\(name); result=\(result.rawValue); mode=\(selectedMode ?? "missing"); canvas=\(canvasMounted); text=\(textMounted); trace=\(mode.label)")
+            evidence.name = "MarginMount-" + name
+            evidence.lifetime = .keepAlways
+            activity.add(evidence)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = evidence.name; screenshot.lifetime = .keepAlways; activity.add(screenshot)
         }
     }
 

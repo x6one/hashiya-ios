@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked: keyed editor experiment failed; direct native mounting contrast test pending",
+  "status": "blocked_native_margin_journey_and_visibility_observation_verification_pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -27,7 +27,7 @@
     "maestro": "fresh follow-up execution pending",
     "required_cases_per_family": {
       "xctest": 65,
-      "xcuitest": 27,
+      "xcuitest": 29,
       "maestro_flows": 3
     },
     "families_required": [
@@ -303,7 +303,25 @@
     ],
     "candidate_change": "Initialize PDF overlay contentSize from canvas.bounds.size; rendering hypothesis, not yet proven",
     "remaining": "Native color picker child presentation failure; full suites and Maestro not reached; actual screenshots required",
-    "native_office_build": "38819378930 device build successful; packaging gated on exact-source preflight"
+    "native_office_build": "38819378930 device build successful; packaging gated on exact-source preflight",
+    "ipad_5d_deadline_followup": {
+      "source": "5d62053d03e7e0b6d4222309c5ec27f39f922445",
+      "run": 38823719636,
+      "artifact_id": 12014173968,
+      "artifact_sha256": "55692ca4ffcdced4b83cf08f0db2d3f833af15e4e92aece1b605c1113c38fd2f",
+      "measurement_attachment": "CAD49855-9058-45B2-A17F-DA5A34DB31C0.txt",
+      "measurement": {
+        "before_red": 0,
+        "after_red": 12913,
+        "delta": 12913,
+        "before_count": 0,
+        "after_count": 1
+      },
+      "canvas_extent": "Same current canvas before/after; bounds and content650x900, zoom1, offset0, attached; stroke inside first512x512tile; tile contents present in failure diagnostics.",
+      "texture_timing": "Loaded23:40:42.989 before drawing ended23:40:43.870; earlier cold texture delay does not recur.",
+      "interpretation": "Visibility predicate missed its5-second deadline; later failure screenshot contains visible red ink. No per-poll pixel evidence distinguishes rendering delay from slow AX observation/deadline behavior. This does not prove persistent blank ink or an extent collapse.",
+      "remaining": "Capture per-poll observation timing and pixels before attributing root cause; no timeout extension or font change without evidence."
+    }
   },
   "pdf_content_extent_validation": {
     "source": "473dcb25cc0d33e085dca6944895724d5b058c14",
@@ -333,8 +351,33 @@
     "office_run": 38823894857,
     "office_build": "passed",
     "ipa": null,
-    "next_test": "testMarginHandwritingMountsBeforeAndAfterTextInteraction",
+    "next_test": "Run the three independent mounting cases and both original ink cases; both focused groups must pass before full suites.",
     "test_scope": "Same real demo with three independent launches: untouched text, focus only, focus and typing. Native canvas must mount and text editor disappear in each scenario.",
-    "original_tests_assertions_timeouts": "unchanged"
+    "original_tests_assertions_timeouts": "unchanged",
+    "source_799_direct_probe": {
+      "source": "799421000862ffca87f8231f7e11f7437e8cc0fe",
+      "push_run": 38847692072,
+      "pr_run": 38847697936,
+      "phone_artifact": 12024561349,
+      "phone_artifact_sha256": "3f65a5394f7dacbf79ed5ae0758c4e1fb783f9495caac46ed2f21c17fdfa8a8d",
+      "phone": "137.809seconds;2 deadline assertions; allthree variants modehandwriting,actualcanvastrue,textfalse; Focused waiter completes, Untouched/Edited waiter timesout.",
+      "ipad_pr_live": "Untouched/Focused predicate deadline assertions with later native-state assertions passing; total240second allowance exceeded during Edited launch. Complete bundle pending.",
+      "interpretation": "Direct demo→split does mount PencilKit without text editing. Deadline costs distort the joint predicate. Original full PDF tools/color/fit journey remains distinct and unresolved.",
+      "next_tests": [
+        "testMarginHandwritingMountsWithoutTextInteraction",
+        "testMarginHandwritingMountsAfterTextFocus",
+        "testMarginHandwritingMountsAfterTextEditing"
+      ],
+      "limits": "Each new variant has fresh launch and existing240second allowance. No original26 UI case removed. Both focused groups must pass before full suite.",
+      "joint_deadline_preserved": "Retain original5second joint predicate: modehandwriting AND canvasexists AND noTextEditor. Automatic review rejected a canvas-only predicate; reverted locally before publishing. Extra immediate state assertions retained."
+    }
+  },
+  "visibility_observation_correction": {
+    "basis": "5d PR iPad timed visibility expectation fails; subsequent screenshot has12913 red pixels and unchanged geometry. AX lookups consumed most of the5second budget.",
+    "change": "Cache both frames and crop before gesture; no AX queries in pixel polling; assert both frames unchanged on success/failure; record per-poll screenshot/measurement times and red pixels.",
+    "threshold_pixels": 40,
+    "timeout_seconds": 5,
+    "native_validation": "pending",
+    "production_behavior_changed": false
   }
 }

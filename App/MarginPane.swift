@@ -3,7 +3,7 @@ import PencilKit
 
 struct MarginPane: View {
     @ObservedObject var store: MarginPages
-    @ObservedObject var editor: MarginEditorState
+    let editor: MarginEditorState
     let sourcePage: Int
     let expanded: Bool
     let toggleExpanded: () -> Void
@@ -19,11 +19,10 @@ struct MarginPane: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
-        // Parent diagnostics retain the original boundary trace; content observes directly below.
-        let handwriting = editor.handwriting
-        let _ = traceMarginRender("body snapshot=\(handwriting)")
+        // Mode-driven rendering belongs to the content consuming the editor.
+        let _ = traceMarginRender("body container")
         GeometryReader { geometry in
-            let _ = traceMarginRender("geometry snapshot=\(handwriting) live=\(editor.handwriting) size=\(geometry.size)")
+            let _ = traceMarginRender("geometry container size=\(geometry.size)")
             // The height offered by a portrait split can be smaller than landscape.
             let compactChrome = verticalSizeClass == .compact || geometry.size.height < 350
             MarginPaneContent(store: store, editor: editor, sourcePage: sourcePage,
@@ -41,10 +40,6 @@ struct MarginPane: View {
                 Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil; confirmMarginDeletion = false }
                 Button("إلغاء", role: .cancel) { deletingPage = nil }
             } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
-            .onChange(of: editor.handwriting) { old, new in
-                traceMarginRender("onChange old=\(old) new=\(new)")
-                textFocused = false
-            }
             .onDisappear { _ = store.flush() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
     }
@@ -114,6 +109,10 @@ private struct MarginPaneContent: View {
             } else {
                 ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
             }
+        }
+        .onChange(of: editor.handwriting) { old, new in
+            traceMarginRender("content onChange old=\(old) new=\(new)")
+            textFocused = false
         }
     }
     private func traceMarginRender(_ event: String) {

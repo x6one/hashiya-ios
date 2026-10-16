@@ -1,3 +1,22 @@
+## 2026-10-16 — Source3f69f15 completed; minor polish deferred for trial delivery
+
+- Push38918046440 and PR38918055254 completed Failure on both families; device packaging skipped. Push phone direct controls pass40.704/40.213/37.412s; ink-prelude cases fail80.780/63.115s; original PDF stages pass then margin fails180.628/201.948s. Push phone artifact12054084536 digest46af3d2f65fed286c7cf7b1052364188c0bb251d75501dd7df94f9c023d6c645 (GitHub digest, not independently hashed).
+- User prioritizes a trial IPA and defers harmless minor/cosmetic issues. Continue fixing the functional handwriting/mounting blocker and preserving files; no cosmetic expansion. Current responder cleanup and new storage cases still require native validation before any fix/readiness claim.
+
+## 2026-10-16 — Source3f69f15 iPad evidence and launch-failure distinction
+
+- PR iPad completed Failure: DocumentFit82.620s/InkMode65.145s fail the three native mounting assertions; Edited67.353s/Focused53.603s/Untouched35.406s pass. Original cases pass PDF stages then fail margin mounting155.590/144.061s. Artifact12054532167 GitHub digest91e1a8cc0c172a77a05ec1a532420ab8316201196883302f23d92bc0aa4a4ae6 (not independently downloaded/hashed).
+- Push iPad artifact12054443353 independently verified SHA256 `b3f41ee7e10077dc11a0ef9d3cb1eeeb411cb0dae181ea6205d8547cec1a5cdd`. First four direct cases fail inside app.launch before their named interactions because XCTest cannot acquire a background assertion. They are not executed ink/fit/text contrast outcomes. Untouched passes47.171s; original PDF stages pass, then margin mounting fails223.162/190.893s.
+- Native launch investigation: PIDs15025/15733/16607/17274 emit UIKit/scene activity and obtain the app's own shared background assertion, distinct from XCTest's failed request. Later tests explicitly terminate prior apps; RunningBoard records SIGTERM at14:50:56.183/14:51:11.874/14:51:24.290/14:51:36.596UTC. Later nonexistent-process messages follow these terminations. No report files or relevant watchdog/jetsam kill established. Why XCTest acquisition times out remains unresolved; do not label this an app crash or connect it to mounting without evidence.
+
+## 2026-10-16 — PDF responder teardown experiment awaiting native verification
+
+- Follow-up to storage-coverage checkpoint e3cd414b96d0a6d77da04bd3a269caf6db5ceb1a. Only production change: NativePDF.dismantleUIView resigns every registered canvas as first responder before clearing its delegate/removing the overlay provider. Existing pending-ink flush remains first; keeping the delegate through resignation allows synchronous finalization callbacks to persist. No mode/GeometryReader/toolbar/data-format change is combined with it.
+- Evidence motivating the experiment: source3f69f15 reproduces missing margin canvas after document ink activation alone, while all three non-ink controls pass on PR phone and the live Push phone/PR iPad groups. Replacing the NativePDF branch during split lacked the explicit responder cleanup already present during document replacement. The prior responder's role is not proven; this is a single reversible hypothesis.
+- Required validation: all67 unit tests (including the two new real-storage pink-pencil cases), five direct mounting cases and both original ink journeys on both families, then unchanged full31 UI suite/all3 Maestro flows/external bytes and device gates. Existing5second transition/visible-ink conditions remain unchanged. No native pass claimed from Linux checks.
+- Stop/revert condition: if the same native mounting failure remains, remove this cleanup experiment before trying the separate mode-observation boundary experiment. The latter remains unapplied. Completed-stroke evidence does not validate arbitrary asynchronous PencilKit finalization while a view is removed; preserve this limitation during review.
+- Last local checks:11 Tools tests pass, workflow YAML/16 Bash blocks/verification JSON parse, git diff check passes. No accepted IPA or Apple upload.
+
 ## 2026-10-16 — Source3f69f15: ink activation alone reproduces missing margin canvas
 
 - PR38918055254 iPhone job117030533141 completed Failure. Artifact12054133375 independently downloaded/hashed SHA256 `3b4d43ce591823dd22be3534c2d0d380bfebfcc846ddb30327e0949c0b801692`; PR merge e41e0cc7f285a45ebc6b439b249697ad9b05533b.

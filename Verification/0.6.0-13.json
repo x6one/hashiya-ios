@@ -447,7 +447,36 @@
     "native_trace": "InkMode40events,Fit34events, complete without truncation/eviction, no makeUIView enter; actual screenshot C0309ED9-6AE1-4B55-8633-89ACD11A3F36.png visually reviewed and shows retained TextEditor despite selected handwriting.",
     "crash_reports": "PR phone collection reports[]; not proof excluding every crash/watchdog/jetsam. No Application-not-running assertion in this job.",
     "inference": "Activating document ink before splitting reproduces failure without palette, brush changes, strokes, Undo/Redo or Fit. Native responder lifecycle versus mode-observation boundary remains unresolved.",
-    "other_jobs": "Push phone and PR iPad live direct group each have same two failing ink-prelude cases and three passing non-ink controls. Push iPad initially fails app launches acquiring background assertions. Await complete jobs for final details.",
+    "other_jobs": "Both Push and PR completed Failure on both families; full suites/Maestro blocked; device packaging skipped.",
+    "acceptance": false,
+    "pr_ipad_focused": "DocumentFit82.620s and InkMode65.145s fail3assertseach; Edited67.353s,Focused53.603s,Untouched35.406s pass. Both original cases pass PDF stages then margin fails155.590/144.061s.",
+    "pr_ipad_artifact": {
+      "id": 12054532167,
+      "github_digest": "91e1a8cc0c172a77a05ec1a532420ab8316201196883302f23d92bc0aa4a4ae6",
+      "independently_hashed": false
+    },
+    "push_ipad_artifact": {
+      "id": 12054443353,
+      "sha256": "b3f41ee7e10077dc11a0ef9d3cb1eeeb411cb0dae181ea6205d8547cec1a5cdd",
+      "independently_hashed": true
+    },
+    "push_ipad_launch_investigation": "First4directcasesfailinside app.launch before named interactions, with XCTest backgroundassertionacquisitiontimeouts. PIDs15025,15733,16607,17274. Each launched/emittedscenes; subsequent tests explicitlyterminatepriorPID; RunningBoardSIGTERM times14:50:56.183/14:51:11.874/14:51:24.290/14:51:36.596UTC. App sharedbackgroundassertionssucceed but aredistinctfromXCTestassertion. No actualcrash/jetsamreport or watchdogkill established. Reasonfortimeoutsunresolved. Untouchedpasses47.171s; originalsPDFpassthenmarginfails223.162/190.893s.",
+    "push_iphone_artifact": {
+      "id": 12054084536,
+      "github_digest": "46af3d2f65fed286c7cf7b1052364188c0bb251d75501dd7df94f9c023d6c645",
+      "independently_hashed": false
+    },
+    "push_iphone_focused": "Direct Edited40.704,Focused40.213,Untouched37.412 pass; Fit80.780/InkMode63.115 fail three native assertions each. Originals pass PDF stages then margin fails180.628/201.948seconds."
+  },
+  "pdf_responder_teardown_experiment": {
+    "basis_source": "3f69f15c2a064bc749db7187aabe2a0d5b0446d7",
+    "storage_checkpoint": "e3cd414b96d0a6d77da04bd3a269caf6db5ceb1a",
+    "status": "native_execution_pending",
+    "change": "Keep existing flush first; resign each registered canvas before delegate=nil and overlay-provider removal. Preserve synchronous finalization callbacks. No observer/layout/data-format changes.",
+    "hypothesis": "Ink activation followed by replacement of the NativePDF view may leave responder lifecycle incomplete; not established as root cause.",
+    "revert_if": "Native margin mounting fails unchanged in same-source contrast/original cases; revert before the separate observation-boundary experiment.",
+    "data_limit": "No proof of arbitrary asynchronous PencilKit finalization on teardown. Completed gesture/storage tests and later native full regression gates remain required.",
     "acceptance": false
-  }
+  },
+  "delivery_priority": "2026-10-16 user defers harmless minor/cosmetic issues for trial IPA; functional handwriting and data safety remain blockers."
 }

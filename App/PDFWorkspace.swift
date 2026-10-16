@@ -850,7 +850,10 @@ struct NativePDF: UIViewRepresentable {
     }
     static func dismantleUIView(_ view: PDFView, coordinator: Coordinator) {
         coordinator.flushPendingInk()
-        for canvas in coordinator.canvases.values { canvas.delegate = nil }
+        for canvas in coordinator.canvases.values {
+            canvas.resignFirstResponder()
+            canvas.delegate = nil
+        }
         view.pageOverlayViewProvider = nil
     }
     @MainActor final class Coordinator: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, UIGestureRecognizerDelegate {

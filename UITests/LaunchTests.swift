@@ -1119,6 +1119,52 @@ final class LaunchTests: XCTestCase {
         return true
     }
 
+    func testMarginHandwritingMountsBeforeAndAfterTextInteraction() {
+        XCUIDevice.shared.orientation = .portrait
+        let scenarios = [(name: "Untouched", focusesText: false, typesText: false),
+                         (name: "Focused", focusesText: true, typesText: false),
+                         (name: "Edited", focusesText: true, typesText: true)]
+        for scenario in scenarios {
+            XCTContext.runActivity(named: scenario.name) { activity in
+                let app = XCUIApplication()
+                defer { app.terminate() }
+                app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
+                app.launch()
+                let demo = app.buttons["welcomeDemonstration"]
+                guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }
+                if !demo.isHittable { app.swipeUp() }
+                demo.tap()
+                let split = app.buttons["splitDocumentNotes"]
+                guard split.waitForExistence(timeout: 15) else { XCTFail("Native document must expose split"); return }
+                split.tap()
+                let text = app.textViews["splitNotes"]
+                guard text.waitForExistence(timeout: 5) else { XCTFail("Split must initially mount the text editor"); return }
+                if scenario.focusesText { text.tap() }
+                if scenario.typesText { text.typeText("Margin mounting probe") }
+                let mode = app.segmentedControls["marginMode"]
+                let handwriting = mode.buttons["خط اليد"]
+                guard handwriting.waitForExistence(timeout: 5), handwriting.isHittable else {
+                    XCTFail("The handwriting segment must be usable before switching"); return
+                }
+                handwriting.tap()
+                let canvas = app.scrollViews["marginInkCanvas"]
+                let mounted = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    mode.value as? String == "handwriting" && canvas.exists && !text.exists
+                }, object: mode)
+                let result = XCTWaiter.wait(for: [mounted], timeout: 5)
+                let evidence = XCTAttachment(string: "interaction=\(scenario.name); result=\(result.rawValue); mode=\(mode.value as? String ?? "missing"); canvas=\(canvas.exists); text=\(text.exists); trace=\(mode.label)")
+                evidence.name = "MarginMount-" + scenario.name
+                evidence.lifetime = .keepAlways
+                activity.add(evidence)
+                let screenshot = XCTAttachment(screenshot: app.screenshot())
+                screenshot.name = evidence.name; screenshot.lifetime = .keepAlways; activity.add(screenshot)
+                XCTAssertEqual(result, .completed, "Handwriting must mount without requiring earlier text editing")
+                XCTAssertTrue(canvas.exists, "The actual PencilKit canvas must be mounted")
+                XCTAssertFalse(text.exists, "The text editor must be removed after switching")
+            }
+        }
+    }
+
     private func verifyIndividualInkTargets(accessibilityType: Bool) {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()

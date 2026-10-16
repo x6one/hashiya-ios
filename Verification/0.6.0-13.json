@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked on native margin editor replacement; PDF visible ink/undo/redo now passed targeted scenarios on both families",
+  "status": "blocked: keyed editor experiment failed; direct native mounting contrast test pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -27,7 +27,7 @@
     "maestro": "fresh follow-up execution pending",
     "required_cases_per_family": {
       "xctest": 65,
-      "xcuitest": 26,
+      "xcuitest": 27,
       "maestro_flows": 3
     },
     "families_required": [
@@ -321,7 +321,20 @@
     "failure_line": "UITests/LaunchTests.swift:1169",
     "evidence": "Mode binding, observed content body and notebook branch all true; same retained models; native makeUIView absent; splitNotes TextEditor still exists",
     "candidate_change": "Key only Group containing text/ink editor by handwriting mode",
-    "native_validation": "pending",
+    "native_validation": "failed on5d62053 both families in push38823711830 and PR38823719636; experiment removed",
     "data_model_or_format_changes": false
+  },
+  "latest_mounting_investigation": {
+    "source": "5d62053d03e7e0b6d4222309c5ec27f39f922445",
+    "push_run": 38823711830,
+    "pr_run": 38823719636,
+    "pr_merge_commit": "d6503acb7ae84bcf7279cdf35b99097228bb1cde",
+    "result": "Both targeted cases fail native margin mounting; PR iPad standard case instead fails document pixel assertion1081",
+    "office_run": 38823894857,
+    "office_build": "passed",
+    "ipa": null,
+    "next_test": "testMarginHandwritingMountsBeforeAndAfterTextInteraction",
+    "test_scope": "Same real demo with three independent launches: untouched text, focus only, focus and typing. Native canvas must mount and text editor disappear in each scenario.",
+    "original_tests_assertions_timeouts": "unchanged"
   }
 }

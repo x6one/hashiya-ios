@@ -50,6 +50,8 @@ jobs:
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
+          # Isolate native editor mounting before the longer drawing journeys.
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsBeforeAndAfterTextInteraction -resultBundlePath MarginModeRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee margin-mode-regression.log
           # Prove the two unchanged failing gestures first, then run every test.
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -resultBundlePath InkRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee ink-regression.log
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
@@ -164,6 +166,9 @@ jobs:
       - name: Export UI screenshots
         if: always()
         run: |
+          if [ -d MarginModeRegression.xcresult ]; then
+            xcrun xcresulttool export attachments --path MarginModeRegression.xcresult --output-path MarginModeRegressionScreenshots
+          fi
           if [ -d InkRegression.xcresult ]; then
             xcrun xcresulttool export attachments --path InkRegression.xcresult --output-path InkRegressionScreenshots
           fi
@@ -201,7 +206,7 @@ jobs:
           result = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
               'reports': reports, 'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}
           # A failed archive must not prevent other independent evidence collection.
-          for bundle in ('InkRegression.xcresult', 'TestResults.xcresult'):
+          for bundle in ('MarginModeRegression.xcresult', 'InkRegression.xcresult', 'TestResults.xcresult'):
               if Path(bundle).exists():
                   try:
                       subprocess.run(['ditto', '-c', '-k', '--keepParent', bundle,
@@ -230,6 +235,8 @@ jobs:
           path: |
             build.log
             ink-regression.log
+            margin-mode-regression.log
+            MarginModeRegressionScreenshots/
             InkRegressionScreenshots/
             file-provider.log
             NativeFailure/

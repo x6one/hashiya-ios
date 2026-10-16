@@ -14,6 +14,62 @@ final class MarginPageTests: XCTestCase {
         }
         return PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: .black), path: PKStrokePath(controlPoints: points, creationDate: Date()))])
     }
+    @MainActor func testPinkPencilStrokeRetainsPointDataAfterMarginDiskReload() throws {
+        let root = try directory(), id = UUID()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let points = [
+            PKStrokePoint(location: CGPoint(x: 30, y: 40), timeOffset: 0,
+                size: CGSize(width: 8, height: 8), opacity: 1, force: 0.75, azimuth: 0, altitude: .pi / 2),
+            PKStrokePoint(location: CGPoint(x: 160, y: 100), timeOffset: 0.25,
+                size: CGSize(width: 8, height: 8), opacity: 1, force: 0.75, azimuth: 0, altitude: .pi / 2)
+        ]
+        let pink = UIColor(red: 1, green: 0.71, blue: 0.69, alpha: 1)
+        let original = PKDrawing(strokes: [PKStroke(ink: PKInk(.pencil, color: pink),
+            path: PKStrokePath(controlPoints: points, creationDate: Date(timeIntervalSince1970: 1_700_000_000)))])
+        let pageID: UUID
+        do {
+            let store = MarginPages(root: root, notebook: id)
+            pageID = try XCTUnwrap(store.currentID)
+            let coordinator = MarginNotebook.Coordinator(saved: { store.saveInk($0, page: pageID) },
+                failed: { XCTFail($0) })
+            let canvas = MarginCanvas(frame: CGRect(x: 0, y: 0, width: 650, height: 900))
+            coordinator.canvasViewDidBeginUsingTool(canvas)
+            canvas.drawing = original
+            coordinator.canvasViewDrawingDidChange(canvas)
+            coordinator.canvasViewDidEndUsingTool(canvas)
+            XCTAssertTrue(store.saved)
+            XCTAssertNil(store.error)
+        }
+        let reopened = MarginPages(root: root, notebook: id)
+        XCTAssertNil(reopened.error)
+        XCTAssertEqual(reopened.currentID, pageID)
+        let restored = try PKDrawing(data: XCTUnwrap(reopened.current?.ink))
+        XCTAssertEqual(restored.strokes.count, 1)
+        let stroke = try XCTUnwrap(restored.strokes.first)
+        XCTAssertEqual(stroke.ink.inkType, .pencil)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        XCTAssertTrue(stroke.ink.color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+        XCTAssertEqual(red, 1, accuracy: 0.001)
+        XCTAssertEqual(green, 0.71, accuracy: 0.001)
+        XCTAssertEqual(blue, 0.69, accuracy: 0.001)
+        XCTAssertEqual(alpha, 1, accuracy: 0.001)
+        XCTAssertEqual(stroke.transform, .identity)
+        XCTAssertEqual(stroke.path.count, 2)
+        guard stroke.path.count == 2 else { return }
+        XCTAssertEqual(stroke.path[0].location, CGPoint(x: 30, y: 40))
+        XCTAssertEqual(stroke.path[1].location, CGPoint(x: 160, y: 100))
+        XCTAssertEqual(stroke.path[0].timeOffset, 0, accuracy: 0.001)
+        XCTAssertEqual(stroke.path[1].timeOffset, 0.25, accuracy: 0.001)
+        for point in stroke.path {
+            XCTAssertEqual(point.size.width, 8, accuracy: 0.001)
+            XCTAssertEqual(point.size.height, 8, accuracy: 0.001)
+            XCTAssertEqual(point.opacity, 1, accuracy: 0.001)
+            XCTAssertEqual(point.force, 0.75, accuracy: 0.001)
+            XCTAssertEqual(point.azimuth, 0, accuracy: 0.001)
+            XCTAssertEqual(point.altitude, .pi / 2, accuracy: 0.001)
+        }
+    }
+
     @MainActor func testLegacyMigrationKeepsOriginalBytesAndPageContentAcrossRelaunch() throws {
         let root = try directory(), id = UUID(); defer { try? FileManager.default.removeItem(at: root) }
         let originalText = "حاشية قديمة\nآخر سطر", drawing = ink().dataRepresentation()

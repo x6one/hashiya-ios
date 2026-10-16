@@ -1,5 +1,6 @@
 import XCTest
 import PencilKit
+import PDFKit
 @testable import Hashiya
 
 final class DocumentInkCommitTests: XCTestCase {
@@ -10,6 +11,62 @@ final class DocumentInkCommitTests: XCTestCase {
         }
         return PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: .black),
             path: PKStrokePath(controlPoints: points, creationDate: Date()))])
+    }
+
+    @MainActor func testPinkPencilStrokeRetainsPointDataAfterDocumentDiskReload() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = LibraryStore(root: root, seedDemo: false); library.create("Pink pencil reload")
+        let note = try XCTUnwrap(library.notebooks.first)
+        let points = [
+            PKStrokePoint(location: CGPoint(x: 30, y: 40), timeOffset: 0,
+                size: CGSize(width: 8, height: 8), opacity: 1, force: 0.75, azimuth: 0, altitude: .pi / 2),
+            PKStrokePoint(location: CGPoint(x: 160, y: 100), timeOffset: 0.25,
+                size: CGSize(width: 8, height: 8), opacity: 1, force: 0.75, azimuth: 0, altitude: .pi / 2)
+        ]
+        let pink = UIColor(red: 1, green: 0.71, blue: 0.69, alpha: 1)
+        let original = PKDrawing(strokes: [PKStroke(ink: PKInk(.pencil, color: pink),
+            path: PKStrokePath(controlPoints: points, creationDate: Date(timeIntervalSince1970: 1_700_000_000)))])
+        do {
+            let workspace = PDFWorkspace(note: note, root: root)
+            let coordinator = NativePDF.Coordinator(workspace: workspace)
+            let canvas = LassoCanvas(frame: CGRect(x: 0, y: 0, width: 650, height: 900))
+            canvas.tag = 0; coordinator.canvases[0] = canvas
+            coordinator.canvasViewDidBeginUsingTool(canvas)
+            canvas.drawing = original
+            coordinator.canvasViewDrawingDidChange(canvas)
+            coordinator.canvasViewDidEndUsingTool(canvas)
+            XCTAssertNil(workspace.error)
+        }
+        let reopened = PDFWorkspace(note: note, root: root)
+        let coordinator = NativePDF.Coordinator(workspace: reopened)
+        let page = try XCTUnwrap(reopened.document.page(at: 0))
+        let canvas = try XCTUnwrap(coordinator.pdfView(PDFView(), overlayViewFor: page) as? LassoCanvas)
+        let restored = canvas.drawing
+        XCTAssertEqual(restored.strokes.count, 1)
+        let stroke = try XCTUnwrap(restored.strokes.first)
+        XCTAssertEqual(stroke.ink.inkType, .pencil)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        XCTAssertTrue(stroke.ink.color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+        XCTAssertEqual(red, 1, accuracy: 0.001)
+        XCTAssertEqual(green, 0.71, accuracy: 0.001)
+        XCTAssertEqual(blue, 0.69, accuracy: 0.001)
+        XCTAssertEqual(alpha, 1, accuracy: 0.001)
+        XCTAssertEqual(stroke.transform, .identity)
+        XCTAssertEqual(stroke.path.count, 2)
+        guard stroke.path.count == 2 else { return }
+        XCTAssertEqual(stroke.path[0].location, CGPoint(x: 30, y: 40))
+        XCTAssertEqual(stroke.path[1].location, CGPoint(x: 160, y: 100))
+        XCTAssertEqual(stroke.path[0].timeOffset, 0, accuracy: 0.001)
+        XCTAssertEqual(stroke.path[1].timeOffset, 0.25, accuracy: 0.001)
+        for point in stroke.path {
+            XCTAssertEqual(point.size.width, 8, accuracy: 0.001)
+            XCTAssertEqual(point.size.height, 8, accuracy: 0.001)
+            XCTAssertEqual(point.opacity, 1, accuracy: 0.001)
+            XCTAssertEqual(point.force, 0.75, accuracy: 0.001)
+            XCTAssertEqual(point.azimuth, 0, accuracy: 0.001)
+            XCTAssertEqual(point.altitude, .pi / 2, accuracy: 0.001)
+        }
     }
 
     @MainActor func testDocumentStrokeCommitsLatestInkOnlyAfterToolEnds() throws {

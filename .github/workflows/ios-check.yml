@@ -50,12 +50,16 @@ jobs:
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
+          # Retain fresh storage/unit results even if a later UI transition fails.
+          unit_status=0
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaTests -resultBundlePath UnitRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee unit-regression.log || unit_status=$?
           # Isolate native editor mounting before the longer drawing journeys.
           margin_status=0
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsWithoutTextInteraction -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextFocus -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextEditing -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentInkMode -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentFit -resultBundlePath MarginModeRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee margin-mode-regression.log || margin_status=$?
           # Run both focused groups even if one fails; both must pass before the full suite.
           ink_status=0
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -resultBundlePath InkRegression.xcresult CODE_SIGNING_ALLOWED=NO | tee ink-regression.log || ink_status=$?
+          test "$unit_status" -eq 0
           test "$margin_status" -eq 0
           test "$ink_status" -eq 0
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
@@ -210,7 +214,7 @@ jobs:
           result = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
               'reports': reports, 'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}
           # A failed archive must not prevent other independent evidence collection.
-          for bundle in ('MarginModeRegression.xcresult', 'InkRegression.xcresult', 'TestResults.xcresult'):
+          for bundle in ('UnitRegression.xcresult', 'MarginModeRegression.xcresult', 'InkRegression.xcresult', 'TestResults.xcresult'):
               if Path(bundle).exists():
                   try:
                       subprocess.run(['ditto', '-c', '-k', '--keepParent', bundle,
@@ -240,6 +244,7 @@ jobs:
             build.log
             ink-regression.log
             margin-mode-regression.log
+            unit-regression.log
             MarginModeRegressionScreenshots/
             InkRegressionScreenshots/
             file-provider.log

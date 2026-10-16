@@ -26,7 +26,7 @@
     "xcuitest": "fresh follow-up execution pending",
     "maestro": "fresh follow-up execution pending",
     "required_cases_per_family": {
-      "xctest": 65,
+      "xctest": 67,
       "xcuitest": 31,
       "maestro_flows": 3
     },
@@ -423,5 +423,31 @@
     "original_cases": "Both PDF visible-stroke/count/Undo/Redo/Fit stages pass; margin switch fails1242,164.538/138.301seconds.",
     "full_suites_and_maestro": "blocked; not accepted",
     "ipa": null
+  },
+  "colored_pencil_storage_coverage": {
+    "status": "authored_native_execution_pending",
+    "cases": [
+      "testPinkPencilStrokeRetainsPointDataAfterDocumentDiskReload",
+      "testPinkPencilStrokeRetainsPointDataAfterMarginDiskReload"
+    ],
+    "scope": "Synthetic pink pencil stroke travels through actual coordinator commit and real disk reload in fresh models; asserts ink type, RGBA, transform and point data. Does not prove native gesture generation, mounting or rendered persistence.",
+    "unit_gate": "Run all HashiyaTests before both focused UI groups; retain all three exit statuses and require all zero before unchanged full suite.",
+    "remaining_ui_evidence": "Changed-color stroke rendering after Undo/Redo and same-notebook reopening still required; review-entry creates a fresh root per process so naive relaunch would be invalid."
+  },
+  "ink_activation_isolation_2026_10_16": {
+    "source": "3f69f15c2a064bc749db7187aabe2a0d5b0446d7",
+    "push_run": 38918046440,
+    "pr_run": 38918055254,
+    "pr_merge_commit": "e41e0cc7f285a45ebc6b439b249697ad9b05533b",
+    "pr_iphone_artifact": 12054133375,
+    "sha256": "3b4d43ce591823dd22be3534c2d0d380bfebfcc846ddb30327e0949c0b801692",
+    "hash_independently_verified": true,
+    "pr_iphone_focused": "5 direct cases: Edited32.208,Focused23.767,Untouched20.657 pass. DocumentFit45.653 and DocumentInkMode42.878 fail three assertions each: deadline, missing canvas, remaining text. Both original cases fail only margin mounting after PDF visible/count/Undo/Redo/Fit stages.",
+    "atomic_polling": "InkMode polls finish1.787/3.798seconds, both one mode=handwriting,0canvases,1text. Fit1.802/3.725 same. Controls pass first snapshot1.945/1.950/1.578seconds. No timeout or condition relaxed.",
+    "native_trace": "InkMode40events,Fit34events, complete without truncation/eviction, no makeUIView enter; actual screenshot C0309ED9-6AE1-4B55-8633-89ACD11A3F36.png visually reviewed and shows retained TextEditor despite selected handwriting.",
+    "crash_reports": "PR phone collection reports[]; not proof excluding every crash/watchdog/jetsam. No Application-not-running assertion in this job.",
+    "inference": "Activating document ink before splitting reproduces failure without palette, brush changes, strokes, Undo/Redo or Fit. Native responder lifecycle versus mode-observation boundary remains unresolved.",
+    "other_jobs": "Push phone and PR iPad live direct group each have same two failing ink-prelude cases and three passing non-ink controls. Push iPad initially fails app launches acquiring background assertions. Await complete jobs for final details.",
+    "acceptance": false
   }
 }

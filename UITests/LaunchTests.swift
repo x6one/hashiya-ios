@@ -917,16 +917,19 @@ final class LaunchTests: XCTestCase {
             return frame.intersection(CGRect(x: surface.minX, y: frame.minY,
                 width: surface.width, height: frame.height)).intersection(app.frame)
         }
-        func containsTarget(_ viewport: CGRect) -> Bool {
+        func containsTarget(_ target: CGRect, in viewport: CGRect) -> Bool {
             !viewport.isNull && !viewport.isEmpty
-                && viewport.insetBy(dx: -targetFrameTolerance, dy: -targetFrameTolerance).contains(control.frame)
+                && viewport.insetBy(dx: -targetFrameTolerance, dy: -targetFrameTolerance).contains(target)
         }
+        // Reuse measured geometry until an input can move it. Repeated AX
+        // queries without an intervening gesture add automation overhead;
+        // refresh the target and viewport after every real drag below.
+        var viewport = visibleViewport(), target = control.frame
         for _ in 0..<8 {
-            let viewport = visibleViewport(), target = control.frame
             guard !viewport.isNull, viewport.width >= 44 else {
                 XCTFail("Ink toolbar must expose a native viewport: " + identifier); return false
             }
-            if containsTarget(viewport) { break }
+            if containsTarget(target, in: viewport) { break }
             let distance = target.minX < viewport.minX
                 ? viewport.minX - target.minX + 12 : viewport.maxX - target.maxX - 12
             // Small, measured drags avoid oscillating past a partially visible
@@ -937,18 +940,21 @@ final class LaunchTests: XCTestCase {
                 .withOffset(CGVector(dx: viewport.midX - applicationFrame.minX,
                     dy: viewport.midY - applicationFrame.minY))
             start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: delta, dy: 0)))
-            let moved = control.frame.minX - target.minX
+            let previousTarget = target
+            target = control.frame
+            viewport = visibleViewport()
+            let moved = target.minX - previousTarget.minX
             guard abs(moved) > 1, moved * delta > 0 else {
                 XCTFail("Ink toolbar drag must actually scroll " + identifier
-                    + "; before=\(target), after=\(control.frame), viewport=\(viewport)"); return false
+                    + "; before=\(previousTarget), after=\(target), viewport=\(viewport)"); return false
             }
         }
-        guard containsTarget(visibleViewport()), control.isHittable else {
+        guard containsTarget(target, in: viewport), control.isHittable else {
             XCTFail("Cannot scroll the complete ink target into view: " + identifier); return false
         }
-        XCTAssertGreaterThanOrEqual(control.frame.width + targetFrameTolerance, 44, identifier)
-        XCTAssertGreaterThanOrEqual(control.frame.height + targetFrameTolerance, 44, identifier)
-        let geometry = XCTAttachment(string: "target=\(control.frame); native viewport=\(visibleViewport())")
+        XCTAssertGreaterThanOrEqual(target.width + targetFrameTolerance, 44, identifier)
+        XCTAssertGreaterThanOrEqual(target.height + targetFrameTolerance, 44, identifier)
+        let geometry = XCTAttachment(string: "target=\(target); native viewport=\(viewport)")
         geometry.name = "InkTarget-" + identifier + "-TapGeometry"; geometry.lifetime = .keepAlways; add(geometry)
         // Tap the lower edge of the 44pt target, outside the small icon/swatch.
         control.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1))
@@ -1029,7 +1035,23 @@ final class LaunchTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(close.frame.width + targetFrameTolerance, 44)
         XCTAssertGreaterThanOrEqual(close.frame.height + targetFrameTolerance, 44)
         let swatch = picker.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "red 77")).firstMatch
-        guard swatch.waitForExistence(timeout: 5), swatch.isHittable else {
+        guard swatch.waitForExistence(timeout: 5) else {
+            XCTFail("Actual native Grid must expose a hittable red swatch: " + app.debugDescription); return false
+        }
+        // The native palette scrolls in short landscape presentations. Reach
+        // the same real swatch with user input before requiring it to be tappable.
+        let paletteScroll = picker.scrollViews.firstMatch
+        var paletteNavigation: [String] = []
+        for attempt in 0..<4 {
+            if swatch.isHittable { break }
+            guard paletteScroll.exists, paletteScroll.isHittable else { break }
+            let before = swatch.frame
+            paletteScroll.swipeUp()
+            paletteNavigation.append("swipe=\(attempt + 1); before=\(before); after=\(swatch.frame); hittable=\(swatch.isHittable)")
+        }
+        let navigation = XCTAttachment(string: paletteNavigation.joined(separator: "\n"))
+        navigation.name = name + "-NativePaletteNavigation"; navigation.lifetime = .keepAlways; add(navigation)
+        guard swatch.isHittable else {
             XCTFail("Actual native Grid must expose a hittable red swatch: " + app.debugDescription); return false
         }
         swatch.tap()

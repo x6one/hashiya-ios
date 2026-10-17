@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked_native_margin_host_identity_experiment_pending",
+  "status": "blocked_native_palette_navigation_and_complete_regression_pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -498,12 +498,16 @@
     "result": "All67 units pass all4jobs. InkMode fails native mounting all4; Fit fails mounting3jobs, PRphone launch denied Busy installing/uninstalling before interaction. Both original PDF stages pass then margin mounting fails all4. Full UI/Maestro/package blocked."
   },
   "margin_host_identity_experiment": {
-    "status": "native_execution_pending",
+    "status": "positive_targeted_native_mount_evidence_full_validation_pending",
     "basis_source": "e3cd414b96d0a6d77da04bd3a269caf6db5ceb1a",
     "change": "Restore failed34c observation change; identity keyed only by handwriting on outer GeometryReader, retain parent models/state/control/sheets. No storage format change. Header scroll position may reset on mode switch.",
     "evidence": "Complete traces show mode updates and branch selection but zero makeUIView. Prior inner Group identity failed; this outer native host boundary is a separate bounded experiment, not a proven framework diagnosis.",
     "revert_if": "Same native mounting failure remains; revert before another hypothesis.",
-    "acceptance": false
+    "acceptance": false,
+    "observed_source": "53e08698e4e3bf55b7cb3388523066483647b7e2",
+    "push_run": 39046623677,
+    "pull_request_run": 39046627545,
+    "phone_direct": "All5 pass; both original cases now mount real canvas and remove text before rotation, later fail offscreen native palette sample. Complete functional acceptance pending."
   },
   "source34c_native_results": {
     "commit": "34c23be1d423ff468a59b589097e101926d609ca",
@@ -535,7 +539,7 @@
       {
         "id": 12057820943,
         "github_digest": "d9d19f94504ae60de15dfbf5d7b8bdecdb2a8451c06e910f51866bd43129e1dc",
-        "independently_hashed": false
+        "independently_hashed": true
       },
       {
         "id": 12057077738,
@@ -543,5 +547,50 @@
         "independently_hashed": false
       }
     ]
+  },
+  "source53_native_checkpoint": {
+    "commit": "53e08698e4e3bf55b7cb3388523066483647b7e2",
+    "push_run": 39046623677,
+    "pull_request_run": 39046627545,
+    "push_phone": "67units0failures8.847s;5direct mount pass. Original179.064/185.908s fail offscreenred77 after native margin mounted and PDF actual ink stages pass.",
+    "push_pad": "67units0failures9.959s;4directpass, Focused jointdeadlineonly fails70.457s. Accessibilityoriginal Widthmenu fails72.814s beforemargin. Standard reachesmargin count1to2 andvisibility but wholecase240sectimeout interrupts laterUndo; no completedpass.",
+    "pr_phone": "67units0failures10.094s;all5direct pass. Originals225.168/216.343s fail offscreenred77.",
+    "pr_pad": "67units0failures7.599s;all5direct pass;bothoriginals exceed240secondwholecase allowance.",
+    "push_phone_artifact": {
+      "id": 12106681664,
+      "sha256": "96914087fac6119515f72597460157abfe561f2865231d96ebd795f4c2337c5f",
+      "independently_hashed": true,
+      "actual_video_frame_reviewed": "AccessibilityType at170seconds: uppernativegridrowsvisible; required lowerrowoffscreen",
+      "crash_report_list": []
+    },
+    "acceptance": false,
+    "final_runs": "Both completed Failure; package skipped. Full UI/Maestro blocked.",
+    "units_passed_all_four_jobs": 67,
+    "other_artifacts": [
+      {
+        "id": 12106807114,
+        "github_digest": "60f08cc0017a19a3aac09221ed7c6fe1ddb3bb232f8b4715cd05e5aa866a937e",
+        "independently_hashed": false
+      },
+      {
+        "id": 12106791813,
+        "github_digest": "c87c51fedfb6ca601998187115ea0e058b05c783de69038e17bf4d6a96e53539",
+        "independently_hashed": false
+      },
+      {
+        "id": 12107046229,
+        "github_digest": "61248a70e91fe9c3b543c519f3ff6dd05cb211a30983299e9b310c8a93c05323",
+        "independently_hashed": false
+      }
+    ]
+  },
+  "native_palette_navigation_followup": {
+    "status": "native_execution_pending",
+    "production_change": false,
+    "change": "At most4 real native palette scroll gestures to exact existing red77, then unchanged final hittability/tap/color binding/dismissal/visible pixels/stroke count/UndoRedo/Fit. Attach actual swatch frames.",
+    "geometry_observation": "Reuse target and viewport between inputs, refresh after each drag; preserve full containment/hittability/44point/edge tap/movement checks.",
+    "timeouts_changed": false,
+    "assertions_removed": false,
+    "acceptance": false
   }
 }

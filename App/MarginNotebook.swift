@@ -172,7 +172,14 @@ struct InkToolbar: View {
                 }
             }.buttonStyle(.plain).padding(.horizontal, 12)
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
-        }.background(TayyaTheme.surface).accessibilityIdentifier("inkToolbar")
+        }
+        // This is a spatial tool rail, not prose. Keep its scroll axis and
+        // bounds left-to-right even inside the Arabic/right-to-left workspace:
+        // native hit targets must remain reachable on compact and split panes.
+        // Arabic labels keep their own glyph shaping and accessibility names.
+        .environment(\.layoutDirection, .leftToRight)
+        .background(TayyaTheme.surface)
+        .accessibilityIdentifier("inkToolbar")
     }
     private var currentColorValue: String {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0

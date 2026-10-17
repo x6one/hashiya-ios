@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked_native_margin_journey_and_visibility_observation_verification_pending",
+  "status": "blocked_native_margin_host_identity_experiment_pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -484,13 +484,64 @@
   },
   "delivery_priority": "2026-10-16 user defers harmless minor/cosmetic issues for trial IPA; functional handwriting and data safety remain blockers.",
   "margin_consumer_observation_experiment": {
-    "status": "native_execution_pending",
+    "status": "failed_native_reproduction_reverted",
     "basis_source": "3f69f15c2a064bc749db7187aabe2a0d5b0446d7",
     "failed_cleanup_source": "8c5ace24ccab2534103157f8ff54ea9ff383f6d4",
     "change": "Only MarginPaneContent observes retained editor and clears mode-driven focus; outer MarginPane retains plain editor reference without subscribing/capturing mode. No model, geometry, whole-pane identity or storage changes.",
     "evidence": "Prior inkactivation changes pane198.75→258.75 and native control identity while retained model/control/page IDs stay stable. Passing parent→geometry→child order differs from failing child→parent order; correlation only.",
     "cleanup_reverted": true,
     "acceptance": false,
-    "revert_if": "Same native mounting failure remains; do not stack hypotheses."
+    "revert_if": "Same native mounting failure remains; do not stack hypotheses.",
+    "observed_source": "34c23be1d423ff468a59b589097e101926d609ca",
+    "push_run": 38924030173,
+    "pull_request_run": 38924040465,
+    "result": "All67 units pass all4jobs. InkMode fails native mounting all4; Fit fails mounting3jobs, PRphone launch denied Busy installing/uninstalling before interaction. Both original PDF stages pass then margin mounting fails all4. Full UI/Maestro/package blocked."
+  },
+  "margin_host_identity_experiment": {
+    "status": "native_execution_pending",
+    "basis_source": "e3cd414b96d0a6d77da04bd3a269caf6db5ceb1a",
+    "change": "Restore failed34c observation change; identity keyed only by handwriting on outer GeometryReader, retain parent models/state/control/sheets. No storage format change. Header scroll position may reset on mode switch.",
+    "evidence": "Complete traces show mode updates and branch selection but zero makeUIView. Prior inner Group identity failed; this outer native host boundary is a separate bounded experiment, not a proven framework diagnosis.",
+    "revert_if": "Same native mounting failure remains; revert before another hypothesis.",
+    "acceptance": false
+  },
+  "source34c_native_results": {
+    "commit": "34c23be1d423ff468a59b589097e101926d609ca",
+    "push_run": 38924030173,
+    "pull_request_run": 38924040465,
+    "units_passed_each_job": 67,
+    "jobs": [
+      117051904398,
+      117051905034,
+      117051975781,
+      117051976281
+    ],
+    "original_ink_cases": "PDF visible/count/Undo/Redo/Fit pass; margin mount fails all4jobs",
+    "trace": "33-39 complete events, no makeUIView, handwriting true/canvas false/text true/control.canvas nil",
+    "external_bytes": "Missing Picker-fixture.pdf; full-suite exporting prerequisites blocked by focused failures. Not a proved corruption.",
+    "full_ui_maestro_package": "blocked",
+    "acceptance": false,
+    "artifacts": [
+      {
+        "id": 12056734230,
+        "github_digest": "81c90aa612a15f1be9572c8e2e0d7fdc12c4dd062717be22377bae38272c67b1",
+        "independently_hashed": false
+      },
+      {
+        "id": 12057995518,
+        "github_digest": "090d1fb979e38aa40e0b2a5bd35e9ba718494845c1ed8bf941a91f72f4124a35",
+        "independently_hashed": false
+      },
+      {
+        "id": 12057820943,
+        "github_digest": "d9d19f94504ae60de15dfbf5d7b8bdecdb2a8451c06e910f51866bd43129e1dc",
+        "independently_hashed": false
+      },
+      {
+        "id": 12057077738,
+        "github_digest": "c2aa01861abef36cc1400f07de02d0a8d1c3255c312c7d1894f687e496404cc7",
+        "independently_hashed": false
+      }
+    ]
   }
 }

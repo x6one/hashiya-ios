@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked_native_palette_presentation_and_full_suite_pending",
+  "status": "blocked_native_palette_and_toolbar_geometry_diagnosis",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -38,16 +38,51 @@
     "screenshots_reviewed": false
   },
   "latest_rejected_native_source": {
-    "commit": "d894b726777bd253bdc405ab3d10a302cc271aee",
-    "push_run": 39048906022,
-    "pull_request_run": 39048910224,
+    "commit": "a675ee267f4ba57cb50930cf22c5944db3e76f73",
+    "push_run": 39051653389,
+    "pull_request_run": 39051657181,
     "units_passed_each_job": 67,
-    "direct_mount_cases_passed_each_job": 5,
-    "unique_ui_cases_required": 31,
-    "phone_originals": "Exactred77 unreachable after4actualscrolls onbothruns/bothoriginals.",
-    "push_pad_originals": "Both hit240secondwholecase cap; firstactualmargin stroke1to2/visible/Undo1 beforeinterruption; laterRedo2/Fit2 not completedpass.",
-    "pr_pad_originals": "Accessibility fitMarginWidth drag doesnotmove236.850s; Standardjointdeadline208.883s, latercanvastrue/textfalse.",
-    "maestro_and_package": "blocked/skipped",
+    "external_bytes_each_job": "passed",
+    "ui_cases_scheduled_each_family": 31,
+    "push_phone": {
+      "passed_cases": 29,
+      "failed_cases": 2,
+      "failed_assertions": 3,
+      "failures": [
+        "Standard fitMargin drag no movement / safe-area clipping",
+        "AccessibilityReduceMotion microphone prompt missed"
+      ],
+      "original_accessibility_ink": "passed276.983seconds"
+    },
+    "pr_phone": {
+      "passed_cases": 29,
+      "failed_cases": 2,
+      "failures": [
+        "Accessibility native palette not presented",
+        "Standard fitMargin drag no movement / safe-area clipping"
+      ]
+    },
+    "pr_pad": {
+      "passed_cases": 29,
+      "failed_cases": 2,
+      "failures": [
+        "Accessibility native palette not presented",
+        "DocumentFit joint5second mount deadline"
+      ],
+      "original_standard_ink": "passed298.547seconds"
+    },
+    "push_pad": {
+      "failures": [
+        "Accessibility fitMarginWidth drag no movement",
+        "Standard Undo waiter",
+        "Standard viewport waiter",
+        "Standard360second cap and runner restart"
+      ],
+      "whole_suite_totals": "31 scheduled;19-test post-restart summary not whole-suite total"
+    },
+    "notebook_creation": "passed all4jobs; no product change",
+    "maestro": "skipped",
+    "device_package": "skipped",
     "acceptance": false
   },
   "distribution": {
@@ -644,14 +679,14 @@
     ]
   },
   "native_palette_presentation_experiment": {
-    "status": "native_execution_pending",
+    "status": "partial_native_positive_evidence_but_unresolved_presentation_failures",
     "change": "ActualUIColorPickerViewController presentedasanchoredpopover by44ptcolorbuttonbackgroundcontroller; removeSwiftUIsheet/customchildconstraints; nativeadaptation, livebindinganddismissaldelegates,44Doneonpresentedrootview.",
     "lifecycle": "Windowguardonlyforpresentation;preventduplicates/overlappingtransitions;teardownclearsintentandcompletionreconcilesdismissal.",
     "unverified": "OwnDoneoverlap/hittability;nativepaletteaccessacrossphone/pad/orientation/accessibility.",
     "acceptance": false
   },
   "candidate_harness": {
-    "status": "native_execution_pending",
+    "status": "full_suite_executed_failed_a675",
     "unique_tests_per_family": {
       "xctest": 67,
       "xcuitest": 31,
@@ -678,5 +713,59 @@
     "Actual close target sizing, compact handwriting, fit actions, orientation restoration, recording stability and entrance movies remain mandatory native gates",
     "Existing XCTest, XCUITest and all three Maestro flow gates remain enabled; no result from a previous release is evidence for this candidate",
     "Physical-device microphone, pen, zoom and rotation validation remains necessary"
-  ]
+  ],
+  "previous_rejected_native_source_d894": {
+    "commit": "d894b726777bd253bdc405ab3d10a302cc271aee",
+    "push_run": 39048906022,
+    "pull_request_run": 39048910224,
+    "units_passed_each_job": 67,
+    "direct_mount_cases_passed_each_job": 5,
+    "unique_ui_cases_required": 31,
+    "phone_originals": "Exactred77 unreachable after4actualscrolls onbothruns/bothoriginals.",
+    "push_pad_originals": "Both hit240secondwholecase cap; firstactualmargin stroke1to2/visible/Undo1 beforeinterruption; laterRedo2/Fit2 not completedpass.",
+    "pr_pad_originals": "Accessibility fitMarginWidth drag doesnotmove236.850s; Standardjointdeadline208.883s, latercanvastrue/textfalse.",
+    "maestro_and_package": "blocked/skipped",
+    "acceptance": false
+  },
+  "sourceA675_artifacts": [
+    {
+      "family": "Push iPhone",
+      "artifact": 12108473776,
+      "sha256": "7a58041e1f13f82227ccff5394d1312b47e1418264df9df61e4b4ef0df8d003b",
+      "independently_hashed": true,
+      "xcresult_zip_sha256": "7745a5153be25aa30776dc7e3a006d7068f53085fbae3819c7cfda75ba40f328"
+    },
+    {
+      "family": "PR iPad",
+      "artifact": 12109081264,
+      "sha256": "1909862d8a780c428961c917a7c9ea4f8927482a130e74f34f59e235c9a0b906",
+      "independently_hashed": true,
+      "xcresult_zip_sha256": "98ab1053128f19923ee2772c30db13c58c4c9c885e02774fdfa8907c6c0cd2ee"
+    },
+    {
+      "family": "Push iPad",
+      "artifact": 12109775630,
+      "sha256": "6f21549b0f38ed215088bc17a437e1400d50a796ec38467939c7976055237ebd",
+      "independently_hashed": false
+    },
+    {
+      "family": "PR iPhone",
+      "artifact": 12108239981,
+      "sha256": "e4f3e8ca271c658e8e568976b48303be1a7ac5354c286730c0f9d37bf25f0084",
+      "independently_hashed": false
+    }
+  ],
+  "late_microphone_prompt_harness": {
+    "red_evidence": "Push phone visual accessibility: tap28.65; initial promptwait ends31.30; realprompt onlygranted by default interruption handler during Stop54.65. Actualrecording/durationwaitersfailed beforegrant.",
+    "change": "Handle specifically requested microphone alert during unchanged10second start predicate; retain actual state/duration/level/geometry/stop.",
+    "native_verification": "pending",
+    "acceptance": false
+  },
+  "native_palette_scroll_diagnostics": {
+    "status": "pending_native_execution",
+    "scope": "DEBUG and --test-margin-viewport only;12events,24publicUIViewancestors,3UIScrollViews,read-onlyAXtransport; no layer/Metal/child traversal",
+    "captures": "Presenter lifecycle and live scroll bounds/content/offset before/after actual drags; on native palette failure.",
+    "functional_assertions_or_deadlines_removed": false,
+    "product_fix_claimed": false
+  }
 }

@@ -714,12 +714,20 @@ final class LaunchTests: XCTestCase {
         let marginPosition = app.buttons["marginPages"].value as? String
         let initialSeconds = recordingSeconds(elapsed) ?? 0
         record.tap()
-        let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
-        if permission.waitForExistence(timeout: 2) {
+        let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS %@", "Microphone", "الميكروفون")).firstMatch
+        func allowRequestedMicrophone() {
             let allow = permission.buttons["Allow"], ok = permission.buttons["OK"]
             if allow.exists { allow.tap() } else if ok.exists { ok.tap() }
         }
-        let started = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)
+        if permission.waitForExistence(timeout: 2) { allowRequestedMicrophone() }
+        // The native prompt can appear after the initial observation. Handle it
+        // inside the same start deadline, before requiring actual recording.
+        // A later Stop tap must not be the first input that grants permission.
+        let started = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            if permission.exists { allowRequestedMicrophone() }
+            return record.value as? String == "جارٍ التسجيل"
+        }, object: record)
         XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 10), .completed)
         let advancing = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (self.recordingSeconds(elapsed) ?? 0) >= initialSeconds + 2
@@ -903,6 +911,13 @@ final class LaunchTests: XCTestCase {
         capturePaperStudio("ExternalIntake-" + variant + "-ImportedDocument", in: app)
     }
 
+    private func nativeInkPresenterState(in app: XCUIApplication) -> String {
+        let anchors = app.otherElements.matching(identifier: "nativeInkPresenterState").allElementsBoundByIndex
+        return "anchors=\(anchors.count); " + anchors.prefix(4).enumerated().map { index, anchor in
+            "anchor\(index)=" + (anchor.value as? String ?? "missing")
+        }.joined(separator: "\n")
+    }
+
     private func tapInkTarget(_ identifier: String, in app: XCUIApplication, writingSurface: XCUIElement) -> Bool {
         let toolbar = app.scrollViews["inkToolbar"].firstMatch
         let control = toolbar.descendants(matching: .any)[identifier].firstMatch
@@ -939,11 +954,14 @@ final class LaunchTests: XCTestCase {
             let start = app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: viewport.midX - applicationFrame.minX,
                     dy: viewport.midY - applicationFrame.minY))
+            let nativeBefore = nativeInkPresenterState(in: app)
             start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: delta, dy: 0)))
             let previousTarget = target
             target = control.frame
             viewport = visibleViewport()
             let moved = target.minX - previousTarget.minX
+            let native = XCTAttachment(string: "before=" + nativeBefore + "\nafter=" + nativeInkPresenterState(in: app))
+            native.name = "InkTarget-" + identifier + "-NativeScrollState"; native.lifetime = .keepAlways; add(native)
             guard abs(moved) > 1, moved * delta > 0 else {
                 XCTFail("Ink toolbar drag must actually scroll " + identifier
                     + "; before=\(previousTarget), after=\(target), viewport=\(viewport)"); return false
@@ -1026,6 +1044,8 @@ final class LaunchTests: XCTestCase {
         guard tapTarget("inkColor") else { return false }
         let picker = app.otherElements["nativeInkColorPicker"].firstMatch
         guard picker.waitForExistence(timeout: 5), picker.segmentedControls.firstMatch.waitForExistence(timeout: 5) else {
+            let native = XCTAttachment(string: nativeInkPresenterState(in: app))
+            native.name = name + "-NativePalettePresentation"; native.lifetime = .keepAlways; add(native)
             XCTFail("Color target must present the native color picker: " + app.debugDescription); return false
         }
         let close = app.buttons["closeInkColorPicker"].firstMatch

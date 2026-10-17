@@ -198,7 +198,9 @@ private struct NativeInkColorPicker: UIViewControllerRepresentable {
         presenter.picker.modalPresentationStyle = .popover
         presenter.picker.popoverPresentationController?.delegate = context.coordinator
         presenter.dismissPicker = { context.coordinator.isPresented.wrappedValue = false }
+        context.coordinator.recordEvent = { [weak presenter] event in presenter?.recordEvent(event) }
         presenter.wantsPresentation = isPresented
+        presenter.recordEvent("make requested=\(isPresented)")
         return presenter
     }
 
@@ -206,6 +208,7 @@ private struct NativeInkColorPicker: UIViewControllerRepresentable {
         context.coordinator.color = $color
         context.coordinator.isPresented = $isPresented
         presenter.wantsPresentation = isPresented
+        presenter.recordEvent("update requested=\(isPresented)")
         let selected = UIColor(color)
         if !isPresented, presenter.presentedViewController == nil,
            !presenter.picker.selectedColor.isEqual(selected) {
@@ -221,6 +224,7 @@ private struct NativeInkColorPicker: UIViewControllerRepresentable {
     final class Coordinator: NSObject, UIColorPickerViewControllerDelegate, UIPopoverPresentationControllerDelegate {
         var color: Binding<Color>
         var isPresented: Binding<Bool>
+        var recordEvent: (String) -> Void = { _ in }
         init(color: Binding<Color>, isPresented: Binding<Bool>) {
             self.color = color; self.isPresented = isPresented
         }
@@ -229,12 +233,15 @@ private struct NativeInkColorPicker: UIViewControllerRepresentable {
             color.wrappedValue = Color(uiColor: selectedColor)
         }
         func colorPickerViewControllerDidFinish(_ viewController: UIColorPickerViewController) {
+            recordEvent("native finish")
             isPresented.wrappedValue = false
         }
         func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+            recordEvent("adaptive dismiss")
             isPresented.wrappedValue = false
         }
         func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
+            recordEvent("popover dismiss")
             isPresented.wrappedValue = false
         }
     }
@@ -250,15 +257,49 @@ private final class InkColorPickerPresenter: UIViewController {
     private var hasAppeared = false
     private var isDismantled = false
     private let done = UIButton(type: .system)
+    #if DEBUG
+    private var events: [String] = []
+    #endif
+
+    override func loadView() {
+        #if DEBUG
+        let anchor = InkColorPickerAnchorView()
+        anchor.diagnosticState = { [weak self] in self?.presentationState ?? "presenter released" }
+        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+            anchor.isAccessibilityElement = true
+            anchor.accessibilityIdentifier = "nativeInkPresenterState"
+        }
+        view = anchor
+        #else
+        view = UIView()
+        #endif
+    }
+
+    func recordEvent(_ event: String) {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+        events.append(String(format: "%.3f", ProcessInfo.processInfo.systemUptime) + " " + event)
+        if events.count > 12 { events.removeFirst(events.count - 12) }
+        NSLog("NativePalettePresentation %@ %@", event, presentationState)
+        #endif
+    }
+
+    #if DEBUG
+    private var presentationState: String {
+        "presenter=\(ObjectIdentifier(self)); requested=\(wantsPresentation); appeared=\(hasAppeared); dismantled=\(isDismantled); window=\(viewIfLoaded?.window != nil); inFlight=\(presentingPicker); presented=\(presentedViewController.map { String(describing: type(of: $0)) } ?? "nil"); pickerPresenting=\(picker.presentingViewController != nil); pickerBeingPresented=\(picker.isBeingPresented); pickerBeingDismissed=\(picker.isBeingDismissed); events=[\(events.joined(separator: " | "))]"
+    }
+    #endif
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
         view.isUserInteractionEnabled = false
+        recordEvent("view loaded")
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        recordEvent("view appeared")
         guard !hasAppeared else { return }
         hasAppeared = true
         updatePresentation()
@@ -273,13 +314,16 @@ private final class InkColorPickerPresenter: UIViewController {
             popover?.sourceView = view
             popover?.sourceRect = view.bounds
             presentingPicker = true
+            recordEvent("present requested")
             present(picker, animated: true) { [weak self] in
                 guard let self else { return }
                 presentingPicker = false
+                recordEvent("present completed")
                 if !isDismantled { installDismissControl() }
                 if !wantsPresentation { updatePresentation() }
             }
         } else if presentedViewController === picker, !presentingPicker, !picker.isBeingDismissed {
+            recordEvent("dismiss requested")
             dismiss(animated: !isDismantled)
         }
     }
@@ -287,6 +331,7 @@ private final class InkColorPickerPresenter: UIViewController {
     func stopPresenting() {
         wantsPresentation = false
         isDismantled = true
+        recordEvent("dismantle")
         updatePresentation()
     }
 
@@ -316,11 +361,34 @@ private final class InkColorPickerPresenter: UIViewController {
     }
 
     @objc private func closePicker() {
+        recordEvent("Done")
         wantsPresentation = false
         dismissPicker()
         updatePresentation()
     }
 }
+#if DEBUG
+// Read-only, bounded public UIKit geometry. No child/layer/Metal traversal.
+private final class InkColorPickerAnchorView: UIView {
+    var diagnosticState: () -> String = { "not configured" }
+    override var accessibilityValue: String? {
+        get {
+            guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else {
+                return super.accessibilityValue
+            }
+            var rows: [String] = [], ancestor = superview, depth = 0
+            while let current = ancestor, depth < 24 {
+                if let scroll = current as? UIScrollView, rows.count < 3 {
+                    rows.append("scroll=\(type(of: scroll)); frame=\(scroll.convert(scroll.bounds, to: nil)); bounds=\(scroll.bounds); content=\(scroll.contentSize); offset=\(scroll.contentOffset); inset=\(scroll.adjustedContentInset); enabled=\(scroll.isScrollEnabled); pan=\(scroll.panGestureRecognizer.state.rawValue); clips=\(scroll.clipsToBounds)")
+                }
+                ancestor = current.superview; depth += 1
+            }
+            return diagnosticState() + "; ancestors=[" + rows.joined(separator: " | ") + "]"
+        }
+        set { super.accessibilityValue = newValue }
+    }
+}
+#endif
 struct MarginNotebook: UIViewRepresentable {
     let page: MarginPage
     let drawing: Bool

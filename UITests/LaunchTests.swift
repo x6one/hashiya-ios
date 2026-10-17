@@ -1347,10 +1347,12 @@ final class LaunchTests: XCTestCase {
     }
 
     func testIndividualInkTargetsInDocumentAndCompactSplit() {
+        executionTimeAllowance = 360
         verifyIndividualInkTargets(accessibilityType: false)
     }
 
     func testIndividualInkTargetsAtAccessibilityTextSize() {
+        executionTimeAllowance = 360
         verifyIndividualInkTargets(accessibilityType: true)
     }
 

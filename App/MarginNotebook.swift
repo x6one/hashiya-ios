@@ -151,6 +151,10 @@ struct InkToolbar: View {
                         .frame(width: 28, height: 28)
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                 }.accessibilityLabel("لون الحبر").accessibilityValue(currentColorValue).accessibilityIdentifier("inkColor")
+                    .background {
+                        NativeInkColorPicker(color: $color, isPresented: $showingColorPicker)
+                            .frame(width: 44, height: 44)
+                    }
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
                 label: {
                     Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle())
@@ -169,9 +173,6 @@ struct InkToolbar: View {
             }.buttonStyle(.plain).padding(.horizontal, 12)
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
         }.background(TayyaTheme.surface).accessibilityIdentifier("inkToolbar")
-            .sheet(isPresented: $showingColorPicker) {
-                NativeInkColorPicker(color: $color, dismiss: { showingColorPicker = false })
-            }
     }
     private var currentColorValue: String {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
@@ -185,81 +186,140 @@ struct InkToolbar: View {
 }
 private struct NativeInkColorPicker: UIViewControllerRepresentable {
     @Binding var color: Color
-    let dismiss: () -> Void
+    @Binding var isPresented: Bool
 
-    func makeCoordinator() -> Coordinator { Coordinator(color: $color) }
+    func makeCoordinator() -> Coordinator { Coordinator(color: $color, isPresented: $isPresented) }
 
-    func makeUIViewController(context: Context) -> InkColorPickerContainer {
-        let container = InkColorPickerContainer()
-        container.dismissPicker = dismiss
-        container.picker.supportsAlpha = false
-        container.picker.selectedColor = UIColor(color)
-        container.picker.delegate = context.coordinator
-        return container
+    func makeUIViewController(context: Context) -> InkColorPickerPresenter {
+        let presenter = InkColorPickerPresenter()
+        presenter.picker.supportsAlpha = false
+        presenter.picker.selectedColor = UIColor(color)
+        presenter.picker.delegate = context.coordinator
+        presenter.picker.modalPresentationStyle = .popover
+        presenter.picker.popoverPresentationController?.delegate = context.coordinator
+        presenter.dismissPicker = { context.coordinator.isPresented.wrappedValue = false }
+        presenter.wantsPresentation = isPresented
+        return presenter
     }
 
-    func updateUIViewController(_ container: InkColorPickerContainer, context: Context) {
+    func updateUIViewController(_ presenter: InkColorPickerPresenter, context: Context) {
         context.coordinator.color = $color
-        container.dismissPicker = dismiss
+        context.coordinator.isPresented = $isPresented
+        presenter.wantsPresentation = isPresented
+        let selected = UIColor(color)
+        if !isPresented, presenter.presentedViewController == nil,
+           !presenter.picker.selectedColor.isEqual(selected) {
+            presenter.picker.selectedColor = selected
+        }
+        presenter.updatePresentation()
     }
 
-    final class Coordinator: NSObject, UIColorPickerViewControllerDelegate {
+    static func dismantleUIViewController(_ presenter: InkColorPickerPresenter, coordinator: Coordinator) {
+        presenter.stopPresenting()
+    }
+
+    final class Coordinator: NSObject, UIColorPickerViewControllerDelegate, UIPopoverPresentationControllerDelegate {
         var color: Binding<Color>
-        init(color: Binding<Color>) { self.color = color }
+        var isPresented: Binding<Bool>
+        init(color: Binding<Color>, isPresented: Binding<Bool>) {
+            self.color = color; self.isPresented = isPresented
+        }
         func colorPickerViewController(_ viewController: UIColorPickerViewController,
                                        didSelect selectedColor: UIColor, continuously: Bool) {
             color.wrappedValue = Color(uiColor: selectedColor)
         }
+        func colorPickerViewControllerDidFinish(_ viewController: UIColorPickerViewController) {
+            isPresented.wrappedValue = false
+        }
+        func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+            isPresented.wrappedValue = false
+        }
+        func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
+            isPresented.wrappedValue = false
+        }
     }
 }
 
-// Both the public picker child and Done belong to the same presented controller.
-// The retained native failure showed the direct picker's adapted modal covering
-// the SwiftUI sibling header. Child containment is the bounded native hypothesis.
-private final class InkColorPickerContainer: UIViewController {
+// Present the picker itself so UIKit owns its adaptive size and native layout.
+// The transparent presenter occupies only the actual color button's bounds.
+private final class InkColorPickerPresenter: UIViewController {
     let picker = UIColorPickerViewController()
     var dismissPicker: () -> Void = {}
+    var wantsPresentation = false
+    private var presentingPicker = false
+    private var hasAppeared = false
+    private var isDismantled = false
+    private let done = UIButton(type: .system)
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        let title = UILabel()
-        title.text = "لون الحبر"
-        title.font = .preferredFont(forTextStyle: .headline)
-        title.adjustsFontForContentSizeCategory = true
-        let done = UIButton(type: .system)
+        view.backgroundColor = .clear
+        view.isUserInteractionEnabled = false
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !hasAppeared else { return }
+        hasAppeared = true
+        updatePresentation()
+    }
+
+    func updatePresentation() {
+        if wantsPresentation {
+            guard !isDismantled, viewIfLoaded?.window != nil, presentedViewController == nil,
+                  !presentingPicker, !picker.isBeingDismissed else { return }
+            picker.title = "لون الحبر"
+            let popover = picker.popoverPresentationController
+            popover?.sourceView = view
+            popover?.sourceRect = view.bounds
+            presentingPicker = true
+            present(picker, animated: true) { [weak self] in
+                guard let self else { return }
+                presentingPicker = false
+                if !isDismantled { installDismissControl() }
+                if !wantsPresentation { updatePresentation() }
+            }
+        } else if presentedViewController === picker, !presentingPicker, !picker.isBeingDismissed {
+            dismiss(animated: !isDismantled)
+        }
+    }
+
+    func stopPresenting() {
+        wantsPresentation = false
+        isDismantled = true
+        updatePresentation()
+    }
+
+    private func installDismissControl() {
+        picker.view.accessibilityIdentifier = "nativeInkColorPicker"
+        picker.view.accessibilityViewIsModal = true
+        guard done.superview == nil else {
+            picker.view.bringSubviewToFront(done)
+            return
+        }
         done.setTitle("تم", for: .normal)
         done.titleLabel?.font = .preferredFont(forTextStyle: .headline)
         done.titleLabel?.adjustsFontForContentSizeCategory = true
         done.accessibilityIdentifier = "closeInkColorPicker"
+        done.backgroundColor = .systemBackground
         done.addTarget(self, action: #selector(closePicker), for: .touchUpInside)
-        let header = UIStackView(arrangedSubviews: [title, UIView(), done])
-        header.axis = .horizontal
-        header.alignment = .center
-        header.spacing = 8
-        header.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(header)
-        addChild(picker)
-        picker.view.translatesAutoresizingMaskIntoConstraints = false
-        picker.view.accessibilityIdentifier = "nativeInkColorPicker"
-        view.addSubview(picker.view)
-        let safe = view.safeAreaLayoutGuide
+        done.translatesAutoresizingMaskIntoConstraints = false
+        picker.view.addSubview(done)
+        let safe = picker.view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            header.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
-            header.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-            header.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
-            header.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            done.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            done.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            done.leadingAnchor.constraint(greaterThanOrEqualTo: safe.leadingAnchor, constant: 16),
             done.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
-            done.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
-            picker.view.topAnchor.constraint(equalTo: header.bottomAnchor),
-            picker.view.leadingAnchor.constraint(equalTo: safe.leadingAnchor),
-            picker.view.trailingAnchor.constraint(equalTo: safe.trailingAnchor),
-            picker.view.bottomAnchor.constraint(equalTo: safe.bottomAnchor)
+            done.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
         ])
-        picker.didMove(toParent: self)
     }
 
-    @objc private func closePicker() { dismissPicker() }
+    @objc private func closePicker() {
+        wantsPresentation = false
+        dismissPicker()
+        updatePresentation()
+    }
 }
 struct MarginNotebook: UIViewRepresentable {
     let page: MarginPage

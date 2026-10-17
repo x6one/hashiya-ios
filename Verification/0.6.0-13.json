@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked_native_palette_navigation_and_complete_regression_pending",
+  "status": "blocked_native_palette_presentation_and_full_suite_pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -38,25 +38,16 @@
     "screenshots_reviewed": false
   },
   "latest_rejected_native_source": {
-    "commit": "033eb4dd05add52b081053cdf327319522670a3c",
-    "push_run": 38781681904,
-    "pull_request_run": 38781686314,
-    "xctest_cases_passed_per_family": 65,
-    "xcuitest_cases_per_family": 26,
-    "push_ui_assertion_failures": {
-      "iPhone": 4,
-      "iPad": 4
-    },
-    "pull_request_ui_assertion_failures": {
-      "iPhone": 4,
-      "iPad": 5
-    },
-    "failed_cases": [
-      "testIndividualInkTargetsAtAccessibilityTextSize",
-      "testIndividualInkTargetsInDocumentAndCompactSplit",
-      "testCreateNotebookFromLibrary (PR iPad only)"
-    ],
-    "maestro_and_package": "skipped after UI failures",
+    "commit": "d894b726777bd253bdc405ab3d10a302cc271aee",
+    "push_run": 39048906022,
+    "pull_request_run": 39048910224,
+    "units_passed_each_job": 67,
+    "direct_mount_cases_passed_each_job": 5,
+    "unique_ui_cases_required": 31,
+    "phone_originals": "Exactred77 unreachable after4actualscrolls onbothruns/bothoriginals.",
+    "push_pad_originals": "Both hit240secondwholecase cap; firstactualmargin stroke1to2/visible/Undo1 beforeinterruption; laterRedo2/Fit2 not completedpass.",
+    "pr_pad_originals": "Accessibility fitMarginWidth drag doesnotmove236.850s; Standardjointdeadline208.883s, latercanvastrue/textfalse.",
+    "maestro_and_package": "blocked/skipped",
     "acceptance": false
   },
   "distribution": {
@@ -65,11 +56,10 @@
     "apple_upload_performed_for_candidate": false
   },
   "limitations": [
-    "Linux authoring environment has no Xcode, iOS simulator, Swift compiler or xcodegen",
-    "Current024 compiled and ran all65unit/26UI cases per family; reconstructed palette containment and explicit mode delivery remain native hypotheses",
-    "Actual close target sizing, compact handwriting, fit actions, orientation restoration, recording stability and entrance movies remain mandatory native gates",
-    "Existing XCTest, XCUITest and all three Maestro flow gates remain enabled; no result from a previous release is evidence for this candidate",
-    "Physical-device microphone, pen, zoom and rotation validation remains necessary"
+    "Linux authoring environment has no native Xcode/simulator; native validation uses exact-source GitHub Actions.",
+    "Full candidate67units/31UI/3Maestro eachfamily, actual visual review and full Office device package remain pending.",
+    "Native picker Done placement and remaining toolbar-scroll/AX-deadline assertions require actual tests.",
+    "No accepted0.6.0(13) IPA or Apple publication."
   ],
   "source_review": {
     "code_checkpoint": "2786e27cca66c9655247f4445b8d1e0816bd48cf",
@@ -570,7 +560,7 @@
       {
         "id": 12106807114,
         "github_digest": "60f08cc0017a19a3aac09221ed7c6fe1ddb3bb232f8b4715cd05e5aa866a937e",
-        "independently_hashed": false
+        "independently_hashed": true
       },
       {
         "id": 12106791813,
@@ -585,12 +575,108 @@
     ]
   },
   "native_palette_navigation_followup": {
-    "status": "native_execution_pending",
+    "status": "native_scroll_alone_insufficient",
     "production_change": false,
     "change": "At most4 real native palette scroll gestures to exact existing red77, then unchanged final hittability/tap/color binding/dismissal/visible pixels/stroke count/UndoRedo/Fit. Attach actual swatch frames.",
     "geometry_observation": "Reuse target and viewport between inputs, refresh after each drag; preserve full containment/hittability/44point/edge tap/movement checks.",
     "timeouts_changed": false,
     "assertions_removed": false,
+    "acceptance": false,
+    "observed_source": "d894b726777bd253bdc405ab3d10a302cc271aee",
+    "observed_phone": "All4journeys execute4nativepalette swipes butred77stilloffscreen; no pass."
+  },
+  "last_evidence_date": "2026-10-17",
+  "initial_reported_native_source": {
+    "commit": "033eb4dd05add52b081053cdf327319522670a3c",
+    "push_run": 38781681904,
+    "pull_request_run": 38781686314,
+    "xctest_cases_passed_per_family": 65,
+    "xcuitest_cases_per_family": 26,
+    "push_ui_assertion_failures": {
+      "iPhone": 4,
+      "iPad": 4
+    },
+    "pull_request_ui_assertion_failures": {
+      "iPhone": 4,
+      "iPad": 5
+    },
+    "failed_cases": [
+      "testIndividualInkTargetsAtAccessibilityTextSize",
+      "testIndividualInkTargetsInDocumentAndCompactSplit",
+      "testCreateNotebookFromLibrary (PR iPad only)"
+    ],
+    "maestro_and_package": "skipped after UI failures",
     "acceptance": false
-  }
+  },
+  "sourceD894_native_results": {
+    "commit": "d894b726777bd253bdc405ab3d10a302cc271aee",
+    "push_run": 39048906022,
+    "pull_request_run": 39048910224,
+    "units_passed_each_job": 67,
+    "direct_mount_cases_passed_each_job": 5,
+    "unique_ui_cases_required": 31,
+    "phone_originals": "Exactred77 unreachable after4actualscrolls onbothruns/bothoriginals.",
+    "push_pad_originals": "Both hit240secondwholecase cap; firstactualmargin stroke1to2/visible/Undo1 beforeinterruption; laterRedo2/Fit2 not completedpass.",
+    "pr_pad_originals": "Accessibility fitMarginWidth drag doesnotmove236.850s; Standardjointdeadline208.883s, latercanvastrue/textfalse.",
+    "maestro_and_package": "blocked/skipped",
+    "acceptance": false,
+    "artifacts": [
+      {
+        "id": 12107388147,
+        "github_digest": "5b09cf3822b314a9176bf29616f98d566bf3b5802dbdaa68f9335639f1fec2fd",
+        "independently_hashed": false
+      },
+      {
+        "id": 12107722281,
+        "github_digest": "bb9d6d5576d362bab7d51a53bac8fcbd6ea70054e937a4eb0a0fd7bf0f58636f",
+        "independently_hashed": false
+      },
+      {
+        "id": 12107866093,
+        "github_digest": "dbe3b9ed668e803e5d0ab74f2d495b497479b3762dd38d8cff536f211f9f681e",
+        "independently_hashed": false
+      },
+      {
+        "id": 12107024827,
+        "github_digest": "113ac1546e61ca5f6b0f7f60ffc70f6a0860888d9b0038766f27a23d1170cd19",
+        "independently_hashed": false
+      }
+    ]
+  },
+  "native_palette_presentation_experiment": {
+    "status": "native_execution_pending",
+    "change": "ActualUIColorPickerViewController presentedasanchoredpopover by44ptcolorbuttonbackgroundcontroller; removeSwiftUIsheet/customchildconstraints; nativeadaptation, livebindinganddismissaldelegates,44Doneonpresentedrootview.",
+    "lifecycle": "Windowguardonlyforpresentation;preventduplicates/overlappingtransitions;teardownclearsintentandcompletionreconcilesdismissal.",
+    "unverified": "OwnDoneoverlap/hittability;nativepaletteaccessacrossphone/pad/orientation/accessibility.",
+    "acceptance": false
+  },
+  "candidate_harness": {
+    "status": "native_execution_pending",
+    "unique_tests_per_family": {
+      "xctest": 67,
+      "xcuitest": 31,
+      "maestro": 3
+    },
+    "command": "Unrestricted full Hashiya scheme, pipefail and exitzero before remaininggates. No-only/skip flags.",
+    "whole_case_default_seconds": 240,
+    "whole_case_maximum_seconds": 360,
+    "explicit_360_methods": [
+      "testIndividualInkTargetsAtAccessibilityTextSize",
+      "testIndividualInkTargetsInDocumentAndCompactSplit"
+    ],
+    "functional_deadlines_changed": false,
+    "assertions_removed": false,
+    "duplicate_preliminary_runs_removed": true,
+    "repeated_run_stability_coverage": "reduced; unique coverage retained",
+    "full_xcresult": "Always NativeResults/TestResults.xcresult.zip andsha; attachmentsScreenshots; failurecrashcollectionseparate",
+    "job_timeout_minutes": 60,
+    "acceptance": false
+  },
+  "historical_limitations": [
+    "Linux authoring environment has no Xcode, iOS simulator, Swift compiler or xcodegen",
+    "Current024 compiled and ran all65unit/26UI cases per family; reconstructed palette containment and explicit mode delivery remain native hypotheses",
+    "Actual close target sizing, compact handwriting, fit actions, orientation restoration, recording stability and entrance movies remain mandatory native gates",
+    "Existing XCTest, XCUITest and all three Maestro flow gates remain enabled; no result from a previous release is evidence for this candidate",
+    "Physical-device microphone, pen, zoom and rotation validation remains necessary"
+  ]
 }

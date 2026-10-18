@@ -1089,10 +1089,26 @@ final class LaunchTests: XCTestCase {
         swatch.tap()
         capturePaperStudio(name + "-NativeColorPicker", in: app)
         close.tap()
+        // Resolve both dismissal conditions in one fresh accessibility query.
+        // Separate negative exists lookups retry serially even after UIKit
+        // has destroyed the hosted picker scene; keep the original 5s gate.
+        let pickerElements = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier IN %@", ["nativeInkColorPicker", "closeInkColorPicker"]))
+        let dismissalStarted = ProcessInfo.processInfo.systemUptime
+        var dismissalSamples: [String] = []
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            !picker.exists && !close.exists
-        }, object: picker)
-        guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
+            let started = ProcessInfo.processInfo.systemUptime - dismissalStarted
+            let remaining = pickerElements.count
+            dismissalSamples.append("start=\(started); end=\(ProcessInfo.processInfo.systemUptime - dismissalStarted); remaining=\(remaining)")
+            return remaining == 0
+        }, object: app)
+        let dismissalResult = XCTWaiter.wait(for: [dismissed], timeout: 5)
+        let dismissalTrace = XCTAttachment(string: "result=\(dismissalResult.rawValue)\n" + dismissalSamples.joined(separator: "\n"))
+        dismissalTrace.name = name + "-NativePaletteDismissal"; dismissalTrace.lifetime = .keepAlways; add(dismissalTrace)
+        guard dismissalResult == .completed else {
+            capturePaperStudio(name + "-NativePaletteDismissalFailure", in: app)
+            let host = XCTAttachment(string: nativeInkPresenterState(in: app))
+            host.name = name + "-NativePaletteDismissalHost"; host.lifetime = .keepAlways; add(host)
             XCTFail("Native color picker must dismiss before testing ink actions"); return false
         }
         let changedColor = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in

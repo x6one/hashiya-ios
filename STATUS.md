@@ -1,17 +1,15 @@
 # Tayya 0.6.0 (13) — rescue checkpoint, 2026-10-19
 
-Release is blocked. No accepted IPA, PR merge or Apple upload. Bundle ID: `com.ahmadalawi.hashiya`. Retain Paper Studio, existing data formats and Office conversion.
+Release is blocked. No accepted IPA, PR merge or Apple upload. Bundle ID: `com.ahmadalawi.hashiya`. Retain Paper Studio, user data and Office conversion.
 
 ## Current decision
 
-- Development audit: `6be37f9550d39355ab4a8291e7c0e162c85d9a1b`; product baseline remains `c8903523e8831b24d78e87923ea966408dd5419d`.
-- Font candidate: `c2f69c0146dcbacaced8fdf27f37cdd5adf30e94`, separate `diag/tayya-rescue-font` branch. Only generated demonstration PDF fonts change to public ArialMT/Arial-BoldMT names. Existing documents are not rewritten.
-- Targeted qualification [39170507839](https://github.com/x6one/hashiya-ios/actions/runs/39170507839): 68/68 XCTest pass per family. UI: iPhone1/3 (Accessibility rail966 and native edge1424 fail); iPad2/3 (standard ink native picker1049 fails). Original test assertions and case deadlines are unchanged.
-- **Candidate rejected as a stability repair.** The new PDF uses only ArialMT/Arial-BoldMT resources, but the same UI faults persist. Do not promote this candidate or start full preflight.
-- Follow-up evidence [39171913705](https://github.com/x6one/hashiya-ios/actions/runs/39171913705): iPhone0/2 original cases, same rail966 and edge1424 failures; iPad1/1 standard ink passes. Instrumented success is not a repair. Edge began24.584 and ended25.118 (22:35UTC, stack1); no content-pop restore occurred during the failed edge. The early-restore hypothesis does not explain this occurrence. No observed rail scroll pan began during its failed drag.
-- Transition/hit evidence [39173378390](https://github.com/x6one/hashiya-ios/actions/runs/39173378390): iPhone rail passes; native edge still fails. UIKit cancels at61.7424% with440pt bounds and ending velocity−240pt/s, then completion restores stack2. No boundary restore intervenes. The underlying cancellation decision remains unproven. Rail hit point exactly matches the test; size/inset/offset support a50pt scroll, which occurs in this observation. No deterministic Menu/extent defect established.
-- Next input candidate: `f47b77b9da7a26bb023574da83b45d4f4cc8fceb`, [39174774309](https://github.com/x6one/hashiya-ios/actions/runs/39174774309). Change only the nav test drag65%→85%, retaining every original assertion and waiter; repeat3 times per family, then capture that family's original failing ink case. This tests clearer completion intent; it is not a production navigation repair. If85% cancels, investigate the existing content-pop policy with controlled comparisons rather than extending the drag again.
-
+- Product baseline remains `c8903523e8831b24d78e87923ea966408dd5419d`; no production gesture repair is adopted.
+- Fixture candidate `c7d1071568340990e6ad2fa01e99e579884ac32b` on `diag/tayya-fixture-cleanup` releases DocumentsApp after setup resolves the provider container. It does not rewrite exports or bypass native Save/import.
+- Stage A: added setup contract fails on the old helper ([39176410569](https://github.com/x6one/hashiya-ios/actions/runs/39176410569),13 originals pass,1 new failure); after cleanup,14/14 Tools tests pass ([39176525816](https://github.com/x6one/hashiya-ios/actions/runs/39176525816)). The foreground leak is proven; its causation of the native launch failure is still a hypothesis.
+- Stage B [39176525816](https://github.com/x6one/hashiya-ios/actions/runs/39176525816):3 navigation repetitions, both original ink cases, both actual PDF/PowerPoint picker imports and exported-byte verification per family. Pending. Full preflight and IPA remain blocked.
+- Input control [39174774309](https://github.com/x6one/hashiya-ios/actions/runs/39174774309):85% deliberate edge input passes3/3 on iPhone; iPad passes2/3, with iteration1 failing at `app.launch()`1396 before any document interaction (XCTest background assertion). The related original ink case passes each family. All five reached edge assertions pass. This is not a production navigation repair or a qualified run.
+- Public demonstration PDF fonts remove the private SF resource names (68/68 units per family including all67 originals); that candidate alone did not fix UI failures. Existing documents are not rewritten.
 
 ## Evidence
 

@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_deliberate_edge_input_candidate_pending",
+  "status": "rescue_fixture_cleanup_stage_B_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -106,8 +106,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "f47b77b9da7a26bb023574da83b45d4f4cc8fceb",
-    "next_scope": "85% intentional completed edge input repeated3 per family, all original assertions/waiters; one original failing ink case per family",
+    "next_source": "c7d1071568340990e6ad2fa01e99e579884ac32b",
+    "next_scope": "3 navigation iterations +2 original ink cases +2 native picker imports +exported byte checks per family; gate on14 Tools tests",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -143,7 +143,21 @@
       "id": 12153657880,
       "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
     },
-    "next_run": 39174774309
+    "next_run": 39176525816,
+    "deliberate_input_artifacts": [
+      {
+        "family": "iPhone",
+        "id": 12153488928,
+        "sha256": "943b66bdfb15aedbf728e7433571000b3c3b1c9c6f62dc24cee964e454468743"
+      },
+      {
+        "family": "iPad",
+        "id": 12153419552,
+        "sha256": "c57425256b14edf85db87272d4140cd4e3a2627fa5dca4aca2f8eb94883fa2af"
+      }
+    ],
+    "artifact_inspection_run": 39175923570,
+    "pad_launch_context_reader_run": 39176042630
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -153,7 +167,13 @@
     "native_toolchain_local": false,
     "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending",
     "later_diagnostic_local_execution": "blocked: exec-server transport disconnected; recovery timed out",
-    "later_diagnostic_checks": "unique exact text edits, assertion-preserving edit, trailing-whitespace check and manual workflow review; no actionlint success claimed"
+    "later_diagnostic_checks": "unique exact text edits, assertion-preserving edit, trailing-whitespace check and manual workflow review; no actionlint success claimed",
+    "fixture_setup_tools": {
+      "run": 39176525816,
+      "passed": 14,
+      "failed": 0,
+      "runner": "ubuntu-latest"
+    }
   },
   "release_pipeline": {
     "internal_pr_duplicate_matrix": "skipped only for internal main/work/**; PR retained for forks and other internal branches",
@@ -180,6 +200,52 @@
     "short_swipe_cancellation_cause_still_unresolved": true,
     "run": 39174774309,
     "job_budget_minutes": 30,
-    "job_budget_reason": "Expanded from2 selected cases to3 repeated navigation cases plus1 original ink case per family; case240/360s unchanged"
+    "job_budget_reason": "Expanded from2 selected cases to3 repeated navigation cases plus1 original ink case per family; case240/360s unchanged",
+    "result": {
+      "iPhone": {
+        "navigation_iterations_passed": 3,
+        "iterations": 3,
+        "related_ink": "passed"
+      },
+      "iPad": {
+        "navigation_iterations_passed": 2,
+        "iterations": 3,
+        "failure": "app.launch1396 before document UI: XCTest background assertion timed out",
+        "related_ink": "passed"
+      },
+      "all_reached_edge_assertions_passed": 5,
+      "release_qualified": false
+    }
+  },
+  "harness_candidate": {
+    "source": "c7d1071568340990e6ad2fa01e99e579884ac32b",
+    "branch": "diag/tayya-fixture-cleanup",
+    "production_file": "Tools/seed_files_fixtures.py",
+    "change": "Terminate DocumentsApp after successful non-verify provider-path resolution; do not modify stored export bytes",
+    "setup_foreground_leak_proven": true,
+    "causation_of_app_launch_failure": "hypothesis pending native qualification",
+    "test_file": "Tools/test_files_fixtures.py",
+    "red": {
+      "run": 39176410569,
+      "passed_original_tests": 13,
+      "added_failure": "setup left DocumentsApp foreground"
+    },
+    "stage_A": {
+      "run": 39176525816,
+      "passed": 14,
+      "failed": 0,
+      "runner": "ubuntu-latest"
+    },
+    "stage_B": {
+      "run": 39176525816,
+      "status": "pending",
+      "per_family": {
+        "navigation_iterations": 3,
+        "original_ink_cases": 2,
+        "real_picker_import_cases": 2,
+        "actual_exported_bytes": "required"
+      }
+    },
+    "accepted": false
   }
 }

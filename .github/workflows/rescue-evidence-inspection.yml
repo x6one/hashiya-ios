@@ -4,29 +4,20 @@ on:
     branches: ['diag/tayya-evidence-inspection']
 permissions:
   contents: read
-  actions: read
 concurrency:
   group: rescue-evidence-inspection
   cancel-in-progress: false
 jobs:
-  inspect:
-    name: inspect (${{ matrix.family }})
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - family: iPad
-            artifact: '12153419552'
-            sha256: c57425256b14edf85db87272d4140cd4e3a2627fa5dca4aca2f8eb94883fa2af
     steps:
       - uses: actions/checkout@v4
-      - name: Check reader syntax
-        run: python3 -m py_compile Tools/inspect_rescue_artifact.py
-      - name: Inspect saved artifact bytes and bounded native evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: ${{ matrix.artifact }}
-          EXPECTED_SHA256: ${{ matrix.sha256 }}
-        run: python3 Tools/inspect_rescue_artifact.py
+        with:
+          ref: 35cf36071d2df7c6949021dce16134638bb7d1dc
+      - name: Check staged release workflow syntax
+        run: |
+          curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -version
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml

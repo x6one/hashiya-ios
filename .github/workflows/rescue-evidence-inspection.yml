@@ -29,4 +29,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
+          PREVIEW_PATH: TestResults-attachments/D387E31C-7FE5-4B54-BF50-253C17A547EA.png
         run: python3 Tools/inspect_rescue_artifact.py

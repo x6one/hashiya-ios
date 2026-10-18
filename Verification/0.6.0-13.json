@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "pending_native_rail_gesture_priority_validation",
+  "status": "blocked_f87_gesture_priority_experiment_rejected_route_probe_running",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -20,11 +20,11 @@
     "total_tools_tests_passed": 13
   },
   "native_validation": {
-    "exact_source_commit": "3e56636c1483d0fee0bbd912b2cf148bfeb17f50",
-    "preflight_run": 39085878795,
-    "xctest": "67/67 passed each family in Push and PR",
-    "xcuitest": "30/31 passed each family in Push and PR; not accepted",
-    "maestro": "skipped after UI failures",
+    "exact_source_commit": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+    "preflight_run": 39091395832,
+    "xctest": "67 passed all4 jobs",
+    "xcuitest": "failed; see full f87 result, including case caps and restarts",
+    "maestro": "skipped",
     "required_cases_per_family": {
       "xctest": 67,
       "xcuitest": 31,
@@ -38,37 +38,61 @@
     "screenshots_reviewed": false
   },
   "latest_rejected_native_source": {
-    "commit": "f8751c831eccd3948c9c93dc6502ce15eb2e53b7",
-    "push_run": 39071291808,
-    "pull_request_run": 39071295697,
+    "source": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+    "push_run": 39091395832,
+    "pr_run": 39091398933,
     "units_passed_each_job": 67,
-    "push_phone": {
-      "xctest": 67,
-      "xcuitest": 31,
-      "maestro": 3,
-      "whole_job": "success",
-      "entrance_movies": "captured; visual review incomplete"
+    "jobs": [
+      {
+        "id": 117569487717,
+        "passed": 30,
+        "failed": [
+          "testIndividualInkTargetsAtAccessibilityTextSize"
+        ],
+        "caps": []
+      },
+      {
+        "id": 117569487910,
+        "passed": 30,
+        "failed": [],
+        "caps": [
+          "testIndividualInkTargetsAtAccessibilityTextSize"
+        ]
+      },
+      {
+        "id": 117569415617,
+        "passed": 29,
+        "failed": [
+          "testIndividualInkTargetsAtAccessibilityTextSize"
+        ],
+        "caps": [
+          "testIndividualInkTargetsInDocumentAndCompactSplit"
+        ]
+      },
+      {
+        "id": 117569415744,
+        "passed": 30,
+        "failed": [
+          "testIndividualInkTargetsAtAccessibilityTextSize"
+        ],
+        "caps": []
+      }
+    ],
+    "maestro": "skipped after failed UI gate",
+    "device_package": "skipped",
+    "accepted_ipa": false,
+    "phone_artifact": {
+      "id": 12123652944,
+      "sha256": "dfea4a6548a16eaf4d58cfa9e57ab5a21db782290ea1506721862b4df8783d3a",
+      "independently_verified": true
     },
-    "push_pad": {
-      "ui_passed": 29,
-      "ui_failed": 2,
-      "failures": [
-        "First native palette not presented within5s; scene readiness7.3s",
-        "Standard mount app.snapshot interrupted by waiter; later mode/canvas/text conditions correct"
-      ]
-    },
-    "pr_phone": {
-      "ui_passed": 30,
-      "ui_failed": 1,
-      "failure": "16.3ptfitMargin drag did not move enabled scroll with74.3pt remaining range"
-    },
-    "pr_pad": {
-      "explicit_ui_passed_records": 29,
-      "failed_assertion_case": "Accessibility24.5ptfitMarginWidth drag did not move enabled scroll with24.5pt remaining range",
-      "paged_case": "240s allowance exceeded after repeated60s animation/quiescence waits; first stall precedes divider gesture; no complete31-case aggregate"
-    },
-    "maestro_pads": "skipped",
-    "full_office_ipa": null
+    "diagnostic_probe": {
+      "commit": "1e8a448be41865c22bbcc4812cc757df8c1b5b18",
+      "branch": "diag/tayya-ink-route",
+      "run": 39126228020,
+      "purpose": "one unchanged original iPhone Accessibility ink test; not release preflight",
+      "result": "pending"
+    }
   },
   "distribution": {
     "native_office_unsigned_ipa": null,
@@ -863,9 +887,10 @@
     "hypothesis": "iOS26 RTL full-content navigation pan competes with LTR tool rail",
     "change": "public content-pop recognizer requires actual ancestor scroll pan to fail",
     "availability": "iOS26+; no changes below26",
-    "native_validation": "pending",
+    "native_validation": "failed; restored exact3e toolbar implementation locally",
     "test_changes": false,
     "functional_deadlines_changed": false,
-    "accepted_ipa": false
+    "accepted_ipa": false,
+    "reverted_after_failure": true
   }
 }

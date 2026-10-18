@@ -7,12 +7,12 @@
     1,
     2
   ],
-  "status": "rescue_fixture_cleanup_stage_B_pending",
+  "status": "rescue_ink_pair_failed_picker_query_candidate_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
   "product_baseline_commit": "c8903523e8831b24d78e87923ea966408dd5419d",
-  "development_audit_commit": "6be37f9550d39355ab4a8291e7c0e162c85d9a1b",
+  "development_audit_commit": "f1aa3a9d137a22a4e09d9df376c18d50b7c71ca0",
   "candidate": {
     "commit": "c2f69c0146dcbacaced8fdf27f37cdd5adf30e94",
     "branch": "diag/tayya-rescue-font",
@@ -98,7 +98,32 @@
     "edge_transition_cancelled_at_percent": 0.617424,
     "edge_cancellation_underlying_cause": "unproven; no boundary restore during captured interaction",
     "rail_correct_geometry_and_scrolling_observed": true,
-    "deterministic_menu_or_scroll_extent_failure": "not established; latest observed rail input scrolls50pt"
+    "deterministic_menu_or_scroll_extent_failure": "not established; latest observed rail input scrolls50pt",
+    "current_compact_margin": {
+      "source": "c7d1071568340990e6ad2fa01e99e579884ac32b",
+      "run": 39176525816,
+      "phone_native_count_before": 1,
+      "phone_native_count_after": 2,
+      "red_pixels_before": 0,
+      "red_pixels_after": 0,
+      "same_geometry_as_prior_passing_run": true,
+      "small_viewport_or_private_hidden_flag_sufficient_cause": false,
+      "underlying_cause": "unproven; actual saved drawing must be inspected"
+    },
+    "pad_dismissal": {
+      "run": 39176525816,
+      "native_scene_invalidation_utc": "2026-10-18T23:42:45.381Z",
+      "native_scene_record_cleared_utc": "2026-10-18T23:42:45.394Z",
+      "first_disappearance_query_utc": "2026-10-18T23:42:45.910Z",
+      "second_negative_query_retries_utc": [
+        "2026-10-18T23:42:49.488Z",
+        "2026-10-18T23:42:50.170Z",
+        "2026-10-18T23:42:50.186Z"
+      ],
+      "failure_utc": "2026-10-18T23:43:05.736Z",
+      "native_service_scene_closed_before_first_query": true,
+      "outer_host_absence_not_directly_captured": true
+    }
   },
   "diagnostics": {
     "edge_state_run": 39168607576,
@@ -157,17 +182,38 @@
       }
     ],
     "artifact_inspection_run": 39175923570,
-    "pad_launch_context_reader_run": 39176042630
+    "pad_launch_context_reader_run": 39176042630,
+    "fixture_cleanup_artifacts": [
+      {
+        "id": 12155431299,
+        "family": "iPad",
+        "sha256": "8e6c4120d2e2ca2f9abfcc2fc9ae7b85c4431d76f94df73560f342aea0e16235",
+        "size_in_bytes": 39801877
+      },
+      {
+        "id": 12154996337,
+        "family": "iPhone",
+        "sha256": "60bcdf38a73923d55c815c952f238485f410afadb8ca42b159f210a84efe5a5e",
+        "size_in_bytes": 34379836
+      }
+    ],
+    "fixture_cleanup_readers": {
+      "iPhone": 39177919745,
+      "iPad": 39178274308,
+      "phone_failure_screenshot": 39177983881,
+      "pad_dismissal_native_window": 39178393882
+    },
+    "latest_report": "Verification/Diagnostics/ink-pair-39176525816.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
     "tools_tests_passed": 13,
-    "prepared_workflows_actionlint": "1.7.7 passed; shellcheck/pyflakes unavailable",
+    "prepared_workflows_actionlint": "1.7.7 passed on exact247408 prep source in39177156534; shellcheck/pyflakes integrations disabled",
     "git_diff_check": "passed",
     "native_toolchain_local": false,
     "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending",
     "later_diagnostic_local_execution": "blocked: exec-server transport disconnected; recovery timed out",
-    "later_diagnostic_checks": "unique exact text edits, assertion-preserving edit, trailing-whitespace check and manual workflow review; no actionlint success claimed",
+    "later_diagnostic_checks": "Exact-source picker candidate StageA in39178692188 passes14 Tools,compileall,actionlint and read-only byte-preservation smoke; native qualification pending",
     "fixture_setup_tools": {
       "run": 39176525816,
       "passed": 14,
@@ -182,7 +228,10 @@
     "sign_archive_default": false,
     "publish_to_apple_default": false,
     "reusable_signing_inputs": false,
-    "signing_dispatch_requires_office_workflow_ref": true
+    "signing_dispatch_requires_office_workflow_ref": true,
+    "prepared_source": "247408a8619e47ba39e05dc25ba833a2262fc7ce",
+    "prepared_validation_run": 39177156534,
+    "prepared_evidence_failure_path": "Both result bundles still attempted after intentional summary/attachment failure; step retains nonzero exit"
   },
   "history": "Verification/Diagnostics/0.6.0-13-before-rescue-2026-10-19.json",
   "limitations": [
@@ -215,6 +264,14 @@
       },
       "all_reached_edge_assertions_passed": 5,
       "release_qualified": false
+    },
+    "latest_control": {
+      "run": 39176525816,
+      "navigation_iterations_passed": {
+        "iPhone": 3,
+        "iPad": 3
+      },
+      "accepted_as_production_repair": false
     }
   },
   "harness_candidate": {
@@ -238,14 +295,54 @@
     },
     "stage_B": {
       "run": 39176525816,
-      "status": "pending",
+      "status": "failed",
       "per_family": {
-        "navigation_iterations": 3,
-        "original_ink_cases": 2,
-        "real_picker_import_cases": 2,
-        "actual_exported_bytes": "required"
+        "iPhone": {
+          "navigation_iterations_passed": 3,
+          "navigation_iterations": 3,
+          "ink_passed": 1,
+          "ink_total": 2,
+          "failed_test": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "failure_line": 1151,
+          "failure": "Native drawing count1→2 but visible red pixel delta0 in compact landscape margin",
+          "actual_picker_imports_passed": 2,
+          "actual_picker_imports_total": 2,
+          "exported_bytes": "PDF3063/PPTX54684 verified"
+        },
+        "iPad": {
+          "navigation_iterations_passed": 3,
+          "navigation_iterations": 3,
+          "ink_passed": 1,
+          "ink_total": 2,
+          "failed_test": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "failure_line": 1096,
+          "failure": "Original two-query picker dismissal waiter failed",
+          "actual_picker_imports_passed": 2,
+          "actual_picker_imports_total": 2,
+          "exported_bytes": "PDF3063/PPTX54684 verified"
+        }
       }
     },
-    "accepted": false
+    "accepted": false,
+    "decision": "Not accepted as a stability repair: both family Accessibility ink cases fail; retain isolated candidate and evidence"
+  },
+  "picker_query_candidate": {
+    "source": "d3db4b063fa4664f0580f5d2d5f621deb37c890d",
+    "branch": "diag/tayya-picker-query",
+    "run": 39178692188,
+    "change": "One fresh query checks both picker/close identifiers absent; same5s gate, original failure assertion text, all XCTAssert lines retained",
+    "app_code_change": false,
+    "stage_A": {
+      "passed_tools": 14,
+      "actionlint": "1.7.7 passed",
+      "python_syntax": "passed",
+      "read_only_saved_drawing_smoke": "passed"
+    },
+    "stage_B": {
+      "status": "pending",
+      "original_ink_cases_per_family": 2
+    },
+    "accepted": false,
+    "saved_drawing_capture": "Only temporary DEBUG ReviewEntry margin JSON; copied after UI tests,32/2MB per drawing/8MB total caps, source preserved"
   }
 }

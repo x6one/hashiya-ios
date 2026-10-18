@@ -42,6 +42,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     images = [{"path": item.filename, "bytes": item.file_size} for item in archive.infolist()
         if item.filename.lower().endswith((".png", ".jpg", ".jpeg"))]
     print("RESCUE_IMAGES " + json.dumps({"total": len(images), "entries": images[:100]}))
+    attachment_budget = 90000
     for name in names:
         if name.endswith("-summary.json"):
             summary = json.loads(archive.read(name))
@@ -49,7 +50,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                 "file": name,
                 "devices": summary.get("devicesAndConfigurations"),
                 **{key: summary.get(key) for key in ("result", "passedTests", "failedTests", "totalTestCount")},
-                "failures": [{"test": item.get("testName"), "failure": item.get("failureText", "")[:500]}
+                "failures": [{"test": item.get("testName"), "failure": item.get("failureText", "")[:1600]}
                     for item in summary.get("testFailures", [])],
             }))
         elif name.endswith("gesture-picker.log"):
@@ -67,7 +68,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         elif name.endswith("build.log"):
             lines = archive.read(name).decode(errors="replace").splitlines()
             selected = [line for line in lines if any(term in line for term in
-                ("Test Case '-[", "Executed ", ": error:", "TayyaGuidePDFFonts=", "Start Test at", "Test Suite '", 'Tap "inkColor"'))]
+                ("Test Case '-[", "Executed ", ": error:", "TayyaGuidePDFFonts=", "NativeInkEvidence", "Start Test at", "Test Suite '", 'Tap "inkColor"'))]
             print("RESCUE_TEST_LOG " + name)
             print("RESCUE_BUILD_INVOCATION " + "\n".join(lines[:8]))
             for index, line in enumerate(lines):
@@ -75,7 +76,11 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                     print("RESCUE_ASSERTION_CONTEXT_BEGIN")
                     print("\n".join(lines[max(0, index-18):index+10])[:16000])
                     print("RESCUE_ASSERTION_CONTEXT_END")
-            print("\n".join(line[:600] for line in selected[-100:]))
+            print("\n".join(line[:1600] for line in selected[-100:]))
+            failures = [index for index, line in enumerate(lines) if ": error:" in line]
+            for index in failures[:8]:
+                print("RESCUE_FAILURE_CONTEXT " + name)
+                print("\n".join(lines[max(0, index-16):index+8])[:10000])
         elif name.endswith("manifest.json"):
             manifest = json.loads(archive.read(name))
             print("RESCUE_MANIFEST " + name + " " + json.dumps(manifest, ensure_ascii=False)[:600])
@@ -85,9 +90,14 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                     for attachment in group.get("attachments", []):
                         exported = folder + attachment["exportedFileName"]
                         human = attachment.get("suggestedHumanReadableName", "")
-                        if "NativeScrollState" in human and exported in names:
-                            print("RESCUE_RAIL " + human)
-                            print(archive.read(exported).decode(errors="replace")[:22000])
+                        print("RESCUE_ATTACHMENT " + json.dumps({"test": group.get("testName", group.get("testIdentifier")), "name": human, "path": exported}))
+                        relevant = ("NativeScrollState", "NativeInkState", "NativePalettePresentation",
+                            "RedPixelPolling", "RedPixelFailureMeasurement", "TapGeometry")
+                        if any(term in human for term in relevant) and exported in names and attachment_budget > 0:
+                            body = archive.read(exported).decode(errors="replace")[:min(16000, attachment_budget)]
+                            print("RESCUE_ATTACHMENT_TEXT " + human)
+                            print(body)
+                            attachment_budget -= len(body)
     preview = os.environ.get("PREVIEW_PATH", "")
     if preview:
         if preview not in names or not preview.lower().endswith((".png", ".jpg", ".jpeg")):

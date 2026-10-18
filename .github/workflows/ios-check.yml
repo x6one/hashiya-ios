@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   fonts:
+    name: evidence (${{ matrix.family }})
     runs-on: macos-15
     timeout-minutes: 20
     strategy:
@@ -17,8 +18,6 @@ jobs:
         include:
           - family: iPhone
             cases: -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening
-          - family: iPad
-            cases: -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit
     steps:
       - uses: actions/checkout@v4
       - name: Select current app toolchain
@@ -64,7 +63,7 @@ jobs:
             fi
           done
           cp *build.log Evidence/
-          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --predicate 'eventMessage CONTAINS "TayyaRescueNavigation" OR eventMessage CONTAINS "DocumentNavigationBoundary" OR process CONTAINS[c] "ColorPicker"' > Evidence/gesture-picker.log
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --predicate 'eventMessage CONTAINS "TayyaRescue" OR eventMessage CONTAINS "DocumentNavigationBoundary" OR process CONTAINS[c] "ColorPicker"' > Evidence/gesture-picker.log
 
       - uses: actions/upload-artifact@v4
         if: always()

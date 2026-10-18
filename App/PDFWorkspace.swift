@@ -186,6 +186,39 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
         private var previousEnabled: Bool?
 #if DEBUG
         private var lastNavigationDiagnostic = ""
+        private final class DiagnosticView: UIView {
+            weak var owner: Controller?
+            override var accessibilityValue: String? {
+                get { owner?.nativeRailState() }
+                set { }
+            }
+        }
+        private func nativeRailState() -> String {
+            guard let navigation = ownedNavigation, let window = navigation.view.window else { return "navigation unavailable" }
+            var rows = ["navBounds=\(navigation.view.bounds) stack=\(navigation.viewControllers.count) contentEnabled=\(ownedPop?.isEnabled ?? false)"]
+            var pending = [navigation.view!]
+            var scanned = 0
+            while !pending.isEmpty, scanned < 512, rows.count < 12 {
+                let candidate = pending.removeFirst(); scanned += 1
+                pending.append(contentsOf: candidate.subviews.prefix(32))
+                guard let scroll = candidate as? UIScrollView,
+                      scroll.bounds.height < 120, scroll.bounds.width > 44 else { continue }
+                let frame = scroll.convert(scroll.bounds, to: window)
+                let visible = frame.intersection(window.safeAreaLayoutGuide.layoutFrame)
+                guard !visible.isNull, !visible.isEmpty else { continue }
+                let point = CGPoint(x: visible.midX, y: visible.midY)
+                var hit = window.hitTest(point, with: nil)
+                var path: [String] = []
+                for _ in 0..<8 {
+                    guard let current = hit else { break }
+                    let gestures = (current.gestureRecognizers ?? []).prefix(6).map { "\(type(of: $0)):\($0.state.rawValue):\($0.isEnabled)" }
+                    path.append("\(type(of: current))[\(gestures.joined(separator: ","))]")
+                    hit = current.superview
+                }
+                rows.append("scroll=\(type(of: scroll)) id=\(ObjectIdentifier(scroll)) frame=\(frame) visible=\(visible) size=\(scroll.contentSize) offset=\(scroll.contentOffset) bounds=\(scroll.bounds) inset=\(scroll.adjustedContentInset) enabled=\(scroll.isScrollEnabled) pan=\(scroll.panGestureRecognizer.state.rawValue):\(scroll.panGestureRecognizer.isEnabled) point=\(point) hit=\(path.joined(separator: ">"))")
+            }
+            return rows.joined(separator: "\n")
+        }
         private final class GestureObservation {
             weak var gesture: UIGestureRecognizer?
             let kind: String
@@ -216,6 +249,19 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             guard gestureEvents < 32, gesture.state != .changed,
                   let observation = gestureObservations[ObjectIdentifier(gesture)] else { return }
             gestureEvents += 1
+            if observation.kind == "edge", let navigation = ownedNavigation {
+                let pan = gesture as? UIPanGestureRecognizer
+                NSLog("TayyaRescueTransition edgeState=%ld translation=%@ velocity=%@ bounds=%@", gesture.state.rawValue, String(describing: pan?.translation(in: navigation.view)), String(describing: pan?.velocity(in: navigation.view)), String(describing: navigation.view.bounds))
+                if gesture.state == .began, let transition = navigation.transitionCoordinator {
+                    transition.notifyWhenInteractionChanges { context in
+                        NSLog("TayyaRescueTransition interaction cancelled=%d percent=%f", context.isCancelled ? 1 : 0, context.percentComplete)
+                    }
+                    let registered = transition.animate(alongsideTransition: nil) { [weak navigation] context in
+                        NSLog("TayyaRescueTransition completion cancelled=%d percent=%f stack=%ld top=%@", context.isCancelled ? 1 : 0, context.percentComplete, navigation?.viewControllers.count ?? -1, String(describing: navigation?.topViewController))
+                    }
+                    NSLog("TayyaRescueTransition completionRegistered=%d", registered ? 1 : 0)
+                }
+            }
             let location = gesture.location(in: ownedNavigation?.view)
             if let scroll = gesture.view as? UIScrollView {
                 NSLog("TayyaRescueNavigation scroll state=%ld offset=%@ size=%@ bounds=%@ enabled=%d tracking=%d dragging=%d decelerating=%d", gesture.state.rawValue, String(describing: scroll.contentOffset), String(describing: scroll.contentSize), String(describing: scroll.bounds), scroll.isScrollEnabled ? 1 : 0, scroll.isTracking ? 1 : 0, scroll.isDragging ? 1 : 0, scroll.isDecelerating ? 1 : 0)
@@ -225,7 +271,18 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
 #endif
 
         override func loadView() {
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+                let diagnostic = DiagnosticView()
+                diagnostic.owner = self
+                diagnostic.isAccessibilityElement = true
+                diagnostic.accessibilityIdentifier = "nativeInkPresenterState"
+                diagnostic.accessibilityLabel = "Native ink presenter diagnostics"
+                view = diagnostic
+            } else { view = UIView() }
+#else
             view = UIView()
+#endif
             view.backgroundColor = .clear
             view.isUserInteractionEnabled = false
         }

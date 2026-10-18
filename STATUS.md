@@ -8,7 +8,8 @@ Release is blocked. No accepted IPA, PR merge or Apple upload. Bundle ID: `com.a
 - Font candidate: `c2f69c0146dcbacaced8fdf27f37cdd5adf30e94`, separate `diag/tayya-rescue-font` branch. Only generated demonstration PDF fonts change to public ArialMT/Arial-BoldMT names. Existing documents are not rewritten.
 - Targeted qualification [39170507839](https://github.com/x6one/hashiya-ios/actions/runs/39170507839): 68/68 XCTest pass per family. UI: iPhone1/3 (Accessibility rail966 and native edge1424 fail); iPad2/3 (standard ink native picker1049 fails). Original test assertions and case deadlines are unchanged.
 - **Candidate rejected as a stability repair.** The new PDF uses only ArialMT/Arial-BoldMT resources, but the same UI faults persist. Do not promote this candidate or start full preflight.
-- Next: passive public recognizer/scroll-state and native picker-service evidence on the exact remaining cases, source `0c6d2c90d78549c2afe492e9e7c6e4ccb024076d`. No delegate/failure arbitration change. No full-suite rerun.
+- Follow-up evidence [39171913705](https://github.com/x6one/hashiya-ios/actions/runs/39171913705): iPhone0/2 original cases, same rail966 and edge1424 failures; iPad1/1 standard ink passes. Instrumented success is not a repair. Edge began24.584 and ended25.118 (22:35UTC, stack1); no content-pop restore occurred during the failed edge. The early-restore hypothesis does not explain this occurrence. No observed rail scroll pan began during its failed drag.
+- Next: iPhone-only native rail geometry/hit-target value via the original test query, plus passive transition completion/cancellation callbacks; source `5817344fda1241fa274e008ffa6a2a448a5f2964`. Compare sampled point with the actual test point before inferring touch ownership. No delegate/failure arbitration change or full-suite rerun.
 
 
 ## Evidence

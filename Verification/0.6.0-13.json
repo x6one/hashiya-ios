@@ -93,7 +93,8 @@
     "candidate_actual_pdf_fonts": [
       "ArialMT",
       "Arial-BoldMT"
-    ]
+    ],
+    "content_pop_restore_during_captured_failed_edge": false
   },
   "diagnostics": {
     "edge_state_run": 39168607576,
@@ -101,8 +102,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "0c6d2c90d78549c2afe492e9e7c6e4ccb024076d",
-    "next_scope": "iPhone accessibility rail and navigation; iPad standard ink picker; passive gesture targets and bounded native service log",
+    "next_source": "5817344fda1241fa274e008ffa6a2a448a5f2964",
+    "next_scope": "iPhone accessibility rail and navigation only: AX native rail geometry/hit-test snapshot, transition completion/cancellation callbacks; no arbitration changes",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -114,7 +115,25 @@
         "id": 12152832077,
         "sha256": "0e9e369927fe5cd9e1b1ecae393cd70ff0bc094ad378dc2097b54df9158f7216"
       }
-    ]
+    ],
+    "gesture_picker_run": 39171913705,
+    "gesture_picker_results": {
+      "iPhone": "0/2 original UI cases: rail966, edge1424",
+      "iPad": "1/1 standard ink UI passes; not a product repair"
+    },
+    "gesture_picker_artifacts": [
+      {
+        "family": "iPhone",
+        "id": 12152913958,
+        "sha256": "c54e0a4f13d3109a5ac0270b2d417c7cdfc977e54fba00407e59ad6b2d738e66"
+      },
+      {
+        "family": "iPad",
+        "id": 12153042643,
+        "sha256": "2cb5c4b8a485096b34870e8f678dbf7028e211dbb9e8dd6174f712c4c258c732"
+      }
+    ],
+    "next_interpretation_limit": "Compare sampled native hit point with exact original test input; instrumented pass is not repair"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",

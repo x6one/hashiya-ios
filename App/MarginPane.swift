@@ -36,6 +36,10 @@ struct MarginPane: View {
         // only this geometry subtree when switching modes; retained models
         // and page controls above it keep their identity.
         .id(editor.handwriting)
+        // Keep native mode, text and ink elements individually accessible inside
+        // one pane boundary, outside the mode-keyed editor host.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("marginPane")
         .background(TayyaTheme.paper)
             .sheet(isPresented: $showPages) { MarginPageList(store: store, sourcePage: sourcePage, jump: jump) }
             .sheet(isPresented: Binding(get: { exported != nil }, set: { if !$0 { exported = nil } })) { if let exported { ShareDocument(url: exported) } }

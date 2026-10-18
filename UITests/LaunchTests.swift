@@ -1190,13 +1190,15 @@ final class LaunchTests: XCTestCase {
 
     private func marginMountExpectation(in app: XCUIApplication,
                                         sample: @escaping (String) -> Void) -> XCTNSPredicateExpectation {
+        // `element` requires a unique match; never choose one pane via firstMatch.
+        let pane = app.descendants(matching: .any).matching(identifier: "marginPane").element
         let pollingStarted = ProcessInfo.processInfo.systemUptime
         return XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             let started = ProcessInfo.processInfo.systemUptime
             do {
-                // All three conditions come from one fresh native AX hierarchy.
-                // Serial element queries can exhaust the deadline between reads.
-                let root = try app.snapshot()
+                // All three conditions come from one fresh pane hierarchy.
+                // Preserve every descendant while excluding unrelated PDF nodes.
+                let root = try pane.snapshot()
                 let captured = ProcessInfo.processInfo.systemUptime
                 var pending: [any XCUIElementSnapshot] = [root]
                 var modeCount = 0, canvasCount = 0, textCount = 0, nodes = 0
@@ -1213,10 +1215,15 @@ final class LaunchTests: XCTestCase {
                     // occur after the mode and canvas in the same hierarchy.
                     pending.append(contentsOf: node.children)
                 }
-                sample("start=\(started - pollingStarted); captured=\(captured - pollingStarted); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); nodes=\(nodes); modes=\(modeCount); handwriting=\(handwriting); canvases=\(canvasCount); texts=\(textCount)")
-                return modeCount == 1 && handwriting && canvasCount > 0 && textCount == 0
+                // Preserve the global negative domain as an additional query;
+                // this is not a whole-app atomic snapshot equivalence claim.
+                let globalTextQueryStarted = ProcessInfo.processInfo.systemUptime
+                let globalTextAbsent = !app.textViews["splitNotes"].exists
+                let globalTextQueryDuration = ProcessInfo.processInfo.systemUptime - globalTextQueryStarted
+                sample("scope=marginPane; rootIdentifier=\(root.identifier); rootType=\(root.elementType.rawValue); start=\(started - pollingStarted); captured=\(captured - pollingStarted); snapshotDuration=\(captured - started); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); nodes=\(nodes); modes=\(modeCount); handwriting=\(handwriting); canvases=\(canvasCount); texts=\(textCount); globalTextAbsent=\(globalTextAbsent); globalTextQueryDuration=\(globalTextQueryDuration)")
+                return root.identifier == "marginPane" && modeCount == 1 && handwriting && canvasCount > 0 && textCount == 0 && globalTextAbsent
             } catch {
-                sample("start=\(started - pollingStarted); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); snapshotError=\(error.localizedDescription)")
+                sample("scope=marginPane; start=\(started - pollingStarted); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); snapshotError=\(error.localizedDescription)")
                 return false
             }
         }, object: app)

@@ -1,0 +1,38 @@
+{
+  "experiment": "scoped atomic margin snapshot",
+  "control_source": "c8903523e8831b24d78e87923ea966408dd5419d",
+  "branch": "diag/tayya-scoped-margin-ax",
+  "status": "diagnostic candidate; native validation pending; not adopted on development branch",
+  "original_launch_cases": 32,
+  "original_deadlines_assertions_objects_unchanged": true,
+  "unit_cases": 67,
+  "selected_original_ui": [
+    "testMarginHandwritingMountsWithoutTextInteraction",
+    "testMarginHandwritingMountsAfterTextFocus",
+    "testMarginHandwritingMountsAfterTextEditing",
+    "testMarginHandwritingMountsAfterDocumentInkMode",
+    "testMarginHandwritingMountsAfterDocumentFit",
+    "testIndividualInkTargetsAtAccessibilityTextSize",
+    "testIndividualInkTargetsInDocumentAndCompactSplit",
+    "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+    "testPaperStudioLightVisualCaptureJourney",
+    "testPaperStudioDarkVisualCaptureJourney",
+    "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney"
+  ],
+  "selected_original_ui_count": 11,
+  "separate_diagnostic_ui": "MarginAXScopeDiagnostics/testMarginPaneKeepsNativeChildrenInBothModes",
+  "selected_ui_total": 12,
+  "full_preflight": false,
+  "maestro": false,
+  "packaging": false,
+  "apple_actions": false,
+  "structure_validation": "After original cases, compare whole-app vs unique pane mode/canvas/text counts in settled text and handwriting; assert one pane identifier globally, one mode, expected mode/editor presence and matching counts. Serial snapshots are structural evidence, not atomic deadline proof.",
+  "poll_evidence": "One unique pane snapshot with exhaustive traversal preserves local exactone mode+handwriting,canvas>0,text0 and rootID. Supplementary global splitNotes absence query runs AFTER traversal inside SAME unchanged5sec predicate; its result/duration are logged. This is an additional global negative guard, not whole-app atomic equivalence. Expectation object remains app.",
+  "control_preflight_runs": [
+    39151098686,
+    39151102579
+  ],
+  "red_evidence": "25e15f7/run39127831209 AfterTextFocus whole-app capture5.087s exceeds5s waiter; independently verified artifact12137159248. Analysis checkpoint e51e6e5.",
+  "native_log": "30min lookback,90sec streamed read deadline,64KiB chunks,no byte truncation,only Python owns file,process-group cleanup and pipe close before bytecount.",
+  "acceptance": "No native performance, product fix or release readiness established."
+}

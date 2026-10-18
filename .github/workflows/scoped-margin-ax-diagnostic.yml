@@ -1,0 +1,160 @@
+name: Diagnostic scoped margin AX (iPad only)
+'on':
+  workflow_dispatch: null
+  push:
+    branches:
+    - diag/tayya-scoped-margin-ax
+permissions:
+  contents: read
+concurrency:
+  group: scoped-margin-ax-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scoped-margin-ax:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Select current app toolchain
+      run: python3 Tools/select_app_xcode.py
+    - name: Generate Xcode project
+      run: |
+        brew install xcodegen
+        xcodegen generate
+    - name: Select available simulator
+      env:
+        DEVICE_FAMILY: iPad
+      run: |
+        python3 - <<'PY'
+        import json, os, re, subprocess
+        subprocess.run(["xcodebuild", "-version"], check=True)
+        devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+        matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+        # Prefer the large current iPhone and iPad for real Store captures.
+        matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
+        if not matching:
+            raise SystemExit('Required simulator family is unavailable')
+        print('Simulator:', matching[0][1], matching[0][2]['name'])
+        with open(os.environ['GITHUB_ENV'], 'a') as out:
+            out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
+        PY
+    - name: Mark native diagnostic session
+      run: touch "$RUNNER_TEMP/tayya-native-start"
+    - name: Verify controlled source scope
+      run: python3 Tools/check_scoped_ax_sources.py
+    - name: Run original cases before separate structural diagnostics
+      run: |-
+        set -o pipefail
+        xcrun simctl boot "$SIMULATOR_ID" || true
+        xcrun simctl bootstatus "$SIMULATOR_ID" -b
+        python3 Tools/seed_files_fixtures.py
+        started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        original_status=0
+        structural_status=0
+        xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -only-testing:HashiyaTests -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsWithoutTextInteraction -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextFocus -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextEditing -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentInkMode -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentFit -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch -only-testing:HashiyaUITests/LaunchTests/testPaperStudioLightVisualCaptureJourney -only-testing:HashiyaUITests/LaunchTests/testPaperStudioDarkVisualCaptureJourney -only-testing:HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney -resultBundlePath ScopedComparison.xcresult CODE_SIGNING_ALLOWED=NO | tee scoped-comparison.log || original_status=$?
+        # Structural snapshots are never inserted into or before the original cases.
+        xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -only-testing:HashiyaUITests/MarginAXScopeDiagnostics/testMarginPaneKeepsNativeChildrenInBothModes -resultBundlePath ScopeStructure.xcresult CODE_SIGNING_ALLOWED=NO | tee scope-structure.log || structural_status=$?
+        STARTED="$started" ORIGINAL_STATUS="$original_status" STRUCTURAL_STATUS="$structural_status" python3 - <<'PY_TIMING'
+        import datetime, json, os
+        from pathlib import Path
+        Path('comparison-timing.json').write_text(json.dumps({
+            'source': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+            'control_source': 'c8903523e8831b24d78e87923ea966408dd5419d',
+            'started': os.environ['STARTED'], 'ended': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'original_exit': int(os.environ['ORIGINAL_STATUS']), 'structural_exit': int(os.environ['STRUCTURAL_STATUS']),
+            'scope': '67 units +11original UI +1new structural UI; diagnostic only, not full preflight',
+            'original_deadlines_unchanged': True}, indent=2) + '\n')
+        PY_TIMING
+        test "$original_status" -eq 0
+        test "$structural_status" -eq 0
+    - name: Archive both raw results before any attachment export
+      if: always()
+      run: |-
+        mkdir -p NativeResults
+        for bundle in ScopedComparison ScopeStructure; do
+          if [ -d "$bundle.xcresult" ]; then
+            ditto -c -k --keepParent "$bundle.xcresult" "NativeResults/$bundle.xcresult.zip"
+            shasum -a 256 "NativeResults/$bundle.xcresult.zip" > "NativeResults/$bundle.xcresult.sha256"
+          fi
+        done
+    - name: Export original polling and separate structural attachments
+      if: always()
+      run: |-
+        for bundle in ScopedComparison ScopeStructure; do
+          if [ -d "$bundle.xcresult" ]; then
+            xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "${bundle}Attachments"
+          fi
+        done
+    - name: Collect selective native evidence with stable streamed-byte count
+      if: always()
+      run: |-
+        python3 - <<'PY_NATIVE'
+        import json, os, selectors, signal, subprocess, time
+        from pathlib import Path
+        output = Path('NativeObservation'); output.mkdir(exist_ok=True)
+        log = output / 'native-system.log'
+        started = time.monotonic()
+        predicate = 'process == "Hashiya" OR subsystem BEGINSWITH "com.apple.dt.xctest" OR subsystem BEGINSWITH "com.apple.pencilkit" OR process == "runningboardd"'
+        status = 'collected'
+        process = None
+        try:
+            with log.open('wb') as stream:
+                process = subprocess.Popen(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log', 'show',
+                    '--last', '30m', '--style', 'compact', '--info', '--debug', '--predicate', predicate],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+                # Only this Python process owns the output file. Even a simulator child
+                # outliving xcrun cannot append after pipe close and metadata capture.
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ)
+                    while True:
+                        remaining = 90 - (time.monotonic() - started)
+                        if remaining <= 0:
+                            status = 'timed-out-partial'; break
+                        events = selector.select(min(0.5, remaining))
+                        if not events: continue
+                        chunk = os.read(process.stdout.fileno(), 65536)
+                        if not chunk: break
+                        stream.write(chunk)
+        except Exception as error:
+            status = 'collection-error'
+            (output / 'collection-error.txt').write_text(type(error).__name__ + ': ' + str(error) + '\n')
+        finally:
+            if process is not None:
+                try:
+                    if status == 'collected':
+                        try: process.wait(timeout=5)
+                        except subprocess.TimeoutExpired: status = 'pipe-eof-process-exit-timeout'
+                    try: os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
+                    process.wait(timeout=5)
+                    if status == 'collected' and process.returncode:
+                        status = 'exit-' + str(process.returncode)
+                except Exception as error:
+                    status = 'cleanup-error'
+                    (output / 'cleanup-error.txt').write_text(type(error).__name__ + ': ' + str(error) + '\n')
+                finally:
+                    process.stdout.close()
+            # The with-block has closed the sole file writer before stat().
+            (output / 'collection.json').write_text(json.dumps({'source': os.environ['GITHUB_SHA'],
+                'status': status, 'elapsed_seconds': time.monotonic() - started,
+                'collection_timeout_seconds': 90, 'lookback_minutes': 30,
+                'retained_bytes': log.stat().st_size if log.exists() else 0, 'post_collection_truncated': False,
+                'writer_closed_before_stat': True,
+                'note': 'All streamed bytes retained. Timeout/error means incomplete evidence; absence is not proof of no native failure.'}, indent=2) + '\n')
+        PY_NATIVE
+    - name: Retain scoped comparison evidence only
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: scoped-margin-ax-iPad
+        path: |-
+          scoped-comparison.log
+          scope-structure.log
+          comparison-timing.json
+          NativeResults/
+          ScopedComparisonAttachments/
+          ScopeStructureAttachments/
+          NativeObservation/
+        retention-days: 7

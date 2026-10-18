@@ -1,4 +1,4 @@
-name: Tayya gesture and picker evidence
+name: Tayya deliberate edge qualification
 on:
   push:
     branches: ['diag/tayya-rescue-font']
@@ -11,13 +11,15 @@ jobs:
   fonts:
     name: evidence (${{ matrix.family }})
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           - family: iPhone
-            cases: -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening
+            ink_case: testIndividualInkTargetsAtAccessibilityTextSize
+          - family: iPad
+            ink_case: testIndividualInkTargetsInDocumentAndCompactSplit
     steps:
       - uses: actions/checkout@v4
       - name: Select current app toolchain
@@ -45,29 +47,34 @@ jobs:
           PY
       - name: Mark native diagnostic session
         run: touch "$RUNNER_TEMP/tayya-native-start"
-      - name: Qualify original ink and navigation regressions
+      - name: Repeat deliberate native edge input with original assertions
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test ${{ matrix.cases }} -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-iterations 3 -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath EdgeResults.xcresult CODE_SIGNING_ALLOWED=NO | tee edge-build.log
+      - name: Capture related original ink failure
+        if: always()
+        run: |
+          set -o pipefail
+          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/${{ matrix.ink_case }} -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Export exact generated guide and native result
         if: always()
         run: |
           mkdir -p Evidence
-          for bundle in UnitResults TestResults; do
+          for bundle in EdgeResults TestResults; do
             if [ -d "$bundle.xcresult" ]; then
               xcrun xcresulttool get test-results summary --path "$bundle.xcresult" > "Evidence/$bundle-summary.json"
               xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "Evidence/$bundle-attachments"
             fi
           done
           cp *build.log Evidence/
-          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --predicate 'eventMessage CONTAINS "TayyaRescue" OR eventMessage CONTAINS "DocumentNavigationBoundary" OR process CONTAINS[c] "ColorPicker"' > Evidence/gesture-picker.log
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 30m --style compact --predicate 'eventMessage CONTAINS "TayyaRescue" OR eventMessage CONTAINS "DocumentNavigationBoundary" OR process CONTAINS[c] "ColorPicker"' > Evidence/gesture-picker.log
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rescue-gesture-picker-${{ matrix.family }}
+          name: rescue-deliberate-edge-${{ matrix.family }}
           path: Evidence/
           retention-days: 7

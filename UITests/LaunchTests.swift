@@ -1419,8 +1419,11 @@ final class LaunchTests: XCTestCase {
         XCTAssertLessThan(frame.width, frame.height, "Use the real portrait RTL leading edge")
         let leadingEdge = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.width - 1, dy: frame.height * 0.5))
+        // Express a deliberate completed Back swipe. The native transition
+        // can cancel the earlier partial drag after its edge recognizer begins.
+        // Keep the real library/ink/reopening assertions below unchanged.
         leadingEdge.press(forDuration: 0.05,
-            thenDragTo: leadingEdge.withOffset(CGVector(dx: -frame.width * 0.65, dy: 0)))
+            thenDragTo: leadingEdge.withOffset(CGVector(dx: -frame.width * 0.85, dy: 0)))
         XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 10), "Native leading-edge Back must remain usable")
         visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
         XCTAssertTrue(pdf.waitForExistence(timeout: 15), "The workspace must reopen after edge navigation")

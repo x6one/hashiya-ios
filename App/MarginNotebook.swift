@@ -168,6 +168,7 @@ struct InkToolbar: View {
                 }
             }.buttonStyle(.plain).padding(.horizontal, 4)
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
+                .background(InkRailGesturePriority().allowsHitTesting(false))
         }
         // This is a spatial tool rail, not prose. Keep its scroll axis and
         // bounds left-to-right even inside the Arabic/right-to-left workspace:
@@ -189,6 +190,46 @@ struct InkToolbar: View {
     private func inkTarget(_ title: String, symbol: String) -> some View {
         Label(title, systemImage: symbol).labelStyle(.iconOnly)
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+    }
+}
+// iOS 26 can begin navigation's content-pop gesture anywhere in an RTL
+// workspace. A horizontal pan on this spatial LTR rail must scroll its tools
+// before navigation can claim that same touch. The screen-edge Back gesture
+// and pans outside this scroll view keep their native behavior.
+private struct InkRailGesturePriority: UIViewRepresentable {
+    func makeUIView(context: Context) -> RailAnchor { RailAnchor() }
+    func updateUIView(_ view: RailAnchor, context: Context) { view.connect() }
+
+    final class RailAnchor: UIView {
+        private weak var connectedScroll: UIGestureRecognizer?
+        private weak var connectedPop: UIGestureRecognizer?
+
+        override func didMoveToWindow() { super.didMoveToWindow(); connect() }
+        override func layoutSubviews() { super.layoutSubviews(); connect() }
+
+        func connect() {
+            guard #available(iOS 26.0, *), window != nil else { return }
+            var ancestor = superview
+            while let view = ancestor, !(view is UIScrollView) { ancestor = view.superview }
+            guard let scroll = ancestor as? UIScrollView else { return }
+            var responder: UIResponder? = next
+            while let current = responder {
+                if let controller = current as? UIViewController,
+                   let pop = controller.navigationController?.interactiveContentPopGestureRecognizer {
+                    let pan = scroll.panGestureRecognizer
+                    if connectedScroll !== pan || connectedPop !== pop {
+                        pop.require(toFail: pan)
+                        connectedScroll = pan
+                        connectedPop = pop
+#if DEBUG
+                        NSLog("InkRailPriority connected native scroll pan before content-pop")
+#endif
+                    }
+                    return
+                }
+                responder = current.next
+            }
+        }
     }
 }
 private struct NativeInkColorPicker: UIViewControllerRepresentable {

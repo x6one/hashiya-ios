@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked_current_phone_toolbar_navigation_and_ipad_observation_failures",
+  "status": "pending_native_rail_gesture_priority_validation",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -857,5 +857,15 @@
   "native_toolbar_pan_experiment": {
     "status": "unpublished f875 prototype superseded; not applied to current3e",
     "minimum_60pt_pan_published": false
+  },
+  "rail_navigation_candidate": {
+    "based_on": "3e56636c1483d0fee0bbd912b2cf148bfeb17f50 native red original Accessibility ink test",
+    "hypothesis": "iOS26 RTL full-content navigation pan competes with LTR tool rail",
+    "change": "public content-pop recognizer requires actual ancestor scroll pan to fail",
+    "availability": "iOS26+; no changes below26",
+    "native_validation": "pending",
+    "test_changes": false,
+    "functional_deadlines_changed": false,
+    "accepted_ipa": false
   }
 }

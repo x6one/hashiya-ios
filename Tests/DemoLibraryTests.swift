@@ -44,7 +44,7 @@ final class DemoLibraryTests: XCTestCase {
         for index in 0..<pdf.pageCount {
             let page = try XCTUnwrap(pdf.page(at: index)?.pageRef)
             var resources: CGPDFDictionaryRef?
-            XCTAssertTrue(CGPDFDictionaryGetDictionary(page.dictionary, "Resources", &resources))
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(page.dictionary), "Resources", &resources))
             var fonts: CGPDFDictionaryRef?
             XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(resources), "Font", &fonts))
             CGPDFDictionaryApplyFunction(try XCTUnwrap(fonts), { _, object, context in

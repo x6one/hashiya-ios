@@ -10,7 +10,18 @@ concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  tools:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify fixture contracts and Python syntax
+        run: |
+          python3 -m unittest discover -s Tools -p 'test_*.py'
+          python3 -m compileall -q Tools
   test:
+    needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.
     # Forks and other internal branches still require PR verification.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
@@ -47,16 +58,21 @@ jobs:
           PY
       - name: Mark native diagnostic session
         run: touch "$RUNNER_TEMP/tayya-native-start"
-      - name: Build and test
+      - name: Verify original ink and navigation regressions
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          # Every unique unit/UI case runs in the complete scheme exactly once.
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
+      - name: Verify complete unit and UI suites
+        run: |
+          set -o pipefail
+          # All unique unit/UI cases run in the complete scheme, after regressions pass.
+          # Native document export occurs only in this complete suite.
           # Keep ordinary cases at240s; only the two multi-surface journeys
           # explicitly request360s. Their functional5/10s waiters are unchanged.
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -derivedDataPath NativeBuild -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Verify externally exported fixture bytes
         if: always()
         run: python3 Tools/seed_files_fixtures.py --verify
@@ -84,7 +100,7 @@ jobs:
           python3 - <<'PY'
           import os, subprocess
           from pathlib import Path
-          apps = list(Path.home().glob('Library/Developer/Xcode/DerivedData/Hashiya-*/Build/Products/Debug-iphonesimulator/Hashiya.app'))
+          apps = list(Path('NativeBuild/Build/Products/Debug-iphonesimulator').glob('Hashiya.app'))
           if len(apps) != 1:
               raise SystemExit('Expected exactly one app built by this preflight job')
           subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
@@ -168,17 +184,24 @@ jobs:
       - name: Export UI screenshots
         if: always()
         run: |
-          if [ -d TestResults.xcresult ]; then
-            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Screenshots
-          fi
+          for bundle in RegressionResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              output=Screenshots
+              if [ "$bundle" = RegressionResults ]; then output=RegressionScreenshots; fi
+              xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "$output"
+            fi
+          done
       - name: Retain complete native test result
         if: always()
         run: |
-          if [ -d TestResults.xcresult ]; then
-            mkdir -p NativeResults
-            ditto -c -k --keepParent TestResults.xcresult NativeResults/TestResults.xcresult.zip
-            shasum -a 256 NativeResults/TestResults.xcresult.zip > NativeResults/TestResults.xcresult.sha256
-          fi
+          mkdir -p NativeResults
+          for bundle in RegressionResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              xcrun xcresulttool get test-results summary --path "$bundle.xcresult" > "NativeResults/$bundle-summary.json"
+              ditto -c -k --keepParent "$bundle.xcresult" "NativeResults/$bundle.xcresult.zip"
+              shasum -a 256 "NativeResults/$bundle.xcresult.zip" > "NativeResults/$bundle.xcresult.sha256"
+            fi
+          done
       - name: Retain simulator document provider diagnostics
         if: failure()
         run: |
@@ -230,6 +253,8 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
+            regression-build.log
+            RegressionScreenshots/
             NativeResults/
             file-provider.log
             NativeFailure/

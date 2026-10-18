@@ -23,7 +23,26 @@
   "visual_journeys": "light130.084s and dark126.732s passed",
   "artifact": 12137159248,
   "artifact_digest": "4dd18eec8918e3b30594be81e3007a4df8b4223f41c1864c35bee7f29503e807",
-  "digest_provenance": "GitHub metadata; not yet independently downloaded/hashed",
+  "digest_provenance": "Independently downloaded and SHA256 verified 2026-10-18; matches GitHub metadata",
   "candidate_integration": "not adopted; five unused-object substitutions remain on diagnostic branch only",
-  "acceptance": "not full preflight; no IPA acceptance or general performance-fix claim"
+  "acceptance": "not full preflight; no IPA acceptance or general performance-fix claim",
+  "focused_native_analysis": "Verification/Diagnostics/ax-focus-native-analysis.txt",
+  "focused_atomic_poll": {
+    "start_seconds": 1.0412712917,
+    "end_seconds": 5.331693,
+    "result": "Interrupted by waiter; no completed joint-state snapshot before deadline"
+  },
+  "native_hierarchy_capture": {
+    "start_utc": "2026-10-18T12:54:13.324Z",
+    "end_utc": "2026-10-18T12:54:18.411Z",
+    "duration_seconds": 5.087,
+    "native_canvas_enumerated_utc": "2026-10-18T12:54:13.318Z",
+    "all_three_ax_conditions_before_deadline": "unproven"
+  },
+  "native_collection_limits": {
+    "status": "timed-out-partial",
+    "metadata_bytes": 641534384,
+    "actual_zip_member_bytes": 907648502,
+    "size_stability": "Metadata stat and artifact capture disagree; do not assert completeness"
+  }
 }

@@ -1,0 +1,73 @@
+AX Focused mount observation — diagnostic25e15f7
+Read-only analysis; no application/test changes. 2026-10-18 UTC.
+
+Artifact identity
+Run39127831209 / job117676589017 / artifact12137159248.
+Local ZIP: /tmp/tayya-ax-observation-ipad.zip
+Independently computed SHA256: 4dd18eec8918e3b30594be81e3007a4df8b4223f41c1864c35bee7f29503e807 (matches expected).
+Source:25e15f7edd7b8251bfc4e15c89d0cefcd3b66a3b, fixed product baselinef87bbd3.
+
+Exact failure evidence
+Test:testMarginHandwritingMountsAfterTextFocus, app PID49929.
+AXObservationAttachments/6CA36003-A168-4852-B029-8494BAE17402.txt:
+ interaction=Focused; result=2; mode=handwriting; canvas=true; text=false.
+ Actual canvas0x10364d600: window=true, superview=true,457x888 bounds, hidden=false,alpha1,responder=true.
+ Sole atomic poll:start1.0412712917; end5.331693; snapshotError=Interrupted by waiter.
+ No completed atomic poll records either false or true for all3conditions.
+ Native lifecycle ring records make/mount/layout, but its events have no timestamps.
+
+Build.log relative timeline
+Test starts2026-10-18 12:53:33.542UTC.
+Handwriting action requestedt34.62; synthesizedt38.04; idle waitt38.39.
+Predicate app lookup t40.21; after interruption mode lookup t44.50;
+separate diagnostic canvas checkt48.26,text checkt51.07.
+Timeout assertion line1302 follows; cleanup starts t60.16; casefailed62.392s.
+There is no Capturing element debug description activity in this case.
+
+NativeObservation/native-system.log timeline (samePID)
+Line2802667-68:12:54:13.170 app root snapshot requested (empty query).
+Line2802754:13.285 app-side snapshot captured in0.10s.
+Line2802778:13.318 AX enumerates marginInkCanvas.
+Line2802786:13.320 app replies to root query.
+Line2802793:13.324 testmanagerd begins full hierarchy capture, including labels/values/frame/identity attributes.
+Line2802818:13.402 first contemporaneous private .SFArabic CoreText warning observed.
+There are7751 such warnings fromPID49929 across seconds13..17; this demonstrates concurrent font work, not its requesting call stack.
+Line2809449:17.469 subsequent diagnostic segmented-control query begins.
+Line2811277:18.411 testmanagerd finally reports hierarchy snapshot obtained (5.087s after13.324).
+App-side later segmented-control query reports2.69s snapshot duration at21.073.
+
+Interpretation
+Object:nil did not eliminate this interrupted whole-app snapshot failure.
+Unlike the earlier3e false-count case, this log does not show unsolicited object-debugDescription collection before timeout.
+The explicit app.snapshot pipeline itself requests a whole hierarchy with labels/values and remains in progress beyond the waiter interruption.
+The cheap initial app-side0.10s snapshot is not the completed hierarchy materialization; do not quote0.10s as total observation cost.
+No evidence here proves a persistently missing native canvas or a failed remount.
+Native AX sees the canvas during the first snapshot. Later individual reads establish modehandwriting/canvastrue/textfalse.
+It remains unproven that exactlyone modecontrol with handwriting value,canvas>0,text0 held simultaneously in a completed AX snapshot before5seconds.
+No stack trace proves the .SFArabic warnings originate specifically in PDF label extraction; whole-app capture includesPDF, so excluding unrelatedPDF work is a hypothesis to measure.
+
+Actual visual evidence
+Recording:AXObservationAttachments/619323FE-C91A-42E5-B6DF-F3438A8A3B1D.mp4.
+Extracted real video frame atPTS39.486667s (/tmp/ax-focus-frame-40.png) shows selected handwriting mode, visible handwritten stroke and no visible text editor.
+This is after synthesizedmode tap but before timeout diagnostics; it supports a visually completed transition.
+VFR recording has no newer frame before43s:the43s extraction selects thatsame39.486667 frame; it is not a second observation.
+Visual absence of text editor does not prove itsAXabsence or mode-control uniqueness.
+
+Narrow-container feasibility (design only)
+A unique marginPane accessibility container using public children:.contain outside the mode-keyed host could let the same5-second predicate snapshot just the active pane.
+Keep one snapshot, exhaustive traversal, exactone mode+handwriting value,canvas>0,text0; no canvas-only fallback or longer timeout.
+Resolve container uniquely, not firstMatch. Verify actualUIKitcanvas/mode/text descendants survive containment.
+Measure actual captured rootUID, duration,nodecounts and font-work change; XCTest might still perform broader ancestor/global capture, so improvement is not guaranteed.
+This is an isolated observation experiment, not a product remount fix or permission to omit any condition.
+Current source's original32cases and all3mount conditions must remain intact.
+
+Collection limits
+Collection metadata:timed-out-partial,90.098s,20-minute lookback,no postcollection truncation.
+Metadata retained_bytes641534384 differs from actual ZIP member907648502 bytes; size was not stable between metadata and artifact capture.
+Do not treat the native log as complete or metadata bytecount as matching final artifact bytes.
+Relevant requested timestamps are present; no claim about uncollected later events.
+
+Conclusion
+Observed failure is an interrupted explicit whole-app hierarchy capture with native canvas already observable and later jointstate satisfied.
+Nilunusedobject alone is insufficient for this case. Scoped atomicpane snapshot remains testable while retaining every condition, but no native comparison has validated it.
+No performance-fixed, fullpreflight or release-readiness claim.

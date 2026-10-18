@@ -11,7 +11,7 @@ concurrency:
 jobs:
   probe-iPhone:
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Select app toolchain and generate project
@@ -31,10 +31,15 @@ jobs:
           subprocess.run(['xcrun','simctl','bootstatus',simulator,'-b'],check=True)
           with open(os.environ['GITHUB_ENV'],'a') as out:out.write('SIMULATOR_ID='+simulator+'\n')
           PY
-      - name: Reproduce the unchanged failing original ink case
+      - name: Seed the same native document-provider fixtures as full preflight
+        run: python3 Tools/seed_files_fixtures.py
+      - name: Reproduce the unchanged original ink case after its full-suite prefix
         run: |
           set -o pipefail
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath Probe.xcresult CODE_SIGNING_ALLOWED=NO | tee probe-build.log
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -only-testing:HashiyaTests -only-testing:HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF -only-testing:HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint -only-testing:HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF -only-testing:HashiyaUITests/LaunchTests/testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin -only-testing:HashiyaUITests/LaunchTests/testColdExternalPDFIntakeSurvivesFirstLaunchEntrance -only-testing:HashiyaUITests/LaunchTests/testColdExternalPDFIntakeWithReduceMotion -only-testing:HashiyaUITests/LaunchTests/testCreateNotebookFromLibrary -only-testing:HashiyaUITests/LaunchTests/testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar -only-testing:HashiyaUITests/LaunchTests/testDrawingToolDoesNotTurnPagesInDocumentOrSplit -only-testing:HashiyaUITests/LaunchTests/testExternalPDFIntakeDismissesAlreadyVisibleWelcome -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath Probe.xcresult CODE_SIGNING_ALLOWED=NO | tee probe-build.log
+      - name: Verify external fixture bytes after the unchanged import cases
+        if: always()
+        run: python3 Tools/seed_files_fixtures.py --verify
       - name: Collect native route evidence regardless of test result
         if: always()
         run: |

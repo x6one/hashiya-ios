@@ -7,5 +7,19 @@
   "target": "HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
   "full_development_workflow": "unchanged on work/tayya-calm-workspace",
   "ipa_or_apple_jobs": false,
-  "result": "pending"
+  "result": "isolated target passed; full-suite prefix comparison pending",
+  "isolated_result": {
+    "commit": "1e8a448be41865c22bbcc4812cc757df8c1b5b18",
+    "run": 39126228020,
+    "job": 117671823660,
+    "status": "success",
+    "original_case_seconds": 242.439,
+    "artifact": 12136352405,
+    "sha256": "c252283d07785e7981eb50b2c03d8078f62c9b524f1ee63dd5e97d3245b7257d",
+    "independently_verified": true,
+    "native_log": "collected",
+    "collected_crash_reports": [],
+    "finding": "Same58pt Fit Width pan begins/changes/ends native scroll; navigation stack stays2. Both observed public pop recognizers emit no callback. Isolated success does not identify failing f87 recognizer or prove a repair."
+  },
+  "next_comparison": "Same instrumented app and byte-identical original UI tests; all67 units and the10 original preceding UI cases before the original Accessibility ink case. Seed/verify existing external fixtures. No Maestro/IPA/Apple jobs; not complete preflight."
 }

@@ -61,6 +61,13 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             print("RESCUE_NATIVE_BEGIN")
             print("\n".join(selected[-120:]))
             print("RESCUE_NATIVE_END")
+            start = os.environ.get("NATIVE_WINDOW_START", "")
+            end = os.environ.get("NATIVE_WINDOW_END", "")
+            if start and end:
+                window = [line for line in lines if start <= line[:23] <= end]
+                print("RESCUE_NATIVE_WINDOW_BEGIN")
+                print("\n".join(window[:400])[:80000])
+                print("RESCUE_NATIVE_WINDOW_END")
             color = [line for line in lines if "ColorPicker" in line]
             print("RESCUE_COLOR_SERVICE_BEGIN")
             print("\n".join(color[:100] + color[-40:]))

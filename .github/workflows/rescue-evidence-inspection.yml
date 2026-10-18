@@ -29,4 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
+          PREVIEW_PATH: TestResults-attachments/CE1012A6-60FB-445E-8144-F70124D9327A.png
+          NATIVE_WINDOW_START: "2026-10-18 23:42:43.000"
+          NATIVE_WINDOW_END: "2026-10-18 23:43:06.000"
         run: python3 Tools/inspect_rescue_artifact.py

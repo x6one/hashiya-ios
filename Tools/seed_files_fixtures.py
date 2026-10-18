@@ -24,11 +24,21 @@ folder = Path(match.group(1).strip()) / "File Provider Storage"
 if not verify:
     print("Files provider started; XCTest must export fixtures to On My device through native UI", flush=True)
 else:
+    app_data = subprocess.check_output(
+        ["xcrun", "simctl", "get_app_container", simulator, "com.ahmadalawi.hashiya", "data"], text=True).strip()
+    if not app_data or not Path(app_data).is_absolute():
+        raise RuntimeError("Installed app data container path was not returned")
+    documents = Path(app_data) / "Documents"
     for name, target in [("english.pdf", "Picker-fixture.pdf"), ("office-demo.pptx", "Picker-office.pptx")]:
         sources = list(Path("App").rglob(name))
         if len(sources) != 1:
             raise RuntimeError(f"Expected one fixture: {name}")
-        destination = folder / target
+        # Native Save may choose the provider root or Tayya's visible Documents
+        # folder. Inspect only these two exact filenames, never UUID/hash matches.
+        destinations = [path for path in (folder / target, documents / target) if path.is_file()]
+        if len(destinations) != 1:
+            raise RuntimeError(f"Expected exactly one native export: {target}; found {len(destinations)}")
+        destination = destinations[0]
         if hashlib.sha256(sources[0].read_bytes()).digest() != hashlib.sha256(destination.read_bytes()).digest():
             raise RuntimeError(f"Exported fixture bytes differ: {name}")
         print(f"Files-exported fixture verified: {target} ({destination.stat().st_size} bytes)", flush=True)

@@ -3,6 +3,19 @@ import PencilKit
 
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
+    // Native UI diagnostics are available only to the dedicated regression test.
+    override var accessibilityLabel: String? {
+        get {
+            let label = super.accessibilityLabel ?? ""
+            guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return label }
+            func describe(_ view: UIView, depth: Int) -> String {
+                let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden)"
+                return own + (depth > 0 ? view.subviews.map { describe($0, depth: depth - 1) }.joined(separator: " | ") : "")
+            }
+            return label + "; zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
+        }
+        set { super.accessibilityLabel = newValue }
+    }
     var sheetSize = CGSize(width: 650, height: 900)
     var followsFit = true
     private var fitsWidth = true
@@ -26,8 +39,17 @@ final class MarginCanvas: PKCanvasView {
         if !updatingViewport, pinchGestureRecognizer?.state == .began { followsFit = false }
     }
     override func didMoveToWindow() {
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("didMoveToWindow enter", canvas: self)
+        #endif
         super.didMoveToWindow()
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("didMoveToWindow before responder", canvas: self)
+        #endif
         if window != nil { becomeFirstResponder() }
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("didMoveToWindow return", canvas: self)
+        #endif
     }
     override func layoutSubviews() {
         let changed = bounds.size != previousBounds
@@ -36,6 +58,9 @@ final class MarginCanvas: PKCanvasView {
                              y: (contentOffset.y + oldSize.height / 2) / max(zoomScale, 0.01))
         previousBounds = bounds.size
         super.layoutSubviews()
+        #if DEBUG
+        if changed { MarginRenderDiagnostics.recordCanvas("layout bounds changed old=\(oldSize)", canvas: self) }
+        #endif
         guard changed, bounds.width > 0, bounds.height > 0 else { return }
         if followsFit { fitContent() }
         else {
@@ -61,7 +86,9 @@ final class MarginCanvas: PKCanvasView {
         zoomScale = scale
         contentSize = CGSize(width: sheetSize.width * scale, height: sheetSize.height * scale)
         let horizontalGap = max(0, (bounds.width - sheet.width * scale) / 2)
-        let verticalGap = max(0, (bounds.height - sheet.height * scale) / 2)
+        // Writing starts at the top of a width-fit pane. Centering a short
+        // sheet in a tall split leaves an invisible, non-drawable gap above it.
+        let verticalGap = fitsWidth ? 0 : max(0, (bounds.height - sheet.height * scale) / 2)
         contentInset = UIEdgeInsets(top: max(0, -sheet.minY * scale) + verticalGap,
                                    left: max(0, -sheet.minX * scale) + horizontalGap,
                                    bottom: verticalGap, right: horizontalGap)
@@ -106,24 +133,130 @@ struct InkToolbar: View {
     @Binding var brush: InkBrush
     @Binding var color: Color
     @Binding var width: Double
+    @State private var showingColorPicker = false
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     var allowsWidthFit = false
     let action: (String) -> Void
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
+            HStack(spacing: 6) {
                 Menu { ForEach(InkBrush.allCases) { item in Button(item.rawValue, systemImage: item.symbol) { brush = item } } }
-                label: { Label(brush.rawValue, systemImage: brush.symbol) }
-                ColorPicker("لون الحبر", selection: $color, supportsOpacity: false).labelsHidden().accessibilityLabel("لون الحبر")
+                label: {
+                    Label(brush.rawValue, systemImage: brush.symbol)
+                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.accessibilityIdentifier("inkBrush")
+                Button { showingColorPicker = true } label: {
+                    Circle().fill(color)
+                        .overlay(Circle().strokeBorder(TayyaTheme.detail, lineWidth: 1))
+                        .frame(width: 28, height: 28)
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                }.accessibilityLabel("لون الحبر").accessibilityValue(currentColorValue).accessibilityIdentifier("inkColor")
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
-                label: { Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle()) }.accessibilityLabel("سماكة القلم")
-                Button("تراجع", systemImage: "arrow.uturn.backward") { action("undo") }.labelStyle(.iconOnly)
-                Button("إعادة", systemImage: "arrow.uturn.forward") { action("redo") }.labelStyle(.iconOnly)
-                Button("إظهار الورقة كاملة", systemImage: "arrow.up.left.and.arrow.down.right") { action("fit") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMargin")
+                label: {
+                    Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle())
+                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.accessibilityLabel("سماكة القلم").accessibilityValue("\(Int(width))").accessibilityIdentifier("inkWidth")
+                Button { action("undo") } label: { inkTarget("تراجع", symbol: "arrow.uturn.backward") }
+                    .accessibilityIdentifier("inkUndo")
+                Button { action("redo") } label: { inkTarget("إعادة", symbol: "arrow.uturn.forward") }
+                    .accessibilityIdentifier("inkRedo")
+                Button { action("fit") } label: { inkTarget("إظهار الورقة كاملة", symbol: "arrow.up.left.and.arrow.down.right") }
+                    .accessibilityIdentifier("fitMargin")
                 if allowsWidthFit {
-                    Button("عرض مناسب للكتابة", systemImage: "arrow.left.and.right") { action("fitWidth") }.labelStyle(.iconOnly).accessibilityIdentifier("fitMarginWidth")
+                    Button { action("fitWidth") } label: { inkTarget("عرض مناسب للكتابة", symbol: "arrow.left.and.right") }
+                        .accessibilityIdentifier("fitMarginWidth")
                 }
-            }.padding(.horizontal, 12).padding(.vertical, 8)
-        }.background(TayyaTheme.surface)
+            }.buttonStyle(.plain).padding(.horizontal, 4)
+                .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
+        }
+        // This is a spatial tool rail, not prose. Keep its scroll axis and
+        // bounds left-to-right even inside the Arabic/right-to-left workspace:
+        // native hit targets must remain reachable on compact and split panes.
+        // Arabic labels keep their own glyph shaping and accessibility names.
+        .environment(\.layoutDirection, .leftToRight)
+        .background(TayyaTheme.surface)
+        .accessibilityIdentifier("inkToolbar")
+        .sheet(isPresented: $showingColorPicker) {
+            NativeInkColorPicker(color: $color, isPresented: $showingColorPicker)
+                .presentationDetents([.large])
+        }
+    }
+    private var currentColorValue: String {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        guard UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return "" }
+        return String(format: "rgba:%.4f,%.4f,%.4f,%.4f", Double(red), Double(green), Double(blue), Double(alpha))
+    }
+    private func inkTarget(_ title: String, symbol: String) -> some View {
+        Label(title, systemImage: symbol).labelStyle(.iconOnly)
+            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+    }
+}
+private struct NativeInkColorPicker: UIViewControllerRepresentable {
+    @Binding var color: Color
+    @Binding var isPresented: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(color: $color, isPresented: $isPresented)
+    }
+
+    func makeUIViewController(context: Context) -> UIColorPickerViewController {
+        // A real sheet owns the native picker. Do not present a second modal
+        // from a transparent view controller inside the scrolling toolbar.
+        let picker = UIColorPickerViewController()
+        picker.supportsAlpha = false
+        picker.selectedColor = UIColor(color)
+        picker.delegate = context.coordinator
+        picker.view.accessibilityIdentifier = "nativeInkColorPicker"
+        picker.view.accessibilityViewIsModal = true
+
+        let done = UIButton(type: .system)
+        done.setTitle("تم", for: .normal)
+        done.titleLabel?.font = .preferredFont(forTextStyle: .headline)
+        done.titleLabel?.adjustsFontForContentSizeCategory = true
+        done.accessibilityIdentifier = "closeInkColorPicker"
+        done.addTarget(context.coordinator, action: #selector(Coordinator.closePicker), for: .touchUpInside)
+        done.translatesAutoresizingMaskIntoConstraints = false
+        picker.view.addSubview(done)
+        let safe = picker.view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            done.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            done.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            done.leadingAnchor.constraint(greaterThanOrEqualTo: safe.leadingAnchor, constant: 16),
+            done.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            done.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+        ])
+        return picker
+    }
+
+    func updateUIViewController(_ picker: UIColorPickerViewController, context: Context) {
+        context.coordinator.color = $color
+        context.coordinator.isPresented = $isPresented
+        let selected = UIColor(color)
+        if !picker.selectedColor.isEqual(selected) {
+            picker.selectedColor = selected
+        }
+    }
+
+    final class Coordinator: NSObject, UIColorPickerViewControllerDelegate {
+        var color: Binding<Color>
+        var isPresented: Binding<Bool>
+        init(color: Binding<Color>, isPresented: Binding<Bool>) {
+            self.color = color
+            self.isPresented = isPresented
+        }
+
+        func colorPickerViewController(_ viewController: UIColorPickerViewController,
+                                       didSelect selectedColor: UIColor, continuously: Bool) {
+            color.wrappedValue = Color(uiColor: selectedColor)
+        }
+
+        func colorPickerViewControllerDidFinish(_ viewController: UIColorPickerViewController) {
+            isPresented.wrappedValue = false
+        }
+
+        @objc func closePicker() {
+            isPresented.wrappedValue = false
+        }
     }
 }
 struct MarginNotebook: UIViewRepresentable {
@@ -137,7 +270,13 @@ struct MarginNotebook: UIViewRepresentable {
     let failed: (String) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed) }
     func makeUIView(context: Context) -> MarginCanvas {
+        #if DEBUG
+        MarginRenderDiagnostics.record("makeUIView enter page=\(page.id); control=\(ObjectIdentifier(control))")
+        #endif
         let canvas = MarginCanvas()
+        // PencilKit owns clipping of its zoomed tiles at the viewport boundary.
+        // An additional SwiftUI mask must not wrap the native drawing surface.
+        canvas.clipsToBounds = true
         canvas.backgroundColor = PaperColor.cream.uiColor
         canvas.drawingPolicy = .anyInput
         canvas.contentInsetAdjustmentBehavior = .never
@@ -149,13 +288,29 @@ struct MarginNotebook: UIViewRepresentable {
         canvas.accessibilityIdentifier = "marginInkCanvas"
         canvas.accessibilityLabel = "ورقة الحاشية بخط اليد"
         configure(canvas, context: context)
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("makeUIView return page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
+        #endif
         return canvas
     }
+    #if DEBUG
+    func updateUIView(_ canvas: MarginCanvas, context: Context) {
+        MarginRenderDiagnostics.recordCanvas("updateUIView enter page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
+        configure(canvas, context: context)
+        MarginRenderDiagnostics.recordCanvas("updateUIView return page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
+    }
+    static func dismantleUIView(_ canvas: MarginCanvas, coordinator: Coordinator) {
+        MarginRenderDiagnostics.recordCanvas("dismantleUIView page=\(coordinator.pageID?.uuidString ?? "missing")", canvas: canvas)
+    }
+    #else
     func updateUIView(_ canvas: MarginCanvas, context: Context) { configure(canvas, context: context) }
+    #endif
     private func configure(_ canvas: MarginCanvas, context: Context) {
         let coordinator = context.coordinator
         coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas
-        if coordinator.pageID != page.id || coordinator.lastInk != page.ink {
+        // Keep PencilKit's live strokes authoritative until the active gesture ends.
+        // A SwiftUI re-render must not reload stale bytes over an in-flight stroke.
+        if coordinator.pageID != page.id || (!coordinator.isStroking && coordinator.lastInk != page.ink) {
             coordinator.loading = true
             do {
                 let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
@@ -172,24 +327,62 @@ struct MarginNotebook: UIViewRepresentable {
         if canvas.sheetSize != size {
             canvas.setSheetSize(size)
         }
-        canvas.drawingGestureRecognizer.isEnabled = drawing
-        canvas.panGestureRecognizer.minimumNumberOfTouches = drawing ? 2 : 1
-        canvas.tool = brush.tool(color: UIColor(color), width: width)
+        if canvas.drawingGestureRecognizer.isEnabled != drawing {
+            canvas.drawingGestureRecognizer.isEnabled = drawing
+        }
+        let panTouches = drawing ? 2 : 1
+        if canvas.panGestureRecognizer.minimumNumberOfTouches != panTouches {
+            canvas.panGestureRecognizer.minimumNumberOfTouches = panTouches
+        }
+        coordinator.applyTool(to: canvas, brush: brush, color: color, width: width)
     }
     @MainActor final class Coordinator: NSObject, PKCanvasViewDelegate {
         var pageID: UUID?
         var lastInk: Data?
         var loading = false
+        var isStroking = false
+        private var hasUncommittedStroke = false
+        private var appliedBrush: InkBrush?
+        private var appliedColor: Color?
+        private var appliedWidth: Double?
         var saved: (PKDrawing) -> Void
         var failed: (String) -> Void
         init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void) { self.saved = saved; self.failed = failed }
+        func applyTool(to canvas: PKCanvasView, brush: InkBrush, color: Color, width: Double) {
+            // Saving a stroke publishes a new page and updates this representable.
+            // Do not replace PencilKit's tool while that same stroke is committing.
+            guard appliedBrush != brush || appliedColor != color || appliedWidth != width else { return }
+            canvas.tool = brush.tool(color: UIColor(color), width: width)
+            appliedBrush = brush; appliedColor = color; appliedWidth = width
+        }
+        private func persist(_ canvas: PKCanvasView) {
+            let data = canvas.drawing.dataRepresentation()
+            guard data != lastInk else { return }
+            lastInk = data
+            saved(canvas.drawing)
+        }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             guard !loading else { return }
-            lastInk = canvas.drawing.dataRepresentation()
-            canvas.accessibilityValue = String(canvas.drawing.strokes.count); saved(canvas.drawing)
+            canvas.accessibilityValue = String(canvas.drawing.strokes.count)
+            if isStroking {
+                // Do not serialize and synchronously write every PencilKit frame.
+                hasUncommittedStroke = true
+            } else {
+                persist(canvas) // Undo, redo, and programmatic drawing changes.
+            }
         }
-        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) { (canvasView as? MarginCanvas)?.usingTool = true }
-        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) { (canvasView as? MarginCanvas)?.finishedUsingTool() }
+        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            isStroking = true
+            (canvasView as? MarginCanvas)?.usingTool = true
+        }
+        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            isStroking = false
+            if hasUncommittedStroke {
+                hasUncommittedStroke = false
+                persist(canvasView)
+            }
+            (canvasView as? MarginCanvas)?.finishedUsingTool()
+        }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.beganUserZooming() }
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }

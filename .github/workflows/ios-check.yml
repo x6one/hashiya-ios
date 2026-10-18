@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test:
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -42,13 +42,21 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
           PY
+      - name: Mark native diagnostic session
+        run: touch "$RUNNER_TEMP/tayya-native-start"
       - name: Build and test
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          # Every unique unit/UI case runs in the complete scheme exactly once.
+          # Keep ordinary cases at240s; only the two multi-surface journeys
+          # explicitly request360s. Their functional5/10s waiters are unchanged.
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+      - name: Verify externally exported fixture bytes
+        if: always()
+        run: python3 Tools/seed_files_fixtures.py --verify
       - name: Set up Java for Maestro
         uses: actions/setup-java@v4
         with:
@@ -79,19 +87,139 @@ jobs:
           subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
           PY
           maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
-      - name: Verify externally exported fixture bytes
-        if: always()
-        run: python3 Tools/seed_files_fixtures.py --verify
+      - name: Capture actual first-launch entrance and Reduce Motion
+        run: |
+          python3 - <<'PY_CAPTURE'
+          import json, os, selectors, signal, subprocess, time
+          from pathlib import Path
+
+          simulator = os.environ['SIMULATOR_ID']
+          bundle = 'com.ahmadalawi.hashiya'
+          output = Path('EntranceCaptures')
+          output.mkdir(exist_ok=True)
+          report = {'commit': os.environ['GITHUB_SHA'], 'family': '${{ matrix.family }}',
+                    'simulator': simulator, 'captures': []}
+          try:
+              for name, motion in [('normal', '--test-motion-enabled'), ('reduce-motion', '--test-reduce-motion')]:
+                  # Maestro already finished. Each DEBUG launch creates its own
+                  # review root and resets flags without changing the animation.
+                  subprocess.run(['xcrun', 'simctl', 'terminate', simulator, bundle], capture_output=True, timeout=10)
+                  movie = output / (name + '.mov')
+                  entry = {'name': name, 'movie': str(movie), 'status': 'pending',
+                           'arguments': ['--test-review-entry', '--test-reset-entrance', motion]}
+                  report['captures'].append(entry)
+                  recorder = None
+                  with (output / (name + '.log')).open('wb') as log:
+                      try:
+                          recorder = subprocess.Popen(['xcrun', 'simctl', 'io', simulator,
+                              'recordVideo', '--codec', 'h264', str(movie)], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+                          # Wait for the actual recorder readiness message before
+                          # launch so its setup cannot miss the subsecond entrance.
+                          pending = b''
+                          with selectors.DefaultSelector() as selector:
+                              selector.register(recorder.stdout, selectors.EVENT_READ)
+                              deadline = time.monotonic() + 15
+                              while b'Recording started' not in pending:
+                                  if time.monotonic() >= deadline or recorder.poll() is not None:
+                                      raise RuntimeError('Simulator recorder did not report readiness')
+                                  for key, _ in selector.select(timeout=0.5):
+                                      chunk = os.read(key.fileobj.fileno(), 4096)
+                                      log.write(chunk); log.flush()
+                                      pending += chunk
+                                      if not chunk:
+                                          raise RuntimeError('Simulator recorder closed before readiness')
+                          launch = subprocess.run(['xcrun', 'simctl', 'launch', simulator, bundle]
+                              + entry['arguments'], capture_output=True, check=True, timeout=30)
+                          log.write(launch.stdout + launch.stderr); log.flush()
+                          # Record the real entrance and subsequent welcome; this
+                          # does not extend/freeze production or wait on XCTest idle.
+                          time.sleep(3)
+                          recorder.send_signal(signal.SIGINT)
+                          remaining, _ = recorder.communicate(timeout=20)
+                          log.write(remaining); log.flush()
+                          entry['recorder_exit'] = recorder.returncode
+                          if recorder.returncode != 0:
+                              raise RuntimeError('Simulator recorder failed to finalize the movie')
+                          if not movie.is_file() or movie.stat().st_size == 0:
+                              raise RuntimeError('Simulator recorder produced no movie bytes')
+                          entry.update(status='recorded-pending-visual-review', bytes=movie.stat().st_size)
+                          print('Actual simulator capture:', name, movie.stat().st_size, 'bytes; visual review pending')
+                      except Exception as error:
+                          entry.update(status='failed', error=str(error))
+                          log.write(('Capture failed: ' + str(error) + '\n').encode()); log.flush()
+                          raise
+                      finally:
+                          if recorder is not None and recorder.poll() is None:
+                              recorder.send_signal(signal.SIGINT)
+                              try:
+                                  remaining, _ = recorder.communicate(timeout=20)
+                              except subprocess.TimeoutExpired:
+                                  recorder.kill()
+                                  remaining, _ = recorder.communicate()
+                              log.write(remaining)
+                          subprocess.run(['xcrun', 'simctl', 'terminate', simulator, bundle], capture_output=True, timeout=10)
+          finally:
+              (output / 'capture-report.json').write_text(json.dumps(report, indent=2) + '\n')
+          PY_CAPTURE
       - name: Export UI screenshots
         if: always()
         run: |
           if [ -d TestResults.xcresult ]; then
             xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Screenshots
           fi
+      - name: Retain complete native test result
+        if: always()
+        run: |
+          if [ -d TestResults.xcresult ]; then
+            mkdir -p NativeResults
+            ditto -c -k --keepParent TestResults.xcresult NativeResults/TestResults.xcresult.zip
+            shasum -a 256 NativeResults/TestResults.xcresult.zip > NativeResults/TestResults.xcresult.sha256
+          fi
       - name: Retain simulator document provider diagnostics
         if: failure()
         run: |
           xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --info --debug --predicate 'process == "Hashiya" OR subsystem BEGINSWITH "com.apple.FileProvider" OR process CONTAINS "DocumentManager" OR process CONTAINS "fileprovider"' > file-provider.log 2>&1 || true
+      - name: Retain native crash reports
+        if: failure()
+        run: |
+          python3 - <<'PY_CRASH'
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          out = Path('NativeFailure'); out.mkdir(exist_ok=True)
+          started = Path(os.environ['RUNNER_TEMP']) / 'tayya-native-start'
+          since = started.stat().st_mtime if started.exists() else 0
+          roots = [Path.home() / 'Library/Logs/DiagnosticReports',
+                   Path.home() / 'Library/Developer/CoreSimulator/Devices' / os.environ['SIMULATOR_ID'] / 'data/Library/Logs/CrashReporter']
+          reports = []
+          for index, root in enumerate(roots):
+              if not root.exists():
+                  continue
+              for source in root.rglob('*'):
+                  if not source.is_file() or source.stat().st_mtime < since:
+                      continue
+                  if source.suffix not in ('.ips', '.crash', '.diag', '.hang', '.spin'):
+                      continue
+                  target = out / 'reports' / str(index) / source.relative_to(root)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+                  reports.append(str(target))
+          result = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+              'reports': reports, 'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}
+          predicate = 'process == "Hashiya" OR process == "ReportCrash" OR process == "runningboardd" OR process == "SpringBoard" OR process == "kernel" OR subsystem BEGINSWITH "com.apple.pencilkit" OR subsystem BEGINSWITH "com.apple.PDFKit"'
+          try:
+              with (out / 'native-system.log').open('wb') as log:
+                  subprocess.run(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log',
+                      'show', '--last', '60m', '--style', 'compact', '--info', '--debug',
+                      '--predicate', predicate], stdout=log, stderr=subprocess.STDOUT, timeout=120, check=True)
+              result['system_log_status'] = 'collected'
+          except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+              result['system_log_status'] = 'failed'
+              result['system_log_error'] = str(error)
+              print('Native unified log collection failed:', error)
+          finally:
+              (out / 'collection.json').write_text(json.dumps(result, indent=2) + '\n')
+          PY_CRASH
       - name: Save diagnostics and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -99,9 +227,12 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
+            NativeResults/
             file-provider.log
+            NativeFailure/
             Screenshots/
             MaestroResults/
+            EntranceCaptures/
           retention-days: 7
 
   device-package:

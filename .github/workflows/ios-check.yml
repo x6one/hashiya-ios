@@ -1,4 +1,4 @@
-name: Tayya targeted stability qualification
+name: Tayya gesture and picker evidence
 on:
   push:
     branches: ['diag/tayya-rescue-font']
@@ -10,11 +10,15 @@ concurrency:
 jobs:
   fonts:
     runs-on: macos-15
-    timeout-minutes: 35
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        family: [iPhone, iPad]
+        include:
+          - family: iPhone
+            cases: -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening
+          - family: iPad
+            cases: -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit
     steps:
       - uses: actions/checkout@v4
       - name: Select current app toolchain
@@ -42,17 +46,13 @@ jobs:
           PY
       - name: Mark native diagnostic session
         run: touch "$RUNNER_TEMP/tayya-native-start"
-      - name: Compile and run all native unit tests
+      - name: Qualify original ink and navigation regressions
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -only-testing:HashiyaTests -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath UnitResults.xcresult CODE_SIGNING_ALLOWED=NO | tee unit-build.log
-      - name: Qualify original ink and navigation regressions
-        run: |
-          set -o pipefail
-          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          xcodebuild test ${{ matrix.cases }} -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Export exact generated guide and native result
         if: always()
         run: |
@@ -64,9 +64,11 @@ jobs:
             fi
           done
           cp *build.log Evidence/
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --predicate 'eventMessage CONTAINS "TayyaRescueNavigation" OR eventMessage CONTAINS "DocumentNavigationBoundary" OR process CONTAINS[c] "ColorPicker"' > Evidence/gesture-picker.log
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rescue-font-qualification-${{ matrix.family }}
+          name: rescue-gesture-picker-${{ matrix.family }}
           path: Evidence/
           retention-days: 7

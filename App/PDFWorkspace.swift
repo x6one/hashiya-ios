@@ -184,6 +184,45 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
         private weak var ownedNavigation: UINavigationController?
         private weak var ownedScreen: UIViewController?
         private var previousEnabled: Bool?
+#if DEBUG
+        private var lastNavigationDiagnostic = ""
+        private final class GestureObservation {
+            weak var gesture: UIGestureRecognizer?
+            let kind: String
+            init(_ gesture: UIGestureRecognizer, kind: String) { self.gesture = gesture; self.kind = kind }
+        }
+        private var gestureObservations: [ObjectIdentifier: GestureObservation] = [:]
+        private var gestureEvents = 0
+        private func observe(_ gesture: UIGestureRecognizer?, kind: String) {
+            guard let gesture, gestureObservations[ObjectIdentifier(gesture)] == nil else { return }
+            gestureObservations[ObjectIdentifier(gesture)] = GestureObservation(gesture, kind: kind)
+            gesture.addTarget(self, action: #selector(observedGesture(_:)))
+            NSLog("TayyaRescueNavigation observe kind=%@ id=%@ type=%@ enabled=%d", kind, String(describing: ObjectIdentifier(gesture)), String(describing: type(of: gesture)), gesture.isEnabled ? 1 : 0)
+        }
+        private func observeNavigationInputs(_ navigation: UINavigationController) {
+            observe(navigation.interactivePopGestureRecognizer, kind: "edge")
+            if #available(iOS 26.0, *) { observe(navigation.interactiveContentPopGestureRecognizer, kind: "content") }
+            var pending: [UIView] = [navigation.view]
+            var visited = 0
+            while !pending.isEmpty, visited < 512 {
+                let view = pending.removeFirst()
+                visited += 1
+                if let scroll = view as? UIScrollView { observe(scroll.panGestureRecognizer, kind: "scroll-\(type(of: scroll))") }
+                if let canvas = view as? PKCanvasView { observe(canvas.drawingGestureRecognizer, kind: "drawing") }
+                pending.append(contentsOf: view.subviews.prefix(32))
+            }
+        }
+        @objc private func observedGesture(_ gesture: UIGestureRecognizer) {
+            guard gestureEvents < 32, gesture.state != .changed,
+                  let observation = gestureObservations[ObjectIdentifier(gesture)] else { return }
+            gestureEvents += 1
+            let location = gesture.location(in: ownedNavigation?.view)
+            if let scroll = gesture.view as? UIScrollView {
+                NSLog("TayyaRescueNavigation scroll state=%ld offset=%@ size=%@ bounds=%@ enabled=%d tracking=%d dragging=%d decelerating=%d", gesture.state.rawValue, String(describing: scroll.contentOffset), String(describing: scroll.contentSize), String(describing: scroll.bounds), scroll.isScrollEnabled ? 1 : 0, scroll.isTracking ? 1 : 0, scroll.isDragging ? 1 : 0, scroll.isDecelerating ? 1 : 0)
+            }
+            NSLog("TayyaRescueNavigation action kind=%@ id=%@ state=%ld location=%@ stack=%ld", observation.kind, String(describing: ObjectIdentifier(gesture)), gesture.state.rawValue, String(describing: location), ownedNavigation?.viewControllers.count ?? -1)
+        }
+#endif
 
         override func loadView() {
             view = UIView()
@@ -232,8 +271,27 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             ownedNavigation = navigation
             ownedScreen = screen
             pop.isEnabled = false
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+                observeNavigationInputs(navigation)
+                let edge = navigation.interactivePopGestureRecognizer
+                let edgeDescription = edge.map { "type=\(type(of: $0)) enabled=\($0.isEnabled) state=\($0.state.rawValue) edges=\(($0 as? UIScreenEdgePanGestureRecognizer)?.edges.rawValue ?? 0) delegate=\(String(describing: $0.delegate))" } ?? "nil"
+                let diagnostic = "stack=\(navigation.viewControllers.count) direction=\(navigation.view.effectiveUserInterfaceLayoutDirection.rawValue) semantic=\(navigation.view.semanticContentAttribute.rawValue) contentEnabled=\(pop.isEnabled) edge=[\(edgeDescription)]"
+                if diagnostic != lastNavigationDiagnostic {
+                    lastNavigationDiagnostic = diagnostic
+                    NSLog("TayyaRescueNavigation %@", diagnostic)
+                }
+            }
+#endif
         }
         func restore() {
+#if DEBUG
+            for observation in gestureObservations.values {
+                observation.gesture?.removeTarget(self, action: #selector(observedGesture(_:)))
+            }
+            gestureObservations.removeAll()
+            gestureEvents = 0
+#endif
             if let pop = ownedPop, let enabled = previousEnabled {
                 pop.isEnabled = enabled
 #if DEBUG

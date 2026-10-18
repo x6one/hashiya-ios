@@ -1388,4 +1388,43 @@ final class LaunchTests: XCTestCase {
         verifyIndividualInkTargets(accessibilityType: true)
     }
 
+    func testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        addTeardownBlock { app.terminate(); XCUIDevice.shared.orientation = .portrait }
+        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
+        app.launch()
+        let demo = app.buttons["welcomeDemonstration"]
+        guard demo.waitForExistence(timeout: 15), demo.isHittable else {
+            XCTFail("The real demonstration must be reachable"); return
+        }
+        demo.tap()
+        let pdf = app.otherElements["pdfCanvas"]
+        guard pdf.waitForExistence(timeout: 15) else { XCTFail("Demo must open its native PDF"); return }
+        let back = app.navigationBars.buttons.element(boundBy: 0)
+        guard back.waitForExistence(timeout: 5), back.isHittable else {
+            XCTFail("Native Back must remain available in the document workspace"); return
+        }
+        back.tap()
+        XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 10), "Back must return to the real library")
+        visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
+        guard pdf.waitForExistence(timeout: 15) else { XCTFail("The same document must reopen"); return }
+        let pen = app.buttons["inkTool"]
+        guard pen.waitForExistence(timeout: 5), pen.isHittable else {
+            XCTFail("Reopened document must expose its native ink action"); return
+        }
+        pen.tap()
+        XCTAssertTrue(pen.isSelected, "Check edge navigation while document handwriting is active")
+        let frame = app.frame
+        XCTAssertLessThan(frame.width, frame.height, "Use the real portrait RTL leading edge")
+        let leadingEdge = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: frame.width - 1, dy: frame.height * 0.5))
+        leadingEdge.press(forDuration: 0.05,
+            thenDragTo: leadingEdge.withOffset(CGVector(dx: -frame.width * 0.65, dy: 0)))
+        XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 10), "Native leading-edge Back must remain usable")
+        visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
+        XCTAssertTrue(pdf.waitForExistence(timeout: 15), "The workspace must reopen after edge navigation")
+        XCTAssertTrue(app.buttons["inkTool"].isHittable, "Reopening must retain usable document tools")
+    }
+
 }

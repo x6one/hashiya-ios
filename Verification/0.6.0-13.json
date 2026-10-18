@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "blocked_f87_gesture_priority_experiment_rejected_route_probe_running",
+  "status": "candidate_document_navigation_boundary_pending_native_validation",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -20,14 +20,14 @@
     "total_tools_tests_passed": 13
   },
   "native_validation": {
-    "exact_source_commit": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
-    "preflight_run": 39091395832,
-    "xctest": "67 passed all4 jobs",
-    "xcuitest": "failed; see full f87 result, including case caps and restarts",
+    "exact_source_commit": null,
+    "preflight_run": null,
+    "xctest": "pending candidate; prior f87 all67 passed each job",
+    "xcuitest": "pending candidate full32 per family",
     "maestro": "skipped",
     "required_cases_per_family": {
       "xctest": 67,
-      "xcuitest": 31,
+      "xcuitest": 32,
       "maestro_flows": 3
     },
     "families_required": [
@@ -902,5 +902,114 @@
     "functional_deadlines_changed": false,
     "accepted_ipa": false,
     "reverted_after_failure": true
+  },
+  "native_route_reproduction": {
+    "source": "79200f06ac7438dfcb6aa75b4db5e27ed96b1282",
+    "branch": "diag/tayya-ink-route",
+    "run": 39127359591,
+    "job": 117675188379,
+    "artifact": 12136664530,
+    "outer_sha256": "a66d24944292eab56893048d5fc697cb2d1a5b8cd776b66f7082c6d7e6263879",
+    "xcresult_sha256": "826944692d2480ca53de0daa79c0ebd9deb7243e16ef9cdb049b4061e4b571d2",
+    "independently_verified": true,
+    "units_passed": 67,
+    "ui_prefix_passed": 10,
+    "original_ui_test_blob": "29e68ad07b1e16ad3085c1711cfba22214c2d1cd",
+    "prefix_order_matches_failed_full_suite": true,
+    "target": {
+      "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+      "result": "failed",
+      "seconds": 208.044,
+      "failure": "No inkToolbar snapshot after native Fit Width pan, LaunchTests.swift:960"
+    },
+    "external_export_bytes": "passed",
+    "native_log": "collected",
+    "collected_crash_reports": [],
+    "finding": {
+      "connected_public_recognizer": "UINavigationController.interactiveContentPopGestureRecognizer",
+      "native_name": "UINavigationController.contentSwipe",
+      "identity": "0x1014a6b10",
+      "began_utc": "2026-10-18T12:45:15.093Z",
+      "began_location": [
+        210.66666666666666,
+        353.6666666666667
+      ],
+      "navigation_stack_on_begin": 1,
+      "states": [
+        "began",
+        "changed",
+        "ended"
+      ],
+      "rail_pan_callbacks": 0,
+      "conclusion": "The connected whole-content navigation pop takes the valid rail drag and removes the document. The existing static failure dependency does not prevent this."
+    },
+    "isolated_comparison": {
+      "run": 39126228020,
+      "seconds": 242.439,
+      "result": "passed",
+      "same_pan": true,
+      "scroll_states": [
+        "began",
+        "changed",
+        "ended"
+      ],
+      "navigation_stack": 2
+    },
+    "limits": [
+      "Diagnostic subset, not release preflight.",
+      "No collected report does not exclude every crash/watchdog/jetsam.",
+      "Public recognizer description strings truncate in unified logs; actual short state callbacks and matching public property identity identify the winner."
+    ],
+    "candidate": "Replace failed per-rail dependency with one public whole-content-pop boundary owned by DocumentScreen. Back button/edge/reopening require native regression verification."
+  },
+  "candidate_navigation_boundary": {
+    "base_checkpoint": "c52d3cf4e0251558122da29f6d2af2776c2b0e81",
+    "native_status": "pending",
+    "ordinary_ui_case_added": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+    "original31_methods_221_assertions": "unchanged",
+    "back_edge_restoration": "native verification required"
+  },
+  "f87_case_caps": {
+    "source": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+    "pr_compiled_merge": "cd01961e8216ebd1293b7b5f684af216d52aa03b",
+    "identical_source_tree": "506f054c68486dfd2785fe9560bb00ffc481f727",
+    "pr_phone_artifact": 12124287093,
+    "outer_sha256": "4a3675ddd58bcad0c1456428784ee95483f4d2d72185efed7db412b7ce90d9a9",
+    "independently_verified": true,
+    "native_collection": "collected; no report files collected",
+    "push_pad": {
+      "job": 117569487910,
+      "case": "testIndividualInkTargetsAtAccessibilityTextSize",
+      "cap_seconds": 360,
+      "last_stage": "Fit Width expected2 actual2 at359.95; resolving pageNumber at cap",
+      "other_gap": "Native palette segmented-control built-in existence check38.01/42.28 to next activity107.38 (~65seconds); cause not established."
+    },
+    "pr_phone": {
+      "job": 117569415617,
+      "case": "testIndividualInkTargetsInDocumentAndCompactSplit",
+      "cap_seconds": 360,
+      "idle_wait_seconds": [
+        [
+          132.84,
+          192.88
+        ],
+        [
+          201.82,
+          261.86
+        ],
+        [
+          262.83,
+          322.87
+        ],
+        [
+          324.09,
+          384.13
+        ]
+      ],
+      "margin_stroke_before_cap": false,
+      "native_pid": 50475,
+      "native_observation": "Last successful animation-idle reply03:13:48.403. After rotation03:13:55.144, animation-idle request55.362 has no reply through03:18:10 although main-run-loop idle replies and AX calls continue. Brush menu animator explicitly completes03:16:07.066; one missing menu completion is not a supported sole cause."
+    },
+    "limit": "Five ignored expectation-object substitutions do not directly change these native action-idle or built-in existence paths. No general cap fix or blocked-main-thread claim."
   }
 }

@@ -167,6 +167,89 @@ struct PageText: Codable, Identifiable {
         } catch { self.error = error.localizedDescription }
     }
 }
+// Document pans belong to the paper and tool rails. iOS 26's whole-content
+// navigation pop can win those pans even when a rebuilt scroll view has a
+// failure dependency. Keep the native Back button and edge-pop recognizer.
+private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) { controller.connect() }
+    static func dismantleUIViewController(_ controller: Controller, coordinator: ()) {
+        controller.dismantled = true
+        controller.restore()
+    }
+
+    final class Controller: UIViewController {
+        fileprivate var dismantled = false
+        private weak var ownedPop: UIGestureRecognizer?
+        private weak var ownedNavigation: UINavigationController?
+        private weak var ownedScreen: UIViewController?
+        private var previousEnabled: Bool?
+
+        override func loadView() {
+            view = UIView()
+            view.backgroundColor = .clear
+            view.isUserInteractionEnabled = false
+        }
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            if parent == nil { restore() } else { connect() }
+        }
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            connect()
+        }
+        override func viewDidLayoutSubviews() {
+            super.viewDidLayoutSubviews()
+            connect()
+        }
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            // A native color sheet may cover this screen without leaving it.
+            if let navigation = ownedNavigation, let screen = ownedScreen,
+               navigation.topViewController === screen { return }
+            restore()
+        }
+        func connect() {
+            guard !dismantled, #available(iOS 26.0, *),
+                  viewIfLoaded?.window != nil, let navigation = navigationController,
+                  let pop = navigation.interactiveContentPopGestureRecognizer else { return }
+            var ancestor: UIViewController? = self
+            while let controller = ancestor,
+                  !navigation.viewControllers.contains(where: { $0 === controller }) {
+                ancestor = controller.parent
+            }
+            guard let screen = ancestor, navigation.topViewController === screen else { restore(); return }
+            if ownedPop !== pop {
+                restore()
+                previousEnabled = pop.isEnabled
+                ownedPop = pop
+#if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+                    NSLog("DocumentNavigationBoundary acquire pop=%@ priorEnabled=%d stack=%d", String(describing: ObjectIdentifier(pop)), pop.isEnabled ? 1 : 0, navigation.viewControllers.count)
+                }
+#endif
+            }
+            ownedNavigation = navigation
+            ownedScreen = screen
+            pop.isEnabled = false
+        }
+        func restore() {
+            if let pop = ownedPop, let enabled = previousEnabled {
+                pop.isEnabled = enabled
+#if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+                    NSLog("DocumentNavigationBoundary restore pop=%@ enabled=%d", String(describing: ObjectIdentifier(pop)), pop.isEnabled ? 1 : 0)
+                }
+#endif
+            }
+            ownedPop = nil
+            ownedNavigation = nil
+            ownedScreen = nil
+            previousEnabled = nil
+        }
+    }
+}
+
 struct DocumentScreen: View {
     let note: Notebook
     let root: URL
@@ -205,6 +288,7 @@ struct DocumentScreen: View {
     }
     var body: some View {
         documentSheets
+            .background(DocumentNavigationBoundary().allowsHitTesting(false))
             .onAppear {
                 recognitionLanguages = (try? LibrarySearch.supportedRecognitionLanguages()) ?? []
                 if !restoredReadingPosition {

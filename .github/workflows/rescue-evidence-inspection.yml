@@ -1,0 +1,24 @@
+name: Inspect saved rescue evidence
+on:
+  push:
+    branches: ['diag/tayya-evidence-inspection']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: rescue-evidence-inspection
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check reader syntax
+        run: python3 -m py_compile Tools/inspect_rescue_artifact.py
+      - name: Inspect saved artifact bytes and bounded native evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: '12153657880'
+          EXPECTED_SHA256: e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff
+        run: python3 Tools/inspect_rescue_artifact.py

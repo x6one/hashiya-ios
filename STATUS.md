@@ -25,7 +25,7 @@ Both original baseline runs39151098686/39151102579 pass67 unit tests and exporte
 
 All gates must refer to the IPA source SHA:68 XCTest (including all67 originals),32 XCUITest and3 Maestro flows per family; externally exported bytes; actual screenshot review; full native Office device build; version/build/bundle/resources; ZIP integrity and independently verified IPA SHA256. No unsigned package is directly installable.
 
-Same-repository PR matrix duplication is disabled; push remains authoritative. A prepared reusable Office job replaces the lightweight non-Office IPA and runs only after both complete test jobs succeed. This pipeline change is not yet published or natively qualified. Signing/upload defaults remainfalse.
+PR matrix duplication is skipped only for internal main/work/** branches covered by push; forks and other internal branches retain PR verification. A prepared reusable Office job replaces the lightweight non-Office IPA and runs only after both complete test jobs succeed. This pipeline change is not yet published or natively qualified. Reusable calls expose no signing/upload inputs or secrets; signing steps additionally require a direct dispatch of the Office workflow.
 
 Local baseline Tools13/13 pass. Prepared release workflows pass actionlint1.7.7 (shellcheck/pyflakes unavailable) and whitespace checks. Linux has no Swift/Xcode; native verification uses Actions. Do not treat local checks as native acceptance.
 

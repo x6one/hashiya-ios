@@ -82,14 +82,17 @@
     "tools_tests_passed": 13,
     "prepared_workflows_actionlint": "1.7.7 passed; shellcheck/pyflakes unavailable",
     "git_diff_check": "passed",
-    "native_toolchain_local": false
+    "native_toolchain_local": false,
+    "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending"
   },
   "release_pipeline": {
-    "internal_pr_duplicate_matrix": "skipped; exact-head push retained",
+    "internal_pr_duplicate_matrix": "skipped only for internal main/work/**; PR retained for forks and other internal branches",
     "prepared_full_office_reusable_job": true,
     "prepared_pipeline_published": false,
     "sign_archive_default": false,
-    "publish_to_apple_default": false
+    "publish_to_apple_default": false,
+    "reusable_signing_inputs": false,
+    "signing_dispatch_requires_office_workflow_ref": true
   },
   "history": "Verification/Diagnostics/0.6.0-13-before-rescue-2026-10-19.json",
   "limitations": [

@@ -11,9 +11,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
-    # Same-repository PRs already get the required exact-head push run.
-    # Keep PR coverage for forks, which cannot trigger this repository's push job.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    # Skip duplicate PR jobs only for branches covered by the push trigger.
+    # Forks and other internal branches still require PR verification.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
     runs-on: macos-15
     timeout-minutes: 60
     strategy:
@@ -247,6 +247,3 @@ jobs:
       contents: read
       actions: read
     uses: ./.github/workflows/office-engine-spike.yml
-    with:
-      sign_archive: false
-      publish_to_apple: false

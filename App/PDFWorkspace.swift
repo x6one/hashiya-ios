@@ -203,6 +203,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 pending.append(contentsOf: candidate.subviews.prefix(32))
                 guard let scroll = candidate as? UIScrollView,
                       scroll.bounds.height < 120, scroll.bounds.width > 44 else { continue }
+                observe(scroll.panGestureRecognizer, kind: "scroll-\(type(of: scroll))")
                 let frame = scroll.convert(scroll.bounds, to: window)
                 let visible = frame.intersection(window.safeAreaLayoutGuide.layoutFrame)
                 guard !visible.isNull, !visible.isEmpty else { continue }

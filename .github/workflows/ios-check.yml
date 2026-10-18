@@ -11,6 +11,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
+    # Same-repository PRs already get the required exact-head push run.
+    # Keep PR coverage for forks, which cannot trigger this repository's push job.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: macos-15
     timeout-minutes: 60
     strategy:

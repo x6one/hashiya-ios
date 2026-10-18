@@ -1,0 +1,73 @@
+{
+  "source": "c8903523e8831b24d78e87923ea966408dd5419d",
+  "push_run": 39151098686,
+  "pr_run": 39151102579,
+  "units_per_job": 67,
+  "jobs": [
+    {
+      "id": 117744734772,
+      "family": "Push iPhone",
+      "ui_explicit_pass": 28,
+      "failed": [
+        "Accessibility ink: fitMarginWidth pan does not move (line966)",
+        "Standard ink: picker dismissal line1096"
+      ],
+      "capped": [
+        "Paged margins 240s",
+        "Light visual journey 240s"
+      ]
+    },
+    {
+      "id": 117744734863,
+      "family": "Push iPad",
+      "ui_explicit_pass": 31,
+      "failed": [
+        "Accessibility ink: Redo5s waiter1165; later count2 matches expected2;360s cap and termination failure"
+      ]
+    },
+    {
+      "id": 117744746706,
+      "family": "PR iPhone",
+      "ui_explicit_pass": 30,
+      "failed": [
+        "Accessibility ink: native palette inner segments missing1049",
+        "Navigation edge1424 with downstream library lookup failures"
+      ]
+    },
+    {
+      "id": 117744746755,
+      "family": "PR iPad",
+      "ui_explicit_pass": 31,
+      "failed": [
+        "PowerPoint fixture export completion184"
+      ]
+    }
+  ],
+  "release_gates": {
+    "external_bytes": "passed all4 jobs",
+    "maestro": "skipped all4",
+    "device_package": "skipped both"
+  },
+  "independently_verified_artifact": {
+    "id": 12146685144,
+    "sha256": "7eeccfffd4f99faf736d49ca2cdae75c10bf54f383fe4332cccde5f32944f4d7"
+  },
+  "palette": {
+    "request_utc": "17:59:45.876",
+    "bootstrap_utc": "18:00:03.111",
+    "ready_utc": "18:00:05.800",
+    "pid": 30613,
+    "visual": "White native sheet and Done button; no inner controls",
+    "conclusion": "Native remote service not ready within unchanged5s readiness waiter",
+    "underlying_launch_delay_cause": "unproven"
+  },
+  "navigation": {
+    "button_back": "passed all4",
+    "edge_back": "PR phone failed,other3 passed",
+    "causation": "not established; disabling content-pop alone cannot be assumed to preserve edge behavior",
+    "diagnostic_run": 39168607576,
+    "diagnostic_sha": "36dcd38c4be4c5e979f0da9da6fa5c3016a80437"
+  },
+  "accepted_repair": false,
+  "accepted_ipa": false
+}

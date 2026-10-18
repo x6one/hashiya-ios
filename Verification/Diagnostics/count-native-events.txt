@@ -1,0 +1,223 @@
+Native artifact 12147062835; raw excerpts; no signed URLs.
+All MarginCountTiming and paired InkRailRoute/State rows:
+2026-10-18 18:42:48.477 Df Hashiya[36159:19794] (Foundation) InkRailRoute seq=1/256 uptime=1458.74609675 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000010740e640) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000010740e640) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb270) enabled=true state=5 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb680) enabled=false state=0 edges=8"]
+2026-10-18 18:42:48.477 Df Hashiya[36159:19794] (Foundation) InkRailRouteState seq=1/256 uptime=1458.74609675 main=true; anchor=ObjectIdentifier(0x00000001074ce8c0); window=true; scroll=ObjectIdentifier(0x0000000103162000) frame=(0.0, 248.0, 1032.0, 61.5) content=(328.0, 61.5) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000102842e00); navDirection=1; stack=2; top=ObjectIdentifier(0x00000001032ee000); owner=ObjectIdentifier(0x00000001032ee000); topIsOwner=true
+2026-10-18 18:42:57.834 Df Hashiya[36159:19794] (Foundation) InkRailRoute seq=2/256 uptime=1468.103274625 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000010740e640) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000010740e640) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb270) enabled=true state=0 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb680) enabled=false state=0 edges=8"]
+2026-10-18 18:42:57.839 Df Hashiya[36159:19794] (Foundation) InkRailRouteState seq=2/256 uptime=1468.103274625 main=true; anchor=ObjectIdentifier(0x00000001074ce8c0); window=true; scroll=ObjectIdentifier(0x0000000103162000) frame=(0.0, 248.0, 1032.0, 61.5) content=(367.5, 61.5) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000102842e00); navDirection=1; stack=2; top=ObjectIdentifier(0x00000001032ee000); owner=ObjectIdentifier(0x00000001032ee000); topIsOwner=true
+2026-10-18 18:44:18.623 Df Hashiya[36159:19794] (Foundation) InkRailRoute seq=3/256 uptime=1548.8922947083333 main=true; disconnect
+2026-10-18 18:44:18.624 Df Hashiya[36159:19794] (Foundation) InkRailRouteState seq=3/256 uptime=1548.8922947083333 main=true; anchor=ObjectIdentifier(0x00000001074ce8c0); window=true; scroll=ObjectIdentifier(0x0000000103162000) frame=(0.0, 248.0, 1032.0, 61.5) content=(367.5, 61.5) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000102842e00); navDirection=1; stack=2; top=ObjectIdentifier(0x00000001032ee000); owner=ObjectIdentifier(0x00000001032ee000); topIsOwner=true
+2026-10-18 18:44:34.270 Df Hashiya[36159:19794] (Foundation) InkRailRoute seq=4/256 uptime=1564.5390420416668 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011efd2f70) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011efd2f70) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb270) enabled=true state=5 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb680) enabled=false state=0 edges=8"]
+2026-10-18 18:44:34.270 Df Hashiya[36159:19794] (Foundation) InkRailRouteState seq=4/256 uptime=1564.5390420416668 main=true; anchor=ObjectIdentifier(0x000000011fb42c40); window=true; scroll=ObjectIdentifier(0x0000000103fef400) frame=(0.0, 366.0, 457.0, 61.5) content=(378.0, 61.5) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000102842e00); navDirection=1; stack=2; top=ObjectIdentifier(0x00000001032ee000); owner=ObjectIdentifier(0x00000001032ee000); topIsOwner=true
+2026-10-18 18:45:01.021 Df Hashiya[36159:19794] (Foundation) InkRailRoute seq=5/256 uptime=1591.29072975 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011efd2f70) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011efd2f70) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb270) enabled=true state=0 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x00000001014cb680) enabled=false state=0 edges=8"]
+2026-10-18 18:45:01.021 Df Hashiya[36159:19794] (Foundation) InkRailRouteState seq=5/256 uptime=1591.29072975 main=true; anchor=ObjectIdentifier(0x000000011fb42c40); window=true; scroll=ObjectIdentifier(0x0000000103fef400) frame=(0.0, 366.0, 457.0, 61.5) content=(417.5, 61.5) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000102842e00); navDirection=1; stack=2; top=ObjectIdentifier(0x00000001032ee000); owner=ObjectIdentifier(0x00000001032ee000); topIsOwner=true
+2026-10-18 18:46:08.077 Df Hashiya[45443:1ed5b] (Foundation) InkRailRoute seq=1/256 uptime=1658.3469636666669 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x0000000106ef9490) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x0000000106ef9490) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4b9c0) enabled=true state=5 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4bf10) enabled=false state=0 edges=8"]
+2026-10-18 18:46:08.078 Df Hashiya[45443:1ed5b] (Foundation) InkRailRouteState seq=1/256 uptime=1658.3469636666669 main=true; anchor=ObjectIdentifier(0x000000011f1643a0); window=true; scroll=ObjectIdentifier(0x000000010442fe00) frame=(0.0, 208.0, 1032.0, 60.0) content=(304.5, 60.0) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000103048a00); navDirection=1; stack=2; top=ObjectIdentifier(0x0000000103845000); owner=ObjectIdentifier(0x0000000103845000); topIsOwner=true
+2026-10-18 18:46:15.902 Df Hashiya[45443:1ed5b] (Foundation) InkRailRoute seq=2/256 uptime=1666.1715765000001 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x0000000106ef9490) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x0000000106ef9490) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4b9c0) enabled=true state=0 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4bf10) enabled=false state=0 edges=8"]
+2026-10-18 18:46:15.906 Df Hashiya[45443:1ed5b] (Foundation) InkRailRouteState seq=2/256 uptime=1666.1715765000001 main=true; anchor=ObjectIdentifier(0x000000011f1643a0); window=true; scroll=ObjectIdentifier(0x000000010442fe00) frame=(0.0, 208.0, 1032.0, 60.0) content=(328.0, 60.0) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000103048a00); navDirection=1; stack=2; top=ObjectIdentifier(0x0000000103845000); owner=ObjectIdentifier(0x0000000103845000); topIsOwner=true
+2026-10-18 18:47:53.846 Df Hashiya[45443:1ed5b] (Foundation) InkRailRoute seq=3/256 uptime=1764.1156476666667 main=true; disconnect
+2026-10-18 18:47:53.847 Df Hashiya[45443:1ed5b] (Foundation) InkRailRouteState seq=3/256 uptime=1764.1156476666667 main=true; anchor=ObjectIdentifier(0x000000011f1643a0); window=true; scroll=ObjectIdentifier(0x000000010442fe00) frame=(0.0, 208.0, 1032.0, 60.0) content=(328.0, 60.0) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000103048a00); navDirection=1; stack=2; top=ObjectIdentifier(0x0000000103845000); owner=ObjectIdentifier(0x0000000103845000); topIsOwner=true
+2026-10-18 18:48:11.324 Df Hashiya[45443:1ed5b] (Foundation) InkRailRoute seq=4/256 uptime=1781.5931574583335 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011f223640) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011f223640) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4b9c0) enabled=true state=5 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4bf10) enabled=false state=0 edges=8"]
+2026-10-18 18:48:11.324 Df Hashiya[45443:1ed5b] (Foundation) InkRailRouteState seq=4/256 uptime=1781.5931574583335 main=true; anchor=ObjectIdentifier(0x0000000123286830); window=true; scroll=ObjectIdentifier(0x0000000103c3e000) frame=(0.0, 308.0, 457.0, 60.0) content=(354.5, 60.0) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000103048a00); navDirection=1; stack=2; top=ObjectIdentifier(0x0000000103845000); owner=ObjectIdentifier(0x0000000103845000); topIsOwner=true
+2026-10-18 18:48:41.491 Df Hashiya[45443:1ed5b] (Foundation) InkRailRoute seq=5/256 uptime=1811.7600295833333 main=true; connection; pan=UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011f223640) enabled=true state=0 edges=not-edge-type; observed=["UIScrollViewPanGestureRecognizer id=ObjectIdentifier(0x000000011f223640) enabled=true state=0 edges=not-edge-type", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4b9c0) enabled=true state=0 edges=8", "_UIParallaxTransitionPanGestureRecognizer id=ObjectIdentifier(0x0000000101a4bf10) enabled=false state=0 edges=8"]
+2026-10-18 18:48:41.491 Df Hashiya[45443:1ed5b] (Foundation) InkRailRouteState seq=5/256 uptime=1811.7600295833333 main=true; anchor=ObjectIdentifier(0x0000000123286830); window=true; scroll=ObjectIdentifier(0x0000000103c3e000) frame=(0.0, 308.0, 457.0, 60.0) content=(378.0, 60.0) offset=(0.0, 0.0) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounces=true; nav=ObjectIdentifier(0x0000000103048a00); navDirection=1; stack=2; top=ObjectIdentifier(0x0000000103845000); owner=ObjectIdentifier(0x0000000103845000); topIsOwner=true
+2026-10-18 18:49:29.483 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=1/256; event=tool-ended; uptime=1859.7526620416668; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1; uncommitted=false
+2026-10-18 18:49:29.486 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=2/256; event=drawing-did-change; uptime=1859.7549104166667; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:29.486 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=3/256; event=persist-begin; uptime=1859.7552760416668; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:29.526 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=4/256; event=store-save-returned; uptime=1859.7952136666668; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2; saved=true; inputCount=2
+2026-10-18 18:49:29.526 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=5/256; event=persist-callback-returned; uptime=1859.7956319166667; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:41.615 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=6/256; event=action-undo-begin; uptime=1871.884789791667; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:41.616 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=7/256; event=drawing-did-change; uptime=1871.8853763333334; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1;
+2026-10-18 18:49:41.616 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=8/256; event=persist-begin; uptime=1871.8854772916668; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1;
+2026-10-18 18:49:41.619 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=9/256; event=store-save-returned; uptime=1871.888704875; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1; saved=true; inputCount=1
+2026-10-18 18:49:41.619 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=10/256; event=persist-callback-returned; uptime=1871.888987125; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1;
+2026-10-18 18:49:41.620 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=11/256; event=action-undo-end; uptime=1871.8894464583334; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1;
+2026-10-18 18:49:51.132 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=12/256; event=action-redo-begin; uptime=1881.4014865000001; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=1;
+2026-10-18 18:49:51.133 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=13/256; event=drawing-did-change; uptime=1881.4023443750002; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:51.133 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=14/256; event=persist-begin; uptime=1881.4024387916668; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:51.137 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=15/256; event=store-save-returned; uptime=1881.4060872500002; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2; saved=true; inputCount=2
+2026-10-18 18:49:51.138 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=16/256; event=persist-callback-returned; uptime=1881.4074734166668; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+2026-10-18 18:49:51.139 Df Hashiya[45443:1ed5b] (Foundation) MarginCountTiming seq=17/256; event=action-redo-end; uptime=1881.4082997500002; main=true; canvas=ObjectIdentifier(0x0000000104469600); page=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; canvasPage=E6BC3B73-7E67-45DC-AD79-479F0C3185A3; count=2;
+
+Native count query beginnings/results (query records, not predicate-return timestamps):
+2026-10-18 18:49:30.686 Df Hashiya[45443:1edea] [com.apple.dt.xctest:Default] Getting root element snapshot
+2026-10-18 18:49:31.721 Df Hashiya[45443:1edea] [com.apple.dt.xctest:Default] [Match All] applied transformer `Elements matching predicate '"marginInkCanvas" IN identifiers'` to input {(
+2026-10-18 18:49:42.878 Df Hashiya[45443:23980] [com.apple.dt.xctest:Default] Getting root element snapshot
+2026-10-18 18:49:44.022 Df Hashiya[45443:23980] [com.apple.dt.xctest:Default] [Match All] applied transformer `Elements matching predicate '"marginInkCanvas" IN identifiers'` to input {(
+2026-10-18 18:49:44.051 Df Hashiya[45443:1ede7] [com.apple.dt.xctest:Default] Getting root element snapshot
+2026-10-18 18:49:52.365 Df Hashiya[45443:1ede7] [com.apple.dt.xctest:Default] Getting root element snapshot
+2026-10-18 18:49:53.181 Df Hashiya[45443:1ede7] [com.apple.dt.xctest:Default] [Match All] applied transformer `Elements matching predicate '"marginInkCanvas" IN identifiers'` to input {(
+2026-10-18 18:49:53.197 Df Hashiya[45443:1ede7] [com.apple.dt.xctest:Default] Getting root element snapshot
+2026-10-18 18:49:54.119 Df Hashiya[45443:1ede7] [com.apple.dt.xctest:Default] [Match All] applied transformer `Elements matching predicate '"marginInkCanvas" IN identifiers'` to input {(
+2026-10-18 18:49:54.137 Df Hashiya[45443:1f220] [com.apple.dt.xctest:Default] Getting root element snapshot
+
+Accessibility dismissal: native no-match traversal excerpts:
+2026-10-18 18:45:30.680 Df Hashiya[36159:1c86b] [com.apple.dt.xctest:Default] Getting root element snapshot
+2026-10-18 18:45:30.700 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-18 18:45:30.708 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-18 18:45:30.712 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-18 18:45:36.423 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-18 18:45:36.438 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-18 18:45:36.468 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-18 18:45:36.834 Df Hashiya[36159:19794] [com.apple.dt.xctest:Default] [First Match] no match found for transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+
+XCTest build-log excerpts (native t= clock):
+build.log:3400:     t =   174.78s Find the "closeInkColorPicker" Button
+build.log:3401:     t =   174.92s Find the "closeInkColorPicker" Button
+build.log:3402:     t =   175.04s Find the "closeInkColorPicker" Button
+build.log:3403:     t =   175.19s Find the "nativeInkColorPicker" Other
+build.log:3404:     t =   175.45s Waiting 5.0s for Any (First Match) to exist
+build.log:3405:     t =   176.46s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+build.log:3406:     t =   176.46s         Checking existence of `Any (First Match)`
+build.log:3407:     t =   176.77s Find the "nativeInkColorPicker" Other
+build.log:3408:     t =   177.02s Find the Any (First Match)
+build.log:3409:     t =   177.37s Find the "red 77" Other
+build.log:3410:     t =   177.70s Added attachment named 'AccessibilityType-CompactSplitInk-NativePaletteNavigation'
+build.log:3411:     t =   177.70s Find the "red 77" Other
+build.log:3412:     t =   178.02s Tap "red 77" Other
+build.log:3413:     t =   178.02s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3414:     t =   178.02s     Find the "red 77" Other
+build.log:3415:     t =   178.21s     Check for interrupting elements affecting "red 77" Other
+build.log:3416:     t =   178.39s         Wait for com.apple.springboard to idle
+build.log:3417:     t =   178.43s     Synthesize event
+build.log:3418:     t =   178.75s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3419:     t =   179.11s Added attachment named 'PaperStudio-AccessibilityType-CompactSplitInk-NativeColorPicker'
+build.log:3420:     t =   179.11s Tap "closeInkColorPicker" Button
+build.log:3421:     t =   179.11s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3422:     t =   179.11s     Find the "closeInkColorPicker" Button
+build.log:3423:     t =   179.29s     Check for interrupting elements affecting "closeInkColorPicker" Button
+build.log:3424:     t =   179.47s         Wait for com.apple.springboard to idle
+build.log:3425:     t =   179.50s     Synthesize event
+build.log:3426:     t =   179.88s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3427:     t =   181.38s Checking `Expect predicate `BLOCKPREDICATE(0x600000d979c0)` for object "nativeInkColorPicker" Other`
+build.log:3428:     t =   181.38s     Checking existence of `"nativeInkColorPicker" Other`
+build.log:3429:     t =   185.71s     Checking existence of `"nativeInkColorPicker" Other` (retry 1)
+build.log:3430:     t =   185.71s     Checking existence of `"nativeInkColorPicker" Other` (retry 2)
+build.log:3431:     t =   185.71s     Checking existence of `"closeInkColorPicker" Button`
+build.log:3432:     t =   185.71s     Checking existence of `"closeInkColorPicker" Button` (retry 1)
+build.log:3433:     t =   185.71s     Checking existence of `"closeInkColorPicker" Button` (retry 2)
+build.log:3434: /Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1096: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : failed - Native color picker must dismiss before testing ink actions
+build.log:3898:     t =   206.24s Tap "closeInkColorPicker" Button
+build.log:3899:     t =   206.24s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3900:     t =   206.24s     Find the "closeInkColorPicker" Button
+build.log:3901:     t =   206.28s     Check for interrupting elements affecting "closeInkColorPicker" Button
+build.log:3902:     t =   206.49s         Wait for com.apple.springboard to idle
+build.log:3903:     t =   206.55s     Synthesize event
+build.log:3904:     t =   206.84s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3905:     t =   208.32s Checking `Expect predicate `BLOCKPREDICATE(0x600000daf360)` for object "nativeInkColorPicker" Other`
+build.log:3906:     t =   208.32s     Checking existence of `"nativeInkColorPicker" Other`
+build.log:3907:     t =   209.81s     Checking existence of `"closeInkColorPicker" Button`
+build.log:3908:     t =   211.25s Checking `Expect predicate `BLOCKPREDICATE(0x600000db3480)` for object "inkColor" Button`
+build.log:3909:     t =   211.25s     Find the "inkColor" Button
+build.log:3910:     t =   211.37s Find the "marginInkCanvas" ScrollView
+build.log:3911:     t =   212.22s Find the Target Application 'com.ahmadalawi.hashiya'
+build.log:3912:     t =   212.76s Added attachment named 'StandardType-CompactSplitInk-RedPixelBaseline'
+build.log:3913:     t =   212.76s Find the "marginInkCanvas" ScrollView
+build.log:3914:     t =   213.74s Find the "marginInkCanvas" ScrollView
+build.log:3915:     t =   214.55s Find the "marginInkCanvas" ScrollView
+build.log:3916:     t =   215.34s Find the "marginInkCanvas" ScrollView
+build.log:3917:     t =   216.14s Added attachment named 'StandardType-CompactSplitInk-BeforeStroke-NativeInkState'
+build.log:3919:     t =   216.14s Press "marginInkCanvas" ScrollView[0.25, 0.35] for 0.1 seconds, then drag to "marginInkCanvas" ScrollView[0.65, 0.50] with velocity of 500.00 pixels per second, and then hold for 0.0 seconds 
+build.log:3920:     t =   216.14s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3921:     t =   216.15s     Find the "marginInkCanvas" ScrollView
+build.log:3922:     t =   217.04s     Check for interrupting elements affecting "marginInkCanvas" ScrollView
+build.log:3923:     t =   217.12s         Wait for com.apple.springboard to idle
+build.log:3924:     t =   217.15s     Synthesize event
+build.log:3925:     t =   217.15s         Find the "marginInkCanvas" ScrollView
+build.log:3926:     t =   218.09s         Find the "marginInkCanvas" ScrollView
+build.log:3927:     t =   218.96s         Find the "marginInkCanvas" ScrollView
+build.log:3928:     t =   219.88s         Find the "marginInkCanvas" ScrollView
+build.log:3929:     t =   220.89s         Find the "marginInkCanvas" ScrollView
+build.log:3930:     t =   222.59s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3931:     t =   223.60s Find the "marginInkCanvas" ScrollView
+build.log:3932:     t =   225.67s Checking `Expect predicate `BLOCKPREDICATE(0x600000db5590)` for object "marginInkCanvas" ScrollView`
+build.log:3933:     t =   226.10s Find the "marginInkCanvas" ScrollView
+build.log:3934:     t =   227.28s Find the Target Application 'com.ahmadalawi.hashiya'
+build.log:3935:     t =   227.33s Added attachment named 'StandardType-CompactSplitInk-RedPixelPolling'
+build.log:3953:     t =   234.10s Added attachment named 'InkTarget-inkUndo-TapGeometry'
+build.log:3954:     t =   234.10s Tap "inkUndo" Button[0.50, 1.00] -> (0.0, -2.0)
+build.log:3955:     t =   234.10s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3956:     t =   234.10s     Find the "inkUndo" Button
+build.log:3957:     t =   234.15s     Check for interrupting elements affecting "inkUndo" Button
+build.log:3958:     t =   234.25s         Wait for com.apple.springboard to idle
+build.log:3959:     t =   234.29s     Synthesize event
+build.log:3960:     t =   234.30s         Find the "inkUndo" Button
+build.log:3961:     t =   234.35s         Find the "inkUndo" Button
+build.log:3962:     t =   234.39s         Find the "inkUndo" Button
+build.log:3963:     t =   234.74s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3964:     t =   235.78s Find the "marginInkCanvas" ScrollView
+build.log:3965:     t =   236.97s Find the "marginInkCanvas" ScrollView
+build.log:3966:     t =   238.18s Find the "marginInkCanvas" ScrollView
+build.log:3967:     t =   239.20s Find the "marginInkCanvas" ScrollView
+build.log:3968:     t =   240.10s Added attachment named 'StandardType-CompactSplitInk-Undo-NativeInkState'
+build.log:3981:     t =   243.50s Added attachment named 'InkTarget-inkRedo-TapGeometry'
+build.log:3982:     t =   243.50s Tap "inkRedo" Button[0.50, 1.00] -> (0.0, -2.0)
+build.log:3983:     t =   243.50s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3984:     t =   243.50s     Find the "inkRedo" Button
+build.log:3985:     t =   243.56s     Check for interrupting elements affecting "inkRedo" Button
+build.log:3986:     t =   243.66s         Wait for com.apple.springboard to idle
+build.log:3987:     t =   243.71s     Synthesize event
+build.log:3988:     t =   243.72s         Find the "inkRedo" Button
+build.log:3989:     t =   243.80s         Find the "inkRedo" Button
+build.log:3990:     t =   243.89s         Find the "inkRedo" Button
+build.log:3991:     t =   244.23s     Wait for com.ahmadalawi.hashiya to idle
+build.log:3992:     t =   245.28s Find the "marginInkCanvas" ScrollView
+build.log:3993:     t =   246.11s Find the "marginInkCanvas" ScrollView
+build.log:3994:     t =   247.05s Find the "marginInkCanvas" ScrollView
+build.log:3995:     t =   248.08s Find the "marginInkCanvas" ScrollView
+build.log:3996:     t =   249.55s Added attachment named 'StandardType-CompactSplitInk-Redo-NativeInkState'
+
+NativeInkEvidence state headers (only leading fields retained, explicitly excerpts):
+NativeInkEvidence stage=AccessibilityType-DocumentInk-BeforeStroke; expected=0; actual=0; frame=(0.0, 309.5, 1032.0, 1046.5)
+NativeInkEvidence stage=AccessibilityType-DocumentInk-StrokeSaved; expected=1; actual=1; frame=(0.0, 309.5, 1032.0, 1046.5)
+NativeInkEvidence stage=AccessibilityType-DocumentInk-Undo; expected=0; actual=0; frame=(0.0, 309.5, 1032.0, 1046.5)
+NativeInkEvidence stage=AccessibilityType-DocumentInk-Redo; expected=1; actual=1; frame=(0.0, 309.5, 1032.0, 1046.5)
+NativeInkEvidence stage=AccessibilityType-DocumentInk-FitSheet; expected=1; actual=1; frame=(0.0, 309.5, 1032.0, 1046.5)
+NativeInkEvidence stage=StandardType-DocumentInk-BeforeStroke; expected=0; actual=0; frame=(0.0, 268.0, 1032.0, 1088.0)
+NativeInkEvidence stage=StandardType-DocumentInk-StrokeSaved; expected=1; actual=1; frame=(0.0, 268.0, 1032.0, 1088.0)
+NativeInkEvidence stage=StandardType-DocumentInk-Undo; expected=0; actual=0; frame=(0.0, 268.0, 1032.0, 1088.0)
+NativeInkEvidence stage=StandardType-DocumentInk-Redo; expected=1; actual=1; frame=(0.0, 268.0, 1032.0, 1088.0)
+NativeInkEvidence stage=StandardType-DocumentInk-FitSheet; expected=1; actual=1; frame=(0.0, 268.0, 1032.0, 1088.0)
+NativeInkEvidence stage=StandardType-CompactSplitInk-BeforeStroke; expected=1; actual=1; frame=(0.0, 368.0, 457.0, 888.0)
+NativeInkEvidence stage=StandardType-CompactSplitInk-StrokeSaved; expected=2; actual=2; frame=(0.0, 368.0, 457.0, 888.0)
+NativeInkEvidence stage=StandardType-CompactSplitInk-Undo; expected=1; actual=1; frame=(0.0, 368.0, 457.0, 888.0)
+NativeInkEvidence stage=StandardType-CompactSplitInk-Redo; expected=2; actual=2; frame=(0.0, 368.0, 457.0, 888.0)
+NativeInkEvidence stage=StandardType-CompactSplitInk-FitSheet; expected=2; actual=2; frame=(0.0, 368.0, 457.0, 888.0)
+NativeInkEvidence stage=StandardType-CompactSplitInk-FitWidth; expected=2; actual=2; frame=(0.0, 368.0, 457.0, 888.0)
+
+Native palette/input attachments:
+LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize() FC3C8A9B-04C1-49A8-9082-F50395E1F4A1.txt 1792349127.495
+picker=(398.0, 186.0, 580.0, 650.0); swatch=red 77; initial=(641.5, 653.5, 45.5, 45.5)
+LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize() 01D6B89D-A6AD-4E8F-9AB0-B15BAAE41602.txt 1792349005.61
+picker=(226.0, 358.0, 580.0, 650.0); swatch=red 77; initial=(469.5, 825.5, 45.5, 45.5)
+LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit() 76EF3FAB-B450-449D-8510-0DA6D44FB72A.txt 1792349352.643
+picker=(398.0, 186.0, 580.0, 650.0); swatch=red 77; initial=(641.5, 653.5, 45.5, 45.5)
+LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit() 3DDBCBF0-14FC-418F-8230-9CB35C096231.txt 1792349199.012
+picker=(226.0, 358.0, 580.0, 650.0); swatch=red 77; initial=(469.5, 825.5, 45.5, 45.5)
+05F2563C-493F-4A42-9EB2-B3C45C82A642 decoded NSKeyedArchive pointer-event fields: [{"eventType": 1, "offset": 0.0, "coordinate.y": 940.0, "coordinate.x": 816.0}, {"eventType": 3, "offset": 0.05, "coordinate.y": 940.0, "coordinate.x": 816.0}]
+0C18253F-C1B2-4B2F-A412-3E78239A046F decoded NSKeyedArchive pointer-event fields: [{"eventType": 1, "offset": 0.0, "coordinate.y": 664.25, "coordinate.x": 355.75}, {"eventType": 3, "offset": 0.05, "coordinate.y": 664.25, "coordinate.x": 355.75}]
+
+FOLLOW-UP VIDEO TIMESTAMP VERIFICATION (supersedes requested-seek frame labels):
+video manifest recording start = 1792348949.856 = 2026-10-18 18:42:29.856 UTC
+Default decoded rows are pts_time,pkt_dts_time,best_effort_timestamp_time; DTS may be chosen over PTS.
+179.498333,164.901667,164.901667
+179.730000,165.103333,165.103333
+179.903333,165.296667,165.296667
+179.995000,165.378333,165.378333
+180.200000,165.541667,165.541667
+180.400000,172.478333,172.478333
+With -fflags +igndts: original PTS retained, best_effort_timestamp_time equals PTS:
+179.498333,179.498333,179.498333
+179.730000,179.730000,179.730000
+179.903333,179.903333,179.903333
+179.995000,179.995000,179.995000
+180.200000,180.200000,180.200000
+180.400000,180.400000,180.400000
+Explicit full decode command: ffmpeg -fflags +igndts -i <original mp4> -vf "select=between(t,179,180.5),showinfo,setpts=N/(25*TB),scale=516:688" -fps_mode passthrough ax-presentation-%03d.png
+showinfo before setpts, exact integer PTS / 600; selected reviewed frames:
+ax-presentation-001.png; original PTS=107699/600=179.498333; UTC=2026-10-18T18:45:29.354333+00:00
+ax-presentation-008.png; original PTS=107838/600=179.730000; UTC=2026-10-18T18:45:29.586000+00:00
+ax-presentation-015.png; original PTS=107942/600=179.903333; UTC=2026-10-18T18:45:29.759333+00:00
+ax-presentation-018.png; original PTS=107997/600=179.995000; UTC=2026-10-18T18:45:29.851000+00:00
+ax-presentation-026.png; original PTS=108120/600=180.200000; UTC=2026-10-18T18:45:30.056000+00:00
+ax-presentation-063.png; original PTS=108240/600=180.400000; UTC=2026-10-18T18:45:30.256000+00:00
+Visual review: 179.730 palette open;179.903333 sliding offscreen;179.995000 fully absent;180.200000/180.400000 absent. No exact UIKit dismissal callback instrumented.

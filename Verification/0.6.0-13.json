@@ -2,7 +2,7 @@
   "version": "0.6.0",
   "build": "13",
   "candidate_date": "2026-10-15",
-  "status": "candidate_document_navigation_boundary_pending_native_validation",
+  "status": "c890_failed_full_preflight_observation_only_diagnostic_pending",
   "final_results_location": "https://github.com/x6one/hashiya-ios/pull/5",
   "implementation_base_commit": "449ae021ff2b3b52e44c70a433baa911c283f4a6",
   "bundle_identifier": "com.ahmadalawi.hashiya",
@@ -20,11 +20,11 @@
     "total_tools_tests_passed": 13
   },
   "native_validation": {
-    "exact_source_commit": null,
-    "preflight_run": null,
-    "xctest": "pending candidate; prior f87 all67 passed each job",
-    "xcuitest": "pending candidate full32 per family",
-    "maestro": "skipped",
+    "exact_source_commit": "c8903523e8831b24d78e87923ea966408dd5419d",
+    "preflight_run": 39151098686,
+    "xctest": "67/67 passed in all four c890 family jobs",
+    "xcuitest": "failed; see Verification/Diagnostics/c890-completed-native-results.json",
+    "maestro": "skipped after native failures",
     "required_cases_per_family": {
       "xctest": 67,
       "xcuitest": 32,
@@ -34,7 +34,7 @@
       "iPhone",
       "iPad"
     ],
-    "screenshots_captured": false,
+    "screenshots_captured": true,
     "screenshots_reviewed": false
   },
   "latest_rejected_native_source": {
@@ -1042,5 +1042,21 @@
     "digest_provenance": "GitHub metadata; not yet independently downloaded/hashed",
     "candidate_integration": "not adopted; five unused-object substitutions remain on diagnostic branch only",
     "acceptance": "not full preflight; no IPA acceptance or general performance-fix claim"
+  },
+  "latest_completed_native_results": {
+    "source": "c8903523e8831b24d78e87923ea966408dd5419d",
+    "push_run": 39151098686,
+    "pr_run": 39151102579,
+    "evidence": "Verification/Diagnostics/c890-completed-native-results.json",
+    "full_acceptance": false,
+    "ipa": null,
+    "unresolved": [
+      "native color service cold launch / blank palette",
+      "palette disappearance observation latency",
+      "overflow toolbar drag occasionally does not move",
+      "AX ink Redo observation and case caps",
+      "one iPhone native edge transition cancels",
+      "one iPad native Files fixture export prerequisite fails"
+    ]
   }
 }

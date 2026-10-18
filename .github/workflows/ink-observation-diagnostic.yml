@@ -1,0 +1,133 @@
+name: Tayya ink observation validation
+on:
+  push:
+    branches: ['diag/tayya-ink-observation']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ink-observation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [iPhone, iPad]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify unchanged application and original test contracts
+        run: python3 Tools/check_ink_observation_sources.py
+      - name: Select app toolchain and generate project
+        run: |
+          python3 Tools/select_app_xcode.py
+          brew install xcodegen
+          xcodegen generate
+      - name: Select and boot current simulator family
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          data=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','--json']))['devices']
+          devices=[(tuple(map(int,re.findall(r'\d+',runtime))), ('Pro Max' in d['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in d['name'] and '13' in d['name'])), d) for runtime,rows in data.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          devices.sort(key=lambda row:row[:2],reverse=True)
+          simulator=devices[0][2]['udid']
+          subprocess.run(['xcrun','simctl','boot',simulator],check=False)
+          subprocess.run(['xcrun','simctl','bootstatus',simulator,'-b'],check=True)
+          with open(os.environ['GITHUB_ENV'],'a') as out:out.write('SIMULATOR_ID='+simulator+'\n')
+          PY
+      - name: Seed the same native document-provider fixtures as full preflight
+        run: python3 Tools/seed_files_fixtures.py
+      - name: Observe both original ink cases after their historical ten-case prefix
+        run: |
+          set -o pipefail
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -only-testing:HashiyaTests -only-testing:HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF -only-testing:HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint -only-testing:HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF -only-testing:HashiyaUITests/LaunchTests/testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin -only-testing:HashiyaUITests/LaunchTests/testColdExternalPDFIntakeSurvivesFirstLaunchEntrance -only-testing:HashiyaUITests/LaunchTests/testColdExternalPDFIntakeWithReduceMotion -only-testing:HashiyaUITests/LaunchTests/testCreateNotebookFromLibrary -only-testing:HashiyaUITests/LaunchTests/testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar -only-testing:HashiyaUITests/LaunchTests/testDrawingToolDoesNotTurnPagesInDocumentOrSplit -only-testing:HashiyaUITests/LaunchTests/testExternalPDFIntakeDismissesAlreadyVisibleWelcome -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath Probe.xcresult CODE_SIGNING_ALLOWED=NO | tee probe-build.log
+      - name: Verify external fixture bytes after the unchanged import cases
+        if: always()
+        run: python3 Tools/seed_files_fixtures.py --verify
+      - name: Retain raw native result before log or attachment collection
+        if: always()
+        run: |
+          if [ -d Probe.xcresult ]; then
+            ditto -c -k --keepParent Probe.xcresult Probe.xcresult.zip
+            shasum -a 256 Probe.xcresult.zip > Probe.xcresult.sha256
+          fi
+      - name: Collect bounded native count and AX timing evidence regardless of result
+        if: always()
+        run: |
+          python3 - <<'PY_NATIVE'
+          import json, os, selectors, signal, subprocess, time
+          from pathlib import Path
+          output = Path('ProbeEvidence'); output.mkdir(exist_ok=True)
+          log = output / 'native-system.log'
+          started = time.monotonic()
+          predicate = '(process == "runningboardd" AND eventMessage CONTAINS "ColorPicker") OR (process == "Hashiya" AND eventMessage CONTAINS "ColorPicker") OR process == "ReportCrash" OR subsystem BEGINSWITH "com.apple.dt.xctest" OR (process == "Hashiya" AND (eventMessage BEGINSWITH "MarginCountTiming" OR eventMessage BEGINSWITH "InkRailRoute" OR eventMessage BEGINSWITH "DocumentNavigationBoundary" OR subsystem BEGINSWITH "com.apple.pencilkit" OR category == "EventDispatch" OR eventMessage BEGINSWITH "Captured accessibility snapshot data" OR eventMessage BEGINSWITH "Getting snapshot for" OR eventMessage BEGINSWITH "Fetching AX attributes" OR eventMessage BEGINSWITH "Received request to notify" OR eventMessage BEGINSWITH "Sending animations idle reply" OR eventMessage BEGINSWITH "Sending main run loop idle reply"))'
+          status = 'collected'
+          process = None
+          try:
+              with log.open('wb') as stream:
+                  process = subprocess.Popen(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log', 'show',
+                      '--last', '30m', '--style', 'compact', '--info', '--debug', '--predicate', predicate],
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+                  # Only this Python process owns the output file. Even a simulator child
+                  # outliving xcrun cannot append after pipe close and metadata capture.
+                  with selectors.DefaultSelector() as selector:
+                      selector.register(process.stdout, selectors.EVENT_READ)
+                      while True:
+                          remaining = 90 - (time.monotonic() - started)
+                          if remaining <= 0:
+                              status = 'timed-out-partial'; break
+                          events = selector.select(min(0.5, remaining))
+                          if not events: continue
+                          chunk = os.read(process.stdout.fileno(), 65536)
+                          if not chunk: break
+                          stream.write(chunk)
+          except Exception as error:
+              status = 'collection-error'
+              (output / 'collection-error.txt').write_text(type(error).__name__ + ': ' + str(error) + '\n')
+          finally:
+              if process is not None:
+                  try:
+                      if status == 'collected':
+                          try: process.wait(timeout=5)
+                          except subprocess.TimeoutExpired: status = 'pipe-eof-process-exit-timeout'
+                      try: os.killpg(process.pid, signal.SIGKILL)
+                      except ProcessLookupError: pass
+                      process.wait(timeout=5)
+                      if status == 'collected' and process.returncode:
+                          status = 'exit-' + str(process.returncode)
+                  except Exception as error:
+                      status = 'cleanup-error'
+                      (output / 'cleanup-error.txt').write_text(type(error).__name__ + ': ' + str(error) + '\n')
+                  finally:
+                      process.stdout.close()
+              # The with-block has closed the sole file writer before stat().
+              (output / 'collection.json').write_text(json.dumps({'source': os.environ['GITHUB_SHA'],
+                  'status': status, 'elapsed_seconds': time.monotonic() - started,
+                  'collection_timeout_seconds': 90, 'lookback_minutes': 30,
+                  'retained_bytes': log.stat().st_size if log.exists() else 0, 'post_collection_truncated': False,
+                  'writer_closed_before_stat': True,
+                  'note': 'All streamed bytes retained. Timeout/error means incomplete evidence; absence is not proof of no native failure.'}, indent=2) + '\n')
+          PY_NATIVE
+      - name: Export actual UI attachments independently
+        if: always()
+        run: |
+          if [ -d Probe.xcresult ]; then
+            xcrun xcresulttool export attachments --path Probe.xcresult --output-path ProbeScreenshots
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ink-observation-${{ matrix.family }}
+          path: |
+            probe-build.log
+            ProbeEvidence/
+            ProbeScreenshots/
+            Probe.xcresult.zip
+            Probe.xcresult.sha256
+          retention-days: 7

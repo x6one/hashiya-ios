@@ -1,0 +1,866 @@
+{
+  "recorded_at": "2026-10-18T20:43:12.527660+00:00",
+  "c890_source": "c8903523e8831b24d78e87923ea966408dd5419d",
+  "note": "Per-case results, including time-limit caps; restart aggregate summaries are not full-suite totals.",
+  "jobs": [
+    {
+      "id": 117744734772,
+      "cases": [
+        {
+          "name": "testActualDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 199.521
+        },
+        {
+          "name": "testActualDocumentPickerImportsPowerPoint",
+          "result": "passed",
+          "seconds": 78.8
+        },
+        {
+          "name": "testAppOwnedDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 67.941
+        },
+        {
+          "name": "testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin",
+          "result": "passed",
+          "seconds": 44.839
+        },
+        {
+          "name": "testColdExternalPDFIntakeSurvivesFirstLaunchEntrance",
+          "result": "passed",
+          "seconds": 26.556
+        },
+        {
+          "name": "testColdExternalPDFIntakeWithReduceMotion",
+          "result": "passed",
+          "seconds": 25.213
+        },
+        {
+          "name": "testCreateNotebookFromLibrary",
+          "result": "passed",
+          "seconds": 19.142
+        },
+        {
+          "name": "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar",
+          "result": "passed",
+          "seconds": 55.516
+        },
+        {
+          "name": "testDrawingToolDoesNotTurnPagesInDocumentOrSplit",
+          "result": "passed",
+          "seconds": 69.257
+        },
+        {
+          "name": "testExternalPDFIntakeDismissesAlreadyVisibleWelcome",
+          "result": "passed",
+          "seconds": 40.674
+        },
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "result": "failed",
+          "seconds": 261.559
+        },
+        {
+          "name": "testIndividualInkTargetsInDocumentAndCompactSplit",
+          "result": "failed",
+          "seconds": 79.268
+        },
+        {
+          "name": "testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls",
+          "result": "passed",
+          "seconds": 0.303
+        },
+        {
+          "name": "testLibraryLaunchAndDocumentOpen",
+          "result": "passed",
+          "seconds": 28.814
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentFit",
+          "result": "passed",
+          "seconds": 65.359
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentInkMode",
+          "result": "passed",
+          "seconds": 54.706
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextEditing",
+          "result": "passed",
+          "seconds": 52.536
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextFocus",
+          "result": "passed",
+          "seconds": 40.357
+        },
+        {
+          "name": "testMarginHandwritingMountsWithoutTextInteraction",
+          "result": "passed",
+          "seconds": 40.669
+        },
+        {
+          "name": "testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
+          "result": "passed",
+          "seconds": 90.7
+        },
+        {
+          "name": "testOfficePreviewAndEmbeddedMedia",
+          "result": "passed",
+          "seconds": 32.446
+        },
+        {
+          "name": "testPageJumpAndTextEditor",
+          "result": "passed",
+          "seconds": 51.342
+        },
+        {
+          "name": "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 42.011
+        },
+        {
+          "name": "testPaperStudioDarkVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 85.627
+        },
+        {
+          "name": "testPersistentLibraryDestinations",
+          "result": "passed",
+          "seconds": 24.462
+        },
+        {
+          "name": "testRecordingDoesNotOpenOrResizeMargins",
+          "result": "passed",
+          "seconds": 55.124
+        },
+        {
+          "name": "testTouchInkPersistsAfterRelaunch",
+          "result": "passed",
+          "seconds": 76.695
+        },
+        {
+          "name": "testVisibleSectionsTrashAndSplitNotes",
+          "result": "passed",
+          "seconds": 35.883
+        },
+        {
+          "name": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+          "result": "passed",
+          "seconds": 60.964
+        },
+        {
+          "name": "testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages",
+          "result": "passed",
+          "seconds": 36.452
+        }
+      ],
+      "explicit_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:966: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : failed - Ink toolbar drag must actually scroll fitMarginWidth; before=(431.3333333333333, 331.66666666666663, 44.0, 44.0), after=(431.3333333333333, 331.66666666666663, 44.0, 44.0), viewport=(62.0, 329.66666666666663, 367.3333333333333, 48.0)",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1096: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit] : failed - Native color picker must dismiss before testing ink actions"
+      ],
+      "case_caps": [
+        {
+          "name": "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+          "allowance_seconds": 240
+        },
+        {
+          "name": "testPaperStudioLightVisualCaptureJourney",
+          "allowance_seconds": 240
+        }
+      ],
+      "run": 39151098686,
+      "family": "iPhone",
+      "job_conclusion": "cancelled",
+      "unit_tests_passed": 67,
+      "maestro": "not run",
+      "ipa": "not produced"
+    },
+    {
+      "id": 117744734863,
+      "cases": [
+        {
+          "name": "testActualDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 101.101
+        },
+        {
+          "name": "testActualDocumentPickerImportsPowerPoint",
+          "result": "passed",
+          "seconds": 82.637
+        },
+        {
+          "name": "testAppOwnedDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 56.74
+        },
+        {
+          "name": "testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin",
+          "result": "passed",
+          "seconds": 34.489
+        },
+        {
+          "name": "testColdExternalPDFIntakeSurvivesFirstLaunchEntrance",
+          "result": "passed",
+          "seconds": 21.53
+        },
+        {
+          "name": "testColdExternalPDFIntakeWithReduceMotion",
+          "result": "passed",
+          "seconds": 24.072
+        },
+        {
+          "name": "testCreateNotebookFromLibrary",
+          "result": "passed",
+          "seconds": 15.987
+        },
+        {
+          "name": "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar",
+          "result": "passed",
+          "seconds": 66.192
+        },
+        {
+          "name": "testDrawingToolDoesNotTurnPagesInDocumentOrSplit",
+          "result": "passed",
+          "seconds": 46.937
+        },
+        {
+          "name": "testExternalPDFIntakeDismissesAlreadyVisibleWelcome",
+          "result": "passed",
+          "seconds": 27.661
+        },
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "result": "failed",
+          "seconds": 427.799
+        },
+        {
+          "name": "testIndividualInkTargetsInDocumentAndCompactSplit",
+          "result": "passed",
+          "seconds": 332.648
+        },
+        {
+          "name": "testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls",
+          "result": "passed",
+          "seconds": 0.253
+        },
+        {
+          "name": "testLibraryLaunchAndDocumentOpen",
+          "result": "passed",
+          "seconds": 20.109
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentFit",
+          "result": "passed",
+          "seconds": 66.973
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentInkMode",
+          "result": "passed",
+          "seconds": 38.502
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextEditing",
+          "result": "passed",
+          "seconds": 40.286
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextFocus",
+          "result": "passed",
+          "seconds": 57.819
+        },
+        {
+          "name": "testMarginHandwritingMountsWithoutTextInteraction",
+          "result": "passed",
+          "seconds": 60.852
+        },
+        {
+          "name": "testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
+          "result": "passed",
+          "seconds": 91.294
+        },
+        {
+          "name": "testOfficePreviewAndEmbeddedMedia",
+          "result": "passed",
+          "seconds": 26.489
+        },
+        {
+          "name": "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+          "result": "passed",
+          "seconds": 129.799
+        },
+        {
+          "name": "testPageJumpAndTextEditor",
+          "result": "passed",
+          "seconds": 31.643
+        },
+        {
+          "name": "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 31.182
+        },
+        {
+          "name": "testPaperStudioDarkVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 116.516
+        },
+        {
+          "name": "testPaperStudioLightVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 110.689
+        },
+        {
+          "name": "testPersistentLibraryDestinations",
+          "result": "passed",
+          "seconds": 19.496
+        },
+        {
+          "name": "testRecordingDoesNotOpenOrResizeMargins",
+          "result": "passed",
+          "seconds": 30.085
+        },
+        {
+          "name": "testTouchInkPersistsAfterRelaunch",
+          "result": "passed",
+          "seconds": 32.21
+        },
+        {
+          "name": "testVisibleSectionsTrashAndSplitNotes",
+          "result": "passed",
+          "seconds": 18.05
+        },
+        {
+          "name": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+          "result": "passed",
+          "seconds": 36.488
+        },
+        {
+          "name": "testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages",
+          "result": "passed",
+          "seconds": 35.771
+        }
+      ],
+      "explicit_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1165: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Redo edge tap must restore the actual stroke",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1326: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : Failed to terminate com.ahmadalawi.hashiya:31596: Failed to terminate com.ahmadalawi.hashiya:0"
+      ],
+      "case_caps": [
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "allowance_seconds": 360
+        }
+      ],
+      "run": 39151098686,
+      "family": "iPad",
+      "job_conclusion": "failure",
+      "unit_tests_passed": 67,
+      "maestro": "not run",
+      "ipa": "not produced"
+    },
+    {
+      "id": 117744746755,
+      "cases": [
+        {
+          "name": "testActualDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 116.462
+        },
+        {
+          "name": "testActualDocumentPickerImportsPowerPoint",
+          "result": "failed",
+          "seconds": 88.882
+        },
+        {
+          "name": "testAppOwnedDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 64.904
+        },
+        {
+          "name": "testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin",
+          "result": "passed",
+          "seconds": 24.21
+        },
+        {
+          "name": "testColdExternalPDFIntakeSurvivesFirstLaunchEntrance",
+          "result": "passed",
+          "seconds": 26.519
+        },
+        {
+          "name": "testColdExternalPDFIntakeWithReduceMotion",
+          "result": "passed",
+          "seconds": 25.686
+        },
+        {
+          "name": "testCreateNotebookFromLibrary",
+          "result": "passed",
+          "seconds": 19.108
+        },
+        {
+          "name": "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar",
+          "result": "passed",
+          "seconds": 64.778
+        },
+        {
+          "name": "testDrawingToolDoesNotTurnPagesInDocumentOrSplit",
+          "result": "passed",
+          "seconds": 51.608
+        },
+        {
+          "name": "testExternalPDFIntakeDismissesAlreadyVisibleWelcome",
+          "result": "passed",
+          "seconds": 36.572
+        },
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "result": "passed",
+          "seconds": 357.999
+        },
+        {
+          "name": "testIndividualInkTargetsInDocumentAndCompactSplit",
+          "result": "passed",
+          "seconds": 356.078
+        },
+        {
+          "name": "testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls",
+          "result": "passed",
+          "seconds": 1.399
+        },
+        {
+          "name": "testLibraryLaunchAndDocumentOpen",
+          "result": "passed",
+          "seconds": 21.447
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentFit",
+          "result": "passed",
+          "seconds": 86.683
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentInkMode",
+          "result": "passed",
+          "seconds": 58.243
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextEditing",
+          "result": "passed",
+          "seconds": 55.156
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextFocus",
+          "result": "passed",
+          "seconds": 50.13
+        },
+        {
+          "name": "testMarginHandwritingMountsWithoutTextInteraction",
+          "result": "passed",
+          "seconds": 45.889
+        },
+        {
+          "name": "testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
+          "result": "passed",
+          "seconds": 79.854
+        },
+        {
+          "name": "testOfficePreviewAndEmbeddedMedia",
+          "result": "passed",
+          "seconds": 36.937
+        },
+        {
+          "name": "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+          "result": "passed",
+          "seconds": 135.589
+        },
+        {
+          "name": "testPageJumpAndTextEditor",
+          "result": "passed",
+          "seconds": 29.47
+        },
+        {
+          "name": "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 32.004
+        },
+        {
+          "name": "testPaperStudioDarkVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 113.297
+        },
+        {
+          "name": "testPaperStudioLightVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 156.266
+        },
+        {
+          "name": "testPersistentLibraryDestinations",
+          "result": "passed",
+          "seconds": 23.178
+        },
+        {
+          "name": "testRecordingDoesNotOpenOrResizeMargins",
+          "result": "passed",
+          "seconds": 35.342
+        },
+        {
+          "name": "testTouchInkPersistsAfterRelaunch",
+          "result": "passed",
+          "seconds": 38.809
+        },
+        {
+          "name": "testVisibleSectionsTrashAndSplitNotes",
+          "result": "passed",
+          "seconds": 24.505
+        },
+        {
+          "name": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+          "result": "passed",
+          "seconds": 57.505
+        },
+        {
+          "name": "testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages",
+          "result": "passed",
+          "seconds": 34.3
+        }
+      ],
+      "explicit_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:184: error: -[HashiyaUITests.LaunchTests testActualDocumentPickerImportsPowerPoint] : failed - Files export did not complete: Attributes: Application, 0x102366b10, pid: 35979, label: '\u0637\u064e\u064a\u0651\u0629'"
+      ],
+      "case_caps": [],
+      "run": 39151102579,
+      "family": "iPad",
+      "job_conclusion": "cancelled",
+      "unit_tests_passed": 67,
+      "maestro": "not run",
+      "ipa": "not produced"
+    },
+    {
+      "id": 117751054452,
+      "cases": [
+        {
+          "name": "testIndividualInkTargetsInDocumentAndCompactSplit",
+          "result": "failed",
+          "seconds": 190.877
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentFit",
+          "result": "failed",
+          "seconds": 91.969
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentInkMode",
+          "result": "passed",
+          "seconds": 49.549
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextEditing",
+          "result": "passed",
+          "seconds": 70.073
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextFocus",
+          "result": "failed",
+          "seconds": 52.529
+        },
+        {
+          "name": "testMarginHandwritingMountsWithoutTextInteraction",
+          "result": "failed",
+          "seconds": 71.447
+        },
+        {
+          "name": "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+          "result": "passed",
+          "seconds": 130.248
+        },
+        {
+          "name": "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 38.309
+        },
+        {
+          "name": "testPaperStudioDarkVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 173.431
+        },
+        {
+          "name": "testPaperStudioLightVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 151.248
+        }
+      ],
+      "explicit_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1159: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Undo edge tap must remove the actual stroke",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1370: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit] : failed - Selecting handwriting must update the retained model and replace the native text editor before rotation: Attributes: Application, 0x11350a030, pid: 31865, label: '\u0637\u064e\u064a\u0651\u0629'",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1309: error: -[HashiyaUITests.LaunchTests testMarginHandwritingMountsAfterDocumentFit] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Handwriting must mount without requiring earlier text editing",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1309: error: -[HashiyaUITests.LaunchTests testMarginHandwritingMountsAfterTextFocus] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Handwriting must mount without requiring earlier text editing",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1309: error: -[HashiyaUITests.LaunchTests testMarginHandwritingMountsWithoutTextInteraction] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Handwriting must mount without requiring earlier text editing"
+      ],
+      "case_caps": [
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "allowance_seconds": 360
+        }
+      ],
+      "run": 39153241035,
+      "family": "iPad",
+      "job_conclusion": "failure",
+      "unit_tests_passed": 67,
+      "maestro": "not run",
+      "ipa": "not produced"
+    },
+    {
+      "id": 117753891626,
+      "cases": [
+        {
+          "name": "testActualDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 87.554
+        },
+        {
+          "name": "testActualDocumentPickerImportsPowerPoint",
+          "result": "passed",
+          "seconds": 83.778
+        },
+        {
+          "name": "testAppOwnedDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 61.276
+        },
+        {
+          "name": "testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin",
+          "result": "passed",
+          "seconds": 43.066
+        },
+        {
+          "name": "testColdExternalPDFIntakeSurvivesFirstLaunchEntrance",
+          "result": "passed",
+          "seconds": 52.36
+        },
+        {
+          "name": "testColdExternalPDFIntakeWithReduceMotion",
+          "result": "passed",
+          "seconds": 31.013
+        },
+        {
+          "name": "testCreateNotebookFromLibrary",
+          "result": "passed",
+          "seconds": 15.25
+        },
+        {
+          "name": "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar",
+          "result": "passed",
+          "seconds": 47.285
+        },
+        {
+          "name": "testDrawingToolDoesNotTurnPagesInDocumentOrSplit",
+          "result": "passed",
+          "seconds": 47.417
+        },
+        {
+          "name": "testExternalPDFIntakeDismissesAlreadyVisibleWelcome",
+          "result": "passed",
+          "seconds": 50.11
+        },
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "result": "failed",
+          "seconds": 197.784
+        },
+        {
+          "name": "testIndividualInkTargetsInDocumentAndCompactSplit",
+          "result": "passed",
+          "seconds": 301.648
+        }
+      ],
+      "explicit_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1096: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : failed - Native color picker must dismiss before testing ink actions"
+      ],
+      "case_caps": [],
+      "run": 39154192844,
+      "family": "iPad",
+      "job_conclusion": "failure",
+      "unit_tests_passed": 67,
+      "maestro": "not run",
+      "ipa": "not produced"
+    },
+    {
+      "id": 117744746706,
+      "cases": [
+        {
+          "name": "testActualDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 63.324
+        },
+        {
+          "name": "testActualDocumentPickerImportsPowerPoint",
+          "result": "passed",
+          "seconds": 60.129
+        },
+        {
+          "name": "testAppOwnedDocumentPickerImportsPDF",
+          "result": "passed",
+          "seconds": 55.031
+        },
+        {
+          "name": "testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin",
+          "result": "passed",
+          "seconds": 22.589
+        },
+        {
+          "name": "testColdExternalPDFIntakeSurvivesFirstLaunchEntrance",
+          "result": "passed",
+          "seconds": 19.303
+        },
+        {
+          "name": "testColdExternalPDFIntakeWithReduceMotion",
+          "result": "passed",
+          "seconds": 19.665
+        },
+        {
+          "name": "testCreateNotebookFromLibrary",
+          "result": "passed",
+          "seconds": 14.163
+        },
+        {
+          "name": "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar",
+          "result": "passed",
+          "seconds": 50.979
+        },
+        {
+          "name": "testDrawingToolDoesNotTurnPagesInDocumentOrSplit",
+          "result": "passed",
+          "seconds": 42.612
+        },
+        {
+          "name": "testExternalPDFIntakeDismissesAlreadyVisibleWelcome",
+          "result": "passed",
+          "seconds": 30.937
+        },
+        {
+          "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+          "result": "failed",
+          "seconds": 60.199
+        },
+        {
+          "name": "testIndividualInkTargetsInDocumentAndCompactSplit",
+          "result": "passed",
+          "seconds": 202.64
+        },
+        {
+          "name": "testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls",
+          "result": "passed",
+          "seconds": 0.211
+        },
+        {
+          "name": "testLibraryLaunchAndDocumentOpen",
+          "result": "passed",
+          "seconds": 19.094
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentFit",
+          "result": "passed",
+          "seconds": 38.466
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterDocumentInkMode",
+          "result": "passed",
+          "seconds": 30.409
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextEditing",
+          "result": "passed",
+          "seconds": 26.11
+        },
+        {
+          "name": "testMarginHandwritingMountsAfterTextFocus",
+          "result": "passed",
+          "seconds": 27.318
+        },
+        {
+          "name": "testMarginHandwritingMountsWithoutTextInteraction",
+          "result": "passed",
+          "seconds": 35.814
+        },
+        {
+          "name": "testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
+          "result": "passed",
+          "seconds": 62.861
+        },
+        {
+          "name": "testOfficePreviewAndEmbeddedMedia",
+          "result": "passed",
+          "seconds": 28.126
+        },
+        {
+          "name": "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+          "result": "passed",
+          "seconds": 94.71
+        },
+        {
+          "name": "testPageJumpAndTextEditor",
+          "result": "passed",
+          "seconds": 29.008
+        },
+        {
+          "name": "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 27.252
+        },
+        {
+          "name": "testPaperStudioDarkVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 66.208
+        },
+        {
+          "name": "testPaperStudioLightVisualCaptureJourney",
+          "result": "passed",
+          "seconds": 54.765
+        },
+        {
+          "name": "testPersistentLibraryDestinations",
+          "result": "passed",
+          "seconds": 16.324
+        },
+        {
+          "name": "testRecordingDoesNotOpenOrResizeMargins",
+          "result": "passed",
+          "seconds": 33.378
+        },
+        {
+          "name": "testTouchInkPersistsAfterRelaunch",
+          "result": "passed",
+          "seconds": 39.241
+        },
+        {
+          "name": "testVisibleSectionsTrashAndSplitNotes",
+          "result": "passed",
+          "seconds": 22.461
+        },
+        {
+          "name": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+          "result": "failed",
+          "seconds": 80.714
+        },
+        {
+          "name": "testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages",
+          "result": "passed",
+          "seconds": 23.854
+        }
+      ],
+      "case_caps": [],
+      "explicit_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1049: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : failed - Color target must present the native color picker: Attributes: Application, 0x103177030, pid: 29059, label: '\u0637\u064e\u064a\u0651\u0629'",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1424: error: -[HashiyaUITests.LaunchTests testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening] : XCTAssertTrue failed - Native leading-edge Back must remain usable",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:305: error: -[HashiyaUITests.LaunchTests testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening] : XCTAssertTrue failed",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:322: error: -[HashiyaUITests.LaunchTests testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening] : failed - Library document was not reachable: \u0627\u0628\u062f\u0623 \u0647\u0646\u0627 \u2014 \u062f\u0644\u064a\u0644 \u0637\u064e\u064a\u0651\u0629",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1425: error: -[HashiyaUITests.LaunchTests testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening] : Failed to tap \"openNotebook-\u0627\u0628\u062f\u0623 \u0647\u0646\u0627 \u2014 \u062f\u0644\u064a\u0644 \u0637\u064e\u064a\u0651\u0629\" Button: No matches found for first query match sequence: `Descendants matching type Button` -> `Elements matching predicate '\"openNotebook-\u0627\u0628\u062f\u0623 \u0647\u0646\u0627 \u2014 \u062f\u0644\u064a\u0644 \u0637\u064e\u064a\u0651\u0629\" IN identifiers'`, given input App element pid: 75495"
+      ],
+      "run": 39151102579,
+      "family": "iPhone",
+      "job_conclusion": "failure",
+      "unit_tests_passed": 67,
+      "maestro": "not run",
+      "ipa": "not produced"
+    }
+  ]
+}

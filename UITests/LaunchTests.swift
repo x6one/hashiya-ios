@@ -1091,7 +1091,7 @@ final class LaunchTests: XCTestCase {
         close.tap()
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             !picker.exists && !close.exists
-        }, object: picker)
+        }, object: nil)
         guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
             XCTFail("Native color picker must dismiss before testing ink actions"); return false
         }
@@ -1117,7 +1117,7 @@ final class LaunchTests: XCTestCase {
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (Int(count.value as? String ?? "") ?? 0) > before
-        }, object: count)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Targets must leave a usable native writing surface")
         // AX geometry reads can consume the entire visibility deadline. The
         // gesture does not change geometry; verify both frames after polling.
@@ -1155,13 +1155,13 @@ final class LaunchTests: XCTestCase {
         guard tapTarget("inkUndo") else { return false }
         let undone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (Int(count.value as? String ?? "") ?? -1) == before
-        }, object: count)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [undone], timeout: 5), .completed, "Undo edge tap must remove the actual stroke")
         recordState("Undo", expected: String(before))
         guard tapTarget("inkRedo") else { return false }
         let redone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             count.value as? String == savedCount
-        }, object: count)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [redone], timeout: 5), .completed, "Redo edge tap must restore the actual stroke")
         recordState("Redo", expected: savedCount)
         let frame = canvas.frame, page = app.textFields["pageNumber"].value as? String

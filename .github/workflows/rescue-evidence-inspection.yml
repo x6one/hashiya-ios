@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - family: iPhone
-            artifact: '12154996337'
-            sha256: 60bcdf38a73923d55c815c952f238485f410afadb8ca42b159f210a84efe5a5e
+          - family: iPad
+            artifact: '12155431299'
+            sha256: 8e6c4120d2e2ca2f9abfcc2fc9ae7b85c4431d76f94df73560f342aea0e16235
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -29,5 +29,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          PREVIEW_PATH: TestResults-attachments/D387E31C-7FE5-4B54-BF50-253C17A547EA.png
         run: python3 Tools/inspect_rescue_artifact.py

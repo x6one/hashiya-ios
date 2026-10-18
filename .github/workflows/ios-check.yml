@@ -1,4 +1,4 @@
-name: Tayya guide PDF font diagnostic
+name: Tayya targeted stability qualification
 on:
   push:
     branches: ['diag/tayya-rescue-font']
@@ -10,9 +10,11 @@ concurrency:
 jobs:
   fonts:
     runs-on: macos-15
-    timeout-minutes: 15
-    env:
-      DEVICE_FAMILY: iPhone
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [iPhone, iPad]
     steps:
       - uses: actions/checkout@v4
       - name: Select current app toolchain
@@ -23,7 +25,7 @@ jobs:
           xcodegen generate
       - name: Select available simulator
         env:
-          DEVICE_FAMILY: iPhone
+          DEVICE_FAMILY: ${{ matrix.family }}
         run: |
           python3 - <<'PY'
           import json, os, re, subprocess
@@ -40,22 +42,31 @@ jobs:
           PY
       - name: Mark native diagnostic session
         run: touch "$RUNNER_TEMP/tayya-native-start"
-      - name: Build and test
+      - name: Compile and run all native unit tests
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
-          xcodebuild test -only-testing:HashiyaTests/DemoLibraryTests -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          python3 Tools/seed_files_fixtures.py
+          xcodebuild test -only-testing:HashiyaTests -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath UnitResults.xcresult CODE_SIGNING_ALLOWED=NO | tee unit-build.log
+      - name: Qualify original ink and navigation regressions
+        run: |
+          set -o pipefail
+          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Export exact generated guide and native result
         if: always()
         run: |
           mkdir -p Evidence
-          xcrun xcresulttool get test-results summary --path TestResults.xcresult > Evidence/summary.json
-          xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Evidence/attachments
-          cp build.log Evidence/
+          for bundle in UnitResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              xcrun xcresulttool get test-results summary --path "$bundle.xcresult" > "Evidence/$bundle-summary.json"
+              xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "Evidence/$bundle-attachments"
+            fi
+          done
+          cp *build.log Evidence/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rescue-guide-fonts
+          name: rescue-font-qualification-${{ matrix.family }}
           path: Evidence/
           retention-days: 7

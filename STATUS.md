@@ -1,3 +1,9 @@
+## 2026-10-18 — Candidate launch checkpoint; iPad observation experiment not adopted
+
+- Separate iPad comparison25e15f7/run39127831209 completed:67 units and8/9 selected UI pass. Both original ink cases pass341.132/272.106s, four direct mount cases pass and both real light/dark visual/audio journeys pass. AfterTextFocus fails the unchanged5-second joint-mount waiter62.392s. It is not a completed performance repair; do not copy its five nil-object substitutions into the candidate. Evidence metadata is in Verification/Diagnostics/ax-observation-result.json; artifact digest is metadata-only until independently downloaded.
+- Candidate product/test change is preserved as f50d54b5d80b3d796a2aeb80641ac6a4f53c9299. This checkpoint adds only the completed diagnostic result and refreshes status before normal full development CI. Retain the public DocumentScreen navigation boundary, the separate Back/edge/reopening regression, and the unchanged32-case full workflow. Native compilation and GREEN remain pending.
+- Remaining independent issue: whole-app joint AX snapshots can exhaust the5-second observation after text focus; later correct state does not prove all conditions held before that deadline. Inspect actual samples/native timings, without extending deadlines or removing conditions. The navigation fix does not claim to solve this observation issue.
+
 ## 2026-10-18 — Native whole-content pop identified; workspace boundary candidate awaits native validation
 
 - Controlled source79200f0/run39127359591/job117675188379:67 units and the exact10 preceding UI cases pass in the actual original order; unchanged Accessibility ink case fails208.044s at Fit Width pan. External fixture bytes pass. Artifact12136664530 and inner xcresult independently verified; see Verification/Diagnostics/ink-route-prefix-result.json and events.

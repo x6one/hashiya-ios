@@ -47,12 +47,14 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             summary = json.loads(archive.read(name))
             print("RESCUE_SUMMARY " + json.dumps({
                 "file": name,
+                "devices": summary.get("devicesAndConfigurations"),
                 **{key: summary.get(key) for key in ("result", "passedTests", "failedTests", "totalTestCount")},
                 "failures": [{"test": item.get("testName"), "failure": item.get("failureText", "")[:500]}
                     for item in summary.get("testFailures", [])],
             }))
         elif name.endswith("gesture-picker.log"):
             lines = archive.read(name).decode(errors="replace").splitlines()
+            print("RESCUE_NATIVE_HEADER " + json.dumps({"lines": len(lines), "first": lines[:4]}))
             selected = [line for line in lines if any(term in line for term in
                 ("TayyaRescueTransition", "DocumentNavigationBoundary", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
             print("RESCUE_NATIVE_BEGIN")
@@ -67,6 +69,12 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             selected = [line for line in lines if any(term in line for term in
                 ("Test Case '-[", "Executed ", ": error:", "TayyaGuidePDFFonts=", "Start Test at", "Test Suite '", 'Tap "inkColor"'))]
             print("RESCUE_TEST_LOG " + name)
+            print("RESCUE_BUILD_INVOCATION " + "\n".join(lines[:8]))
+            for index, line in enumerate(lines):
+                if "background assertion" in line.lower():
+                    print("RESCUE_ASSERTION_CONTEXT_BEGIN")
+                    print("\n".join(lines[max(0, index-18):index+10])[:16000])
+                    print("RESCUE_ASSERTION_CONTEXT_END")
             print("\n".join(line[:600] for line in selected[-100:]))
         elif name.endswith("manifest.json"):
             manifest = json.loads(archive.read(name))

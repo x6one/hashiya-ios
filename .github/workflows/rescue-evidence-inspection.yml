@@ -17,9 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - family: iPhone
-            artifact: '12153488928'
-            sha256: 943b66bdfb15aedbf728e7433571000b3c3b1c9c6f62dc24cee964e454468743
           - family: iPad
             artifact: '12153419552'
             sha256: c57425256b14edf85db87272d4140cd4e3a2627fa5dca4aca2f8eb94883fa2af

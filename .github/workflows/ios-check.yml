@@ -239,58 +239,14 @@ jobs:
           retention-days: 7
 
   device-package:
-    # A device package is a candidate only after both simulator suites pass.
+    # Only the exact-head push can satisfy the native Office preflight guard.
+    # This reusable job starts after XCTest, XCUITest, Maestro and exports pass.
+    if: github.event_name != 'pull_request'
     needs: test
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - name: Select current app toolchain
-        run: python3 Tools/select_app_xcode.py
-      - name: Generate project
-        run: |
-          brew install xcodegen
-          xcodegen generate
-      - name: Build unsigned device app
-        run: |
-          set -o pipefail
-          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath DeviceBuild CODE_SIGNING_ALLOWED=NO build | tee device-build.log
-      - name: Package for external signing
-        run: |
-          mkdir -p Payload
-          cp -R DeviceBuild/Build/Products/Release-iphoneos/Hashiya.app Payload/
-          zip -qry Hashiya-unsigned.ipa Payload
-          shasum -a 256 Hashiya-unsigned.ipa > Hashiya-unsigned.sha256
-          python3 - <<'PY'
-          import json, os, plistlib, subprocess
-          from pathlib import Path
-          app = Path('Payload/Hashiya.app')
-          info = plistlib.loads((app / 'Info.plist').read_bytes())
-          executable = app / info['CFBundleExecutable']
-          subprocess.run(['xcrun', 'lipo', str(executable), '-verify_arch', 'arm64'], check=True)
-          result = subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], capture_output=True, text=True)
-          report = {
-              'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
-              'version': info['CFBundleShortVersionString'], 'build': info['CFBundleVersion'],
-              'bundle_identifier': info['CFBundleIdentifier'], 'device_families': info['UIDeviceFamily'],
-              'architecture': 'arm64', 'code_signing_allowed': False,
-              'contains_provisioning_profile': (app / 'embedded.mobileprovision').exists(),
-              'codesign_verify_exit': result.returncode,
-              'codesign_diagnostic': (result.stdout + result.stderr).strip(),
-              'installation': 'Requires external signing with a valid certificate and provisioning profile. Not directly installable.'
-          }
-          Path('Hashiya-signing.json').write_text(json.dumps(report, indent=2) + '\n')
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Hashiya-device-unsigned
-          path: |
-            Hashiya-unsigned.ipa
-            Hashiya-unsigned.sha256
-            Hashiya-signing.json
-          retention-days: 14
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: device-build-log
-          path: device-build.log
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/office-engine-spike.yml
+    with:
+      sign_archive: false
+      publish_to_apple: false

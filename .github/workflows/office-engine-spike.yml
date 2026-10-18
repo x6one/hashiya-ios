@@ -12,9 +12,16 @@ on:
         type: boolean
         required: true
         default: false
-  push:
-    branches: [main, 'work/native-link-probe']
-    paths: ['App/**', 'Tests/**', 'UITests/**', 'Tools/seed_files_fixtures.py', '.github/workflows/ios-check.yml', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'Tools/select_app_xcode.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
+  workflow_call:
+    inputs:
+      sign_archive:
+        type: boolean
+        required: false
+        default: false
+      publish_to_apple:
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
   actions: read

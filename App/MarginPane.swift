@@ -104,6 +104,10 @@ private struct MarginPaneContent: View {
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)
+#if DEBUG
+                        MarginCountTiming.record("store-save-returned", canvas: canvasControl.canvas,
+                                                 pageID: page.id, detail: "saved=\(store.saved); inputCount=\(ink.strokes.count)")
+#endif
                         if store.saved { inkSaved(ink.strokes.count, page.id) }
                     }, failed: { store.error = $0 })
                 } else {

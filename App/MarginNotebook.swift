@@ -1,6 +1,147 @@
 import SwiftUI
 import PencilKit
 
+#if DEBUG
+// Bounded event timing only: no polling, layer traversal, or drawing mutation.
+@MainActor enum MarginCountTiming {
+    private static var events = 0
+    static func record(_ event: String, canvas: PKCanvasView?, pageID: UUID? = nil, detail: String = "") {
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport"), events < 256 else { return }
+        events += 1
+        let coordinator = canvas?.delegate as? MarginNotebook.Coordinator
+        let owner = pageID ?? coordinator?.pageID
+        let identity = canvas.map { String(describing: ObjectIdentifier($0)) } ?? "missing"
+        NSLog("MarginCountTiming %@", "seq=\(events)/256; event=\(event); uptime=\(ProcessInfo.processInfo.systemUptime); main=\(Thread.isMainThread); canvas=\(identity); page=\(owner?.uuidString ?? "missing"); canvasPage=\(coordinator?.pageID?.uuidString ?? "missing"); count=\(canvas?.drawing.strokes.count ?? -1); \(detail)")
+    }
+}
+
+// Read-only observer: never changes recognizer dependencies, delegates or enabled state.
+private struct InkRailObservation: UIViewRepresentable {
+    func makeUIView(context: Context) -> Anchor { Anchor() }
+    func updateUIView(_ view: Anchor, context: Context) { view.connect() }
+    static func dismantleUIView(_ view: Anchor, coordinator: ()) { view.stop() }
+
+    final class Anchor: UIView {
+        private final class Reference {
+            weak var gesture: UIGestureRecognizer?
+            init(_ gesture: UIGestureRecognizer) { self.gesture = gesture }
+        }
+        private static var events = 0
+        private var observed: [Reference] = []
+        private weak var scroll: UIScrollView?
+        private weak var navigation: UINavigationController?
+        private weak var screen: UIViewController?
+        private var lastConfiguration = ""
+        private var changedSamples: [ObjectIdentifier: Int] = [:]
+        private var stopped = false
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = .clear
+            isUserInteractionEnabled = false
+            isAccessibilityElement = false
+            accessibilityElementsHidden = true
+        }
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window == nil { disconnect() } else { connect() }
+        }
+        override func layoutSubviews() { super.layoutSubviews(); connect() }
+
+        private func identity(_ value: AnyObject?) -> String {
+            value.map { String(describing: ObjectIdentifier($0)) } ?? "missing"
+        }
+        private func gestureState(_ gesture: UIGestureRecognizer?) -> String {
+            guard let gesture else { return "missing" }
+            let edges = (gesture as? UIScreenEdgePanGestureRecognizer).map { String($0.edges.rawValue) } ?? "not-edge-type"
+            return "\(type(of: gesture)) id=\(identity(gesture)) enabled=\(gesture.isEnabled) state=\(gesture.state.rawValue) edges=\(edges)"
+        }
+        private func state() -> String {
+            let geometry = scroll.map {
+                "scroll=\(identity($0)) frame=\($0.convert($0.bounds, to: window)) content=\($0.contentSize) offset=\($0.contentOffset) inset=\($0.adjustedContentInset) enabled=\($0.isScrollEnabled) bounces=\($0.bounces)"
+            } ?? "scroll=missing"
+            let top = navigation?.topViewController
+            return "anchor=\(identity(self)); window=\(window != nil); \(geometry); nav=\(identity(navigation)); navDirection=\(navigation?.view.effectiveUserInterfaceLayoutDirection.rawValue ?? -1); stack=\(navigation?.viewControllers.count ?? -1); top=\(identity(top)); owner=\(identity(screen)); topIsOwner=\(screen != nil && top === screen)"
+        }
+        private func record(_ message: String) {
+            guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport"), Self.events < 256 else { return }
+            Self.events += 1
+            let prefix = "seq=\(Self.events)/256 uptime=\(ProcessInfo.processInfo.systemUptime) main=\(Thread.isMainThread)"
+            // Keep gesture identity and geometry in separate bounded records;
+            // native NSLog can truncate a combined long description.
+            NSLog("InkRailRoute %@; %@", prefix, message)
+            NSLog("InkRailRouteState %@; %@", prefix, state())
+        }
+        private func disconnect() {
+            if !observed.isEmpty { record("disconnect") }
+            for reference in observed { reference.gesture?.removeTarget(self, action: #selector(changed(_:))) }
+            observed.removeAll()
+            changedSamples.removeAll()
+            scroll = nil; navigation = nil; screen = nil
+            lastConfiguration = ""
+        }
+        func stop() { stopped = true; disconnect() }
+
+        func connect() {
+            guard !stopped, window != nil,
+                  ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
+            var ancestor = superview
+            while let view = ancestor, !(view is UIScrollView) { ancestor = view.superview }
+            let foundScroll = ancestor as? UIScrollView
+            var responder: UIResponder? = next
+            var foundNavigation: UINavigationController?
+            while let current = responder {
+                if let controller = current as? UIViewController, let nav = controller.navigationController {
+                    foundNavigation = nav; break
+                }
+                responder = current.next
+            }
+            var owner: UIViewController? = nil
+            if let nav = foundNavigation {
+                var current: UIResponder? = next
+                while let value = current {
+                    if let controller = value as? UIViewController,
+                       nav.viewControllers.contains(where: { $0 === controller }) { owner = controller; break }
+                    current = value.next
+                }
+            }
+            var gestures: [UIGestureRecognizer] = []
+            if let pan = foundScroll?.panGestureRecognizer { gestures.append(pan) }
+            if let edge = foundNavigation?.interactivePopGestureRecognizer { gestures.append(edge) }
+            if #available(iOS 26.0, *), let content = foundNavigation?.interactiveContentPopGestureRecognizer {
+                gestures.append(content)
+            }
+            let oldIDs = Set(observed.compactMap { $0.gesture.map(ObjectIdentifier.init) })
+            let newIDs = Set(gestures.map(ObjectIdentifier.init))
+            if oldIDs != newIDs {
+                disconnect()
+                for gesture in gestures { gesture.addTarget(self, action: #selector(changed(_:))) }
+                observed = gestures.map(Reference.init)
+            }
+            scroll = foundScroll; navigation = foundNavigation; screen = owner
+            // Offset and gesture state are callback samples, not layout log triggers.
+            let configuration = "scroll=\(identity(foundScroll)); frame=\(foundScroll.map { $0.convert($0.bounds, to: window) } ?? .null); content=\(foundScroll?.contentSize ?? .zero); inset=\(foundScroll?.adjustedContentInset ?? .zero); enabled=\(foundScroll?.isScrollEnabled ?? false); bounces=\(foundScroll?.bounces ?? false); nav=\(identity(foundNavigation)); top=\(identity(foundNavigation?.topViewController)); owner=\(identity(owner)); gestures=\(gestures.map { "\(identity($0)) enabled=\($0.isEnabled)" })"
+            if configuration != lastConfiguration {
+                lastConfiguration = configuration
+                record("connection; pan=\(gestureState(foundScroll?.panGestureRecognizer)); observed=\(gestures.map { gestureState($0) })")
+            }
+        }
+        @objc private func changed(_ gesture: UIGestureRecognizer) {
+            guard !stopped else { return }
+            let id = ObjectIdentifier(gesture)
+            if gesture.state == .began { changedSamples[id] = 0 }
+            if gesture.state == .changed {
+                let samples = changedSamples[id, default: 0]
+                guard samples < 12 else { return }
+                changedSamples[id] = samples + 1
+            }
+            record("gesture=\(gestureState(gesture)); location=\(gesture.location(in: window))")
+        }
+    }
+}
+#endif
+
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
     // Native UI diagnostics are available only to the dedicated regression test.
@@ -105,6 +246,11 @@ final class MarginCanvas: PKCanvasView {
 @MainActor final class MarginCanvasControl: ObservableObject {
     weak var canvas: MarginCanvas?
     func action(_ name: String) {
+#if DEBUG
+        let traceCountAction = name == "undo" || name == "redo"
+        if traceCountAction { MarginCountTiming.record("action-\(name)-begin", canvas: canvas) }
+        defer { if traceCountAction { MarginCountTiming.record("action-\(name)-end", canvas: canvas) } }
+#endif
         switch name {
         case "fit": canvas?.fitSheet()
         case "fitWidth": canvas?.fitWidth()
@@ -168,6 +314,13 @@ struct InkToolbar: View {
                 }
             }.buttonStyle(.plain).padding(.horizontal, 4)
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
+#if DEBUG
+                .background {
+                    if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+                        InkRailObservation().allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
+#endif
         }
         // This is a spatial tool rail, not prose. Keep its scroll axis and
         // bounds left-to-right even inside the Arabic/right-to-left workspace:
@@ -356,14 +509,29 @@ struct MarginNotebook: UIViewRepresentable {
             appliedBrush = brush; appliedColor = color; appliedWidth = width
         }
         private func persist(_ canvas: PKCanvasView) {
+#if DEBUG
+            MarginCountTiming.record("persist-begin", canvas: canvas, pageID: pageID)
+#endif
             let data = canvas.drawing.dataRepresentation()
+#if DEBUG
+            if data == lastInk {
+                MarginCountTiming.record("persist-unchanged", canvas: canvas, pageID: pageID)
+            }
+#endif
             guard data != lastInk else { return }
             lastInk = data
             saved(canvas.drawing)
+#if DEBUG
+            // Callback return alone is not proof that the store wrote successfully.
+            MarginCountTiming.record("persist-callback-returned", canvas: canvas, pageID: pageID)
+#endif
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             guard !loading else { return }
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
+#if DEBUG
+            if !isStroking { MarginCountTiming.record("drawing-did-change", canvas: canvas, pageID: pageID) }
+#endif
             if isStroking {
                 // Do not serialize and synchronously write every PencilKit frame.
                 hasUncommittedStroke = true
@@ -377,6 +545,10 @@ struct MarginNotebook: UIViewRepresentable {
         }
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
             isStroking = false
+#if DEBUG
+            MarginCountTiming.record("tool-ended", canvas: canvasView, pageID: pageID,
+                                     detail: "uncommitted=\(hasUncommittedStroke)")
+#endif
             if hasUncommittedStroke {
                 hasUncommittedStroke = false
                 persist(canvasView)

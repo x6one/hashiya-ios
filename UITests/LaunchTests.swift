@@ -787,7 +787,7 @@ final class LaunchTests: XCTestCase {
             thenDragTo: margin.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.6)))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (Int(margin.value as? String ?? "") ?? 0) > before
-        }, object: margin)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed)
         assertMarginInkVisible(margin, in: app, stage: "paper-studio-" + appearance)
         capturePaperStudio(appearance + "-SplitHandwritingPortrait", in: app)
@@ -1117,7 +1117,7 @@ final class LaunchTests: XCTestCase {
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (Int(count.value as? String ?? "") ?? 0) > before
-        }, object: count)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Targets must leave a usable native writing surface")
         // AX geometry reads can consume the entire visibility deadline. The
         // gesture does not change geometry; verify both frames after polling.
@@ -1155,13 +1155,13 @@ final class LaunchTests: XCTestCase {
         guard tapTarget("inkUndo") else { return false }
         let undone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (Int(count.value as? String ?? "") ?? -1) == before
-        }, object: count)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [undone], timeout: 5), .completed, "Undo edge tap must remove the actual stroke")
         recordState("Undo", expected: String(before))
         guard tapTarget("inkRedo") else { return false }
         let redone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             count.value as? String == savedCount
-        }, object: count)
+        }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [redone], timeout: 5), .completed, "Redo edge tap must restore the actual stroke")
         recordState("Redo", expected: savedCount)
         let frame = canvas.frame, page = app.textFields["pageNumber"].value as? String
@@ -1219,7 +1219,7 @@ final class LaunchTests: XCTestCase {
                 sample("start=\(started - pollingStarted); end=\(ProcessInfo.processInfo.systemUptime - pollingStarted); snapshotError=\(error.localizedDescription)")
                 return false
             }
-        }, object: app)
+        }, object: nil)
     }
 
     func testMarginHandwritingMountsWithoutTextInteraction() {

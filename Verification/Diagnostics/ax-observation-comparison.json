@@ -1,0 +1,91 @@
+{
+  "comparison": "unused predicate object versus captured element observation",
+  "branch": "diag/tayya-ax-observation",
+  "product_baseline": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+  "status": "native comparison pending; diagnostic only",
+  "hypothesis": "Removing unused expectation objects may avoid costly automatic XCUIElement description collection after false polls; this is not yet demonstrated.",
+  "swift_changes": {
+    "replacement_count": 5,
+    "change": "ignored XCTNSPredicateExpectation object argument to nil",
+    "sites": [
+      "capturePaperStudioAppearanceJourney saved stroke count (shared light/dark)",
+      "exerciseIndividualInkTargets saved stroke count",
+      "exerciseIndividualInkTargets undo count",
+      "exerciseIndividualInkTargets redo count",
+      "marginMountExpectation atomic whole-app snapshot"
+    ],
+    "unchanged": [
+      "predicate closure bodies",
+      "all assertion conditions",
+      "5/10-second functional deadlines",
+      "format predicates",
+      "31 UI test methods",
+      "App sources",
+      "Tests sources",
+      "project.yml",
+      "existing ios-check.yml"
+    ]
+  },
+  "diagnostic_workflow": {
+    "path": ".github/workflows/ax-observation-diagnostic.yml",
+    "device": "iPad",
+    "unit_cases": 67,
+    "ui_cases": [
+      "HashiyaUITests/LaunchTests/testMarginHandwritingMountsWithoutTextInteraction",
+      "HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextFocus",
+      "HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextEditing",
+      "HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentInkMode",
+      "HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentFit",
+      "HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+      "HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit",
+      "HashiyaUITests/LaunchTests/testPaperStudioLightVisualCaptureJourney",
+      "HashiyaUITests/LaunchTests/testPaperStudioDarkVisualCaptureJourney"
+    ],
+    "ui_case_count": 9,
+    "full_preflight": false,
+    "maestro": false,
+    "packaging": false,
+    "apple_actions": false,
+    "raw_result": "AXObservation.xcresult zipped and SHA256 recorded before attachment export, on success or failure",
+    "native_log": "All collected Hashiya/XCTest/PencilKit/RunningBoard bytes streamed to disk retained;20-minute lookback and90-second collection timeout; status/bytes disclosed; no memory readback or byte truncation"
+  },
+  "red_evidence": [
+    {
+      "source": "3e56636c1483d0fee0bbd912b2cf148bfeb17f50",
+      "finding": "Native drawing reports2 strokes within10 seconds; false first AX count poll is followed by debug-description work consuming observation budget.",
+      "verification": "Read the verified evidence report in parent working tree; report identifies source logs and attachment IDs.",
+      "report_url": "https://github.com/x6one/hashiya-ios/blob/c52d3cf4e0251558122da29f6d2af2776c2b0e81/Verification/Diagnostics/3e-prpad-count-observation.txt",
+      "artifact": 12121514318
+    },
+    {
+      "source": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+      "primary_job_url": "https://api.github.com/repos/x6one/hashiya-ios/actions/jobs/117569415744",
+      "verification": "Parent freshly read completed GitHub job log via API; not independently downloaded in this worktree.",
+      "timeline": [
+        "t119.43 first joint BLOCKPREDICATE with object app",
+        "t123.77 capturing element debug description",
+        "t125.78 mode query",
+        "t137.90 canvas existence query",
+        "t139.99 text-view existence query",
+        "t143.58 later evidence: mode handwriting, canvas true, text false",
+        "t145.95 snapshot"
+      ],
+      "finding": "Failed5-second joint observation followed by later true state and expensive description/query work.",
+      "limit": "Does not prove all3conditions simultaneously held before the original5-second deadline."
+    }
+  ],
+  "local_validation": {
+    "tools_tests": {
+      "passed": 13,
+      "failed": 0
+    },
+    "native_compilation": "unavailable: no xcodebuild on Linux",
+    "native_runtime": "pending",
+    "performance_fixed": false
+  },
+  "acceptance": {
+    "release_ready": false,
+    "ipa_accepted": false,
+    "statement": "Diagnostic subset only. Native comparison and full ordinary preflight remain required."
+  }
+}

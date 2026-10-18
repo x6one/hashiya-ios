@@ -1,0 +1,118 @@
+name: Diagnostic AX observation comparison (iPad only)
+'on':
+  workflow_dispatch: null
+  push:
+    branches:
+    - diag/tayya-ax-observation
+permissions:
+  contents: read
+concurrency:
+  group: ax-observation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ax-observation:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Select current app toolchain
+      run: python3 Tools/select_app_xcode.py
+    - name: Generate Xcode project
+      run: |
+        brew install xcodegen
+        xcodegen generate
+    - name: Select available simulator
+      env:
+        DEVICE_FAMILY: iPad
+      run: |
+        python3 - <<'PY'
+        import json, os, re, subprocess
+        subprocess.run(["xcodebuild", "-version"], check=True)
+        devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+        matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+        # Prefer the large current iPhone and iPad for real Store captures.
+        matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
+        if not matching:
+            raise SystemExit('Required simulator family is unavailable')
+        print('Simulator:', matching[0][1], matching[0][2]['name'])
+        with open(os.environ['GITHUB_ENV'], 'a') as out:
+            out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
+        PY
+    - name: Mark native diagnostic session
+      run: touch "$RUNNER_TEMP/tayya-native-start"
+    - name: Confirm product and unit-test sources match fixed baseline
+      run: git diff --exit-code f87bbd3a93a3ad244627985f6999344cd7cb580f -- App Tests project.yml
+    - name: Run bounded AX observation comparison
+      run: |-
+        set -o pipefail
+        xcrun simctl boot "$SIMULATOR_ID" || true
+        xcrun simctl bootstatus "$SIMULATOR_ID" -b
+        python3 Tools/seed_files_fixtures.py
+        started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        status=0
+        xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -only-testing:HashiyaTests -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsWithoutTextInteraction -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextFocus -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterTextEditing -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentInkMode -only-testing:HashiyaUITests/LaunchTests/testMarginHandwritingMountsAfterDocumentFit -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testPaperStudioLightVisualCaptureJourney -only-testing:HashiyaUITests/LaunchTests/testPaperStudioDarkVisualCaptureJourney -resultBundlePath AXObservation.xcresult CODE_SIGNING_ALLOWED=NO | tee ax-observation.log || status=$?
+        STARTED="$started" TEST_STATUS="$status" python3 - <<'PY_TIMING'
+        import datetime, json, os
+        from pathlib import Path
+        Path('comparison-timing.json').write_text(json.dumps({
+            'source': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+            'product_baseline': 'f87bbd3a93a3ad244627985f6999344cd7cb580f',
+            'started': os.environ['STARTED'], 'ended': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'xcodebuild_exit': int(os.environ['TEST_STATUS']),
+            'scope': '67 units plus 9 UI diagnostic cases; not full preflight or release acceptance',
+            'functional_deadlines_unchanged': True}, indent=2) + '\n')
+        PY_TIMING
+        exit "$status"
+    - name: Archive raw result before exporting attachments
+      if: always()
+      run: |-
+        if [ -d AXObservation.xcresult ]; then
+          mkdir -p NativeResults
+          ditto -c -k --keepParent AXObservation.xcresult NativeResults/AXObservation.xcresult.zip
+          shasum -a 256 NativeResults/AXObservation.xcresult.zip > NativeResults/AXObservation.xcresult.sha256
+        fi
+    - name: Export native attachments and polling samples
+      if: always()
+      run: |-
+        if [ -d AXObservation.xcresult ]; then
+          xcrun xcresulttool export attachments --path AXObservation.xcresult --output-path AXObservationAttachments
+        fi
+    - name: Collect bounded native observation log
+      if: always()
+      run: |-
+        python3 - <<'PY_NATIVE'
+        import json, os, subprocess, time
+        from pathlib import Path
+        output = Path('NativeObservation'); output.mkdir(exist_ok=True)
+        log = output / 'native-system.log'
+        started = time.monotonic()
+        predicate = 'process == "Hashiya" OR subsystem BEGINSWITH "com.apple.dt.xctest" OR subsystem BEGINSWITH "com.apple.pencilkit" OR process == "runningboardd"'
+        status = 'collected'
+        with log.open('wb') as stream:
+            try:
+                result = subprocess.run(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log', 'show',
+                    '--last', '20m', '--style', 'compact', '--info', '--debug', '--predicate', predicate],
+                    stdout=stream, stderr=subprocess.STDOUT, timeout=90)
+                if result.returncode: status = 'exit-' + str(result.returncode)
+            except subprocess.TimeoutExpired:
+                status = 'timed-out-partial'
+        (output / 'collection.json').write_text(json.dumps({'source': os.environ['GITHUB_SHA'],
+            'status': status, 'elapsed_seconds': time.monotonic() - started,
+            'collection_timeout_seconds': 90, 'lookback_minutes': 20,
+            'retained_bytes': log.stat().st_size, 'post_collection_truncated': False,
+            'note': 'All collected bytes retained; collection may be partial on timeout or native error. Absence is not proof of no native failure.'}, indent=2) + '\n')
+        PY_NATIVE
+    - name: Retain comparison evidence only
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ax-observation-iPad
+        path: |-
+          ax-observation.log
+          comparison-timing.json
+          NativeResults/
+          AXObservationAttachments/
+          NativeObservation/
+        retention-days: 7

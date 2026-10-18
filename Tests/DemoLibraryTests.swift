@@ -33,6 +33,39 @@ final class DemoLibraryTests: XCTestCase {
         XCTAssertTrue(reopened.notebooks.contains { $0.file.hasSuffix(".pptx") })
     }
 
+    @MainActor func testGuidePDFFontsDoNotRequestPrivateSystemNames() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LibraryStore(root: root, seedDemo: false)
+        let guide = try store.installDemonstration()
+        let data = try Data(contentsOf: root.appendingPathComponent(guide.file))
+        let pdf = try XCTUnwrap(PDFDocument(data: data))
+        let fontNames = NSMutableArray()
+        for index in 0..<pdf.pageCount {
+            let page = try XCTUnwrap(pdf.page(at: index)?.pageRef)
+            var resources: CGPDFDictionaryRef?
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(page.dictionary, "Resources", &resources))
+            var fonts: CGPDFDictionaryRef?
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(resources), "Font", &fonts))
+            CGPDFDictionaryApplyFunction(try XCTUnwrap(fonts), { _, object, context in
+                guard let context else { return }
+                var font: CGPDFDictionaryRef?
+                guard CGPDFObjectGetValue(object, .dictionary, &font), let font else { return }
+                var name: UnsafePointer<CChar>?
+                if CGPDFDictionaryGetName(font, "BaseFont", &name), let name {
+                    Unmanaged<NSMutableArray>.fromOpaque(context).takeUnretainedValue().add(String(cString: name))
+                }
+            }, Unmanaged.passUnretained(fontNames).toOpaque())
+        }
+        let names = fontNames.compactMap { $0 as? String }
+        print("TayyaGuidePDFFonts=\(names)")
+        XCTAssertFalse(names.isEmpty, "Inspect the actual generated PDF font dictionaries")
+        XCTAssertFalse(names.contains { $0.contains(".SF") },
+            "PDF text extraction must not request private system font names: \(names)")
+        let attachment = XCTAttachment(data: data, uniformTypeIdentifier: "com.adobe.pdf")
+        attachment.name = "GeneratedGuide-FontInspection"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
     @MainActor func testFailedDemonstrationPublishLeavesExistingLibraryUnchanged() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

@@ -1,0 +1,36 @@
+{
+  "head_source": "f8751c831eccd3948c9c93dc6502ce15eb2e53b7",
+  "family": "PR iPad",
+  "run": 39071295697,
+  "job": 117509296978,
+  "artifact": 12116312332,
+  "artifact_sha256": "f08c0b051efa4c63c27a88df66827b5123866754c6acf7b58e256bbeaf54d824",
+  "xcresult_zip_sha256": "a36ce66aa91e74f672e7afb56731719ec587e61b688169e11dde01dc59c8196f",
+  "independently_hashed": true,
+  "units_passed": 67,
+  "ui_cases_scheduled": 31,
+  "explicit_pass_records": 29,
+  "explicit_fail_records": [
+    [
+      "testIndividualInkTargetsAtAccessibilityTextSize",
+      "304.071"
+    ]
+  ],
+  "case_caps": [
+    "Test Case '-[HashiyaUITests.LaunchTests testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch]' exceeded execution time allowance of 4 minutes. The test may have hung; check Xcode's test report for additional diagnostics. If the test requires additional time, use -[XCTestCase executionTimeAllowance] or one of xcodebuild's command-line overrides."
+  ],
+  "errors": [
+    "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:966: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : failed - Ink toolbar drag must actually scroll fitMarginWidth; before=(-12.5, 375.0, 44.0, 44.0), after=(-12.5, 375.0, 44.0, 44.0), viewport=(0.0, 366.0, 457.0, 61.5)"
+  ],
+  "collection": {
+    "commit": "c3fa5c6d13ec2e35e5469f5a9ffb892ac88b9a13",
+    "run": "39071295697",
+    "reports": [],
+    "note": "An empty report list does not rule out a watchdog, jetsam, or crash.",
+    "system_log_status": "failed",
+    "system_log_error": "Command '['xcrun', 'simctl', 'spawn', '0DE52589-6E0B-47D4-B4A7-7E4E3D9C1049', 'log', 'show', '--last', '60m', '--style', 'compact', '--info', '--debug', '--predicate', 'process == \"Hashiya\" OR process == \"ReportCrash\" OR process == \"runningboardd\" OR process == \"SpringBoard\" OR process == \"kernel\" OR subsystem BEGINSWITH \"com.apple.pencilkit\" OR subsystem BEGINSWITH \"com.apple.PDFKit\"']' timed out after 120 seconds"
+  },
+  "maestro": "skipped",
+  "package": "skipped",
+  "acceptance": false
+}

@@ -1,6 +1,19 @@
 import SwiftUI
 import PencilKit
 
+#if DEBUG
+@MainActor private enum InkRailRouteDiagnostics {
+    static var rows: [String] = []
+    static func record(_ row: String) {
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport"), rows.last != row else { return }
+        rows.append(row)
+        if rows.count > 12 { rows.removeFirst(rows.count - 12) }
+        NSLog("InkRailRoute %@", row)
+    }
+    static var summary: String { rows.suffix(6).joined(separator: " | ") }
+}
+#endif
+
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
     // Native UI diagnostics are available only to the dedicated regression test.
@@ -12,7 +25,11 @@ final class MarginCanvas: PKCanvasView {
                 let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden)"
                 return own + (depth > 0 ? view.subviews.map { describe($0, depth: depth - 1) }.joined(separator: " | ") : "")
             }
-            return label + "; zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
+            var result = label + "; zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
+#if DEBUG
+            result += "; InkRailRoute=[" + InkRailRouteDiagnostics.summary + "]"
+#endif
+            return result
         }
         set { super.accessibilityLabel = newValue }
     }
@@ -197,23 +214,81 @@ struct InkToolbar: View {
 // before navigation can claim that same touch. The screen-edge Back gesture
 // and pans outside this scroll view keep their native behavior.
 private struct InkRailGesturePriority: UIViewRepresentable {
-    func makeUIView(context: Context) -> RailAnchor { RailAnchor() }
+    func makeUIView(context: Context) -> RailAnchor {
+        let anchor = RailAnchor()
+#if DEBUG
+        InkRailRouteDiagnostics.record("make anchor=\(ObjectIdentifier(anchor))")
+#endif
+        return anchor
+    }
     func updateUIView(_ view: RailAnchor, context: Context) { view.connect() }
 
     final class RailAnchor: UIView {
         private weak var connectedScroll: UIGestureRecognizer?
         private weak var connectedPop: UIGestureRecognizer?
+#if DEBUG
+        private var lastConnectionTrace = ""
+        private var observed: Set<ObjectIdentifier> = []
+        private weak var observedNavigation: UINavigationController?
+        private func trace(_ text: String) {
+            guard text != lastConnectionTrace else { return }
+            lastConnectionTrace = text
+            InkRailRouteDiagnostics.record("anchor=\(ObjectIdentifier(self)) " + text)
+        }
+        private func observe(_ gesture: UIGestureRecognizer?) {
+            guard let gesture, observed.insert(ObjectIdentifier(gesture)).inserted else { return }
+            gesture.addTarget(self, action: #selector(observedGesture(_:)))
+        }
+        @objc private func observedGesture(_ gesture: UIGestureRecognizer) {
+            InkRailRouteDiagnostics.record("gesture=\(type(of: gesture)) id=\(ObjectIdentifier(gesture)) state=\(gesture.state.rawValue) location=\(gesture.location(in: window)) stack=\(observedNavigation?.viewControllers.count ?? -1)")
+        }
+#endif
 
         override func didMoveToWindow() { super.didMoveToWindow(); connect() }
         override func layoutSubviews() { super.layoutSubviews(); connect() }
 
         func connect() {
-            guard #available(iOS 26.0, *), window != nil else { return }
+            guard #available(iOS 26.0, *), window != nil else {
+#if DEBUG
+                trace("window=\(window != nil)")
+#endif
+                return
+            }
             var ancestor = superview
-            while let view = ancestor, !(view is UIScrollView) { ancestor = view.superview }
-            guard let scroll = ancestor as? UIScrollView else { return }
+#if DEBUG
+            var ancestors: [String] = []
+#endif
+            while let view = ancestor, !(view is UIScrollView) {
+#if DEBUG
+                if ancestors.count < 12 { ancestors.append(String(describing: type(of: view))) }
+#endif
+                ancestor = view.superview
+            }
+            guard let scroll = ancestor as? UIScrollView else {
+#if DEBUG
+                trace("noScroll ancestors=\(ancestors)")
+#endif
+                return
+            }
+#if DEBUG
+            observe(scroll.panGestureRecognizer)
+#endif
             var responder: UIResponder? = next
+#if DEBUG
+            var controllers: [String] = []
+#endif
             while let current = responder {
+#if DEBUG
+                if let controller = current as? UIViewController {
+                    if controllers.count < 12 { controllers.append("\(type(of: controller)) nav=\(controller.navigationController != nil)") }
+                    if let navigation = controller.navigationController {
+                        observedNavigation = navigation
+                        observe(navigation.interactivePopGestureRecognizer)
+                        observe(navigation.interactiveContentPopGestureRecognizer)
+                        trace("scroll=\(ObjectIdentifier(scroll)) frame=\(scroll.convert(scroll.bounds, to: window)) pan=\(type(of: scroll.panGestureRecognizer)) nav=\(type(of: navigation)) navFrame=\(navigation.view.convert(navigation.view.bounds, to: window)) contentPop=\(String(describing: navigation.interactiveContentPopGestureRecognizer)) edgePop=\(String(describing: navigation.interactivePopGestureRecognizer))")
+                    }
+                }
+#endif
                 if let controller = current as? UIViewController,
                    let pop = controller.navigationController?.interactiveContentPopGestureRecognizer {
                     let pan = scroll.panGestureRecognizer
@@ -229,6 +304,9 @@ private struct InkRailGesturePriority: UIViewRepresentable {
                 }
                 responder = current.next
             }
+#if DEBUG
+            trace("unconnected scroll=\(ObjectIdentifier(scroll)) controllers=\(controllers)")
+#endif
         }
     }
 }

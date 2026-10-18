@@ -1,0 +1,11 @@
+{
+  "purpose": "Diagnostic branch only; never release acceptance",
+  "base_commit": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+  "branch": "diag/tayya-ink-route",
+  "app_change": "DEBUG native gesture connection/state observations; f87 failure requirements unchanged",
+  "original_ui_test_file_sha": "29e68ad07b1e16ad3085c1711cfba22214c2d1cd",
+  "target": "HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+  "full_development_workflow": "unchanged on work/tayya-calm-workspace",
+  "ipa_or_apple_jobs": false,
+  "result": "pending"
+}

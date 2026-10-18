@@ -1054,25 +1054,37 @@ final class LaunchTests: XCTestCase {
         }
         XCTAssertGreaterThanOrEqual(close.frame.width + targetFrameTolerance, 44)
         XCTAssertGreaterThanOrEqual(close.frame.height + targetFrameTolerance, 44)
-        let swatch = picker.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "red 77")).firstMatch
+        // UIColorPickerViewController keeps its full Grid AX contents when
+        // landscape reduces the native sheet to ~420pt. On that compact
+        // presentation, "red 77" can exist at y>600 while the picker cannot
+        // scroll far enough for a user to tap it. Exercise an actually visible
+        // native red swatch in compact layouts; still assert the resulting
+        // RGBA change, red ink pixels, real stroke save, undo and redo below.
+        // Portrait retains the saturated "red 77" regression path.
+        let compactPalette = picker.frame.height < 600
+        let nativeRedLabel = compactPalette ? "dark red 16" : "red 77"
+        let swatch = picker.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", nativeRedLabel)).firstMatch
         guard swatch.waitForExistence(timeout: 5) else {
-            XCTFail("Actual native Grid must expose a hittable red swatch: " + app.debugDescription); return false
+            XCTFail("Actual native Grid must expose " + nativeRedLabel + ": " + app.debugDescription); return false
         }
-        // The native palette scrolls in short landscape presentations. Reach
-        // the same real swatch with user input before requiring it to be tappable.
         let paletteScroll = picker.scrollViews.firstMatch
-        var paletteNavigation: [String] = []
-        for attempt in 0..<4 {
-            if swatch.isHittable { break }
-            guard paletteScroll.exists, paletteScroll.isHittable else { break }
-            let before = swatch.frame
-            paletteScroll.swipeUp()
-            paletteNavigation.append("swipe=\(attempt + 1); before=\(before); after=\(swatch.frame); hittable=\(swatch.isHittable)")
+        var paletteNavigation: [String] = ["picker=\(picker.frame); swatch=\(nativeRedLabel); initial=\(swatch.frame)"]
+        // A taller native presentation can expose red 77 after a real scroll;
+        // compact layouts deliberately start from a visible native red instead.
+        if !compactPalette {
+            for attempt in 0..<4 {
+                if swatch.isHittable { break }
+                guard paletteScroll.exists, paletteScroll.isHittable else { break }
+                let before = swatch.frame
+                paletteScroll.swipeUp()
+                paletteNavigation.append("swipe=\(attempt + 1); before=\(before); after=\(swatch.frame); hittable=\(swatch.isHittable)")
+            }
         }
         let navigation = XCTAttachment(string: paletteNavigation.joined(separator: "\n"))
         navigation.name = name + "-NativePaletteNavigation"; navigation.lifetime = .keepAlways; add(navigation)
         guard swatch.isHittable else {
-            XCTFail("Actual native Grid must expose a hittable red swatch: " + app.debugDescription); return false
+            XCTFail("Actual native Grid must expose a hittable " + nativeRedLabel + ": " + app.debugDescription); return false
         }
         swatch.tap()
         capturePaperStudio(name + "-NativeColorPicker", in: app)

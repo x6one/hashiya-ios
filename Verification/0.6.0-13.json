@@ -91,7 +91,17 @@
       "branch": "diag/tayya-ink-route",
       "run": 39126228020,
       "purpose": "one unchanged original iPhone Accessibility ink test; not release preflight",
-      "result": "pending"
+      "result": "isolated original case passed242.439s; not release acceptance",
+      "job": 117671823660,
+      "artifact": 12136352405,
+      "sha256": "c252283d07785e7981eb50b2c03d8078f62c9b524f1ee63dd5e97d3245b7257d",
+      "independently_verified": true,
+      "prefix_comparison": {
+        "commit": "79200f06ac7438dfcb6aa75b4db5e27ed96b1282",
+        "run": 39127359591,
+        "job": 117675188379,
+        "result": "running; actual scheduling and results pending"
+      }
     }
   },
   "distribution": {
@@ -396,7 +406,7 @@
       "phone_artifact_sha256": "3f65a5394f7dacbf79ed5ae0758c4e1fb783f9495caac46ed2f21c17fdfa8a8d",
       "phone": "137.809seconds;2 deadline assertions; allthree variants modehandwriting,actualcanvastrue,textfalse; Focused waiter completes, Untouched/Edited waiter timesout.",
       "ipad_pr_live": "Untouched/Focused predicate deadline assertions with later native-state assertions passing; total240second allowance exceeded during Edited launch. Complete bundle pending.",
-      "interpretation": "Direct demo→split does mount PencilKit without text editing. Deadline costs distort the joint predicate. Original full PDF tools/color/fit journey remains distinct and unresolved.",
+      "interpretation": "Direct demo\u2192split does mount PencilKit without text editing. Deadline costs distort the joint predicate. Original full PDF tools/color/fit journey remains distinct and unresolved.",
       "next_tests": [
         "testMarginHandwritingMountsWithoutTextInteraction",
         "testMarginHandwritingMountsAfterTextFocus",
@@ -514,7 +524,7 @@
     "observed_source": "8c5ace24ccab2534103157f8ff54ea9ff383f6d4",
     "observed_push_run": 38922051976,
     "observed_phone": "67 units pass0failures8.497seconds; focused Fit87.684 and InkMode61.559 fail same3nativeassertions each. Full suite incomplete; not accepted.",
-    "counterevidence": "Baseline3f69 PRphone native responder handoff leaves Lasso at split14:48:48.761–48.871, before mode tap14:48:54.218. No established retained-old-canvas responder."
+    "counterevidence": "Baseline3f69 PRphone native responder handoff leaves Lasso at split14:48:48.761\u201348.871, before mode tap14:48:54.218. No established retained-old-canvas responder."
   },
   "delivery_priority": "2026-10-16 user defers harmless minor/cosmetic issues for trial IPA; functional handwriting and data safety remain blockers.",
   "margin_consumer_observation_experiment": {
@@ -522,7 +532,7 @@
     "basis_source": "3f69f15c2a064bc749db7187aabe2a0d5b0446d7",
     "failed_cleanup_source": "8c5ace24ccab2534103157f8ff54ea9ff383f6d4",
     "change": "Only MarginPaneContent observes retained editor and clears mode-driven focus; outer MarginPane retains plain editor reference without subscribing/capturing mode. No model, geometry, whole-pane identity or storage changes.",
-    "evidence": "Prior inkactivation changes pane198.75→258.75 and native control identity while retained model/control/page IDs stay stable. Passing parent→geometry→child order differs from failing child→parent order; correlation only.",
+    "evidence": "Prior inkactivation changes pane198.75\u2192258.75 and native control identity while retained model/control/page IDs stay stable. Passing parent\u2192geometry\u2192child order differs from failing child\u2192parent order; correlation only.",
     "cleanup_reverted": true,
     "acceptance": false,
     "revert_if": "Same native mounting failure remains; do not stack hypotheses.",
@@ -765,7 +775,7 @@
     }
   ],
   "late_microphone_prompt_harness": {
-    "red_evidence": "Push phone visual accessibility: tap28.65; initial promptwait ends31.30; realprompt onlygranted by default interruption handler during Stop54.65. Actualrecording/durationwaitersfailed beforegrant. Actual32.0second video frame shows the requested alert within the original start deadline; video has no frames32.16→55.233, so seeking33doesnotshow33.",
+    "red_evidence": "Push phone visual accessibility: tap28.65; initial promptwait ends31.30; realprompt onlygranted by default interruption handler during Stop54.65. Actualrecording/durationwaitersfailed beforegrant. Actual32.0second video frame shows the requested alert within the original start deadline; video has no frames32.16\u219255.233, so seeking33doesnotshow33.",
     "change": "Handle specifically requested microphone alert during unchanged10second start predicate; retain actual state/duration/level/geometry/stop.",
     "native_verification": "All four f875 visual recording cases pass; PushPhone all3Maestro including denial pass. Whole iPad source still rejected.",
     "acceptance": false
@@ -813,7 +823,7 @@
     "coretext_warnings": 34986,
     "bursts": 7,
     "warnings_per_burst": 4998,
-    "observed_boundary": "Label-bearing PDF AX captures0.78/0.82seconds each emit4998warnings; captures withoutLabel0.04–0.06seconds emit0",
+    "observed_boundary": "Label-bearing PDF AX captures0.78/0.82seconds each emit4998warnings; captures withoutLabel0.04\u20130.06seconds emit0",
     "native_color_service": "Request17:12:59.560; launchjob17:12:59.592; firstPID39351tracked17:13:10.246",
     "causation_established": false,
     "embedded_pdf_fonts_inspected": false,

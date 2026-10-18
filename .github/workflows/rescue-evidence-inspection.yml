@@ -10,8 +10,19 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inspect:
+    name: inspect (${{ matrix.family }})
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - family: iPhone
+            artifact: '12153488928'
+            sha256: 943b66bdfb15aedbf728e7433571000b3c3b1c9c6f62dc24cee964e454468743
+          - family: iPad
+            artifact: '12153419552'
+            sha256: c57425256b14edf85db87272d4140cd4e3a2627fa5dca4aca2f8eb94883fa2af
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -19,6 +30,6 @@ jobs:
       - name: Inspect saved artifact bytes and bounded native evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: '12153657880'
-          EXPECTED_SHA256: e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff
+          ARTIFACT_ID: ${{ matrix.artifact }}
+          EXPECTED_SHA256: ${{ matrix.sha256 }}
         run: python3 Tools/inspect_rescue_artifact.py

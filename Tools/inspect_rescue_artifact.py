@@ -39,6 +39,9 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     if archive.testzip() is not None:
         raise RuntimeError("Artifact ZIP CRC failure")
     names = archive.namelist()
+    images = [{"path": item.filename, "bytes": item.file_size} for item in archive.infolist()
+        if item.filename.lower().endswith((".png", ".jpg", ".jpeg"))]
+    print("RESCUE_IMAGES " + json.dumps({"total": len(images), "entries": images[:100]}))
     for name in names:
         if name.endswith("-summary.json"):
             summary = json.loads(archive.read(name))
@@ -55,10 +58,14 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             print("RESCUE_NATIVE_BEGIN")
             print("\n".join(selected[-120:]))
             print("RESCUE_NATIVE_END")
+            color = [line for line in lines if "ColorPicker" in line]
+            print("RESCUE_COLOR_SERVICE_BEGIN")
+            print("\n".join(color[:100] + color[-40:]))
+            print("RESCUE_COLOR_SERVICE_END")
         elif name.endswith("build.log"):
             lines = archive.read(name).decode(errors="replace").splitlines()
             selected = [line for line in lines if any(term in line for term in
-                ("Test Case '-[", "Executed ", ": error:", "TayyaGuidePDFFonts="))]
+                ("Test Case '-[", "Executed ", ": error:", "TayyaGuidePDFFonts=", "Start Test at", "Test Suite '", 'Tap "inkColor"'))]
             print("RESCUE_TEST_LOG " + name)
             print("\n".join(line[:600] for line in selected[-100:]))
         elif name.endswith("manifest.json"):

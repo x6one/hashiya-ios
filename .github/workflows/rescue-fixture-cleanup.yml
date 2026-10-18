@@ -1,0 +1,16 @@
+name: Fixture lifecycle qualification
+on:
+  push:
+    branches: ['diag/tayya-fixture-cleanup']
+permissions:
+  contents: read
+concurrency:
+  group: fixture-cleanup-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s Tools -p 'test_*.py'

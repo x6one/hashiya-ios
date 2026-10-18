@@ -184,6 +184,9 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
         private weak var ownedNavigation: UINavigationController?
         private weak var ownedScreen: UIViewController?
         private var previousEnabled: Bool?
+#if DEBUG
+        private var lastNavigationDiagnostic = ""
+#endif
 
         override func loadView() {
             view = UIView()
@@ -232,6 +235,17 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             ownedNavigation = navigation
             ownedScreen = screen
             pop.isEnabled = false
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+                let edge = navigation.interactivePopGestureRecognizer
+                let edgeDescription = edge.map { "type=\(type(of: $0)) enabled=\($0.isEnabled) state=\($0.state.rawValue) edges=\(($0 as? UIScreenEdgePanGestureRecognizer)?.edges.rawValue ?? 0) delegate=\(String(describing: $0.delegate))" } ?? "nil"
+                let diagnostic = "stack=\(navigation.viewControllers.count) direction=\(navigation.view.effectiveUserInterfaceLayoutDirection.rawValue) semantic=\(navigation.view.semanticContentAttribute.rawValue) contentEnabled=\(pop.isEnabled) edge=[\(edgeDescription)]"
+                if diagnostic != lastNavigationDiagnostic {
+                    lastNavigationDiagnostic = diagnostic
+                    NSLog("TayyaRescueNavigation %@", diagnostic)
+                }
+            }
+#endif
         }
         func restore() {
             if let pop = ownedPop, let enabled = previousEnabled {

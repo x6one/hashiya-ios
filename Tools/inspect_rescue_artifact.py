@@ -56,7 +56,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             lines = archive.read(name).decode(errors="replace").splitlines()
             print("RESCUE_NATIVE_HEADER " + json.dumps({"lines": len(lines), "first": lines[:4]}))
             selected = [line for line in lines if any(term in line for term in
-                ("TayyaRescueTransition", "DocumentNavigationBoundary", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
+                ("TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
             print("RESCUE_NATIVE_BEGIN")
             print("\n".join(selected[-120:]))
             print("RESCUE_NATIVE_END")

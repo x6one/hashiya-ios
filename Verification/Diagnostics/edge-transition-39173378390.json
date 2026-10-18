@@ -1,0 +1,67 @@
+{
+  "source": "5817344fda1241fa274e008ffa6a2a448a5f2964",
+  "run": 39173378390,
+  "artifact": {
+    "id": 12153657880,
+    "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
+  },
+  "results": {
+    "iPhone": {
+      "passed": 1,
+      "failed": 1,
+      "rail": "pass",
+      "edge": "fail1424"
+    }
+  },
+  "transition": {
+    "began_utc": "22:53:31.936",
+    "interaction_end_utc": "22:53:32.466",
+    "completion_utc": "22:53:32.975",
+    "cancelled": true,
+    "percent_complete": 0.617424,
+    "view_bounds": [
+      440,
+      956
+    ],
+    "end_translation": [
+      -273,
+      0
+    ],
+    "end_velocity": [
+      -240.00052000189498,
+      0
+    ],
+    "completion_stack": 2,
+    "boundary_restore_during_interaction": false,
+    "underlying_cancellation_cause": "unproven"
+  },
+  "rail": {
+    "native_point": [
+      245.66666666666666,
+      353.66666666666663
+    ],
+    "matches_original_test": true,
+    "hit": "HostingUIButton",
+    "content_width": 417.3333333333333,
+    "bounds_width": 429.3333333333333,
+    "adjusted_left_inset": 62,
+    "offset_before": -62,
+    "offset_after": -12,
+    "pan_observed": true,
+    "deterministic_menu_or_extent_failure_proven": false,
+    "prior_no_action_log_limit": "Previous failing observation had no same-instance AX geometry anchor; absence of recorded pan does not identify its winner"
+  },
+  "next_input_candidate": {
+    "source": "f47b77b9da7a26bb023574da83b45d4f4cc8fceb",
+    "branch": "diag/tayya-rescue-font",
+    "test": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+    "change": "drag distance65% to85% only; all original assertions/deadlines retained",
+    "accepted": false,
+    "product_navigation_repair_claimed": false,
+    "short_swipe_cancellation_cause_still_unresolved": true,
+    "run": 39174774309,
+    "job_budget_minutes": 30,
+    "job_budget_reason": "Expanded from2 selected cases to3 repeated navigation cases plus1 original ink case per family; case240/360s unchanged"
+  },
+  "release_accepted": false
+}

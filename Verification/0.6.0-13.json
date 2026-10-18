@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_font_candidate_rejected_ui_failures_persist",
+  "status": "rescue_deliberate_edge_input_candidate_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -94,7 +94,11 @@
       "ArialMT",
       "Arial-BoldMT"
     ],
-    "content_pop_restore_during_captured_failed_edge": false
+    "content_pop_restore_during_captured_failed_edge": false,
+    "edge_transition_cancelled_at_percent": 0.617424,
+    "edge_cancellation_underlying_cause": "unproven; no boundary restore during captured interaction",
+    "rail_correct_geometry_and_scrolling_observed": true,
+    "deterministic_menu_or_scroll_extent_failure": "not established; latest observed rail input scrolls50pt"
   },
   "diagnostics": {
     "edge_state_run": 39168607576,
@@ -102,8 +106,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "5817344fda1241fa274e008ffa6a2a448a5f2964",
-    "next_scope": "iPhone accessibility rail and navigation only: AX native rail geometry/hit-test snapshot, transition completion/cancellation callbacks; no arbitration changes",
+    "next_source": "f47b77b9da7a26bb023574da83b45d4f4cc8fceb",
+    "next_scope": "85% intentional completed edge input repeated3 per family, all original assertions/waiters; one original failing ink case per family",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -133,7 +137,13 @@
         "sha256": "2cb5c4b8a485096b34870e8f678dbf7028e211dbb9e8dd6174f712c4c258c732"
       }
     ],
-    "next_interpretation_limit": "Compare sampled native hit point with exact original test input; instrumented pass is not repair"
+    "next_interpretation_limit": "Compare sampled native hit point with exact original test input; instrumented pass is not repair",
+    "transition_hit_run": 39173378390,
+    "transition_hit_artifact": {
+      "id": 12153657880,
+      "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
+    },
+    "next_run": 39174774309
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -141,7 +151,9 @@
     "prepared_workflows_actionlint": "1.7.7 passed; shellcheck/pyflakes unavailable",
     "git_diff_check": "passed",
     "native_toolchain_local": false,
-    "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending"
+    "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending",
+    "later_diagnostic_local_execution": "blocked: exec-server transport disconnected; recovery timed out",
+    "later_diagnostic_checks": "unique exact text edits, assertion-preserving edit, trailing-whitespace check and manual workflow review; no actionlint success claimed"
   },
   "release_pipeline": {
     "internal_pr_duplicate_matrix": "skipped only for internal main/work/**; PR retained for forks and other internal branches",
@@ -157,5 +169,17 @@
     "No candidate has met final release gates yet.",
     "Old native log collections are partial after timeout.",
     "Physical-device pen/microphone behavior is not validated by simulator results."
-  ]
+  ],
+  "input_candidate": {
+    "source": "f47b77b9da7a26bb023574da83b45d4f4cc8fceb",
+    "branch": "diag/tayya-rescue-font",
+    "test": "testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening",
+    "change": "drag distance65% to85% only; all original assertions/deadlines retained",
+    "accepted": false,
+    "product_navigation_repair_claimed": false,
+    "short_swipe_cancellation_cause_still_unresolved": true,
+    "run": 39174774309,
+    "job_budget_minutes": 30,
+    "job_budget_reason": "Expanded from2 selected cases to3 repeated navigation cases plus1 original ink case per family; case240/360s unchanged"
+  }
 }

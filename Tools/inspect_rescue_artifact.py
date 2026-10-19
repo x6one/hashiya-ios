@@ -42,6 +42,38 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     images = [{"path": item.filename, "bytes": item.file_size} for item in archive.infolist()
         if item.filename.lower().endswith((".png", ".jpg", ".jpeg"))]
     print("RESCUE_IMAGES " + json.dumps({"total": len(images), "entries": images[:100]}))
+    exact = json.loads(os.environ.get("EXACT_ATTACHMENT_PATHS", "[]"))
+    if exact:
+        import plistlib
+        from pathlib import Path
+        output = Path("ExactEvidence"); output.mkdir(exist_ok=True)
+        retained = 0
+        for entry in exact:
+            if entry not in names:
+                raise RuntimeError("Requested attachment absent: " + entry)
+            raw = archive.read(entry)
+            retained += len(raw)
+            if len(raw) > 24_000_000 or retained > 40_000_000:
+                raise RuntimeError("Exact attachment copy exceeds bounds")
+            target = output / Path(entry).name
+            target.write_bytes(raw)
+            print("RESCUE_EXACT_ATTACHMENT " + json.dumps({"path": entry, "bytes": len(raw),
+                "sha256": hashlib.sha256(raw).hexdigest(), "prefix": raw[:16].hex()}))
+            if raw.startswith((b"bplist", b"<?xml")):
+                value = plistlib.loads(raw)
+                def sanitized(value, depth=0):
+                    if depth > 9: return "<depth cap>"
+                    if isinstance(value, bytes): return {"bytes": len(value), "prefix": value[:8].hex()}
+                    if isinstance(value, plistlib.UID): return {"UID": value.data}
+                    if isinstance(value, dict): return {str(k): sanitized(v, depth+1) for k,v in list(value.items())[:180]}
+                    if isinstance(value, list): return [sanitized(v, depth+1) for v in value[:450]]
+                    if isinstance(value, str): return value[:700]
+                    if isinstance(value, (int, float, bool)) or value is None: return value
+                    return str(value)[:100]
+                encoded = json.dumps(sanitized(value), ensure_ascii=False, indent=2)
+                target.with_suffix(".decoded.json").write_text(encoded)
+                if "D444EC8C" in entry:
+                    print("RESCUE_SYNTHESIZED_EVENT " + encoded[:40000])
     attachment_budget = 90000
     rail_attachment_budget = 160000
     for name in names:

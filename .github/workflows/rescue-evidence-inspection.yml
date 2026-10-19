@@ -29,11 +29,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
+          EXACT_ATTACHMENT_PATHS: '["RailResults-attachments/D444EC8C-9A67-477B-AEB1-9EE93C487DD8","RailResults-attachments/207B12EE-8F34-44FD-9989-3A553B80F355","RailResults-attachments/0B949091-E1C2-4AF4-A19F-61FD9D6F8030","RailResults-attachments/993DE997-365B-43C6-8F15-F61388849121.png","RailResults-attachments/4858B8CD-0699-46C0-B70B-E0F441550577.mp4"]'
         run: python3 Tools/inspect_rescue_artifact.py
+      - name: Extract bounded failure video frames
+        run: |
+          python3 - <<'PY'
+          import json, shutil, subprocess
+          from pathlib import Path
+          video = next(Path("ExactEvidence").glob("*.mp4"))
+          if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+              raise SystemExit("Video tools unavailable; raw recording preserved")
+          metadata = subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(video)], text=True)
+          Path("ExactEvidence/video-metadata.json").write_text(metadata)
+          print("RESCUE_VIDEO_METADATA=" + metadata)
+          for second in [160, 164, 168]:
+              frame = Path("ExactEvidence") / ("failure-" + str(second) + ".png")
+              subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", str(second), "-i", str(video), "-frames:v", "1", str(frame)], check=True)
+              if frame.exists():
+                  import base64
+                  print("RESCUE_VIDEO_FRAME_" + str(second) + "=" + base64.b64encode(frame.read_bytes()).decode())
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: selected-rail-saved-drawings
-          path: EvidenceInput/
+          name: rail-exact-event-and-video
+          path: ExactEvidence/
           retention-days: 7

@@ -126,7 +126,24 @@
         "full_sha256_crc_verified": true,
         "conclusion": "Files initialization alone is not sufficient to cause failure; do not remove it as a claimed repair."
       },
-      "next_bounded_probe": "Match full prerequisite setup and move archived-log decoding after the original single case. Read-only host ColorPicker launch log and bounded launchd_sim/CoreSimulatorService/ColorPicker stack samples at the original waiter; no private app APIs, prewarming, retries or assertion-timeout changes. This tests the launch-broker delay and avoids interpreting instrumented passes as a production repair."
+      "next_bounded_probe": "Only remaining controlled scope contrast: same original3-case ink/navigation prerequisite cohort instead of single-case selection. Capture host broker samples in parallel at the first unchanged waiter. Keep all3 cases and all assertions/caps; no complete68/32 gate. No repeat archived-log decoding/download: prior evidence already retained. If no actionable cause is isolated, record blocked release rather than retry comprehensive gates blindly.",
+      "launch_stack_probe": {
+        "source": "2941c4f8ee982be11626993d4e580599c4c78378",
+        "run": 39337055396,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": 216.369,
+        "artifact": 12227752421,
+        "sha256": "7e857a89e4cfb3693db955fb852be06fd14c84cf58a577c184deec6f372cedf9",
+        "full_sha256_crc_verified": true,
+        "bootstrap_seconds": 0.147,
+        "observation_limit": "Cached host PIDs were not used, so ps and sequential symbolication delayed samples until after healthy bootstrap. All3 sample files exist; third command exceeded15s and observer raised TimeoutExpired. Healthy stacks do not explain failed-host launch delay."
+      },
+      "observer_repair": {
+        "cause": "Uncaught observed sample TimeoutExpired lost remaining capture records; sequential cold sampling started too late for the critical interval.",
+        "verification": "Regression test reproduced original TimeoutExpired, then passed after bounded timeout recording and parallel cached-host sampling. Tools17/17 passed; no native/application timeout changed."
+      }
     }
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",

@@ -4,6 +4,7 @@ The observer never launches a picker, changes the simulator, or retries input.
 Run only on a macOS runner alongside the unchanged XCTest journey.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -29,6 +30,26 @@ def selected_processes():
     return selected
 
 
+def capture(process, output):
+    pid = process["pid"]
+    target = output / f"sample-{pid}.txt"
+    result = {"pid": pid, "path": target.name,
+              "requested_utc": datetime.now(timezone.utc).isoformat()}
+    try:
+        with (output / f"sample-{pid}-status.txt").open("w") as status:
+            completed = subprocess.run(
+                ["sudo", "-n", "sample", str(pid), "1", "1", "-file", str(target)],
+                stdout=status, stderr=subprocess.STDOUT, timeout=15)
+        result["exit_code"] = completed.returncode
+    except subprocess.TimeoutExpired:
+        # Symbol processing exceeded this bound in the real runner even though
+        # the sample file was written. Keep it and continue other captures.
+        result["timed_out"] = True
+    result["finished_utc"] = datetime.now(timezone.utc).isoformat()
+    result["file_exists"] = target.exists()
+    return result
+
+
 def observe(build_log, output):
     output.mkdir(parents=True, exist_ok=True)
     record = {"started_utc": datetime.now(timezone.utc).isoformat(),
@@ -39,6 +60,11 @@ def observe(build_log, output):
                                "debug", "--predicate", predicate],
                               stdout=host_file, stderr=subprocess.STDOUT)
     try:
+        # Resolve stable host PIDs during build, so a slow ps/symbol lookup
+        # cannot postpone both launch-broker samples until after the input.
+        hosts = [p for p in selected_processes()
+                 if "ColorPickerUIService" not in p["command"]][:4]
+        record["host_processes_before_test"] = hosts
         deadline = time.monotonic() + 1200
         marker = 'Waiting 5.0s for "nativeInkColorPicker"'
         while time.monotonic() < deadline:
@@ -52,17 +78,14 @@ def observe(build_log, output):
                 record["trigger_utc"] = datetime.now(timezone.utc).isoformat()
                 # Capture both the host launch broker and a child that has
                 # acquired a PID but may still be executing dyld/initializers.
-                processes = selected_processes()
-                record["processes_at_input"] = processes
-                for process in processes[:6]:
-                    pid = process["pid"]
-                    target = output / f"sample-{pid}.txt"
-                    with (output / f"sample-{pid}-status.txt").open("w") as status:
-                        result = subprocess.run(
-                            ["sudo", "-n", "sample", str(pid), "1", "1", "-file", str(target)],
-                            stdout=status, stderr=subprocess.STDOUT, timeout=15)
-                    record["samples"].append({"pid": pid, "exit_code": result.returncode,
-                                               "path": target.name})
+                with ThreadPoolExecutor(max_workers=6) as workers:
+                    pending = [workers.submit(capture, process, output) for process in hosts]
+                    processes = selected_processes()
+                    record["processes_at_input"] = processes
+                    known = {p["pid"] for p in hosts}
+                    children = [p for p in processes if p["pid"] not in known][:2]
+                    pending.extend(workers.submit(capture, process, output) for process in children)
+                    record["samples"] = [item.result() for item in pending]
                 record["processes_after_samples"] = selected_processes()
                 break
             # Poll the test log only. This does not delay any application input

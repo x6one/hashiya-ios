@@ -367,9 +367,6 @@ jobs:
     uses: ./.github/workflows/office-engine-spike.yml
 
   focused-diagnostic:
-    permissions:
-      contents: read
-      actions: read
     name: Focused ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }} (${{ matrix.family }})
     if: (github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'none') || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[diagnostic:maestro]') || contains(github.event.head_commit.message, '[diagnostic:margin]') || contains(github.event.head_commit.message, '[diagnostic:color]')))
     needs: tools
@@ -411,7 +408,7 @@ jobs:
       - name: Initialize the same Files provider as the prerequisite gate
         if: inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]')
         run: python3 Tools/seed_files_fixtures.py
-      - name: Build or reproduce only the selected journey
+      - name: Build or reproduce the selected native scope
         env:
           DIAGNOSTIC: ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}
         run: |
@@ -422,41 +419,11 @@ jobs:
             python3 Tools/trace_color_bootstrap.py --build-log focused-build.log --output FocusedEvidence/launch-trace &
             TRACE_PID=$!
             trap 'kill "$TRACE_PID" 2>/dev/null || true; wait "$TRACE_PID" 2>/dev/null || true' EXIT
-            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
           else
             xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
             xcrun simctl install "$SIMULATOR_ID" NativeBuild/Build/Products/Debug-iphonesimulator/Hashiya.app
           fi
-      - name: Retrieve the original color failure evidence
-        if: always() && (inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]'))
-        uses: actions/download-artifact@v4
-        with:
-          name: regressions-iPhone
-          run-id: 39327688794
-          github-token: ${{ github.token }}
-          path: OriginalColorEvidence
-      - name: Decode saved native color service logs
-        if: always() && (inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]'))
-        run: |
-          mkdir -p FocusedEvidence
-          # The selected run has multiple attempts. Assert the exact second
-          # failure bundle before attributing any decoded event to this probe.
-          echo '28c62da55e82f944ec91402cd5488ccda25dcd8dd330f72e5c9c6f53e1ddabc5  OriginalColorEvidence/NativeResults/RegressionResults.xcresult.zip' | shasum -a 256 -c -
-          unzip -q OriginalColorEvidence/NativeResults/RegressionResults.xcresult.zip -d OriginalColorEvidence
-          xcrun xcresulttool export diagnostics --path OriginalColorEvidence/RegressionResults.xcresult --output-path OriginalColorDiagnostics
-          python3 - <<'PY_LOGS'
-          from pathlib import Path
-          import subprocess
-          archives = sorted(Path('OriginalColorDiagnostics').rglob('*.logarchive'))
-          print('Saved unified log archives:', len(archives))
-          if not archives:
-              raise SystemExit('Original color failure contains no exported unified logs')
-          predicate = 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color")) OR ((process == "runningboardd" OR process CONTAINS[c] "launchd" OR process == "SpringBoard") AND eventMessage CONTAINS[c] "ColorPicker")'
-          for i, archive in enumerate(archives):
-              with Path(f'FocusedEvidence/original-color-service-{i}.log').open('w') as out:
-                  subprocess.run(['log', 'show', '--archive', str(archive), '--style', 'compact', '--info', '--debug', '--start', '2026-10-19 22:12:30', '--end', '2026-10-19 22:14:00', '--predicate', predicate], stdout=out, check=True)
-              print('Decoded saved service log:', archive)
-          PY_LOGS
       - name: Set up Java for Maestro
         if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
         uses: actions/setup-java@v4

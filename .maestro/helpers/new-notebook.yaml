@@ -2,6 +2,8 @@ appId: com.ahmadalawi.hashiya
 ---
 - launchApp:
     clearState: true
+    permissions:
+      microphone: allow
     arguments:
       maestroTesting: true
 - tapOn:

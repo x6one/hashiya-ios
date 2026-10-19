@@ -1,0 +1,25 @@
+{
+  "baseline_sha": "df4ab1ddb7d5110eebf32a41ba00798098fda080",
+  "baseline_run": "https://github.com/x6one/hashiya-ios/actions/runs/39286829941",
+  "release_qualified": false,
+  "issues": [
+    {
+      "name": "Maestro recording and subsequent welcomeLibrary failures",
+      "cause_status": "proven missing microphone permission setup in test",
+      "evidence": "Original recording screenshot shows the native Allow/Don't Allow prompt and waiting-for-permission strip. Both subsequent Welcome failures show the same system prompt over the actual welcome screen. Original commands contain no allow step or granted permission setup.",
+      "retained_reader_run": 39297793872,
+      "original_artifact": 12209710711,
+      "fix": "Explicit microphone: allow in shared clean launch; preserve later microphone: deny and every original lifecycle assertion. No production changes.",
+      "verification": "Pending focused Maestro3 on both families; local Tools16 and actionlint pass. Prior run39277996098 iPad recording lifecycle passed, other flows incomplete."
+    },
+    {
+      "name": "iPad testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
+      "cause_status": "unknown",
+      "evidence": "Original failure at LaunchTests.swift362/228 before any drawing; document Handwriting stages24458143 not found. Same case passed76.184s in39277996098. No proven document loss.",
+      "next": "Review existing typing video and native event/snapshot evidence before changing application or test. Reader39298799505 failed only because ffprobe was absent; original video retained in artifact12210240125. Decode locally without a new run."
+    }
+  ],
+  "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",
+  "ipa": "blocked",
+  "office_physical_device_conversion": "unverified"
+}

@@ -1,6 +1,13 @@
 name: iPhone and iPad preflight
 on:
   workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: 'Focused diagnosis only; none runs the complete release gate'
+        type: choice
+        options: [none, maestro, margin]
+        default: none
+        required: true
   push:
     branches: [main, 'work/**']
   pull_request:
@@ -27,7 +34,7 @@ jobs:
     needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.
     # Forks and other internal branches still require PR verification.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
+    if: (github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'none') && !contains(github.event.head_commit.message, '[diagnostic:maestro]') && !contains(github.event.head_commit.message, '[diagnostic:margin]') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/')))
     runs-on: macos-15
     timeout-minutes: 60
     strategy:
@@ -358,3 +365,96 @@ jobs:
       contents: read
       actions: read
     uses: ./.github/workflows/office-engine-spike.yml
+
+  focused-diagnostic:
+    name: Focused ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }} (${{ matrix.family }})
+    if: (github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'none') || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[diagnostic:maestro]') || contains(github.event.head_commit.message, '[diagnostic:margin]')))
+    needs: tools
+    runs-on: macos-15
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        family: ${{ fromJSON((inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]')) && '["iPad"]' || '["iPhone", "iPad"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select current app toolchain
+        run: python3 Tools/select_app_xcode.py
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Select available simulator
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          subprocess.run(["xcodebuild", "-version"], check=True)
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          # Prefer the large current iPhone and iPad for real Store captures.
+          matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
+          if not matching:
+              raise SystemExit('Required simulator family is unavailable')
+          print('Simulator:', matching[0][1], matching[0][2]['name'])
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
+          PY
+      - name: Build or reproduce only the selected journey
+        env:
+          DIAGNOSTIC: ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          if [ "$DIAGNOSTIC" = margin ]; then
+            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+          else
+            xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+            xcrun simctl install "$SIMULATOR_ID" NativeBuild/Build/Products/Debug-iphonesimulator/Hashiya.app
+          fi
+      - name: Set up Java for Maestro
+        if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Maestro CLI
+        if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
+        env:
+          MAESTRO_VERSION: 2.11.0
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
+        run: |
+          curl --fail --location --retry 3 https://get.maestro.mobile.dev -o "$RUNNER_TEMP/install-maestro.sh"
+          bash "$RUNNER_TEMP/install-maestro.sh"
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+      - name: Verify all three Maestro lifecycles
+        if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
+          MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
+        run: maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
+      - name: Preserve focused native evidence
+        if: always()
+        run: |
+          mkdir -p FocusedEvidence
+          xcrun simctl io "$SIMULATOR_ID" screenshot FocusedEvidence/final-screen.png || true
+          if [ -d FocusedResults.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path FocusedResults.xcresult > FocusedEvidence/summary.json
+            xcrun xcresulttool export attachments --path FocusedResults.xcresult --output-path FocusedEvidence/attachments
+            ditto -c -k --keepParent FocusedResults.xcresult FocusedEvidence/FocusedResults.xcresult.zip
+          fi
+      - name: Retain focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focused-${{ inputs.diagnostic }}-${{ matrix.family }}
+          path: |
+            focused-build.log
+            MaestroResults/
+            FocusedEvidence/
+          retention-days: 7

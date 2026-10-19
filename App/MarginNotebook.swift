@@ -168,6 +168,7 @@ struct InkToolbar: View {
                 }
             }.buttonStyle(.plain).padding(.horizontal, 4)
                 .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
+                .background(InkRailTouchDelivery())
         }
         // This is a spatial tool rail, not prose. Keep its scroll axis and
         // bounds left-to-right even inside the Arabic/right-to-left workspace:
@@ -191,6 +192,61 @@ struct InkToolbar: View {
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
 }
+// Keep a pending rail drag from being handed to a button before the native
+// pan recognizer resolves. This owns only the enclosing tool rail's pan flag.
+private struct InkRailTouchDelivery: UIViewRepresentable {
+    func makeUIView(context: Context) -> DeliveryView { DeliveryView(frame: .zero) }
+    func updateUIView(_ view: DeliveryView, context: Context) { view.connect() }
+    static func dismantleUIView(_ view: DeliveryView, coordinator: ()) { view.restore() }
+
+    final class DeliveryView: UIView {
+        private weak var ownedPan: UIPanGestureRecognizer?
+        private var previousDelay: Bool?
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            isUserInteractionEnabled = false
+            accessibilityElementsHidden = true
+        }
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+        override func didMoveToSuperview() { super.didMoveToSuperview(); connect() }
+        override func didMoveToWindow() { super.didMoveToWindow(); connect() }
+        override func layoutSubviews() { super.layoutSubviews(); connect() }
+
+        func connect() {
+            guard window != nil else { restore(); return }
+            var ancestor = superview
+            while let view = ancestor {
+                if let scroll = view as? UIScrollView {
+                    let pan = scroll.panGestureRecognizer
+                    guard ownedPan !== pan else { return }
+                    restore()
+                    ownedPan = pan
+                    previousDelay = pan.delaysTouchesBegan
+                    pan.delaysTouchesBegan = true
+#if DEBUG
+                    NSLog("TayyaRescueRailDelivery acquire scroll=%@ pan=%@ previous=%d current=%d", String(describing: ObjectIdentifier(scroll)), String(describing: ObjectIdentifier(pan)), previousDelay == true ? 1 : 0, pan.delaysTouchesBegan ? 1 : 0)
+#endif
+                    return
+                }
+                ancestor = view.superview
+            }
+            restore()
+        }
+
+        func restore() {
+            if let pan = ownedPan, let previousDelay, pan.delaysTouchesBegan {
+                pan.delaysTouchesBegan = previousDelay
+#if DEBUG
+                NSLog("TayyaRescueRailDelivery restore pan=%@ value=%d", String(describing: ObjectIdentifier(pan)), previousDelay ? 1 : 0)
+#endif
+            }
+            ownedPan = nil
+            previousDelay = nil
+        }
+    }
+}
+
 private struct NativeInkColorPicker: UIViewControllerRepresentable {
     @Binding var color: Color
     @Binding var isPresented: Bool

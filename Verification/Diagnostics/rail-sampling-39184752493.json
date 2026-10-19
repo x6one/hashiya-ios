@@ -1,0 +1,109 @@
+{
+  "problem": "testIndividualInkTargetsAtAccessibilityTextSize: native horizontal rail sometimes aborts without moving Fit Width",
+  "baseline_source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
+  "run": 39184752493,
+  "stage_A": {
+    "tools_passed": 14,
+    "workflow_lint": "passed",
+    "python_syntax": "passed"
+  },
+  "stage_B": {
+    "family": "iPhone",
+    "passed": 2,
+    "failed": 1,
+    "attempted": 3,
+    "duration_seconds": [
+      136.633,
+      121.441,
+      114.399
+    ],
+    "failure_line": 968,
+    "original_assertion_line": 966
+  },
+  "proven": {
+    "same_native_scroll_before_after": true,
+    "content_width": 417.3333333333333,
+    "left_inset": 62,
+    "before_after_offset_x": [
+      -62,
+      -62
+    ],
+    "input_hits_width_menu": true,
+    "touch_reaches_pan": true,
+    "failed_pan_resets_before_input_ends": true,
+    "navigation_recognized_winner_observed": false,
+    "higher_app_window_hit": null,
+    "main_thread_capture_seconds": [
+      0.0013416667,
+      0.001267875
+    ],
+    "omitted_actions": 0,
+    "omitted_observations": 0,
+    "omitted_samples": 0,
+    "ancestor_omitted": false
+  },
+  "failure": {
+    "drag_uptime": [
+      2071.6717537083337,
+      2072.4258805833333
+    ],
+    "pan_touch_seen": 2071.986043,
+    "delayed_touch_recognizer_failed": 2072.137223,
+    "pan_possible_zero_touches": 2072.152229,
+    "translation_at_reset_x": -6
+  },
+  "passing_control": {
+    "iteration": 2,
+    "drag_uptime": [
+      1954.6912132083335,
+      1955.83681
+    ],
+    "pan_touch_seen": 1954.999291,
+    "delayed_touch_recognizer_failed": 1955.150161,
+    "pan_began": 1955.154004,
+    "offset_x": [
+      -62,
+      -12
+    ]
+  },
+  "root_cause": {
+    "status": "not proven",
+    "supported_hypothesis": "UIControl view-tracking handoff around150ms races pending native pan recognition; this is not proof that a control or other recognizer caused cancellation",
+    "sampling_limit": "Read-only run-loop sampling can miss brief state/reset transitions"
+  },
+  "artifact": {
+    "id": 12158370721,
+    "bytes": 182014627,
+    "sha256": "cba24083f9d821894e418ba567afdfbce76894a163c1f64b60bab96b7d664190",
+    "full_sha256_and_zip_crc_verified": true,
+    "reader_run": 39186115199,
+    "small_subset": {
+      "id": 12158241630,
+      "bytes": 6577819,
+      "sha256": "09f59d15c118952a396622a6b7ad6ba14ef830b91ce6eec857db82ab46fb80ec"
+    },
+    "video_only": {
+      "id": 12158032874,
+      "bytes": 32855094,
+      "sha256": "b17ede21d83273796788988c86590a2fe8fd6062e287ea6a1a315547933bf9ba"
+    }
+  },
+  "next_experiment": {
+    "branch": "diag/tayya-rail-delivery",
+    "production_policy": "Only InkToolbar enclosing pan.delaysTouchesBegan=true; snapshot once per pan identity, restore on detach/dismantle; no delegates/new recognizers/navigation policy changes",
+    "required_effect": "Native log must prove previous=0 current=1 and matching actual inkToolbar pan identity",
+    "diagnostic_only": "Add UIControl tracking/inside/highlighted and pan delivery flag to existing read-only DEBUG observation",
+    "original_test_input_assertions_timeouts_unchanged": true,
+    "phone": "Original Accessibility until first failure/max3; only after all pass, original Standard ink and navigation once",
+    "pad": "Only after phone success: original Accessibility, Standard ink and navigation",
+    "stop_condition": "If failure recurs, inspect newly captured tracking and flag state; do not rerun unchanged. If previous flag was already true or ownership mismatched, intervention is ineffective and unqualified.",
+    "accepted": false
+  },
+  "release": {
+    "full_suite": "not run",
+    "maestro": "not run",
+    "ipa": "blocked",
+    "merge": false,
+    "apple_upload": false
+  }
+}

@@ -213,6 +213,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 guard !visible.isNull, !visible.isEmpty else { continue }
                 let point = CGPoint(x: visible.midX, y: visible.midY)
                 var hit = window.hitTest(point, with: nil)
+                let hitControl = hit as? UIControl
                 var path: [String] = []
                 var inputIdentities: Set<ObjectIdentifier> = []
                 let ancestorLimit = scroll.accessibilityIdentifier == "inkToolbar" ? 24 : 8
@@ -229,6 +230,8 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 }
                 path.append("ancestorOmitted=\(hit != nil)")
                 if scroll.accessibilityIdentifier == "inkToolbar" {
+                    if sampledControl !== hitControl { sampledControlSignature = "" }
+                    sampledControl = hitControl
                     armInputSampler(inputIdentities)
                     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
                     rows.append("windowInventory sceneCount=\(scenes.count) windowCounts=\(scenes.map { $0.windows.count }) limits=4scenes/8windows")
@@ -240,13 +243,15 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                         }
                     }
                 }
-                rows.append("scroll=\(type(of: scroll)) id=\(ObjectIdentifier(scroll)) frame=\(frame) visible=\(visible) size=\(scroll.contentSize) offset=\(scroll.contentOffset) bounds=\(scroll.bounds) inset=\(scroll.adjustedContentInset) enabled=\(scroll.isScrollEnabled) bounce=\(scroll.bounces):\(scroll.alwaysBounceHorizontal) adjustment=\(scroll.contentInsetAdjustmentBehavior.rawValue) delaysTouches=\(scroll.delaysContentTouches) cancelsTouches=\(scroll.canCancelContentTouches) pan=\(ObjectIdentifier(scroll.panGestureRecognizer)):\(scroll.panGestureRecognizer.state.rawValue):\(scroll.panGestureRecognizer.isEnabled) touchRange=\(scroll.panGestureRecognizer.minimumNumberOfTouches)...\(scroll.panGestureRecognizer.maximumNumberOfTouches) touchTypes=\(scroll.panGestureRecognizer.allowedTouchTypes) point=\(point) hit=\(path.joined(separator: ">"))")
+                rows.append("scroll=\(type(of: scroll)) id=\(ObjectIdentifier(scroll)) frame=\(frame) visible=\(visible) size=\(scroll.contentSize) offset=\(scroll.contentOffset) bounds=\(scroll.bounds) inset=\(scroll.adjustedContentInset) enabled=\(scroll.isScrollEnabled) bounce=\(scroll.bounces):\(scroll.alwaysBounceHorizontal) adjustment=\(scroll.contentInsetAdjustmentBehavior.rawValue) panDelaysBegan=\(scroll.panGestureRecognizer.delaysTouchesBegan) delaysTouches=\(scroll.delaysContentTouches) cancelsTouches=\(scroll.canCancelContentTouches) pan=\(ObjectIdentifier(scroll.panGestureRecognizer)):\(scroll.panGestureRecognizer.state.rawValue):\(scroll.panGestureRecognizer.isEnabled) touchRange=\(scroll.panGestureRecognizer.minimumNumberOfTouches)...\(scroll.panGestureRecognizer.maximumNumberOfTouches) touchTypes=\(scroll.panGestureRecognizer.allowedTouchTypes) point=\(point) hit=\(path.joined(separator: ">"))")
             }
             rows.append("captureSeconds=\(ProcessInfo.processInfo.systemUptime - captureStart) observations=\(gestureObservations.count) events=\(gestureEvents) omittedEvents=\(omittedGestureEvents) omittedObservations=\(omittedGestureObservations) samples=\(inputSampleEvents) omittedSamples=\(omittedInputSampleEvents) sampleTicks=\(inputSampleTicks) sampledIDs=\(sampledGestureIDs.count) sampleDeadline=\(inputSampleDeadline)")
             return rows.joined(separator: "\n")
         }
         // Passive run-loop observation sees failed/possible recognizers, which do
         // not send target actions. It never changes recognizers or delegates.
+        private weak var sampledControl: UIControl?
+        private var sampledControlSignature = ""
         private var inputSampler: CFRunLoopObserver?
         private var inputSampleDeadline: TimeInterval = 0
         private var sampledGestureIDs: Set<ObjectIdentifier> = []
@@ -285,6 +290,16 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             if uptime - lastInputHeartbeat >= 0.1 {
                 lastInputHeartbeat = uptime
                 NSLog("TayyaRescueInput heartbeat uptime=%f ticks=%ld", uptime, inputSampleTicks)
+            }
+            if let control = sampledControl {
+                let signature = "id=\(ObjectIdentifier(control)) tracking=\(control.isTracking) inside=\(control.isTouchInside) highlighted=\(control.isHighlighted)"
+                if sampledControlSignature != signature {
+                    sampledControlSignature = signature
+                    if inputSampleEvents < 512 {
+                        inputSampleEvents += 1
+                        NSLog("TayyaRescueInput control uptime=%f %@", uptime, signature)
+                    } else { omittedInputSampleEvents += 1 }
+                }
             }
             for identity in sampledGestureIDs {
                 guard let gesture = gestureObservations[identity]?.gesture else { continue }
@@ -444,6 +459,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             }
             if let observer = inputSampler { CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes) }; inputSampler = nil
             sampledGestureIDs.removeAll(); inputSignatures.removeAll()
+            sampledControl = nil; sampledControlSignature = ""
             inputSampleEvents = 0; omittedInputSampleEvents = 0
             inputSampleTicks = 0; lastInputHeartbeat = 0
             gestureObservations.removeAll()

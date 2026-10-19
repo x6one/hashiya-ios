@@ -25,7 +25,7 @@
       "name": "iPad testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
       "cause_status": "Proven saved title differs by final character; input-to-submit synchronization is a hypothesis, not proven storage loss",
       "evidence": "Original failure362/228 searches Handwriting stages24458143; exact original AX identifies openNotebook-Handwriting stages2445814 and notebookActions-Handwriting stages2445814. Original video shows the created card. Creation code passes bound title unchanged to Notebook and persist. Same case passed76.184s in39277996098 with unchanged create path.",
-      "next": "One targeted native case after an exact-value condition before Save; existing document lookup and all split/rotation/expansion/drawing assertions retained. If matching input still produces a different saved title, investigate production state handoff instead of widening the selector.",
+      "next": "Targeted case passed with full input and persisted full title; final unfiltered suites on both families still required. This verifies submission readiness, not deterministic isolation of UIKit/XCTest internal delivery latency.",
       "video": {
         "reader_run": 39298799505,
         "artifact": 12210240125,
@@ -45,7 +45,33 @@
         "production_files_changed": 0,
         "file": "UITests/LaunchTests.swift",
         "change": "Wait up to existing standard5s for notebookTitle.value to equal full intended title before Save; exact full-name lookup and all original drawing assertions retained",
-        "native_result": "pending one targeted iPad case"
+        "native_result": {
+          "source": "533b63391be4f96839f2d55cc11552e9005307b7",
+          "run": 39326353988,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "seconds": 82.14,
+          "verified_input_and_stored_title": "Handwriting stages DCBC847E",
+          "native_stroke_counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "visible_ink_pixels": [
+            5563,
+            8263,
+            10957,
+            28720
+          ],
+          "actual_four_state_screenshots_reviewed": true,
+          "persisted_drawing_bytes": 3650,
+          "persisted_drawing_sha256": "9c50f43fd2cc21fa72e3e3851f66d4f8e79b4ac91e7f375860e72c36714523ff",
+          "artifact": 12222218989,
+          "artifact_sha256": "336e1a0dff2fab69bd67632bf0b1903fbd232ebc20974b11458100d1c714aa4a",
+          "full_archive_sha_and_crc_verified": true
+        }
       }
     },
     {
@@ -71,5 +97,9 @@
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",
   "ipa": "blocked",
-  "office_physical_device_conversion": "unverified"
+  "office_physical_device_conversion": "unverified",
+  "targeted_visual_review": {
+    "iPhone": "All3 actual Maestro completion screenshots reviewed; artifact12221126392 SHA/CRC verified, JUnit3/0/0",
+    "iPad": "All3 actual Maestro completion screenshots reviewed; artifact12222371609 SHA024d9d24f8b4fa326897f1064d38a0e87e5c1c5342254dd1585e01e712467a8d/CRC verified, JUnit3/0/0"
+  }
 }

@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "margin_reopen_input_native_passed_collector_scope_corrected_final_gates_pending",
+  "status": "targeted_failures_resolved_final_same_source_gates_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -56,9 +56,9 @@
       "iPhone",
       "iPad"
     ],
-    "xctest": "Final-source pending; priorf2 iPad68 pass",
-    "xcuitest": "Final-source pending; priorf2 iPad32 pass, phoneC blocked by invalid added gesture; calibrated margin nativepass200.905s",
-    "maestro": "pending final integration source",
+    "xctest": "Final candidate pending:68 per family; baseline39286829941 passed68 on both.",
+    "xcuitest": "Final candidate pending:32 per family; exact added iPad input-readiness case passed82.140s in39326353988.",
+    "maestro": "Targeted3/3 iPhone39321182827 and3/3 iPad39323494599 passed; final same-source full-job context pending.",
     "external_exported_bytes": "pending final source",
     "screenshots_captured": false,
     "screenshots_reviewed": false,
@@ -249,10 +249,10 @@
       },
       "job_timing_utc": {
         "start": "15:28:26",
-        "B": "15:29:08\u201315:49:29",
-        "fresh_simulator": "15:49:29\u201315:53:25",
-        "C": "15:53:25\u201316:23:32",
-        "maestro": "16:24:02\u201316:29:01 cancelled"
+        "B": "15:29:08–15:49:29",
+        "fresh_simulator": "15:49:29–15:53:25",
+        "C": "15:53:25–16:23:32",
+        "maestro": "16:24:02–16:29:01 cancelled"
       },
       "root_cause": "Confirmed aggregate pipeline budget exhaustion after B+fresh simulator+C; no failure/assertion from full native suite. Maestro remaining flows unverified.",
       "correction": "Separate B3 job prerequisite; full C and Maestro on independent runner, existing60min budget unchanged. Both extended reopen cases remain in full32.",
@@ -372,7 +372,7 @@
           "ink_total": 2,
           "failed_test": "testIndividualInkTargetsAtAccessibilityTextSize",
           "failure_line": 1151,
-          "failure": "Native drawing count1\u21922 but visible red pixel delta0 in compact landscape margin",
+          "failure": "Native drawing count1→2 but visible red pixel delta0 in compact landscape margin",
           "actual_picker_imports_passed": 2,
           "actual_picker_imports_total": 2,
           "exported_bytes": "PDF3063/PPTX54684 verified"
@@ -733,7 +733,7 @@
         {
           "line": 1036,
           "original_line": 1034,
-          "expected": "After choosing pencil, inkBrush label contains \u0631\u0635\u0627\u0635",
+          "expected": "After choosing pencil, inkBrush label contains رصاص",
           "actual": "Original assertion fails; recorded compact brush menu remains open"
         },
         {
@@ -935,5 +935,38 @@
       "native_unchanged_rerun_needed_for_collector": false,
       "final_same_source_gates_still_required": true
     }
+  },
+  "current_rescue": {
+    "ledger": "Verification/Diagnostics/lifecycle-rescue-2026-10-19.json",
+    "baseline_sha": "df4ab1ddb7d5110eebf32a41ba00798098fda080",
+    "baseline_run": 39286829941,
+    "new_production_files_changed": 0,
+    "retained_ui_cases": 32,
+    "maestro_iPhone": {
+      "sha": "a0d6f35e44618eb3b3482a314a922b480d5fddac",
+      "run": 39321182827,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "maestro_iPad": {
+      "sha": "21983ff8a8e9e806a1d313af3a07a7cf4c2bd431",
+      "run": 39323494599,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "iPad_margin_title_and_drawing": {
+      "sha": "533b63391be4f96839f2d55cc11552e9005307b7",
+      "run": 39326353988,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "actual_four_state_images_reviewed": true,
+      "full_title_persisted": true,
+      "drawing_bytes": 3650
+    },
+    "next": "One complete release-source push gate: original3 regressions per family, then unfiltered68/32, real exported bytes, Maestro3 and actual captures per family, original native Office iphoneos build and unsigned package. All must reference the same final candidate SHA.",
+    "qualification_limit": "Targeted passes at distinct SHAs do not constitute complete release qualification. Physical-device Office conversion remains unverified."
   }
 }

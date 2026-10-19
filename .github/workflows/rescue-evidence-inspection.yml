@@ -48,12 +48,12 @@ jobs:
           metadata = subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(video)], text=True)
           Path("ExactEvidence/video-metadata.json").write_text(metadata)
           print("RESCUE_VIDEO_METADATA=" + metadata)
-          for second in [160, 164, 168]:
-              frame = Path("ExactEvidence") / ("failure-" + str(second) + ".png")
-              subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", str(second), "-i", str(video), "-frames:v", "1", str(frame)], check=True)
-              if frame.exists():
-                  import base64
-                  print("RESCUE_VIDEO_FRAME_" + str(second) + "=" + base64.b64encode(frame.read_bytes()).decode())
+          frame = Path("ExactEvidence/touch-1627-to-1639.png")
+          subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", "162.7", "-i", str(video),
+              "-vf", "fps=10,transpose=2,scale=956:440,crop=430:440:0:0,tile=4x3", "-frames:v", "1", str(frame)], check=True)
+          import base64
+          print("RESCUE_TOUCH_FRAME_TIMES=" + json.dumps([round(162.7 + i / 10, 1) for i in range(12)]))
+          print("RESCUE_TOUCH_CONTACT_SHEET=" + base64.b64encode(frame.read_bytes()).decode())
           PY
       - uses: actions/upload-artifact@v4
         if: always()

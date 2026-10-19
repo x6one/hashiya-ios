@@ -1,0 +1,26 @@
+name: Inspect existing rescue evidence
+on:
+  push:
+    branches: [diag/tayya-artifact-review]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate forensic reader syntax
+        run: python3 -m py_compile Tools/inspect_existing_rescue_artifacts.py
+      - name: Inspect bounded existing artifact entries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 Tools/inspect_existing_rescue_artifacts.py
+      - name: Retain forensic provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: existing-rescue-forensic-review
+          path: forensic-review/
+          retention-days: 7

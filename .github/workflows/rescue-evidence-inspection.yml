@@ -18,8 +18,8 @@ jobs:
       matrix:
         include:
           - family: iPhone
-            artifact: '12159100456'
-            sha256: 4ecb237ee43a6d6f8cc4cd396ad4c7e1fd4f42200e925e4f4b1d0d15c4e3e596
+            artifact: '12158536822'
+            sha256: 3b56f18986c0bf91150d8e5ba366e6bf4c5543506c8eeca51dd005206fe44b9e
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -29,19 +29,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
-          SMALL_EVIDENCE_OUTPUT: EvidenceInput/subset
-          VIDEO_EVIDENCE_OUTPUT: EvidenceVideo
         run: python3 Tools/inspect_rescue_artifact.py
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: delivery-rail-small-evidence
-          path: EvidenceInput/
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: delivery-failure-recording-only
-          path: EvidenceVideo/
-          retention-days: 7

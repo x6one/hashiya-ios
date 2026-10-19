@@ -114,7 +114,10 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             lines = archive.read(name).decode(errors="replace").splitlines()
             print("RESCUE_NATIVE_HEADER " + json.dumps({"lines": len(lines), "first": lines[:4]}))
             selected = [line for line in lines if any(term in line for term in
-                ("TayyaRescueInput", "TayyaRescueNavigation observe", "TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
+                ("TayyaRescueRailDelivery", "TayyaRescueInput", "TayyaRescueNavigation observe", "TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
+            policy = [line for line in lines if "TayyaRescueRailDelivery" in line]
+            print("RESCUE_RAIL_POLICY " + json.dumps({"total": len(policy), "omitted": max(0, len(policy) - 64)}))
+            print("\n".join(policy[-64:]))
             print("RESCUE_NATIVE_BEGIN")
             print("\n".join(selected[-400:]))
             print("RESCUE_NATIVE_END")

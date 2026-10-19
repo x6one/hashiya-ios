@@ -18,8 +18,8 @@ jobs:
       matrix:
         include:
           - family: iPhone
-            artifact: '12156731933'
-            sha256: c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb
+            artifact: '12155764975'
+            sha256: 45bff7902d167b2262c69a46564e1014998d2eb9de26d19ca6f95bf8af1df883
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -29,14 +29,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          EXACT_ATTACHMENT_PATHS: '["RailResults-attachments/4858B8CD-0699-46C0-B70B-E0F441550577.mp4"]'
+          EXACT_ATTACHMENT_PATHS: '["4858B8CD-0699-46C0-B70B-E0F441550577.mp4"]'
         run: python3 Tools/inspect_rescue_artifact.py
+      - name: Install free video decoder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Extract bounded failure video frames
         run: |
           python3 - <<'PY'
           import json, shutil, subprocess
           from pathlib import Path
           video = next(Path("ExactEvidence").glob("*.mp4"))
+          import hashlib
+          assert hashlib.sha256(video.read_bytes()).hexdigest() == "7f6a7acbb9486446a9735dc73a401dcb5ff5dfc738edf5495cf73fdcfa0c2a76"
           if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
               raise SystemExit("Video tools unavailable; raw recording preserved")
           metadata = subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(video)], text=True)

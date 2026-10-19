@@ -215,17 +215,19 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 var hit = window.hitTest(point, with: nil)
                 var path: [String] = []
                 var inputIdentities: Set<ObjectIdentifier> = []
-                for _ in 0..<8 {
+                let ancestorLimit = scroll.accessibilityIdentifier == "inkToolbar" ? 24 : 8
+                for _ in 0..<ancestorLimit {
                     guard let current = hit else { break }
                     let allGestures = current.gestureRecognizers ?? []
                     let gestures = allGestures.prefix(12).map { gesture in
                         observe(gesture, kind: "hit-\(type(of: current))")
                         inputIdentities.insert(ObjectIdentifier(gesture))
-                        return "\(type(of: gesture)):\(ObjectIdentifier(gesture)):\(gesture.state.rawValue):\(gesture.isEnabled)"
+                        return "\(type(of: gesture)):\(ObjectIdentifier(gesture)):\(gesture.state.rawValue):\(gesture.isEnabled):touches=\(gesture.numberOfTouches)"
                     }
                     path.append("\(type(of: current)):\(ObjectIdentifier(current)) identifier=\(current.accessibilityIdentifier ?? "")[\(gestures.joined(separator: ",")); omitted=\(max(0, allGestures.count - 12))]")
                     hit = current.superview
                 }
+                path.append("ancestorOmitted=\(hit != nil)")
                 if scroll.accessibilityIdentifier == "inkToolbar" {
                     armInputSampler(inputIdentities)
                     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
@@ -256,8 +258,8 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
         private func armInputSampler(_ identities: Set<ObjectIdentifier>) {
             sampledGestureIDs = identities
             inputSampleDeadline = ProcessInfo.processInfo.systemUptime + 1.5
-            NSLog("TayyaRescueInput arm uptime=%f until=%f recognizers=%ld", ProcessInfo.processInfo.systemUptime, inputSampleDeadline, identities.count)
             if inputSampler == nil {
+                NSLog("TayyaRescueInput arm uptime=%f until=%f recognizers=%ld", ProcessInfo.processInfo.systemUptime, inputSampleDeadline, identities.count)
                 let activities = CFRunLoopActivity.beforeSources.rawValue | CFRunLoopActivity.beforeWaiting.rawValue
                 let observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, activities, true, CFIndex.max) { [weak self] observer, _ in
                     MainActor.assumeIsolated {
@@ -287,14 +289,14 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             for identity in sampledGestureIDs {
                 guard let gesture = gestureObservations[identity]?.gesture else { continue }
                 let pan = gesture as? UIPanGestureRecognizer
-                let signature = "state=\(gesture.state.rawValue) touches=\(gesture.numberOfTouches) translation=\(String(describing: pan?.translation(in: gesture.view))) offset=\(String(describing: (gesture.view as? UIScrollView)?.contentOffset))"
+                let signature = "state=\(gesture.state.rawValue) touches=\(gesture.numberOfTouches)"
                 guard inputSignatures[identity] != signature else { continue }
                 inputSignatures[identity] = signature
-                guard inputSampleEvents < 160 else {
+                guard inputSampleEvents < 512 else {
                     omittedInputSampleEvents += 1; continue
                 }
                 inputSampleEvents += 1
-                NSLog("TayyaRescueInput sample uptime=%f id=%@ type=%@ %@", uptime, String(describing: identity), String(describing: type(of: gesture)), signature)
+                NSLog("TayyaRescueInput sample uptime=%f id=%@ type=%@ %@", uptime, String(describing: identity), String(describing: type(of: gesture)), signature + " translation=\(String(describing: pan?.translation(in: gesture.view))) offset=\(String(describing: (gesture.view as? UIScrollView)?.contentOffset))")
             }
         }
         private final class GestureObservation {

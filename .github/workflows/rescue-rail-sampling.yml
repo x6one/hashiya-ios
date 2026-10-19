@@ -1,4 +1,4 @@
-name: Observe failed native rail recognizers
+name: Capture failed native rail state transitions
 on:
   push:
     branches: ['diag/tayya-rail-sampling']
@@ -75,14 +75,14 @@ jobs:
           PY
       - name: Mark native diagnostic session
         run: touch "$RUNNER_TEMP/tayya-native-start"
-      - name: Sample original failing accessibility rail input once
+      - name: Capture original accessibility failure with complete ancestor state observations
         run: |
           set -o pipefail
           swiftc -frontend -parse UITests/LaunchTests.swift
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RailResults.xcresult CODE_SIGNING_ALLOWED=NO | tee rail-build.log
+          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -run-tests-until-failure -test-iterations 3 -resultBundlePath RailResults.xcresult CODE_SIGNING_ALLOWED=NO | tee rail-build.log
       - name: Preserve actual saved review drawing bytes after the visibility deadline
         if: always()
         run: python3 Tools/collect_review_drawings.py

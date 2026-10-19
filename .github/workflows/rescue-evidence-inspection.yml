@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          EXACT_ATTACHMENT_PATHS: '["C79BE4DA-3D8A-4BC0-9726-6CC09F158DE3.mp4"]'
+          VIDEO_EVIDENCE_OUTPUT: ExactEvidence
         run: python3 Tools/inspect_rescue_artifact.py
       - name: Install free video decoder
         run: |

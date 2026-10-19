@@ -229,6 +229,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 if scroll.accessibilityIdentifier == "inkToolbar" {
                     armInputSampler(inputIdentities)
                     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+                    rows.append("windowInventory sceneCount=\(scenes.count) windowCounts=\(scenes.map { $0.windows.count }) limits=4scenes/8windows")
                     for scene in scenes.prefix(4) {
                         for other in scene.windows.prefix(8) {
                             let local = other.convert(point, from: window)
@@ -439,7 +440,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             for observation in gestureObservations.values {
                 observation.gesture?.removeTarget(self, action: #selector(observedGesture(_:)))
             }
-            inputSampler?.invalidate(); inputSampler = nil
+            if let observer = inputSampler { CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes) }; inputSampler = nil
             sampledGestureIDs.removeAll(); inputSignatures.removeAll()
             inputSampleEvents = 0; omittedInputSampleEvents = 0
             inputSampleTicks = 0; lastInputHeartbeat = 0

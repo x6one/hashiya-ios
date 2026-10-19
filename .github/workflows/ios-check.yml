@@ -411,15 +411,18 @@ jobs:
       - name: Build or reproduce the selected native scope
         env:
           DIAGNOSTIC: ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}
+          TRACE_COLOR_LAUNCH: ${{ contains(github.event.head_commit.message, '[trace:launch]') && 'true' || 'false' }}
         run: |
           set -o pipefail
           if [ "$DIAGNOSTIC" = margin ]; then
             xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
           elif [ "$DIAGNOSTIC" = color ]; then
-            python3 Tools/trace_color_bootstrap.py --build-log focused-build.log --output FocusedEvidence/launch-trace &
-            TRACE_PID=$!
-            trap 'kill "$TRACE_PID" 2>/dev/null || true; wait "$TRACE_PID" 2>/dev/null || true' EXIT
-            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+            if [ "$TRACE_COLOR_LAUNCH" = true ]; then
+              python3 Tools/trace_color_bootstrap.py --build-log focused-build.log --output FocusedEvidence/launch-trace &
+              TRACE_PID=$!
+              trap 'kill "$TRACE_PID" 2>/dev/null || true; wait "$TRACE_PID" 2>/dev/null || true' EXIT
+            fi
+            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
           else
             xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
             xcrun simctl install "$SIMULATOR_ID" NativeBuild/Build/Products/Debug-iphonesimulator/Hashiya.app

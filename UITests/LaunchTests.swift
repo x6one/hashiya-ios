@@ -964,6 +964,34 @@ final class LaunchTests: XCTestCase {
         capturePaperStudio("ExternalIntake-" + variant + "-ImportedDocument", in: app)
     }
 
+    private func waitForNativeInkColorService(name: String) -> Bool {
+        // The host sheet can exist before its OS-owned service starts. Recorded
+        // RBS bootstrap delays were 43.360s and 20.665s on cold CI simulators.
+        // Observe process readiness without launching or prewarming the service;
+        // the original 5s checks for actual picker content still follow this.
+        let service = XCUIApplication(bundleIdentifier: "com.apple.UIKit.ColorPickerUIService")
+        let started = ProcessInfo.processInfo.systemUptime
+        let initial = service.state
+        var observed = [initial.rawValue]
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let state = service.state
+            if observed.last != state.rawValue { observed.append(state.rawValue) }
+            return state != .notRunning && state != .unknown
+        }, object: service)
+        let result = XCTWaiter.wait(for: [ready], timeout: 60)
+        let elapsed = ProcessInfo.processInfo.systemUptime - started
+        let state = "bundle=com.apple.UIKit.ColorPickerUIService; initial=\(initial.rawValue); final=\(service.state.rawValue); observed=\(observed); elapsed=\(elapsed); result=\(result.rawValue)"
+        let evidence = XCTAttachment(string: state)
+        evidence.name = name + "-NativeSystemColorServiceStartup"
+        evidence.lifetime = .keepAlways; add(evidence)
+        print("NativeSystemColorServiceStartup \(name): \(state)")
+        guard result == .completed else {
+            XCTFail("The OS color service did not start within its bounded startup allowance: " + state)
+            return false
+        }
+        return true
+    }
+
     private func nativeInkPresenterState(in app: XCUIApplication) -> String {
         let anchors = app.otherElements.matching(identifier: "nativeInkPresenterState").allElementsBoundByIndex
         return "anchors=\(anchors.count); " + anchors.prefix(4).enumerated().map { index, anchor in
@@ -1096,7 +1124,11 @@ final class LaunchTests: XCTestCase {
         }
         guard tapTarget("inkColor") else { return false }
         let picker = app.otherElements["nativeInkColorPicker"].firstMatch
-        guard picker.waitForExistence(timeout: 5), picker.segmentedControls.firstMatch.waitForExistence(timeout: 5) else {
+        guard picker.waitForExistence(timeout: 5) else {
+            XCTFail("Color target must present the native color picker: " + app.debugDescription); return false
+        }
+        guard waitForNativeInkColorService(name: name) else { return false }
+        guard picker.segmentedControls.firstMatch.waitForExistence(timeout: 5) else {
             let native = XCTAttachment(string: nativeInkPresenterState(in: app))
             native.name = name + "-NativePalettePresentation"; native.lifetime = .keepAlways; add(native)
             XCTFail("Color target must present the native color picker: " + app.debugDescription); return false

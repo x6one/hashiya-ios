@@ -143,6 +143,29 @@
       "observer_repair": {
         "cause": "Uncaught observed sample TimeoutExpired lost remaining capture records; sequential cold sampling started too late for the critical interval.",
         "verification": "Regression test reproduced original TimeoutExpired, then passed after bounded timeout recording and parallel cached-host sampling. Tools17/17 passed; no native/application timeout changed."
+      },
+      "cohort_contrast": {
+        "source": "3b2655beacce00737d7a5eac152c66f54a2a23da",
+        "run": 39339167342,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": [
+          138.155,
+          119.777,
+          27.218
+        ],
+        "artifact": 12228542882,
+        "sha256": "cdf42a9b29a55f46a5bf94be93df53c048999a3a65c160850bbc98378a443dd3",
+        "full_sha256_crc_verified": true,
+        "bootstrap_seconds": 0.121,
+        "conclusion": "Three-case selection alone is not a sufficient cause. Healthy host traces cannot explain why the earlier OS job launches took20/43s. Observer now records bounded partial capture without aborting."
+      },
+      "readiness_candidate": {
+        "status": "not native verified yet",
+        "file": "UITests/LaunchTests.swift",
+        "change": "After original5s host-sheet assertion, observe OS service process state with XCUIApplication, no launch/activate/prewarming. Measured43.360s worst bootstrap gives bounded60s OS-startup phase with explicit initial/final states and elapsed evidence. Original nativeGrid/close/swatch5s guards,44pt/RGBA/drawing/undo/redo assertions and32case names retained.",
+        "limits": "This is a system-process precondition, not a claimed production or OS launch-performance repair. It changes when the original5s content check starts. If service is already running but content is absent, the original content check still fails."
       }
     }
   ],

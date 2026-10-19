@@ -108,9 +108,25 @@
         "sha256": "e601c46707dcde7b5877de7372c8c745658aec61549d0a5aa3fd9c38bb144cd4",
         "sha256_crc_verified": true,
         "both_native_picker_screenshots_reviewed": true,
-        "shared_noncausal_errors": "Both pass and fail emit identical libxpc0x87 and missing cache errors; shader compilation38ms vs35ms. These do not explain43s bootstrap."
+        "shared_noncausal_errors": "Both pass and fail emit identical libxpc0x87 and missing cache errors; shader compilation38ms vs35ms. These do not explain43s bootstrap.",
+        "second_failure": "App request22:13:17.535 tobootstrap22:13:38.200,20.665s; RBS creating/launching job22:13:17.544, no bootstrap completion before5s guard failed.",
+        "seeded_success": "App request22:36:52.217 tobootstrap22:36:52.482,0.265s.",
+        "other_shared_noncausal_errors": "Memorystatus/CarPlay permission warnings also occur on success; not proven causes."
       },
-      "no_production_repair_adopted": true
+      "no_production_repair_adopted": true,
+      "files_setup_isolation": {
+        "source": "8052ed5e559761dd79bf1795bbcf38ef0d6ebd9d",
+        "run": 39334598136,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": 192.067,
+        "artifact": 12225824047,
+        "sha256": "6034e59cc6171cc24d4984da54b37bf9356d18617f9a5bb7cd639738287433e4",
+        "full_sha256_crc_verified": true,
+        "conclusion": "Files initialization alone is not sufficient to cause failure; do not remove it as a claimed repair."
+      },
+      "next_bounded_probe": "Match full prerequisite setup and move archived-log decoding after the original single case. Read-only host ColorPicker launch log and bounded launchd_sim/CoreSimulatorService/ColorPicker stack samples at the original waiter; no private app APIs, prewarming, retries or assertion-timeout changes. This tests the launch-broker delay and avoids interpreting instrumented passes as a production repair."
     }
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",

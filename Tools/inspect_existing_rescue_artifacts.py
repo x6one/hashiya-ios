@@ -62,77 +62,23 @@ class RemoteZip(io.RawIOBase):
         self.cache.append((start,data)); self.position += length
         return data[:length]
 
-def emit(kind, value):
-    print("FORENSIC_" + kind + " " + json.dumps(value, ensure_ascii=False), flush=True)
-
 root = Path("forensic-review"); root.mkdir()
-reports = []
-for identifier in ARTIFACTS:
-    metadata = api(f"/actions/artifacts/{identifier}")
-    if metadata["workflow_run"]["head_sha"] != SOURCE or metadata["workflow_run"]["id"] != RUN:
-        raise RuntimeError("Unexpected artifact source")
-    remote = RemoteZip(download_location(identifier), metadata["size_in_bytes"])
-    retained = []
-    folder = root / str(identifier); folder.mkdir()
-    with zipfile.ZipFile(remote) as archive:
-        inventory = archive.infolist()
-        small = [i for i in inventory if i.file_size <= 500000]
-        emit("INVENTORY", {"artifact":identifier,"maestro":[
-            {"path":i.filename,"bytes":i.file_size} for i in small if i.filename.startswith("MaestroResults/")]})
-        images = []
-        def read_entry(info):
-            if info.file_size > 500000: raise RuntimeError("Entry exceeds cap")
-            data = archive.read(info)  # ZIP entry CRC checked by ZipExtFile.
-            digest = hashlib.sha256(data).hexdigest()
-            retained.append({"path":info.filename,"bytes":len(data),"sha256":digest,"zip_crc":"passed"})
-            (folder / (digest + Path(info.filename).suffix)).write_bytes(data)
-            return data
-        for info in small:
-            name = info.filename
-            selected = name.endswith(("TestResults-summary.json","MaestroResults/report.xml","NativeFailure/collection.json"))
-            selected = selected or (name.startswith("MaestroResults/") and (name.endswith("maestro.log") or (Path(name).name.startswith("commands") and name.endswith(".json"))))
-            selected = selected or (name.startswith("MaestroResults/") and "hierarchy" in name.lower() and name.endswith((".json",".xml")))
-            if selected:
-                data = read_entry(info)
-                limit = 30000 if (Path(name).name.startswith("commands") and name.endswith(".json")) else 16000
-                content = data.decode("utf-8",errors="replace")
-                if name.endswith("maestro.log"): content = content[-limit:]
-                elif (Path(name).name.startswith("commands") and name.endswith(".json")) and len(content)>limit:
-                    content = content[:3000] + "\\n[MIDDLE OMITTED]\\n" + content[-27000:]
-                else: content = content[:limit]
-                emit("FILE",{"artifact":identifier,"path":name,"content":content,"text_truncated":len(data)>limit})
-        maestro_png = [i for i in small if i.filename.startswith("MaestroResults/") and i.filename.endswith(".png")]
-        groups = set()
-        for info in maestro_png:
-            parent = info.filename.rsplit("/",1)[0]
-            if parent not in groups and len(groups)<3:
-                images.append(info); groups.add(parent)
-        if identifier == 12209366437:
-            manifest_info = next((i for i in small if i.filename == "Screenshots/manifest.json"),None)
-            if manifest_info:
-                groups_json = json.loads(read_entry(manifest_info))
-                for group in groups_json:
-                    if "testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion" in group["testIdentifier"]:
-                        candidates = [a for a in group["attachments"] if a["exportedFileName"].endswith(".png")]
-                        candidates.sort(key=lambda a:not a.get("isAssociatedWithFailure",False))
-                        for attachment in candidates[:2]:
-                            info = archive.getinfo("Screenshots/"+attachment["exportedFileName"])
-                            if info.file_size<=500000: images.append(info)
-        for number, info in enumerate(images):
-            data = read_entry(info)
-            if data[:8] != b"\x89PNG\r\n\x1a\n": continue
-            width,height = struct.unpack(">II",data[16:24])
-            token = f"{identifier}-{number}"
-            encoded = base64.b64encode(data).decode("ascii")
-            chunks = [encoded[i:i+12000] for i in range(0,len(encoded),12000)]
-            emit("IMAGE_META",{"token":token,"artifact":identifier,"path":info.filename,
-                "mime":"image/png","width":width,"height":height,"sha256":hashlib.sha256(data).hexdigest(),
-                "bytes":len(data),"chunks":len(chunks),"pixel_transform":"none"})
-            for index,chunk in enumerate(chunks):
-                emit("IMAGE_CHUNK",{"token":token,"index":index,"data":chunk})
-    report = {"artifact":identifier,"source":SOURCE,"run":RUN,
-        "range_bytes_received":remote.downloaded,"artifact_metadata_digest":metadata.get("digest"),
-        "full_archive_sha256_verified":False,"scope":"Exact HTTPS byte ranges; selected ZIP entry CRC and SHA256",
-        "retained":retained}
-    reports.append(report); emit("PROVENANCE",report)
-(root/"provenance.json").write_text(json.dumps(reports,indent=2)+"\n")
+identifier = 12209366437
+metadata = api(f"/actions/artifacts/{identifier}")
+if metadata["workflow_run"]["head_sha"] != SOURCE or metadata["workflow_run"]["id"] != RUN:
+    raise RuntimeError("Unexpected artifact source")
+remote = RemoteZip(download_location(identifier), metadata["size_in_bytes"])
+with zipfile.ZipFile(remote) as archive:
+    info = archive.getinfo("Screenshots/manifest.json")
+    if info.file_size > 500000: raise RuntimeError("Manifest exceeds bound")
+    data = archive.read(info)
+    groups = json.loads(data)
+    failed = [g for g in groups if "testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion" in g["testIdentifier"]]
+    names = {"Screenshots/"+a["exportedFileName"] for g in failed for a in g["attachments"]}
+    media = [{"path":i.filename,"bytes":i.file_size,"compressed":i.compress_size,"method":i.compress_type}
+        for i in archive.infolist() if i.filename in names or i.filename.startswith("Screenshots/") and i.filename.endswith((".mp4",".mov",".heic",".jpeg",".jpg"))]
+    report = {"source":SOURCE,"run":RUN,"artifact":identifier,"failed_groups":failed,"media":media,
+        "range_bytes_received":remote.downloaded,"manifest_crc":"passed","manifest_sha256":hashlib.sha256(data).hexdigest(),
+        "full_archive_sha256_verified":False}
+    (root/"failed-media-index.json").write_text(json.dumps(report,indent=2)+"\n")
+    print("FORENSIC_MEDIA_INDEX "+json.dumps(report,ensure_ascii=False),flush=True)

@@ -18,8 +18,8 @@ jobs:
       matrix:
         include:
           - family: iPhone
-            artifact: '12158536822'
-            sha256: 3b56f18986c0bf91150d8e5ba366e6bf4c5543506c8eeca51dd005206fe44b9e
+            artifact: '12158357379'
+            sha256: debc717d7a97550df6aed1c0b94b6a539591c3ff480fab8cd728909548571c10
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -29,4 +29,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
+          VIDEO_EVIDENCE_OUTPUT: ExactEvidence
         run: python3 Tools/inspect_rescue_artifact.py
+      - name: Install free video decoder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Extract bounded failure video frames
+        run: |
+          python3 - <<'PY'
+          import json, shutil, subprocess
+          from pathlib import Path
+          video = next(Path("ExactEvidence").glob("*.mp4"))
+          import hashlib
+          assert hashlib.sha256(video.read_bytes()).hexdigest() == "06ccdaaa81be2b46c509c44a750ac3f399f530a83f2616d16bafdbdcccc6c97b"
+          if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+              raise SystemExit("Video tools unavailable; raw recording preserved")
+          metadata = subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(video)], text=True)
+          Path("ExactEvidence/video-metadata.json").write_text(metadata)
+          print("RESCUE_VIDEO_METADATA=" + metadata)
+          from datetime import datetime
+          details = json.loads(metadata)
+          start = datetime.fromisoformat(details["format"]["tags"]["creation_time"].replace("Z", "+00:00"))
+          press = datetime.fromisoformat("2026-10-19T01:52:54+00:00")
+          offset = (press - start).total_seconds() - 0.25
+          assert 0 <= offset and offset + 6.0 <= float(details["format"]["duration"])
+          print("RESCUE_TOUCH_WALL_ANCHOR=" + json.dumps({"video_creation": start.isoformat(), "test_press": press.isoformat(), "offset": offset, "scope": "6.0 seconds, failed compact brush selection"}))
+          frame = Path("ExactEvidence/delivery-failed-brush-contact.png")
+          subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", str(offset), "-i", str(video),
+              "-vf", "fps=2,transpose=2,scale=956:440,crop=430:440:0:0,tile=4x3", "-frames:v", "1", str(frame)], check=True)
+          import base64
+          print("RESCUE_TOUCH_FRAME_TIMES=" + json.dumps([round(offset + i / 2, 3) for i in range(12)]))
+          print("RESCUE_TOUCH_CONTACT_SHEET=" + base64.b64encode(frame.read_bytes()).decode())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delivery-brush-failure-video-contact
+          path: ExactEvidence/
+          retention-days: 7

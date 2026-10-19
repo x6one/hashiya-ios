@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_rail_native_handoff_failure_captured_candidate_pending",
+  "status": "rescue_delivery_policy_trial_rejected_and_reverted_rail_cause_unproven",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -146,8 +146,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
-    "next_scope": "Single isolated native pan touch-delivery policy experiment; phone firstfailure/max3, then related tests, then iPad. No repeated capture without an intervention.",
+    "next_source": null,
+    "next_scope": "Pending source review of missing read-only tracking and public cancellation-policy inheritance observations; no native rerun started.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -177,13 +177,13 @@
         "sha256": "2cb5c4b8a485096b34870e8f678dbf7028e211dbb9e8dd6174f712c4c258c732"
       }
     ],
-    "next_interpretation_limit": "Passing targeted cases alone is not repair or release qualification; match pan identity and real false→true intervention.",
+    "next_interpretation_limit": "Delivery policy rejected; do not infer original rail repair from an unrelated earlier failure.",
     "transition_hit_run": 39173378390,
     "transition_hit_artifact": {
       "id": 12153657880,
       "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
     },
-    "next_run": 39186654628,
+    "next_run": null,
     "deliberate_input_artifacts": [
       {
         "family": "iPhone",
@@ -218,7 +218,7 @@
       "phone_failure_screenshot": 39177983881,
       "pad_dismissal_native_window": 39178393882
     },
-    "latest_report": "Verification/Diagnostics/rail-sampling-39184752493.json"
+    "latest_report": "Verification/Diagnostics/rail-delivery-39186654628.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -444,12 +444,10 @@
     "artifact_sha256": "c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
     "evidence": "Verification/Diagnostics/rail-input-39181028127.json",
     "next": {
-      "source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
-      "branch": "diag/tayya-rail-delivery",
-      "run": 39186654628,
-      "goal": "Test supported handoff hypothesis with one public flag; record actual UIControl tracking",
-      "stop_condition": "Stop on first failure, inspect new evidence; do not rerun unchanged",
-      "accepted": false
+      "issue": "Original rail reset; underlying cause unproven",
+      "required_evidence": "Read-only actual UIControl tracking, native scroll tracking/dragging/enabled flags and cancellation-policy inheritance at the handoff; no further delivery-policy tweak without this evidence",
+      "run": null,
+      "source": null
     },
     "sampled_control": {
       "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
@@ -608,6 +606,37 @@
         "ipa": "blocked",
         "merge": false,
         "apple_upload": false
+      },
+      "video_review": {
+        "reader_run": 39186865583,
+        "reader_source": "f59669ad63b591481a6e64234d254721c580edea",
+        "video_file": "C79BE4DA-3D8A-4BC0-9726-6CC09F158DE3.mp4",
+        "video_sha256": "075eb722f3ba7ae1fff8132281bcc8f353c70152b46b8aee7c1f1de1e07f0960",
+        "retained_zip_sha256": "b17ede21d83273796788988c86590a2fe8fd6062e287ea6a1a315547933bf9ba",
+        "video_creation_utc": "2026-10-19T01:29:52Z",
+        "test_press_utc": "2026-10-19T01:31:41.698Z",
+        "reviewed_frames_seconds": [
+          109.448,
+          109.548,
+          109.648,
+          109.748,
+          109.848,
+          109.948,
+          110.048,
+          110.148,
+          110.248,
+          110.348,
+          110.448,
+          110.548
+        ],
+        "native_rail_visually_static": true,
+        "visible_menu_or_modal_during_drag": false,
+        "interpretation_limit": "Review covers the recorded failing drag only; it does not prove UIControl view tracking caused native pan reset",
+        "reader_first_attempt": {
+          "run": 39186755415,
+          "result": "failed StopIteration: workflow requested extraction option removed from current reader",
+          "correction": "Use current VIDEO_EVIDENCE_OUTPUT; no native tests rerun"
+        }
       }
     }
   },
@@ -616,7 +645,7 @@
     "branch": "diag/tayya-rail-delivery",
     "run": 39186654628,
     "accepted": false,
-    "status": "queued; no success claimed",
+    "status": "failed first original Accessibility; rejected and reverted",
     "hypothesis": "UIControl view-tracking handoff races native rail pan recognition",
     "production_files": [
       "App/MarginNotebook.swift"
@@ -632,8 +661,43 @@
       240,
       360
     ],
-    "stage_A": "pending",
-    "stage_B": "pending",
+    "stage_A": {
+      "tools_passed": 14,
+      "failed": 0,
+      "python_syntax": "passed",
+      "actionlint": "1.7.7 passed; shellcheck/pyflakes integrations disabled",
+      "read_only_drawing_capture": "passed",
+      "Swift_native_compilation": "passed"
+    },
+    "stage_B": {
+      "family": "iPhone",
+      "passed": 0,
+      "failed": 1,
+      "attempted": 1,
+      "maximum": 3,
+      "stop_after_first_failure": true,
+      "duration_seconds": 124.318,
+      "failures": [
+        {
+          "line": 1036,
+          "original_line": 1034,
+          "expected": "After choosing pencil, inkBrush label contains رصاص",
+          "actual": "Original assertion fails; recorded compact brush menu remains open"
+        },
+        {
+          "line": 973,
+          "original_line": 971,
+          "expected": "Complete inkWidth target hittable",
+          "actual": "Cannot scroll complete target into view while menu remains open"
+        }
+      ],
+      "original_failed_rail_drag_reached": false,
+      "drag_windows": 0,
+      "document_ink_guards_before_compact": "Brush/width/color/drawing/Undo/Redo/FitSheet reached without an earlier reported failure",
+      "related_Standard_navigation": "skipped after failed gate",
+      "iPad": "skipped after phone failure",
+      "full_C": "not run"
+    },
     "required_evidence": [
       "false-to-true flag change",
       "helper scroll/pan identity matches actual inkToolbar",
@@ -642,6 +706,16 @@
     ],
     "independent_review": "No blocking helper Swift/API issue; iPad preference typo corrected before publication; sequential early stop intentional",
     "full_C": "not run",
-    "ipa": "blocked"
+    "ipa": "blocked",
+    "revert": {
+      "accepted": false,
+      "result": "Rejected on first original test failure; no unchanged rerun",
+      "production_change_reverted": true,
+      "revert_source": "ca6272dad17b77deaaee853407db620458db03a5",
+      "restored_margin_blob": "caab119bd46318ee5886eed37dca749e108e32df",
+      "work_branch_never_adopted_product_change": true,
+      "CI_rerun_on_revert": false
+    },
+    "evidence": "Verification/Diagnostics/rail-delivery-39186654628.json"
   }
 }

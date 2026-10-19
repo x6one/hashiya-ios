@@ -105,5 +105,36 @@
     "ipa": "blocked",
     "merge": false,
     "apple_upload": false
+  },
+  "video_review": {
+    "reader_run": 39186865583,
+    "reader_source": "f59669ad63b591481a6e64234d254721c580edea",
+    "video_file": "C79BE4DA-3D8A-4BC0-9726-6CC09F158DE3.mp4",
+    "video_sha256": "075eb722f3ba7ae1fff8132281bcc8f353c70152b46b8aee7c1f1de1e07f0960",
+    "retained_zip_sha256": "b17ede21d83273796788988c86590a2fe8fd6062e287ea6a1a315547933bf9ba",
+    "video_creation_utc": "2026-10-19T01:29:52Z",
+    "test_press_utc": "2026-10-19T01:31:41.698Z",
+    "reviewed_frames_seconds": [
+      109.448,
+      109.548,
+      109.648,
+      109.748,
+      109.848,
+      109.948,
+      110.048,
+      110.148,
+      110.248,
+      110.348,
+      110.448,
+      110.548
+    ],
+    "native_rail_visually_static": true,
+    "visible_menu_or_modal_during_drag": false,
+    "interpretation_limit": "Review covers the recorded failing drag only; it does not prove UIControl view tracking caused native pan reset",
+    "reader_first_attempt": {
+      "run": 39186755415,
+      "result": "failed StopIteration: workflow requested extraction option removed from current reader",
+      "correction": "Use current VIDEO_EVIDENCE_OUTPUT; no native tests rerun"
+    }
   }
 }

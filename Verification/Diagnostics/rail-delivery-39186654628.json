@@ -1,0 +1,131 @@
+{
+  "problem": "testIndividualInkTargetsAtAccessibilityTextSize: isolated native pan touch-delivery policy trial",
+  "source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
+  "run": 39186654628,
+  "branch": "diag/tayya-rail-delivery",
+  "baseline_failure_evidence": "Verification/Diagnostics/rail-sampling-39184752493.json",
+  "hypothesis": {
+    "status": "unproven",
+    "description": "UIControl view-tracking handoff races rail pan recognition"
+  },
+  "change": {
+    "production_file": "App/MarginNotebook.swift",
+    "policy": "Nearest enclosing ink rail pan.delaysTouchesBegan=true; weak identity ownership, snapshot once, restore on detach/dismantle",
+    "diagnostic_file": "App/PDFWorkspace.swift",
+    "original_UI_test_file_unchanged_from_capture": true,
+    "all_original_assertion_lines_retained": 224,
+    "original_rail_hold_seconds": 0.1,
+    "case_time_allowances_seconds": [
+      240,
+      360
+    ]
+  },
+  "stage_A": {
+    "tools_passed": 14,
+    "failed": 0,
+    "python_syntax": "passed",
+    "actionlint": "1.7.7 passed; shellcheck/pyflakes integrations disabled",
+    "read_only_drawing_capture": "passed",
+    "Swift_native_compilation": "passed"
+  },
+  "stage_B": {
+    "family": "iPhone",
+    "passed": 0,
+    "failed": 1,
+    "attempted": 1,
+    "maximum": 3,
+    "stop_after_first_failure": true,
+    "duration_seconds": 124.318,
+    "failures": [
+      {
+        "line": 1036,
+        "original_line": 1034,
+        "expected": "After choosing pencil, inkBrush label contains رصاص",
+        "actual": "Original assertion fails; recorded compact brush menu remains open"
+      },
+      {
+        "line": 973,
+        "original_line": 971,
+        "expected": "Complete inkWidth target hittable",
+        "actual": "Cannot scroll complete target into view while menu remains open"
+      }
+    ],
+    "original_failed_rail_drag_reached": false,
+    "drag_windows": 0,
+    "document_ink_guards_before_compact": "Brush/width/color/drawing/Undo/Redo/FitSheet reached without an earlier reported failure",
+    "related_Standard_navigation": "skipped after failed gate",
+    "iPad": "skipped after phone failure",
+    "full_C": "not run"
+  },
+  "policy_evidence": {
+    "reader_run": 39187616400,
+    "records": 7,
+    "omitted": 0,
+    "compact_scroll": "0x106cffc00",
+    "compact_pan": "0x12d3180a0",
+    "acquire_utc": "2026-10-19T01:52:37.818Z",
+    "previous": 0,
+    "current": 1,
+    "restore_utc": "2026-10-19T01:53:01.582Z",
+    "interpretation_limit": "Runtime intervention is real and stable through the observed failure; no captured intended rail drag, so this run cannot establish repair or its original failure cause"
+  },
+  "artifact": {
+    "id": 12159100456,
+    "bytes": 117326656,
+    "sha256": "4ecb237ee43a6d6f8cc4cd396ad4c7e1fd4f42200e925e4f4b1d0d15c4e3e596",
+    "full_sha256_and_zip_crc_verified": true,
+    "reader_run": 39187511413,
+    "small_subset": {
+      "id": 12158536822,
+      "bytes": 1154529,
+      "sha256": "3b56f18986c0bf91150d8e5ba366e6bf4c5543506c8eeca51dd005206fe44b9e"
+    },
+    "video_subset": {
+      "id": 12158357379,
+      "bytes": 23965075,
+      "sha256": "debc717d7a97550df6aed1c0b94b6a539591c3ff480fab8cd728909548571c10"
+    }
+  },
+  "video_review": {
+    "reader_run": 39187661672,
+    "file": "B44CD459-0F8E-46E0-BC6E-4571D3FD60CF.mp4",
+    "file_sha256": "06ccdaaa81be2b46c509c44a750ac3f399f530a83f2616d16bafdbdcccc6c97b",
+    "creation_utc": "2026-10-19T01:51:02Z",
+    "reviewed_frame_seconds": [
+      111.75,
+      112.25,
+      112.75,
+      113.25,
+      113.75,
+      114.25,
+      114.75,
+      115.25,
+      115.75,
+      116.25,
+      116.75,
+      117.25
+    ],
+    "observation": "Native brush menu is still visible across pencil selection and subsequent failed brush assertion; this is not solely a delayed AX label observation",
+    "causal_attribution_to_flag": "not proven"
+  },
+  "decision": {
+    "accepted": false,
+    "result": "Rejected on first original test failure; no unchanged rerun",
+    "production_change_reverted": true,
+    "revert_source": "ca6272dad17b77deaaee853407db620458db03a5",
+    "restored_margin_blob": "caab119bd46318ee5886eed37dca749e108e32df",
+    "work_branch_never_adopted_product_change": true,
+    "CI_rerun_on_revert": false
+  },
+  "next": {
+    "issue": "Original native rail reset before input ends",
+    "required_new_evidence": "Read-only actual UIControl tracking, native scroll tracking/dragging/enabled flags and cancellation-policy inheritance at the handoff; no further delivery-policy tweak without this evidence",
+    "native_run_started": false
+  },
+  "release": {
+    "qualified": false,
+    "ipa_created": false,
+    "merged": false,
+    "apple_upload": false
+  }
+}

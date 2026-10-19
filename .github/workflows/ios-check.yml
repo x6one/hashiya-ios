@@ -182,6 +182,9 @@ jobs:
           "$HOME/.maestro/bin/maestro" --version
       - name: Exercise feature lifecycles with Maestro
         env:
+          # Cold HTTP driver readiness took142s in39321182827; flow assertions
+          # retain their own limits. The same bound passed the focused iPad gate.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
           MAESTRO_CLI_NO_ANALYTICS: 'true'
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'

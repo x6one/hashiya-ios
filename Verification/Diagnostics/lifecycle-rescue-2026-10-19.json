@@ -96,7 +96,7 @@
     },
     {
       "name": "Native color picker content absent on iPhone accessibility journey",
-      "cause_status": "Proven delayed OS ColorPickerUIService bootstrap in first failure; reason for delay unknown; second full prerequisite also failed with genuinely blank picker",
+      "cause_status": "Proven interface readiness defect in test: host sheet exists while OS color process is still launching. Original content guard expired before two measured OS launches completed. Underlying OS/VM launch slowdown remains unisolated.",
       "evidence": "Saved video remains white at55s and90s, only Done visible; exact AX contains nativeInkColorPicker/closeInkColorPicker but no native content. Same run Standard case and iPad cases pass. App picker and test helper unchanged since baseline successful qualification. No production repair adopted.",
       "hypothesis": "Controlled probe: focused success lacked Files initialization performed by full prerequisite. Run only original accessibility case with the same Files initialization, unchanged assertions and caps; decode saved attempt2 OS launchd/runningboard/ColorPicker events to distinguish fixture side effects from unrelated launch delay.",
       "diagnostic_scope": "color iPhone only; saved original xcresult decoded on macOS because Linux has no Apple log/xcresulttool; same job reproduces only original failing test. No retries, prewarming, timeout increases, skipped tests or full gate rerun.",
@@ -162,10 +162,36 @@
         "conclusion": "Three-case selection alone is not a sufficient cause. Healthy host traces cannot explain why the earlier OS job launches took20/43s. Observer now records bounded partial capture without aborting."
       },
       "readiness_candidate": {
-        "status": "not native verified yet",
+        "status": "targeted passed; full same-source qualification pending",
         "file": "UITests/LaunchTests.swift",
         "change": "After original5s host-sheet assertion, observe OS service process state with XCUIApplication, no launch/activate/prewarming. Measured43.360s worst bootstrap gives bounded60s OS-startup phase with explicit initial/final states and elapsed evidence. Original nativeGrid/close/swatch5s guards,44pt/RGBA/drawing/undo/redo assertions and32case names retained.",
-        "limits": "This is a system-process precondition, not a claimed production or OS launch-performance repair. It changes when the original5s content check starts. If service is already running but content is absent, the original content check still fails."
+        "limits": "This is a system-process precondition, not a claimed production or OS launch-performance repair. It changes when the original5s content check starts. If service is already running but content is absent, the original content check still fails.",
+        "verification": {
+          "source": "add7a22e739a0709cbbf4ec945fe4520c7c76527",
+          "run": 39340814240,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "seconds": 152.265,
+          "artifact": 12229382199,
+          "sha256": "c139ad34bb88dbcf198577692f2b822253d1cf55d19f127015369cf417bc12b8",
+          "full_sha256_crc_verified": true,
+          "native_picker_images_reviewed": true,
+          "initial_states": [
+            4,
+            4
+          ],
+          "final_states": [
+            4,
+            4
+          ],
+          "startup_phase_seconds": [
+            1.050069,
+            1.01368
+          ],
+          "slow_bootstrap_reproduced_on_this_repair_run": false,
+          "limit": "Process-state API and original full journey passed. Intermittent old launch delay did not recur on this host; no claim of an OS performance repair or deterministic same-host red/green."
+        }
       }
     }
   ],
@@ -192,5 +218,20 @@
       "sha256": "6a786a985b6eed93bdb1b07686322a502f3408393e992265a0a5543d02de9577",
       "full_sha256_crc_verified": true
     }
+  },
+  "full_gate_readiness": {
+    "status": "next ordinary source push required",
+    "maestro_driver_startup_ms": 180000,
+    "basis": "Same pinned driver cold HTTP readiness took142s in39321182827; focused180s startup bound already passed3 iPad lifecycles. No flow assertion waits changed.",
+    "native_color_process_startup_seconds": 60,
+    "native_color_ui_checks_seconds": 5,
+    "same_source_requirements": [
+      "3 original regressions per family",
+      "68 XCTest and32 XCUITest per family without skips",
+      "3 Maestro flows per family",
+      "actual exported bytes and captures",
+      "original native Office iphoneos build",
+      "unsigned IPA structure,arm64,metadata/resources,SHA256"
+    ]
   }
 }

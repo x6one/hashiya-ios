@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "targeted_failures_resolved_final_same_source_gates_pending",
+  "status": "native_service_readiness_target_passed_final_same_source_gates_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -57,7 +57,7 @@
       "iPad"
     ],
     "xctest": "Final candidate pending:68 per family; baseline39286829941 passed68 on both.",
-    "xcuitest": "Final candidate pending:32 per family; exact added iPad input-readiness case passed82.140s in39326353988.",
+    "xcuitest": "Final candidate pending32 per family. iPad title/drawing targeted case passed39326353988; native color OS-service readiness journey passed1/1 in39340814240. Original32 cases retained.",
     "maestro": "Targeted3/3 iPhone39321182827 and3/3 iPad39323494599 passed; final same-source full-job context pending.",
     "external_exported_bytes": "pending final source",
     "screenshots_captured": false,
@@ -148,7 +148,7 @@
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
     "next_source": "756ddd773c9881319adbf22eba664e64650b4b6d",
-    "next_scope": "Final source: Tools16, separate B3 matrix, independent-runner unfiltered68/32 plus exports/Maestro3/captures, full Office device build/package. Case240/360 and job60 unchanged.",
+    "next_scope": "Tools17, original3 ink/navigation regressions per family, then unfiltered68/32 plus actual exports/Maestro3/captures, full original Office iphoneos build and unsigned package on one SHA. Native case240/360 and job60 unchanged. Explicit bounded OS/driver startup preconditions retained separately from original UI/flow checks.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -966,7 +966,43 @@
       "full_title_persisted": true,
       "drawing_bytes": 3650
     },
-    "next": "One complete release-source push gate: original3 regressions per family, then unfiltered68/32, real exported bytes, Maestro3 and actual captures per family, original native Office iphoneos build and unsigned package. All must reference the same final candidate SHA.",
-    "qualification_limit": "Targeted passes at distinct SHAs do not constitute complete release qualification. Physical-device Office conversion remains unverified."
+    "next": "One complete source push gate for the accumulated readiness repairs: original3 regressions per family, then unfiltered68/32, real exported bytes, Maestro3 and actual captures per family, original native Office iphoneos build and unsigned package. All must reference the same final SHA.",
+    "qualification_limit": "Targeted passes at distinct SHAs do not constitute complete release qualification. Physical-device Office conversion remains unverified.",
+    "color_service_readiness": {
+      "source": "add7a22e739a0709cbbf4ec945fe4520c7c76527",
+      "run": 39340814240,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 152.265,
+      "artifact": 12229382199,
+      "sha256": "c139ad34bb88dbcf198577692f2b822253d1cf55d19f127015369cf417bc12b8",
+      "full_sha256_crc_verified": true,
+      "native_picker_images_reviewed": true,
+      "initial_states": [
+        4,
+        4
+      ],
+      "final_states": [
+        4,
+        4
+      ],
+      "startup_phase_seconds": [
+        1.050069,
+        1.01368
+      ],
+      "slow_bootstrap_reproduced_on_this_repair_run": false,
+      "limit": "Process-state API and original full journey passed. Intermittent old launch delay did not recur on this host; no claim of an OS performance repair or deterministic same-host red/green.",
+      "system_process_startup_bound_seconds": 60,
+      "original_content_check_seconds": 5,
+      "production_change": false
+    },
+    "prior_full_gate": {
+      "source": "b31d34472cbe17c0c13a97e6d2726bb41c816d7a",
+      "run": 39327688794,
+      "attempts": 2,
+      "result": "Both stopped at iPhone3-case prerequisite: native color content absent before delayed OS service launch. iPad3/3 passed; full68/32/Office/IPA did not execute."
+    },
+    "maestro_driver_startup_ms": 180000
   }
 }

@@ -98,7 +98,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                         exported = folder + attachment["exportedFileName"]
                         human = attachment.get("suggestedHumanReadableName", "")
                         print("RESCUE_ATTACHMENT " + json.dumps({"test": group.get("testName", group.get("testIdentifier")), "name": human, "path": exported}))
-                        relevant = ("NativeScrollState", "NativeInkState", "NativePalettePresentation",
+                        relevant = ("NativeScrollState", "NativeInkState", "NativePalettePresentation", "NativePaletteDismissal",
                             "RedPixelPolling", "RedPixelFailureMeasurement", "TapGeometry")
                         if any(term in human for term in relevant) and exported in names and attachment_budget > 0:
                             body = archive.read(exported).decode(errors="replace")[:min(16000, attachment_budget)]

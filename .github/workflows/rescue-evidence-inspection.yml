@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - family: iPhone
-            artifact: '12155597870'
-            sha256: e804787ddd7178ba61d31c740a8b2de0f6ed5d840c15cb0118683a7cfadff8d2
+          - family: iPad
+            artifact: '12156116109'
+            sha256: 201e50dd9fc9eb3516f88046bc1cd19d7282e084b4211d69d1f9e7cb998a3e3a
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -30,12 +30,10 @@ jobs:
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
           SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
-          NATIVE_WINDOW_START: "2026-10-19 00:07:35.000"
-          NATIVE_WINDOW_END: "2026-10-19 00:07:52.000"
         run: python3 Tools/inspect_rescue_artifact.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: selected-phone-saved-drawings
+          name: selected-pad-saved-drawings
           path: EvidenceInput/
           retention-days: 7

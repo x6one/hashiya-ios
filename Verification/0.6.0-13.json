@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_delivery_policy_trial_rejected_and_reverted_rail_cause_unproven",
+  "status": "rescue_rejected_policy_reverted_read_only_tracking_capture_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -146,8 +146,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": null,
-    "next_scope": "Pending source review of missing read-only tracking and public cancellation-policy inheritance observations; no native rerun started.",
+    "next_source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
+    "next_scope": "Tools first, then original phone Accessibility until first failure/max3; no other native stages",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -177,13 +177,13 @@
         "sha256": "2cb5c4b8a485096b34870e8f678dbf7028e211dbb9e8dd6174f712c4c258c732"
       }
     ],
-    "next_interpretation_limit": "Delivery policy rejected; do not infer original rail repair from an unrelated earlier failure.",
+    "next_interpretation_limit": "Public method identity does not prove policy invocation/return. Sampling may miss brief states; diagnostic success is not repair.",
     "transition_hit_run": 39173378390,
     "transition_hit_artifact": {
       "id": 12153657880,
       "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
     },
-    "next_run": null,
+    "next_run": 39187892547,
     "deliberate_input_artifacts": [
       {
         "family": "iPhone",
@@ -444,10 +444,17 @@
     "artifact_sha256": "c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
     "evidence": "Verification/Diagnostics/rail-input-39181028127.json",
     "next": {
-      "issue": "Original rail reset; underlying cause unproven",
-      "required_evidence": "Read-only actual UIControl tracking, native scroll tracking/dragging/enabled flags and cancellation-policy inheritance at the handoff; no further delivery-policy tweak without this evidence",
-      "run": null,
-      "source": null
+      "source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
+      "run": 39187892547,
+      "scope": "Tools first, then original phone Accessibility until first failure/max3; no other native stages",
+      "new_evidence": [
+        "UIControl isTracking/isTouchInside/isHighlighted",
+        "Recognizer isEnabled",
+        "UIScrollView isTracking/isDragging/isScrollEnabled",
+        "pan.delaysTouchesBegan",
+        "Public runtime touchesShouldCancel implementation identity"
+      ],
+      "stop_condition": "Preserve all attempts. If3pass, stop unchanged capture attempts; iffail, analyze only new tracking evidence before proposing any production repair."
     },
     "sampled_control": {
       "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
@@ -717,5 +724,50 @@
       "CI_rerun_on_revert": false
     },
     "evidence": "Verification/Diagnostics/rail-delivery-39186654628.json"
+  },
+  "rail_tracking_diagnostic": {
+    "source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
+    "branch": "diag/tayya-rail-tracking",
+    "run": 39187892547,
+    "plan": {
+      "problem": "Original native rail abort around touch handoff",
+      "baseline_failure_source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
+      "baseline_failure_run": 39184752493,
+      "rejected_policy_source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
+      "rejected_policy_run": 39186654628,
+      "policy_revert": "ca6272dad17b77deaaee853407db620458db03a5",
+      "hypotheses": [
+        "UIControl begins tracking around150ms before pending rail pan resolves",
+        "Native scroll or recognizer temporarily disables or stops tracking",
+        "Hosting scroll cancellation implementation differs from UIScrollView base"
+      ],
+      "new_read_only_fields": [
+        "UIControl isTracking/isTouchInside/isHighlighted",
+        "Recognizer isEnabled",
+        "UIScrollView isTracking/isDragging/isScrollEnabled",
+        "pan.delaysTouchesBegan",
+        "Public runtime touchesShouldCancel implementation identity"
+      ],
+      "interpretation_limits": [
+        "Method identity does not show invocation or returned decision",
+        "Read-only run-loop observation may miss brief transitions",
+        "Passing capture is not repair"
+      ],
+      "production_release_projection_unchanged": true,
+      "original_UI_file_unchanged": true,
+      "scope": "Tools first, then original phone Accessibility until first failure/max3; no other native stages",
+      "stop_condition": "Preserve all attempts. If3pass, stop unchanged capture attempts; iffail, analyze only new tracking evidence before proposing any production repair.",
+      "independent_review": "Public APIs/selectors/Method comparison valid, import ObjectiveC inside DEBUG; no conceptual blocker",
+      "status": "prepared; not published yet"
+    },
+    "stage_A": {
+      "tools_passed": 14,
+      "failed": 0,
+      "syntax": "passed",
+      "workflow_lint": "passed",
+      "read_only_capture": "passed"
+    },
+    "stage_B": "pending; original phone Accessibility firstfailure/max3",
+    "accepted_as_repair": false
   }
 }

@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_native_rail_failure_confirmed_sampling_pending",
+  "status": "rescue_rail_failure_unresolved_sampled_control_pass_capture_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -140,8 +140,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
-    "next_scope": "Original phone Accessibility once only. DEBUG reads existing recognizer states/touch counts during native run-loop activity and bounded connected-app window inventory. No new timer source, recognizer, delegate or test input. Interpret only with monotonic sampling overlap and the matching native pan identity.",
+    "next_source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
+    "next_scope": "iPhone original Accessibility until first failure/max3. Only state+touch-count changes consume a bounded512-record diagnostic log; translation/offset remain details. Full critical rail ancestor path up to24 with explicit omissions; original inputs/assertions/functional deadlines retained.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -177,7 +177,7 @@
       "id": 12153657880,
       "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
     },
-    "next_run": null,
+    "next_run": 39184752493,
     "deliberate_input_artifacts": [
       {
         "family": "iPhone",
@@ -438,11 +438,63 @@
     "artifact_sha256": "c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
     "evidence": "Verification/Diagnostics/rail-input-39181028127.json",
     "next": {
-      "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
+      "source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
       "branch": "diag/tayya-rail-sampling",
-      "scope": "Original phone Accessibility once only. DEBUG reads existing recognizer states/touch counts during native run-loop activity and bounded connected-app window inventory. No new timer source, recognizer, delegate or test input. Interpret only with monotonic sampling overlap and the matching native pan identity.",
-      "status": "Tools gate and single native case queued",
-      "review": "Timer acquisition risk and stale Timer-style restore API corrected before any native run; CFRunLoopRemoveObserver used for expiry/restore. Remaining acquisition limits explicit."
+      "run": 39184752493,
+      "scope": "iPhone original Accessibility until first failure/max3. Only state+touch-count changes consume a bounded512-record diagnostic log; translation/offset remain details. Full critical rail ancestor path up to24 with explicit omissions; original inputs/assertions/functional deadlines retained.",
+      "goal": "Capture failing native state transitions, compare to the proven passing touch path; no full C/IPA",
+      "stop_condition": "If all3 pass, failure reproduction is unsuccessful; do not claim a fix or continue unchanged sampling retries",
+      "review": "Compression and bounded max3 capture reviewed. Initial touch counts retained in native snapshot; deadlines/IDs/caps visible. Run-loop sampling is not continuous event delivery tracing."
+    },
+    "sampled_control": {
+      "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
+      "run": 39183093530,
+      "result": "passed original iPhone Accessibility case once in193.846s; not a production repair",
+      "stage_A": {
+        "tools": 14,
+        "actionlint": "passed",
+        "read_only_capture": "passed"
+      },
+      "artifact": {
+        "id": 12157492390,
+        "name": "rescue-rail-sampling-iPhone",
+        "size_in_bytes": 5948636,
+        "url": "https://api.github.com/repos/x6one/hashiya-ios/actions/artifacts/12157492390",
+        "archive_download_url": "https://api.github.com/repos/x6one/hashiya-ios/actions/artifacts/12157492390/zip",
+        "expired": false,
+        "created_at": "2026-10-19T01:12:47Z",
+        "expires_at": "2026-10-26T01:12:46Z",
+        "updated_at": "2026-10-19T01:12:47Z",
+        "digest": "sha256:f1092370075bc8e7146890ac6544614aac4ffc7a21578205d00f39ccb23b59ce",
+        "workflow_run": {
+          "id": 39183093530,
+          "repository_id": 1395686315,
+          "head_repository_id": 1395686315,
+          "head_branch": "diag/tayya-rail-sampling",
+          "head_sha": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792"
+        }
+      },
+      "reader_run": 39184426122,
+      "independent_full_sha256_and_crc": "passed",
+      "native_pan_identity": "0x12570f1b0",
+      "before_uptime": 1109.1258216666668,
+      "drag_uptime": [
+        1109.1459045833335,
+        1110.4907763333333
+      ],
+      "sample_deadline": 1110.6266777916667,
+      "touch_seen_uptime": 1109.6594,
+      "pan_began_uptime": 1109.815107,
+      "pan_ended_uptime": 1109.892907,
+      "offset_x": [
+        -62,
+        -12
+      ],
+      "sampling_overlap_proven": true,
+      "scene_count": 1,
+      "app_window_count": 2,
+      "higher_app_window_hit": null,
+      "interpretation_limit": "Passing run only. Loop sampling can miss brief state/reset transitions. Existing160-record cap omitted194 changes; no production change adopted."
     }
   }
 }

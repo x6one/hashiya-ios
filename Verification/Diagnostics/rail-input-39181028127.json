@@ -108,7 +108,17 @@
       ],
       "visible_menu_or_modal_obstruction": false,
       "decoder_run": 39182621727,
-      "limit": "Video does not exclude an invisible higher window or a recognizer failing before action callbacks"
+      "limit": "Video does not exclude an invisible higher window or a recognizer failing before action callbacks",
+      "touch_interval_review": {
+        "reader_run": 39183570167,
+        "seconds": [
+          162.7,
+          163.8
+        ],
+        "frames": 12,
+        "crop": "native left430pt after portrait recording rotation",
+        "menu_visible": false
+      }
     }
   },
   "root_cause": {

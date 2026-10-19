@@ -20,6 +20,9 @@ jobs:
         run: |
           python3 -m unittest discover -s Tools -p 'test_*.py'
           python3 -m compileall -q Tools
+          curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml
   test:
     needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.
@@ -65,6 +68,47 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
+      - name: Create independent clean simulator for the complete suite
+        run: |
+          python3 - <<'PY_CLEAN'
+          import json, os, subprocess
+          from pathlib import Path
+          previous = os.environ['SIMULATOR_ID']
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          selected = [(runtime, device) for runtime, rows in devices.items() for device in rows if device['udid'] == previous]
+          if len(selected) != 1:
+              raise SystemExit('Regression simulator identity is ambiguous')
+          runtime, device = selected[0]
+          device_type = device.get('deviceTypeIdentifier')
+          if not device_type:
+              types = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devicetypes', '--json']))['devicetypes']
+              matching = [item['identifier'] for item in types if item['name'] == device['name']]
+              if len(matching) != 1:
+                  raise SystemExit('Cannot reproduce the same simulator device type')
+              device_type = matching[0]
+          if device['state'] == 'Booted':
+              subprocess.run(['xcrun', 'simctl', 'shutdown', previous], check=True)
+          elif device['state'] != 'Shutdown':
+              raise SystemExit('Regression simulator has an unfinished state transition')
+          clean = subprocess.check_output(['xcrun', 'simctl', 'create',
+              'Tayya complete suite', device_type, runtime], text=True).strip()
+          if not clean or clean == previous:
+              raise SystemExit('Complete suite requires a distinct fresh simulator')
+          print('Independent complete-suite simulator:', device['name'], runtime, clean)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('REGRESSION_SIMULATOR_ID=' + previous + '\n')
+              output.write('SIMULATOR_ID=' + clean + '\n')
+          Path('NativeResults').mkdir(exist_ok=True)
+          Path('NativeResults/simulator-provenance.json').write_text(json.dumps({
+              'source': os.environ['GITHUB_SHA'], 'device_name': device['name'],
+              'runtime': runtime, 'device_type': device_type,
+              'regression_simulator': previous, 'complete_suite_simulator': clean,
+              'complete_suite_setup': 'fresh device created, boot and provider setup follow'}, indent=2) + '\n')
+          subprocess.run(['xcrun', 'simctl', 'boot', clean], check=True)
+          subprocess.run(['xcrun', 'simctl', 'bootstatus', clean, '-b'], check=True)
+          subprocess.run(['python3', 'Tools/seed_files_fixtures.py'],
+              env=dict(os.environ, SIMULATOR_ID=clean), check=True)
+          PY_CLEAN
       - name: Verify complete unit and UI suites
         run: |
           set -o pipefail

@@ -1,0 +1,31 @@
+{
+  "problem": "Original native rail abort around touch handoff",
+  "baseline_failure_source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
+  "baseline_failure_run": 39184752493,
+  "rejected_policy_source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
+  "rejected_policy_run": 39186654628,
+  "policy_revert": "ca6272dad17b77deaaee853407db620458db03a5",
+  "hypotheses": [
+    "UIControl begins tracking around150ms before pending rail pan resolves",
+    "Native scroll or recognizer temporarily disables or stops tracking",
+    "Hosting scroll cancellation implementation differs from UIScrollView base"
+  ],
+  "new_read_only_fields": [
+    "UIControl isTracking/isTouchInside/isHighlighted",
+    "Recognizer isEnabled",
+    "UIScrollView isTracking/isDragging/isScrollEnabled",
+    "pan.delaysTouchesBegan",
+    "Public runtime touchesShouldCancel implementation identity"
+  ],
+  "interpretation_limits": [
+    "Method identity does not show invocation or returned decision",
+    "Read-only run-loop observation may miss brief transitions",
+    "Passing capture is not repair"
+  ],
+  "production_release_projection_unchanged": true,
+  "original_UI_file_unchanged": true,
+  "scope": "Tools first, then original phone Accessibility until first failure/max3; no other native stages",
+  "stop_condition": "Preserve all attempts. If3pass, stop unchanged capture attempts; iffail, analyze only new tracking evidence before proposing any production repair.",
+  "independent_review": "Public APIs/selectors/Method comparison valid, import ObjectiveC inside DEBUG; no conceptual blocker",
+  "status": "prepared; not published yet"
+}

@@ -5,7 +5,7 @@ on:
       diagnostic:
         description: 'Focused diagnosis only; none runs the complete release gate'
         type: choice
-        options: [none, maestro, margin]
+        options: [none, maestro, margin, color]
         default: none
         required: true
   push:
@@ -34,7 +34,7 @@ jobs:
     needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.
     # Forks and other internal branches still require PR verification.
-    if: (github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'none') && !contains(github.event.head_commit.message, '[diagnostic:maestro]') && !contains(github.event.head_commit.message, '[diagnostic:margin]') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/')))
+    if: (github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'none') && !contains(github.event.head_commit.message, '[diagnostic:maestro]') && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/')))
     runs-on: macos-15
     timeout-minutes: 60
     strategy:
@@ -367,8 +367,11 @@ jobs:
     uses: ./.github/workflows/office-engine-spike.yml
 
   focused-diagnostic:
-    name: Focused ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }} (${{ matrix.family }})
-    if: (github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'none') || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[diagnostic:maestro]') || contains(github.event.head_commit.message, '[diagnostic:margin]')))
+    permissions:
+      contents: read
+      actions: read
+    name: Focused ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }} (${{ matrix.family }})
+    if: (github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'none') || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[diagnostic:maestro]') || contains(github.event.head_commit.message, '[diagnostic:margin]') || contains(github.event.head_commit.message, '[diagnostic:color]')))
     needs: tools
     runs-on: macos-15
     timeout-minutes: 60
@@ -401,27 +404,56 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
           PY
+      - name: Retrieve the original color failure evidence
+        if: inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]')
+        uses: actions/download-artifact@v4
+        with:
+          name: regressions-iPhone
+          run-id: 39327688794
+          github-token: ${{ github.token }}
+          path: OriginalColorEvidence
+      - name: Decode saved native color service logs
+        if: inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]')
+        run: |
+          mkdir -p FocusedEvidence
+          unzip -q OriginalColorEvidence/NativeResults/RegressionResults.xcresult.zip -d OriginalColorEvidence
+          xcrun xcresulttool export diagnostics --path OriginalColorEvidence/RegressionResults.xcresult --output-path OriginalColorDiagnostics
+          python3 - <<'PY_LOGS'
+          from pathlib import Path
+          import subprocess
+          archives = sorted(Path('OriginalColorDiagnostics').rglob('*.logarchive'))
+          print('Saved unified log archives:', len(archives))
+          if not archives:
+              raise SystemExit('Original color failure contains no exported unified logs')
+          predicate = 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color"))'
+          for i, archive in enumerate(archives):
+              with Path(f'FocusedEvidence/original-color-service-{i}.log').open('w') as out:
+                  subprocess.run(['log', 'show', '--archive', str(archive), '--style', 'compact', '--info', '--debug', '--start', '2026-10-19 21:36:30', '--end', '2026-10-19 21:38:20', '--predicate', predicate], stdout=out, check=True)
+              print('Decoded saved service log:', archive)
+          PY_LOGS
       - name: Build or reproduce only the selected journey
         env:
-          DIAGNOSTIC: ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}
+          DIAGNOSTIC: ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           if [ "$DIAGNOSTIC" = margin ]; then
             xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+          elif [ "$DIAGNOSTIC" = color ]; then
+            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
           else
             xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
             xcrun simctl install "$SIMULATOR_ID" NativeBuild/Build/Products/Debug-iphonesimulator/Hashiya.app
           fi
       - name: Set up Java for Maestro
-        if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
+        if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - name: Install pinned Maestro CLI
-        if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
+        if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
         env:
           MAESTRO_VERSION: 2.11.0
           MAESTRO_CLI_NO_ANALYTICS: 'true'
@@ -432,7 +464,7 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
       - name: Verify all three Maestro lifecycles
-        if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
+        if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
         env:
           # Cold XCTest server reached readiness after142s in39321182827.
           # Bound infrastructure startup only; flow/assertion waiters are unchanged.
@@ -464,6 +496,11 @@ jobs:
           (output / 'provenance.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'],
               'run': os.environ['GITHUB_RUN_ID'], 'records': records, 'source_mutated': False}, indent=2))
           PY_STORAGE
+      - name: Preserve live color service logs
+        if: always() && (inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]'))
+        run: |
+          mkdir -p FocusedEvidence
+          xcrun simctl spawn "$SIMULATOR_ID" log show --style compact --info --debug --last 20m --predicate 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color"))' > FocusedEvidence/current-color-service.log
       - name: Preserve focused native evidence
         if: always()
         run: |
@@ -478,7 +515,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: focused-${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}-${{ matrix.family }}
+          name: focused-${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}-${{ matrix.family }}
           path: |
             focused-build.log
             MaestroResults/

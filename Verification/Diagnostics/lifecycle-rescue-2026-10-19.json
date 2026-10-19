@@ -93,6 +93,13 @@
         "run": 39323494599,
         "result": "Focused iPad3/3 passed. Previous cold-start deadline insufficiency is established; this pass alone does not prove it would have exceeded the old startup deadline."
       }
+    },
+    {
+      "name": "Native color picker content absent on iPhone accessibility journey",
+      "cause_status": "Unknown; real empty content, not just an accessibility lookup failure",
+      "evidence": "Saved video remains white at55s and90s, only Done visible; exact AX contains nativeInkColorPicker/closeInkColorPicker but no native content. Same run Standard case and iPad cases pass. App picker and test helper unchanged since baseline successful qualification. No production repair adopted.",
+      "hypothesis": "Inspect original OS ColorPickerUIService logs to distinguish remote service initialization failure from app presentation/lifecycle error; reproduce original case once with service logs, unchanged assertions/time budgets.",
+      "diagnostic_scope": "color iPhone only; saved original xcresult decoded on macOS because Linux has no Apple log/xcresulttool; same job reproduces only original failing test. No retries, prewarming, timeout increases, skipped tests or full gate rerun."
     }
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",
@@ -101,5 +108,15 @@
   "targeted_visual_review": {
     "iPhone": "All3 actual Maestro completion screenshots reviewed; artifact12221126392 SHA/CRC verified, JUnit3/0/0",
     "iPad": "All3 actual Maestro completion screenshots reviewed; artifact12222371609 SHA024d9d24f8b4fa326897f1064d38a0e87e5c1c5342254dd1585e01e712467a8d/CRC verified, JUnit3/0/0"
+  },
+  "final_gate": {
+    "source": "b31d34472cbe17c0c13a97e6d2726bb41c816d7a",
+    "run": 39327688794,
+    "result": "blocked at prerequisite regressions; full68/32 suites and IPA did not execute",
+    "iPad": "3/3 regression cases passed",
+    "iPhone": "2/3 regression cases passed; testIndividualInkTargetsAtAccessibilityTextSize failed at1102,103.239s",
+    "artifact": 12223214574,
+    "artifact_sha256": "9ff669a274d17c47c71094c789e60782bde338184f6cc08fbe3582d0adf6872b",
+    "sha256_and_crc_verified": true
   }
 }

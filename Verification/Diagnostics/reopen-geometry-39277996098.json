@@ -1,0 +1,80 @@
+{
+  "source": "f2c376b7651c5d62bd92b49dc0cbdd3168a93910",
+  "run": 39277996098,
+  "family": "iPhone",
+  "failure": {
+    "test": "testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+    "line": 321,
+    "message": "A fresh stroke must be saved after reopening",
+    "duration_seconds": 116.041,
+    "other_targeted_cases_passed": 4,
+    "full_C": "not reached on phone"
+  },
+  "cause": {
+    "status": "confirmed invalid added test input",
+    "viewport": {
+      "x": 0,
+      "y": 807.6666666666666,
+      "width": 440,
+      "height": 114.33333333333337
+    },
+    "fit_sheet": {
+      "zoom": 0.12703703703703703,
+      "width": 82.57407407407408,
+      "left": 178.71296296296296,
+      "right": 261.28703703703707
+    },
+    "actual_pointer_start": [
+      132,
+      847.6833333333333
+    ],
+    "actual_pointer_end": [
+      308,
+      859.1166666666667
+    ],
+    "actual_pointer_start_inside_paper": false,
+    "restored_count": 1,
+    "old_ink_visible_pixels": 142,
+    "production_drawing_defect_proven": false
+  },
+  "evidence": {
+    "artifact_id": 12200900703,
+    "artifact_sha256_from_API": "4014988d72344691e8115bb71a3db74d272d1b96908d04d7652e8cf5ee92b495",
+    "full_archive_downloaded": false,
+    "selected_entries_crc_verified": true,
+    "summary": "NativeResults/RegressionResults-summary.json",
+    "native_log": "regression-build.log",
+    "screenshots": [
+      {
+        "file": "BDD6BBA3-703B-4F68-A47E-8C10A741A2C9.png",
+        "sha256": "4a51e842e5448fc45523523011f79fabb5c5d2ba2b540702fa52531d6e47535b"
+      },
+      {
+        "file": "218E5901-24C1-4D8A-AA2E-066F3422DC8E.png",
+        "sha256": "43847dd777711e4a24cd3c13b077943d0cd5d29fc0ca6d6a76d90acd61cd4ca6"
+      }
+    ],
+    "synth": {
+      "file": "0B0A5DF7-5856-454F-8018-4B38469F0A8D",
+      "sha256": "e86498e50f7ff87d0954ce0ea981b314a68e1ef42541a074f326ad129bc6cc22"
+    },
+    "independent_actual_screenshot_and_synth_review": true
+  },
+  "correction": {
+    "production_change": false,
+    "test_change": "Only the added margin call uses central vertical input(.5,.25)→(.5,.75), x220 inside fitted paper. Document defaults unchanged.",
+    "original_assertions_retained": 224,
+    "original_UI_cases": 32,
+    "waiters_seconds": [
+      10,
+      5,
+      5
+    ],
+    "native_case_caps_seconds": [
+      240,
+      360
+    ],
+    "targeted_plan": "Phone original paged-margin case once, Tools first. Preserve raw drawing bytes after original deadlines. Do not cancel other family's ongoing required validation.",
+    "qualification": "pending"
+  }
+}

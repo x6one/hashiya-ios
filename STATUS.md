@@ -14,11 +14,11 @@ The rejected delayed-touch-delivery experiment remains reverted. [Its report](Ve
 
 ## Current integration result
 
-Source `f2c376b7651c5d62bd92b49dc0cbdd3168a93910`, [run39277996098](https://github.com/x6one/hashiya-ios/actions/runs/39277996098): Stage A14 Tools/syntax/lint pass. Phone B4/5: both ink cases, document post-reopen Undo/Redo and navigation pass; the added margin fresh-stroke check fails321. Phone full C is not reached. iPad remains running.
+Source `f2c376b7651c5d62bd92b49dc0cbdd3168a93910`, [run39277996098](https://github.com/x6one/hashiya-ios/actions/runs/39277996098): Stage A14 Tools/syntax/lint pass. Phone B4/5: both ink cases, document post-reopen Undo/Redo and navigation pass; the added margin fresh-stroke check fails321. Phone full C is not reached. iPad B5 and fresh-simulator C100/100 pass: 68 XCTest and32 XCUITest, zero failures/skips. Exported PDF/PPTX bytes pass. Maestro recording flow passes2m23; job reaches60min budget during a later flow, leaving final Maestro/capture gates incomplete. Actual two Accessibility ink screenshots reviewed. [Exact gate evidence](Verification/Diagnostics/full-pad-39277996098.json).
 
 The added test input is invalid on the phone's fitted page: actual synthesized startx132 is outside paperx178.713–261.287. Old ink/count1 remain visible. [Exact screenshot/event evidence](Verification/Diagnostics/reopen-geometry-39277996098.json). This is a test-calibration error, not proven drawing loss. All original assertions/case deadlines remain.
 
-Isolated correction `4c599d16dc8fc4b668f2a9154c8d1ef6548285bd`, [run39281549900](https://github.com/x6one/hashiya-ios/actions/runs/39281549900), tests the same existing phone margin case once with a centered vertical stroke inside the fitted paper. Production code and document gesture are unchanged. Targeted result pending; no unchanged retry or full rerun started.
+Isolated correction `4c599d16dc8fc4b668f2a9154c8d1ef6548285bd`, [run39281549900](https://github.com/x6one/hashiya-ios/actions/runs/39281549900), tests the same existing phone margin case once with a centered vertical stroke inside the fitted paper. Production code and document gesture are unchanged. The native case passes200.905s with count2 after Undo/Redo and visible additional stroke. Overall diagnostic job fails only in post-test collection: persistent margins live under Documents, while the collector searched only tmp/ReviewEntry. The read-only collector now covers both locations; local regression tests demonstrate RED1/2 → GREEN2/2, including unchanged source bytes and outside-root symlink rejection. No native repeat was used to validate this postprocessing change.
 
 ## Final-source verification now required
 
@@ -26,7 +26,7 @@ The integration contains the bounded rail repair, public font resources for newl
 
 All32 original UI cases and224 original assertion lines remain. Two existing document/margin relaunch cases add a fresh stroke→Undo→Redo check. This does not assert persistence of prior-session undo history. Final verification removes the read-only CF/nav capture instrumentation by retaining the original PDFWorkspace source.
 
-The pipeline runs Tools/lint, five relevant existing UI cases, then a fresh same-runtime simulator for full68 XCTest (all67 originals plus font regression)/32 XCUITest, exported bytes, three Maestro flows and real captures per family. Native Office build/package follows successful family jobs. Every final gate must reference the same source SHA. These final-source results are pending.
+The pipeline runs Tools/lint, then the three original ink/navigation regressions in a separate matrix job. Only after both families pass, independent hosted runners execute full68 XCTest (all67 originals plus font regression)/32 XCUITest, exported bytes, three Maestro flows and real captures per family. Both document/margin post-reopen checks remain in full32. Separating phases prevents the observed aggregate60min budget exhaustion; case240/360 and job60 limits are unchanged. The extra compilation is an explicit cost of isolating state and giving the complete gate its existing full job budget. Native Office build/package follows successful family jobs. Every final gate must reference the same source SHA. These final-source results are pending.
 
 Full native Office build is not runtime conversion proof: the current hosted path builds an unsigned iphoneos binary and has no configured provisioned physical-device destination for Word/Excel conversion. Record this as unverified; do not substitute simulator/host checks.
 

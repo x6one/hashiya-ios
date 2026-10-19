@@ -75,6 +75,19 @@
       360
     ],
     "targeted_plan": "Phone original paged-margin case once, Tools first. Preserve raw drawing bytes after original deadlines. Do not cancel other family's ongoing required validation.",
-    "qualification": "pending"
+    "qualification": {
+      "native_case": "passed200.905s, one execution, zero native failures",
+      "source": "4c599d16dc8fc4b668f2a9154c8d1ef6548285bd",
+      "run": 39281549900,
+      "artifact_id": 12201008540,
+      "artifact_sha256": "9c3f031a581335b575fd208ef3e995c5afce7ed20fe0b5fb59ef1409d41d57aa",
+      "full_archive_sha256_and_crc_verified": true,
+      "actual_restored_and_redone_count": 2,
+      "job_overall": "failed in post-test drawing collector; not a green workflow",
+      "collector_failure_cause": "Old collector only scans tmp/ReviewEntry-*; this existing test uses persistent Documents/<UUID>-margins.",
+      "collector_correction": "Add Documents margin scope, same limits and no source writes; local red1/2 then green2/2 including external symlink exclusion.",
+      "native_unchanged_rerun_needed_for_collector": false,
+      "final_same_source_gates_still_required": true
+    }
   }
 }

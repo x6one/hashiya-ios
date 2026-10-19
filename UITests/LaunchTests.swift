@@ -307,13 +307,15 @@ final class LaunchTests: XCTestCase {
 
 
     // Exercise new edits after reopening; prior-session undo history is not asserted.
-    private func assertFreshInkUndoRedo(in app: XCUIApplication, canvas: XCUIElement, count: XCUIElement) {
+    private func assertFreshInkUndoRedo(in app: XCUIApplication, canvas: XCUIElement, count: XCUIElement,
+                                       strokeStart: CGVector = CGVector(dx: 0.3, dy: 0.35),
+                                       strokeEnd: CGVector = CGVector(dx: 0.7, dy: 0.45)) {
         let restored = count.value as? String
         guard let initial = Int(restored ?? "") else {
             XCTFail("Reopened native ink surface must expose its saved stroke count"); return
         }
-        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.35)).press(forDuration: 0.1,
-            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.45)))
+        canvas.coordinate(withNormalizedOffset: strokeStart).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: strokeEnd))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (Int(count.value as? String ?? "") ?? -1) > initial
         }, object: count)
@@ -335,6 +337,8 @@ final class LaunchTests: XCTestCase {
         }, object: count)
         XCTAssertEqual(XCTWaiter.wait(for: [redone], timeout: 5), .completed,
             "Redo after reopening must restore the fresh stroke")
+        let screenshot = XCTAttachment(screenshot: canvas.screenshot())
+        screenshot.name = "PostReopenRedoResult"; screenshot.lifetime = .keepAlways; add(screenshot)
     }
 
     private func visibleLibraryDocument(_ title: String, in app: XCUIApplication) -> XCUIElement {
@@ -705,7 +709,10 @@ final class LaunchTests: XCTestCase {
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(canvas.value as? String, count)
         app.buttons["fitMargin"].tap()
         assertMarginInkVisible(canvas, in: app, stage: "relaunch")
-        assertFreshInkUndoRedo(in: app, canvas: canvas, count: canvas)
+        // Fit Sheet centers a narrow page inside a wide viewport. Begin on
+        // that page, rather than in its non-drawable horizontal gutter.
+        assertFreshInkUndoRedo(in: app, canvas: canvas, count: canvas,
+            strokeStart: CGVector(dx: 0.5, dy: 0.25), strokeEnd: CGVector(dx: 0.5, dy: 0.75))
         assertMarginInkVisible(canvas, in: app, stage: "relaunch-redo")
 
         app.buttons["nextMarginPage"].tap(); app.segmentedControls["marginMode"].buttons["نص"].tap()

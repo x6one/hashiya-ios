@@ -105,6 +105,29 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                             print("RESCUE_ATTACHMENT_TEXT " + human)
                             print(body)
                             attachment_budget -= len(body)
+    saved_manifest = next((name for name in names if name.endswith("saved-drawings/manifest.json")), None)
+    if saved_manifest:
+        manifest = json.loads(archive.read(saved_manifest))
+        print("RESCUE_SAVED_DRAWINGS " + json.dumps(manifest, ensure_ascii=False)[:24000])
+        destination = os.environ.get("SAVED_DRAWINGS_OUTPUT", "")
+        if destination:
+            from pathlib import Path
+            output = Path(destination); output.mkdir(parents=True, exist_ok=True)
+            folder = saved_manifest.rsplit("/", 1)[0] + "/"
+            retained = 0
+            for record in manifest.get("drawings", []):
+                filename = record["drawing"]
+                if Path(filename).name != filename or not filename.endswith(".drawing"):
+                    raise RuntimeError("Drawing must be a direct file")
+                data = archive.read(folder + filename)
+                if len(data) > 2_000_000 or retained + len(data) > 8_000_000:
+                    raise RuntimeError("Saved drawing evidence exceeds bounds")
+                if hashlib.sha256(data).hexdigest() != record["drawing_sha256"]:
+                    raise RuntimeError("Saved drawing SHA256 mismatch")
+                (output / filename).write_bytes(data)
+                retained += len(data)
+            (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+            print("RESCUE_SAVED_DRAWINGS_EXTRACTED=" + str(len(manifest.get("drawings", []))))
     preview = os.environ.get("PREVIEW_PATH", "")
     if preview:
         if preview not in names or not preview.lower().endswith((".png", ".jpg", ".jpeg")):

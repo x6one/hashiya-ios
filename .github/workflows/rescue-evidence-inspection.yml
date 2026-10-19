@@ -10,21 +10,29 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inspect:
+    name: inspect (${{ matrix.family }})
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - family: iPhone
+            artifact: '12155597870'
+            sha256: e804787ddd7178ba61d31c740a8b2de0f6ed5d840c15cb0118683a7cfadff8d2
     steps:
       - uses: actions/checkout@v4
-      - name: Check bounded ZIP reader syntax
-        run: python3 -m py_compile Tools/inspect_rescue_zip_ranges.py
-      - name: Read selected phone evidence without the raw xcresult ZIP
+      - name: Check reader syntax
+        run: python3 -m py_compile Tools/inspect_rescue_artifact.py
+      - name: Inspect saved artifact bytes and bounded native evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: '12155597870'
-          PROVIDED_SHA256: e804787ddd7178ba61d31c740a8b2de0f6ed5d840c15cb0118683a7cfadff8d2
+          ARTIFACT_ID: ${{ matrix.artifact }}
+          EXPECTED_SHA256: ${{ matrix.sha256 }}
           SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
           NATIVE_WINDOW_START: "2026-10-19 00:07:35.000"
           NATIVE_WINDOW_END: "2026-10-19 00:07:52.000"
-        run: python3 Tools/inspect_rescue_zip_ranges.py
+        run: python3 Tools/inspect_rescue_artifact.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

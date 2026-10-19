@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_rejected_policy_reverted_read_only_tracking_capture_pending",
+  "status": "rescue_tracking_handoff_identified_native_cancellation_candidate_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -125,19 +125,19 @@
       "outer_host_absence_not_directly_captured": true
     },
     "current_rail": {
-      "run": 39184752493,
+      "run": 39187892547,
+      "source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
       "original_assertion_line": 966,
-      "native_scroll_offset_unchanged": true,
+      "iteration_passed": 1,
+      "iteration_failed": 2,
+      "UIControl_tracking_on_failure": true,
+      "UIScrollView_base_cancellation_implementation_inherited": true,
+      "scroll_and_pan_disabled": false,
+      "offset_unchanged_on_failure": true,
       "main_thread_capture_fast": true,
-      "live_observer_attached_before_gesture": true,
-      "omissions": 0,
-      "underlying_cause": "not proven; view-tracking handoff race supported by same-source successful and failed traces",
-      "passes_before_failure": 2,
-      "failed_iteration": 3,
-      "native_touch_reaches_rail": true,
-      "pan_resets_at_translation_minus6_before_input_end": true,
       "omitted_samples": 0,
-      "ancestor_omitted": false
+      "underlying_cause": "Strongly supported inherited UIControl cancellation policy / delayed-touch handoff race; exact old callback invocation not captured",
+      "root_evidence": "Verification/Diagnostics/rail-tracking-39187892547.json"
     }
   },
   "diagnostics": {
@@ -146,8 +146,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
-    "next_scope": "Tools first, then original phone Accessibility until first failure/max3; no other native stages",
+    "next_source": "756ddd773c9881319adbf22eba664e64650b4b6d",
+    "next_scope": "Actual tracked-control cancellation then original phone and iPad ink/navigation gates; no full C or IPA until B succeeds.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -177,13 +177,13 @@
         "sha256": "2cb5c4b8a485096b34870e8f678dbf7028e211dbb9e8dd6174f712c4c258c732"
       }
     ],
-    "next_interpretation_limit": "Public method identity does not prove policy invocation/return. Sampling may miss brief states; diagnostic success is not repair.",
+    "next_interpretation_limit": "Match callback scroll/pan IDs to actual tested rail, retain layout and control activation; partial passes are not release qualification.",
     "transition_hit_run": 39173378390,
     "transition_hit_artifact": {
       "id": 12153657880,
       "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
     },
-    "next_run": 39187892547,
+    "next_run": 39189664681,
     "deliberate_input_artifacts": [
       {
         "family": "iPhone",
@@ -218,7 +218,7 @@
       "phone_failure_screenshot": 39177983881,
       "pad_dismissal_native_window": 39178393882
     },
-    "latest_report": "Verification/Diagnostics/rail-delivery-39186654628.json"
+    "latest_report": "Verification/Diagnostics/rail-tracking-39187892547.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -227,8 +227,8 @@
     "git_diff_check": "passed",
     "native_toolchain_local": false,
     "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending",
-    "later_diagnostic_local_execution": "blocked: exec-server transport disconnected; recovery timed out",
-    "later_diagnostic_checks": "7db Stage A14 Tools,compileall,actionlint/read-only capture smoke passed; original phone Accessibility2pass/1fail. Native input complete; next isolated delivery policy candidate not qualified.",
+    "later_diagnostic_local_execution": "Recovered on2026-10-19; local Python/ffmpeg verify saved artifact SHA256/ZIP CRC and actual video. Linux still has no Swift/Xcode.",
+    "later_diagnostic_checks": "4a14 Tools/syntax/lint pass; one original Accessibility pass then rail failure. 756 Stage A14 Tools/syntax/lint/capture pass, B pending.",
     "fixture_setup_tools": {
       "run": 39176525816,
       "passed": 14,
@@ -444,17 +444,10 @@
     "artifact_sha256": "c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
     "evidence": "Verification/Diagnostics/rail-input-39181028127.json",
     "next": {
-      "source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
-      "run": 39187892547,
-      "scope": "Tools first, then original phone Accessibility until first failure/max3; no other native stages",
-      "new_evidence": [
-        "UIControl isTracking/isTouchInside/isHighlighted",
-        "Recognizer isEnabled",
-        "UIScrollView isTracking/isDragging/isScrollEnabled",
-        "pan.delaysTouchesBegan",
-        "Public runtime touchesShouldCancel implementation identity"
-      ],
-      "stop_condition": "Preserve all attempts. If3pass, stop unchanged capture attempts; iffail, analyze only new tracking evidence before proposing any production repair."
+      "source": "756ddd773c9881319adbf22eba664e64650b4b6d",
+      "run": 39189664681,
+      "scope": "Actual tracked-control cancellation then original phone and iPad ink/navigation gates; no full C or IPA until B succeeds.",
+      "accepted": false
     },
     "sampled_control": {
       "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
@@ -767,7 +760,54 @@
       "workflow_lint": "passed",
       "read_only_capture": "passed"
     },
-    "stage_B": "pending; original phone Accessibility firstfailure/max3",
-    "accepted_as_repair": false
+    "stage_B": {
+      "family": "iPhone",
+      "passed": 1,
+      "failed": 1,
+      "attempted": 2,
+      "max": 3,
+      "stopped_on_first_failure": true,
+      "durations_seconds": [
+        233.314,
+        130.702
+      ],
+      "failure_line": 968,
+      "original_line": 966,
+      "expected": "Fit Width scrolls into view after measured -58pt drag",
+      "actual": "Fit Width remains x431.3333 and native offset remains -62"
+    },
+    "accepted_as_repair": false,
+    "status": "capture goal met; one pass then original rail failure",
+    "evidence": "Verification/Diagnostics/rail-tracking-39187892547.json"
+  },
+  "rail_cancellation_candidate": {
+    "source": "756ddd773c9881319adbf22eba664e64650b4b6d",
+    "branch": "diag/tayya-rail-cancellation",
+    "run": 39189664681,
+    "accepted": false,
+    "stage_A": {
+      "tools_passed": 14,
+      "failed": 0,
+      "python_syntax": "passed",
+      "actionlint": "passed",
+      "read_only_capture": "passed"
+    },
+    "stage_B": "pending",
+    "production_files": [
+      "App/InkToolbarScrollView.swift",
+      "App/MarginNotebook.swift"
+    ],
+    "production_change": "Owned native rail cancellation policy for UIControls; preserve original HStack content and normal touch delivery",
+    "proof_required": [
+      "Actual override callback on tested rail showing inherited=0 cancel=1 controlTracking=1",
+      "Original phone Accessibility until first failure/max3 then related Standard and navigation",
+      "Only after phone success, original iPad Accessibility/Standard/navigation; wide iPad need not scroll if all targets fit",
+      "Actual effective safe-area viewport, height/content width and reachability match approved layout"
+    ],
+    "original_UI_test_source_retained": true,
+    "original_assertion_lines_retained": 224,
+    "full_C": "not run",
+    "ipa": "blocked",
+    "independent_review": "No blocking actual-source compile/layout/lifecycle issue found; actual geometry/environment/callback qualification required"
   }
 }

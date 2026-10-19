@@ -18,8 +18,8 @@ jobs:
       matrix:
         include:
           - family: iPhone
-            artifact: '12157492390'
-            sha256: f1092370075bc8e7146890ac6544614aac4ffc7a21578205d00f39ccb23b59ce
+            artifact: '12158370721'
+            sha256: cba24083f9d821894e418ba567afdfbce76894a163c1f64b60bab96b7d664190
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -31,10 +31,17 @@ jobs:
           EXPECTED_SHA256: ${{ matrix.sha256 }}
           SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
           SMALL_EVIDENCE_OUTPUT: EvidenceInput/subset
+          VIDEO_EVIDENCE_OUTPUT: EvidenceVideo
         run: python3 Tools/inspect_rescue_artifact.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sampled-rail-small-evidence
           path: EvidenceInput/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rail-failure-recording-only
+          path: EvidenceVideo/
           retention-days: 7

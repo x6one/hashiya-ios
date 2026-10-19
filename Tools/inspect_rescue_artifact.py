@@ -39,6 +39,19 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     if archive.testzip() is not None:
         raise RuntimeError("Artifact ZIP CRC failure")
     names = archive.namelist()
+    import re
+    drag_windows = []
+    for entry in names:
+        if not entry.endswith(".txt"): continue
+        with archive.open(entry) as stream:
+            prefix = stream.read(1024).decode(errors="replace")
+        match = re.search(r"dragUptime=([0-9.]+)\.\.\.([0-9.]+)", prefix)
+        if match:
+            pair = (float(match.group(1)), float(match.group(2)))
+            if pair not in drag_windows:
+                drag_windows.append(pair)
+    drag_windows = drag_windows[:12]
+    print("RESCUE_DRAG_WINDOWS=" + json.dumps(drag_windows))
     images = [{"path": item.filename, "bytes": item.file_size} for item in archive.infolist()
         if item.filename.lower().endswith((".png", ".jpg", ".jpeg"))]
     print("RESCUE_IMAGES " + json.dumps({"total": len(images), "entries": images[:100]}))
@@ -67,6 +80,24 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             "source_artifact_sha256": digest, "source_zip_crc": "passed",
             "copied": copied, "omitted": omitted, "retained_bytes": retained}, indent=2) + "\n")
         print("RESCUE_SMALL_EVIDENCE " + json.dumps({"files": len(copied), "bytes": retained, "omitted": omitted}))
+    video_output = os.environ.get("VIDEO_EVIDENCE_OUTPUT", "")
+    if video_output:
+        from pathlib import Path
+        output = Path(video_output); output.mkdir(parents=True, exist_ok=True)
+        videos, total = [], 0
+        for info in archive.infolist():
+            if not info.filename.endswith(".mp4"): continue
+            if info.file_size > 64_000_000 or total + info.file_size > 96_000_000 or len(videos) >= 2:
+                print("RESCUE_VIDEO_OMITTED " + info.filename); continue
+            raw = archive.read(info)
+            target = output / Path(info.filename).name
+            target.write_bytes(raw)
+            videos.append({"path": info.filename, "file": target.name, "bytes": len(raw),
+                "sha256": hashlib.sha256(raw).hexdigest()})
+            total += len(raw)
+        (output / "video-provenance.json").write_text(json.dumps({"source_artifact": artifact,
+            "source_artifact_sha256": digest, "source_zip_crc": "passed", "videos": videos}, indent=2) + "\n")
+        print("RESCUE_RETAINED_VIDEOS " + json.dumps(videos))
     attachment_budget = 90000
     rail_attachment_budget = 160000
     for name in names:
@@ -87,6 +118,16 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             print("RESCUE_NATIVE_BEGIN")
             print("\n".join(selected[-400:]))
             print("RESCUE_NATIVE_END")
+            for first, last in drag_windows:
+                interval = []
+                for line in lines:
+                    match = re.search(r"uptime=([0-9.]+)", line)
+                    if match and first - 0.25 <= float(match.group(1)) <= last + 0.25:
+                        interval.append(line)
+                print("RESCUE_NATIVE_DRAG_WINDOW " + json.dumps({"start": first, "end": last,
+                    "total_lines": len(interval), "omitted_lines": max(0, len(interval) - 256)}))
+                print("\n".join(interval[:256]))
+                print("RESCUE_NATIVE_DRAG_WINDOW_END")
             start = os.environ.get("NATIVE_WINDOW_START", "")
             end = os.environ.get("NATIVE_WINDOW_END", "")
             if start and end:

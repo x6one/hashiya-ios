@@ -42,38 +42,31 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     images = [{"path": item.filename, "bytes": item.file_size} for item in archive.infolist()
         if item.filename.lower().endswith((".png", ".jpg", ".jpeg"))]
     print("RESCUE_IMAGES " + json.dumps({"total": len(images), "entries": images[:100]}))
-    exact = json.loads(os.environ.get("EXACT_ATTACHMENT_PATHS", "[]"))
-    if exact:
-        import plistlib
-        from pathlib import Path
-        output = Path("ExactEvidence"); output.mkdir(exist_ok=True)
-        retained = 0
-        for entry in exact:
-            if entry not in names:
-                raise RuntimeError("Requested attachment absent: " + entry)
-            raw = archive.read(entry)
-            retained += len(raw)
-            if len(raw) > 64_000_000 or retained > 64_000_000:
-                raise RuntimeError("Exact attachment copy exceeds bounds")
-            target = output / Path(entry).name
+    # Preserve small original diagnostic entries once so subsequent readers
+    # do not download raw xcresult ZIPs or recordings merely to inspect text.
+    subset = os.environ.get("SMALL_EVIDENCE_OUTPUT", "")
+    if subset:
+        from pathlib import Path, PurePosixPath
+        output = Path(subset); output.mkdir(parents=True, exist_ok=True)
+        retained, copied, omitted = 0, [], []
+        for info in archive.infolist():
+            parts = PurePosixPath(info.filename)
+            if info.is_dir(): continue
+            if parts.is_absolute() or ".." in parts.parts:
+                raise RuntimeError("Unsafe artifact entry")
+            if info.file_size > 4_000_000 or info.filename.lower().endswith((".mp4", ".zip")) or retained + info.file_size > 16_000_000:
+                omitted.append({"path": info.filename, "bytes": info.file_size})
+                continue
+            raw = archive.read(info)
+            target = output.joinpath(*parts.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(raw)
-            print("RESCUE_EXACT_ATTACHMENT " + json.dumps({"path": entry, "bytes": len(raw),
-                "sha256": hashlib.sha256(raw).hexdigest(), "prefix": raw[:16].hex()}))
-            if raw.startswith((b"bplist", b"<?xml")):
-                value = plistlib.loads(raw)
-                def sanitized(value, depth=0):
-                    if depth > 9: return "<depth cap>"
-                    if isinstance(value, bytes): return {"bytes": len(value), "prefix": value[:8].hex()}
-                    if isinstance(value, plistlib.UID): return {"UID": value.data}
-                    if isinstance(value, dict): return {str(k): sanitized(v, depth+1) for k,v in list(value.items())[:180]}
-                    if isinstance(value, list): return [sanitized(v, depth+1) for v in value[:450]]
-                    if isinstance(value, str): return value[:700]
-                    if isinstance(value, (int, float, bool)) or value is None: return value
-                    return str(value)[:100]
-                encoded = json.dumps(sanitized(value), ensure_ascii=False, indent=2)
-                target.with_suffix(".decoded.json").write_text(encoded)
-                if "D444EC8C" in entry:
-                    print("RESCUE_SYNTHESIZED_EVENT " + encoded[:40000])
+            copied.append({"path": info.filename, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()})
+            retained += len(raw)
+        (output / "subset-provenance.json").write_text(json.dumps({"source_artifact": artifact,
+            "source_artifact_sha256": digest, "source_zip_crc": "passed",
+            "copied": copied, "omitted": omitted, "retained_bytes": retained}, indent=2) + "\n")
+        print("RESCUE_SMALL_EVIDENCE " + json.dumps({"files": len(copied), "bytes": retained, "omitted": omitted}))
     attachment_budget = 90000
     rail_attachment_budget = 160000
     for name in names:
@@ -90,7 +83,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             lines = archive.read(name).decode(errors="replace").splitlines()
             print("RESCUE_NATIVE_HEADER " + json.dumps({"lines": len(lines), "first": lines[:4]}))
             selected = [line for line in lines if any(term in line for term in
-                ("TayyaRescueNavigation observe", "TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
+                ("TayyaRescueInput", "TayyaRescueNavigation observe", "TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
             print("RESCUE_NATIVE_BEGIN")
             print("\n".join(selected[-400:]))
             print("RESCUE_NATIVE_END")

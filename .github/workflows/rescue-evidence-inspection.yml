@@ -18,8 +18,8 @@ jobs:
       matrix:
         include:
           - family: iPhone
-            artifact: '12155764975'
-            sha256: 45bff7902d167b2262c69a46564e1014998d2eb9de26d19ca6f95bf8af1df883
+            artifact: '12157492390'
+            sha256: f1092370075bc8e7146890ac6544614aac4ffc7a21578205d00f39ccb23b59ce
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -29,35 +29,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          EXACT_ATTACHMENT_PATHS: '["4858B8CD-0699-46C0-B70B-E0F441550577.mp4"]'
+          SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
+          SMALL_EVIDENCE_OUTPUT: EvidenceInput/subset
         run: python3 Tools/inspect_rescue_artifact.py
-      - name: Install free video decoder
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ffmpeg
-      - name: Extract bounded failure video frames
-        run: |
-          python3 - <<'PY'
-          import json, shutil, subprocess
-          from pathlib import Path
-          video = next(Path("ExactEvidence").glob("*.mp4"))
-          import hashlib
-          assert hashlib.sha256(video.read_bytes()).hexdigest() == "7f6a7acbb9486446a9735dc73a401dcb5ff5dfc738edf5495cf73fdcfa0c2a76"
-          if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-              raise SystemExit("Video tools unavailable; raw recording preserved")
-          metadata = subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(video)], text=True)
-          Path("ExactEvidence/video-metadata.json").write_text(metadata)
-          print("RESCUE_VIDEO_METADATA=" + metadata)
-          frame = Path("ExactEvidence/touch-1627-to-1639.png")
-          subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", "162.7", "-i", str(video),
-              "-vf", "fps=10,transpose=2,scale=956:440,crop=430:440:0:0,tile=4x3", "-frames:v", "1", str(frame)], check=True)
-          import base64
-          print("RESCUE_TOUCH_FRAME_TIMES=" + json.dumps([round(162.7 + i / 10, 1) for i in range(12)]))
-          print("RESCUE_TOUCH_CONTACT_SHEET=" + base64.b64encode(frame.read_bytes()).decode())
-          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rail-exact-event-and-video
-          path: ExactEvidence/
+          name: sampled-rail-small-evidence
+          path: EvidenceInput/
           retention-days: 7

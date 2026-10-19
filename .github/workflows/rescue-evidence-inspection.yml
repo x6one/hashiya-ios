@@ -10,26 +10,24 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inspect:
-    name: inspect (${{ matrix.family }})
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - family: iPad
-            artifact: '12155431299'
-            sha256: 8e6c4120d2e2ca2f9abfcc2fc9ae7b85c4431d76f94df73560f342aea0e16235
     steps:
       - uses: actions/checkout@v4
-      - name: Check reader syntax
-        run: python3 -m py_compile Tools/inspect_rescue_artifact.py
-      - name: Inspect saved artifact bytes and bounded native evidence
+      - name: Check bounded ZIP reader syntax
+        run: python3 -m py_compile Tools/inspect_rescue_zip_ranges.py
+      - name: Read selected phone evidence without the raw xcresult ZIP
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: ${{ matrix.artifact }}
-          EXPECTED_SHA256: ${{ matrix.sha256 }}
-          PREVIEW_PATH: TestResults-attachments/CE1012A6-60FB-445E-8144-F70124D9327A.png
-          NATIVE_WINDOW_START: "2026-10-18 23:42:43.000"
-          NATIVE_WINDOW_END: "2026-10-18 23:43:06.000"
-        run: python3 Tools/inspect_rescue_artifact.py
+          ARTIFACT_ID: '12155597870'
+          PROVIDED_SHA256: e804787ddd7178ba61d31c740a8b2de0f6ed5d840c15cb0118683a7cfadff8d2
+          SAVED_DRAWINGS_OUTPUT: EvidenceInput/saved-drawings
+          NATIVE_WINDOW_START: "2026-10-19 00:07:35.000"
+          NATIVE_WINDOW_END: "2026-10-19 00:07:52.000"
+        run: python3 Tools/inspect_rescue_zip_ranges.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selected-phone-saved-drawings
+          path: EvidenceInput/
+          retention-days: 7

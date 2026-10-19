@@ -1,0 +1,43 @@
+{
+  "source": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+  "pr_compiled_merge": "cd01961e8216ebd1293b7b5f684af216d52aa03b",
+  "identical_source_tree": "506f054c68486dfd2785fe9560bb00ffc481f727",
+  "pr_phone_artifact": 12124287093,
+  "outer_sha256": "4a3675ddd58bcad0c1456428784ee95483f4d2d72185efed7db412b7ce90d9a9",
+  "independently_verified": true,
+  "native_collection": "collected; no report files collected",
+  "push_pad": {
+    "job": 117569487910,
+    "case": "testIndividualInkTargetsAtAccessibilityTextSize",
+    "cap_seconds": 360,
+    "last_stage": "Fit Width expected2 actual2 at359.95; resolving pageNumber at cap",
+    "other_gap": "Native palette segmented-control built-in existence check38.01/42.28 to next activity107.38 (~65seconds); cause not established."
+  },
+  "pr_phone": {
+    "job": 117569415617,
+    "case": "testIndividualInkTargetsInDocumentAndCompactSplit",
+    "cap_seconds": 360,
+    "idle_wait_seconds": [
+      [
+        132.84,
+        192.88
+      ],
+      [
+        201.82,
+        261.86
+      ],
+      [
+        262.83,
+        322.87
+      ],
+      [
+        324.09,
+        384.13
+      ]
+    ],
+    "margin_stroke_before_cap": false,
+    "native_pid": 50475,
+    "native_observation": "Last successful animation-idle reply03:13:48.403. After rotation03:13:55.144, animation-idle request55.362 has no reply through03:18:10 although main-run-loop idle replies and AX calls continue. Brush menu animator explicitly completes03:16:07.066; one missing menu completion is not a supported sole cause."
+  },
+  "limit": "Five ignored expectation-object substitutions do not directly change these native action-idle or built-in existence paths. No general cap fix or blocked-main-thread claim."
+}

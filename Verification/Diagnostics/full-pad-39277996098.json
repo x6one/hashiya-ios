@@ -1,0 +1,49 @@
+{
+  "source": "f2c376b7651c5d62bd92b49dc0cbdd3168a93910",
+  "run": 39277996098,
+  "job": 118147539602,
+  "family": "iPad",
+  "targeted": {
+    "passed": 5,
+    "failed": 0
+  },
+  "complete": {
+    "xctest_passed": 68,
+    "xcuitest_passed": 32,
+    "failed": 0,
+    "skipped": 0,
+    "summary_passed": 100
+  },
+  "exported_bytes": {
+    "PDF": 3063,
+    "PPTX": 54684,
+    "result": "passed"
+  },
+  "maestro": {
+    "complete_three_flow_gate": "not passed",
+    "recording_flow": "passed2m23",
+    "remaining": "interrupted by aggregate60min job budget",
+    "report_xml_produced": false
+  },
+  "job_timing_utc": {
+    "start": "15:28:26",
+    "B": "15:29:08\u201315:49:29",
+    "fresh_simulator": "15:49:29\u201315:53:25",
+    "C": "15:53:25\u201316:23:32",
+    "maestro": "16:24:02\u201316:29:01 cancelled"
+  },
+  "root_cause": "Confirmed aggregate pipeline budget exhaustion after B+fresh simulator+C; no failure/assertion from full native suite. Maestro remaining flows unverified.",
+  "correction": "Separate B3 job prerequisite; full C and Maestro on independent runner, existing60min budget unchanged. Both extended reopen cases remain in full32.",
+  "artifact": {
+    "id": 12203835477,
+    "bytes": 344176049,
+    "api_sha256": "b1a1932417deba4872f3e32bfb93552a8fc9e7406bda9b534a3fee94a37fa95f",
+    "full_archive_sha_verified": false,
+    "scope": "selected entries exact HTTP ranges, ZIP CRC and local SHA"
+  },
+  "visual_review": {
+    "actual_full_C_Accessibility_document_and_compact_images": "reviewed; visible pink ink and Arabic toolbar/content",
+    "complete_release_review": false
+  },
+  "accepted_ipa": false
+}

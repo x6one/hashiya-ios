@@ -1,0 +1,92 @@
+{
+  "control_source": "f47b77b9da7a26bb023574da83b45d4f4cc8fceb",
+  "control_run": 39174774309,
+  "artifacts": [
+    {
+      "family": "iPhone",
+      "id": 12153488928,
+      "sha256": "943b66bdfb15aedbf728e7433571000b3c3b1c9c6f62dc24cee964e454468743"
+    },
+    {
+      "family": "iPad",
+      "id": 12153419552,
+      "sha256": "c57425256b14edf85db87272d4140cd4e3a2627fa5dca4aca2f8eb94883fa2af"
+    }
+  ],
+  "independent_zip_sha_and_crc_reader": 39175923570,
+  "launch_context_reader": 39176042630,
+  "results": {
+    "iPhone": {
+      "navigation_iterations_passed": 3,
+      "iterations": 3,
+      "related_ink": "passed"
+    },
+    "iPad": {
+      "navigation_iterations_passed": 2,
+      "iterations": 3,
+      "failure": "app.launch1396 before document UI: XCTest background assertion timed out",
+      "related_ink": "passed"
+    },
+    "all_reached_edge_assertions_passed": 5,
+    "release_qualified": false
+  },
+  "failed_launch": {
+    "family": "iPad",
+    "iteration": 1,
+    "line": 1396,
+    "operation": "app.launch()",
+    "application_pid": 31621,
+    "test_start_utc": "23:09:21.208",
+    "launch_relative_seconds": 1.55,
+    "teardown_relative_seconds": 24.2,
+    "message": "Failed to get background assertion for target app with pid31621: Timed out while acquiring background assertion.",
+    "document_UI_reached": false,
+    "preceding_foreground_app": "com.apple.DocumentsApp",
+    "actual_simulator_matches_requested": true,
+    "underlying_failure_cause_proven": false
+  },
+  "completed_iPad_edges": [
+    {
+      "percent": 0.843023,
+      "cancelled": false,
+      "completion_stack": 1
+    },
+    {
+      "percent": 0.837209,
+      "cancelled": false,
+      "completion_stack": 1
+    }
+  ],
+  "fixture_setup_candidate": {
+    "source": "c7d1071568340990e6ad2fa01e99e579884ac32b",
+    "branch": "diag/tayya-fixture-cleanup",
+    "production_file": "Tools/seed_files_fixtures.py",
+    "change": "Terminate DocumentsApp after successful non-verify provider-path resolution; do not modify stored export bytes",
+    "setup_foreground_leak_proven": true,
+    "causation_of_app_launch_failure": "hypothesis pending native qualification",
+    "test_file": "Tools/test_files_fixtures.py",
+    "red": {
+      "run": 39176410569,
+      "passed_original_tests": 13,
+      "added_failure": "setup left DocumentsApp foreground"
+    },
+    "stage_A": {
+      "run": 39176525816,
+      "passed": 14,
+      "failed": 0,
+      "runner": "ubuntu-latest"
+    },
+    "stage_B": {
+      "run": 39176525816,
+      "status": "pending",
+      "per_family": {
+        "navigation_iterations": 3,
+        "original_ink_cases": 2,
+        "real_picker_import_cases": 2,
+        "actual_exported_bytes": "required"
+      }
+    },
+    "accepted": false
+  },
+  "release_accepted": false
+}

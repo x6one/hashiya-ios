@@ -195,7 +195,8 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
         }
         private func nativeRailState() -> String {
             guard let navigation = ownedNavigation, let window = navigation.view.window else { return "navigation unavailable" }
-            var rows = ["navBounds=\(navigation.view.bounds) stack=\(navigation.viewControllers.count) contentEnabled=\(ownedPop?.isEnabled ?? false)"]
+            let captureStart = ProcessInfo.processInfo.systemUptime
+            var rows = ["navBounds=\(navigation.view.bounds) stack=\(navigation.viewControllers.count) contentEnabled=\(ownedPop?.isEnabled ?? false) uptime=\(captureStart) main=\(Thread.isMainThread) keyWindow=\(window.isKeyWindow)"]
             var pending = [navigation.view!]
             var scanned = 0
             while !pending.isEmpty, scanned < 512, rows.count < 12 {
@@ -212,12 +213,17 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 var path: [String] = []
                 for _ in 0..<8 {
                     guard let current = hit else { break }
-                    let gestures = (current.gestureRecognizers ?? []).prefix(6).map { "\(type(of: $0)):\($0.state.rawValue):\($0.isEnabled)" }
-                    path.append("\(type(of: current))[\(gestures.joined(separator: ","))]")
+                    let allGestures = current.gestureRecognizers ?? []
+                    let gestures = allGestures.prefix(12).map { gesture in
+                        observe(gesture, kind: "hit-\(type(of: current))")
+                        return "\(type(of: gesture)):\(ObjectIdentifier(gesture)):\(gesture.state.rawValue):\(gesture.isEnabled)"
+                    }
+                    path.append("\(type(of: current)):\(ObjectIdentifier(current)) identifier=\(current.accessibilityIdentifier ?? "")[\(gestures.joined(separator: ",")); omitted=\(max(0, allGestures.count - 12))]")
                     hit = current.superview
                 }
-                rows.append("scroll=\(type(of: scroll)) id=\(ObjectIdentifier(scroll)) frame=\(frame) visible=\(visible) size=\(scroll.contentSize) offset=\(scroll.contentOffset) bounds=\(scroll.bounds) inset=\(scroll.adjustedContentInset) enabled=\(scroll.isScrollEnabled) pan=\(scroll.panGestureRecognizer.state.rawValue):\(scroll.panGestureRecognizer.isEnabled) point=\(point) hit=\(path.joined(separator: ">"))")
+                rows.append("scroll=\(type(of: scroll)) id=\(ObjectIdentifier(scroll)) frame=\(frame) visible=\(visible) size=\(scroll.contentSize) offset=\(scroll.contentOffset) bounds=\(scroll.bounds) inset=\(scroll.adjustedContentInset) enabled=\(scroll.isScrollEnabled) bounce=\(scroll.bounces):\(scroll.alwaysBounceHorizontal) adjustment=\(scroll.contentInsetAdjustmentBehavior.rawValue) delaysTouches=\(scroll.delaysContentTouches) cancelsTouches=\(scroll.canCancelContentTouches) pan=\(ObjectIdentifier(scroll.panGestureRecognizer)):\(scroll.panGestureRecognizer.state.rawValue):\(scroll.panGestureRecognizer.isEnabled) touchRange=\(scroll.panGestureRecognizer.minimumNumberOfTouches)...\(scroll.panGestureRecognizer.maximumNumberOfTouches) touchTypes=\(scroll.panGestureRecognizer.allowedTouchTypes) point=\(point) hit=\(path.joined(separator: ">"))")
             }
+            rows.append("captureSeconds=\(ProcessInfo.processInfo.systemUptime - captureStart) observations=\(gestureObservations.count) events=\(gestureEvents) omittedEvents=\(omittedGestureEvents) omittedObservations=\(omittedGestureObservations)")
             return rows.joined(separator: "\n")
         }
         private final class GestureObservation {
@@ -227,11 +233,22 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
         }
         private var gestureObservations: [ObjectIdentifier: GestureObservation] = [:]
         private var gestureEvents = 0
+        private var omittedGestureEvents = 0
+        private var omittedGestureObservations = 0
         private func observe(_ gesture: UIGestureRecognizer?, kind: String) {
-            guard let gesture, gestureObservations[ObjectIdentifier(gesture)] == nil else { return }
-            gestureObservations[ObjectIdentifier(gesture)] = GestureObservation(gesture, kind: kind)
+            guard let gesture else { return }
+            let identity = ObjectIdentifier(gesture)
+            if gestureObservations[identity]?.gesture === gesture { return }
+            // Weak references can die while their address keys remain. Reused
+            // addresses must receive their own passive observation target.
+            gestureObservations = gestureObservations.filter { $0.value.gesture != nil }
+            guard gestureObservations.count < 128 else {
+                omittedGestureObservations += 1
+                return
+            }
+            gestureObservations[identity] = GestureObservation(gesture, kind: kind)
             gesture.addTarget(self, action: #selector(observedGesture(_:)))
-            NSLog("TayyaRescueNavigation observe kind=%@ id=%@ type=%@ enabled=%d", kind, String(describing: ObjectIdentifier(gesture)), String(describing: type(of: gesture)), gesture.isEnabled ? 1 : 0)
+            NSLog("TayyaRescueNavigation observe uptime=%f kind=%@ id=%@ type=%@ enabled=%d", ProcessInfo.processInfo.systemUptime, kind, String(describing: ObjectIdentifier(gesture)), String(describing: type(of: gesture)), gesture.isEnabled ? 1 : 0)
         }
         private func observeNavigationInputs(_ navigation: UINavigationController) {
             observe(navigation.interactivePopGestureRecognizer, kind: "edge")
@@ -247,8 +264,13 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             }
         }
         @objc private func observedGesture(_ gesture: UIGestureRecognizer) {
-            guard gestureEvents < 32, gesture.state != .changed,
-                  let observation = gestureObservations[ObjectIdentifier(gesture)] else { return }
+            guard gesture.state != .changed,
+                  let observation = gestureObservations[ObjectIdentifier(gesture)],
+                  observation.gesture === gesture else { return }
+            guard gestureEvents < 96 else {
+                omittedGestureEvents += 1
+                return
+            }
             gestureEvents += 1
             if observation.kind == "edge", let navigation = ownedNavigation {
                 let pan = gesture as? UIPanGestureRecognizer
@@ -267,7 +289,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             if let scroll = gesture.view as? UIScrollView {
                 NSLog("TayyaRescueNavigation scroll state=%ld offset=%@ size=%@ bounds=%@ enabled=%d tracking=%d dragging=%d decelerating=%d", gesture.state.rawValue, String(describing: scroll.contentOffset), String(describing: scroll.contentSize), String(describing: scroll.bounds), scroll.isScrollEnabled ? 1 : 0, scroll.isTracking ? 1 : 0, scroll.isDragging ? 1 : 0, scroll.isDecelerating ? 1 : 0)
             }
-            NSLog("TayyaRescueNavigation action kind=%@ id=%@ state=%ld location=%@ stack=%ld", observation.kind, String(describing: ObjectIdentifier(gesture)), gesture.state.rawValue, String(describing: location), ownedNavigation?.viewControllers.count ?? -1)
+            NSLog("TayyaRescueNavigation action uptime=%f kind=%@ id=%@ owner=%@ state=%ld location=%@ stack=%ld", ProcessInfo.processInfo.systemUptime, observation.kind, String(describing: ObjectIdentifier(gesture)), String(describing: gesture.view.map { "\(type(of: $0)):\(ObjectIdentifier($0))" }), gesture.state.rawValue, String(describing: location), ownedNavigation?.viewControllers.count ?? -1)
         }
 #endif
 
@@ -349,6 +371,8 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             }
             gestureObservations.removeAll()
             gestureEvents = 0
+            omittedGestureEvents = 0
+            omittedGestureObservations = 0
 #endif
             if let pop = ownedPop, let enabled = previousEnabled {
                 pop.isEnabled = enabled

@@ -955,12 +955,14 @@ final class LaunchTests: XCTestCase {
                 .withOffset(CGVector(dx: viewport.midX - applicationFrame.minX,
                     dy: viewport.midY - applicationFrame.minY))
             let nativeBefore = nativeInkPresenterState(in: app)
+            let dragStart = ProcessInfo.processInfo.systemUptime
             start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: delta, dy: 0)))
+            let dragEnd = ProcessInfo.processInfo.systemUptime
             let previousTarget = target
             target = control.frame
             viewport = visibleViewport()
             let moved = target.minX - previousTarget.minX
-            let native = XCTAttachment(string: "before=" + nativeBefore + "\nafter=" + nativeInkPresenterState(in: app))
+            let native = XCTAttachment(string: "dragUptime=\(dragStart)...\(dragEnd) delta=\(delta)\nbefore=" + nativeBefore + "\nafter=" + nativeInkPresenterState(in: app))
             native.name = "InkTarget-" + identifier + "-NativeScrollState"; native.lifetime = .keepAlways; add(native)
             guard abs(moved) > 1, moved * delta > 0 else {
                 XCTFail("Ink toolbar drag must actually scroll " + identifier

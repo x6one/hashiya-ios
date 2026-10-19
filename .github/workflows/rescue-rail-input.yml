@@ -1,0 +1,138 @@
+name: Bounded native rail input diagnosis
+on:
+  push:
+    branches: ['diag/tayya-rail-input']
+permissions:
+  contents: read
+concurrency:
+  group: rail-input-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Tools and diagnostic syntax before native work
+        run: |
+          python3 -m unittest discover -s Tools -p 'test_*.py'
+          python3 -m compileall -q Tools
+          curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/rescue-rail-input.yml
+      - name: Check read-only review drawing capture on temporary bytes
+        run: |
+          PYTHONPATH=Tools python3 - <<'PY'
+          import base64, json, tempfile
+          from pathlib import Path
+          from collect_review_drawings import collect
+          with tempfile.TemporaryDirectory() as temporary:
+              root = Path(temporary) / "app"
+              page = root / "tmp/ReviewEntry-test/document-margins/page.json"
+              page.parent.mkdir(parents=True)
+              raw = b"bounded serialized drawing bytes"
+              page.write_text(json.dumps({"ink": base64.b64encode(raw).decode(), "width": 650, "height": 900}))
+              before = page.read_bytes()
+              report = collect(root, Path(temporary) / "evidence")
+              assert len(report["drawings"]) == 1
+              assert (Path(temporary) / "evidence/000.drawing").read_bytes() == raw
+              assert page.read_bytes() == before
+              print("Actual input bytes preserved and bounded review drawing copied")
+          PY
+  fonts:
+    needs: tools
+    name: evidence (${{ matrix.family }})
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [iPhone]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select current app toolchain
+        run: python3 Tools/select_app_xcode.py
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Select available simulator
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          subprocess.run(["xcodebuild", "-version"], check=True)
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          # Prefer the large current iPhone and iPad for real Store captures.
+          matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
+          if not matching:
+              raise SystemExit('Required simulator family is unavailable')
+          print('Simulator:', matching[0][1], matching[0][2]['name'])
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
+          PY
+      - name: Mark native diagnostic session
+        run: touch "$RUNNER_TEMP/tayya-native-start"
+      - name: Observe original accessibility rail input until first failure, then standard ink
+        run: |
+          set -o pipefail
+          swiftc -frontend -parse UITests/LaunchTests.swift
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          python3 Tools/seed_files_fixtures.py
+          set +e
+          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -run-tests-until-failure -test-iterations 3 -resultBundlePath RailResults.xcresult CODE_SIGNING_ALLOWED=NO | tee rail-build.log
+          rail_status=$?
+          xcodebuild test -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee standard-build.log
+          standard_status=$?
+          if [ "$rail_status" -ne 0 ] || [ "$standard_status" -ne 0 ]; then exit 1; fi
+      - name: Preserve actual saved review drawing bytes after the visibility deadline
+        if: always()
+        run: python3 Tools/collect_review_drawings.py
+      - name: Export exact generated guide and native result
+        if: always()
+        run: |
+          mkdir -p Evidence
+          status=0
+          for bundle in RailResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              xcrun xcresulttool get test-results summary --path "$bundle.xcresult" > "Evidence/$bundle-summary.json" || status=1
+              xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "Evidence/$bundle-attachments" || status=1
+              ditto -c -k --keepParent "$bundle.xcresult" "Evidence/$bundle.xcresult.zip" || status=1
+              shasum -a 256 "Evidence/$bundle.xcresult.zip" > "Evidence/$bundle.xcresult.sha256" || status=1
+            fi
+          done
+          echo "$status" > Evidence/result-export-status.txt
+          cp *build.log Evidence/
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 30m --style compact --predicate 'eventMessage BEGINSWITH "TayyaRescue" OR eventMessage BEGINSWITH "DocumentNavigationBoundary" OR process CONTAINS[c] "ColorPicker" OR ((process == "runningboardd" OR process == "SpringBoard" OR process == "launchd_sim") AND eventMessage CONTAINS "com.ahmadalawi.hashiya")' > Evidence/gesture-picker.log
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, shutil
+          since = (Path(os.environ["RUNNER_TEMP"]) / "tayya-native-start").stat().st_mtime
+          roots = [Path.home() / "Library/Logs/DiagnosticReports",
+              Path.home() / "Library/Developer/CoreSimulator/Devices" / os.environ["SIMULATOR_ID"] / "data/Library/Logs/CrashReporter"]
+          destination = Path("Evidence/CrashReports"); destination.mkdir(exist_ok=True)
+          copied = 0
+          for root in roots:
+              for path in root.glob("*.ips"):
+                  try:
+                      if not path.name.startswith(("Hashiya", "ColorPicker")) or path.stat().st_mtime < since:
+                          continue
+                      if copied >= 8 or path.stat().st_size > 4_000_000:
+                          print("Relevant crash report omitted by evidence cap:", path.name); continue
+                      shutil.copy2(path, destination / (str(copied) + "-" + path.name)); copied += 1
+                  except OSError as error:
+                      print("Crash report read unavailable:", path.name, type(error).__name__)
+          print("Relevant current-session crash reports copied:", copied)
+          PY
+          exit "$status"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rescue-rail-input-${{ matrix.family }}
+          path: Evidence/
+          retention-days: 7

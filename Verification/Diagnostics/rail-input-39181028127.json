@@ -1,0 +1,127 @@
+{
+  "source": "cdb7f8afc471dc5a7eb0a0d655744a1b0adc073d",
+  "run": 39181028127,
+  "url": "https://github.com/x6one/hashiya-ios/actions/runs/39181028127",
+  "status": "failed",
+  "stage_A": {
+    "tools_passed": 14,
+    "tools_failed": 0,
+    "python_syntax": "passed",
+    "workflow_actionlint": "1.7.7 passed",
+    "read_only_drawing_smoke": "passed"
+  },
+  "stage_B": {
+    "family": "iPhone",
+    "accessibility": {
+      "passed": 0,
+      "attempted": 1,
+      "maximum": 3,
+      "stopped_after_first_failure": true,
+      "duration_seconds": 170.73,
+      "line": 968,
+      "original_line": 966,
+      "expected": "Fit Width rail target moves into viewport after measured drag",
+      "actual": "target x431.3333 and native offset -62 both unchanged"
+    },
+    "standard": {
+      "passed": 1,
+      "attempted": 1,
+      "duration_seconds": 160.272
+    }
+  },
+  "verified_evidence": {
+    "artifact": {
+      "id": 12156731933,
+      "name": "rescue-rail-input-iPhone",
+      "size_in_bytes": 148695117,
+      "url": "https://api.github.com/repos/x6one/hashiya-ios/actions/artifacts/12156731933",
+      "archive_download_url": "https://api.github.com/repos/x6one/hashiya-ios/actions/artifacts/12156731933/zip",
+      "expired": false,
+      "created_at": "2026-10-19T00:45:01Z",
+      "expires_at": "2026-10-26T00:44:50Z",
+      "updated_at": "2026-10-19T00:45:01Z",
+      "digest": "sha256:c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
+      "workflow_run": {
+        "id": 39181028127,
+        "repository_id": 1395686315,
+        "head_repository_id": 1395686315,
+        "head_branch": "diag/tayya-rail-input",
+        "head_sha": "cdb7f8afc471dc5a7eb0a0d655744a1b0adc073d"
+      }
+    },
+    "full_artifact_sha256_independently_matched": true,
+    "artifact_zip_crc": "passed",
+    "reader_run": 39182221825,
+    "gesture": {
+      "before_uptime": 1731.1755581666669,
+      "start_uptime": 1731.1830510833333,
+      "end_uptime": 1732.1101908333335,
+      "after_uptime": 1732.8219052083334,
+      "native_pan_installed_uptime": 1669.771421,
+      "observations_before_after": [
+        58,
+        58
+      ],
+      "action_events_before_after": [
+        4,
+        4
+      ],
+      "omitted_events": 0,
+      "omitted_observations": 0,
+      "main_thread": true,
+      "key_window": true,
+      "native_getter_seconds": [
+        0.0010795,
+        0.00106275
+      ],
+      "live_pan_enabled": true,
+      "live_scroll_enabled": true,
+      "content_pop_enabled": false,
+      "frame_width": 429.3333333333333,
+      "content_width": 417.3333333333333,
+      "left_adjusted_inset": 62,
+      "offset_x_before_after": [
+        -62,
+        -62
+      ]
+    },
+    "recorded_input": {
+      "attachment": "RailResults-attachments/D444EC8C-9A67-477B-AEB1-9EE93C487DD8",
+      "sha256": "180937673fa40f9cdd00e92220773fe96ec8790ea9f6174ca3c262355d9c3435",
+      "physical_start": [
+        86.33333333333337,
+        245.66666666666666
+      ],
+      "physical_end": [
+        86.33333333333337,
+        187.66666666666666
+      ],
+      "duration_seconds": 0.216,
+      "interpretation": "Matches intended -58pt landscape drag; delivery to a recognizer is not established by event synthesis alone"
+    },
+    "video": {
+      "sha256": "7f6a7acbb9486446a9735dc73a401dcb5ff5dfc738edf5495cf73fdcfa0c2a76",
+      "bytes": 32154137,
+      "reviewed_seconds": [
+        160,
+        164
+      ],
+      "visible_menu_or_modal_obstruction": false,
+      "decoder_run": 39182621727,
+      "limit": "Video does not exclude an invisible higher window or a recognizer failing before action callbacks"
+    }
+  },
+  "root_cause": {
+    "proven": "Native rail does not scroll; observer is attached before input with no cap omissions and fast MainThread snapshot. Failure is reproduced independently of original slow AX dismissal query.",
+    "not_proven": "Which native recognizer receives/fails/consumes the actual touch sequence. Action callbacks omit possible/failed states."
+  },
+  "production_repair_adopted": false,
+  "next": {
+    "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
+    "branch": "diag/tayya-rail-sampling",
+    "scope": "Original phone Accessibility once only. DEBUG reads existing recognizer states/touch counts during native run-loop activity and bounded connected-app window inventory. No new timer source, recognizer, delegate or test input. Interpret only with monotonic sampling overlap and the matching native pan identity.",
+    "status": "Tools gate and single native case queued",
+    "review": "Timer acquisition risk and stale Timer-style restore API corrected before any native run; CFRunLoopRemoveObserver used for expiry/restore. Remaining acquisition limits explicit."
+  },
+  "release_qualified": false
+}

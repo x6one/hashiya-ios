@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_picker_query_partial_failure_rail_diagnosis_pending",
+  "status": "rescue_native_rail_failure_confirmed_sampling_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -123,6 +123,15 @@
       "failure_utc": "2026-10-18T23:43:05.736Z",
       "native_service_scene_closed_before_first_query": true,
       "outer_host_absence_not_directly_captured": true
+    },
+    "current_rail": {
+      "run": 39181028127,
+      "original_assertion_line": 966,
+      "native_scroll_offset_unchanged": true,
+      "main_thread_capture_fast": true,
+      "live_observer_attached_before_gesture": true,
+      "omissions": 0,
+      "underlying_cause": "unproven; inspect possible/failed recognizer states before proposing production fix"
     }
   },
   "diagnostics": {
@@ -131,8 +140,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "cdb7f8afc471dc5a7eb0a0d655744a1b0adc073d",
-    "next_scope": "iPhone original Accessibility until first failure/max3, then original Standard once; preserve all attempted results; no full C or IPA",
+    "next_source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
+    "next_scope": "Original phone Accessibility once only. DEBUG reads existing recognizer states/touch counts during native run-loop activity and bounded connected-app window inventory. No new timer source, recognizer, delegate or test input. Interpret only with monotonic sampling overlap and the matching native pan identity.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -203,7 +212,7 @@
       "phone_failure_screenshot": 39177983881,
       "pad_dismissal_native_window": 39178393882
     },
-    "latest_report": "Verification/Diagnostics/ink-pair-39176525816.json"
+    "latest_report": "Verification/Diagnostics/rail-input-39181028127.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -388,7 +397,7 @@
   "rail_diagnostic": {
     "source": "cdb7f8afc471dc5a7eb0a0d655744a1b0adc073d",
     "branch": "diag/tayya-rail-input",
-    "status": "Tools gate and bounded phone native run queued",
+    "status": "failed first original Accessibility attempt; Standard passes",
     "failure_cause": "unproven; unchanged native scroll offset confirms failure but not its owning recognizer",
     "observation_defect": "Weak gesture dictionary retained dead ObjectIdentifier keys; reused addresses could skip a new observer. No evidence yet that address reuse occurred in the captured failure.",
     "changes": "DEBUG only: live identity dedup, existing hit-path recognizer passive targets, explicit cap counters, monotonic app/test drag times; no recognizer/delegate/failure-policy changes",
@@ -397,6 +406,43 @@
       "all_assertion_lines_identical": true
     },
     "scope": "iPhone original Accessibility until first failure/max3, then original Standard once; preserve all attempted results; no full C or IPA",
-    "independent_review": "No blocking source/API/workflow issue; native compilation pending"
+    "independent_review": "No blocking source/API/workflow issue; native compilation pending",
+    "run": 39181028127,
+    "stage_A": {
+      "tools_passed": 14,
+      "tools_failed": 0,
+      "python_syntax": "passed",
+      "workflow_actionlint": "1.7.7 passed",
+      "read_only_drawing_smoke": "passed"
+    },
+    "stage_B": {
+      "family": "iPhone",
+      "accessibility": {
+        "passed": 0,
+        "attempted": 1,
+        "maximum": 3,
+        "stopped_after_first_failure": true,
+        "duration_seconds": 170.73,
+        "line": 968,
+        "original_line": 966,
+        "expected": "Fit Width rail target moves into viewport after measured drag",
+        "actual": "target x431.3333 and native offset -62 both unchanged"
+      },
+      "standard": {
+        "passed": 1,
+        "attempted": 1,
+        "duration_seconds": 160.272
+      }
+    },
+    "artifact_id": 12156731933,
+    "artifact_sha256": "c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
+    "evidence": "Verification/Diagnostics/rail-input-39181028127.json",
+    "next": {
+      "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
+      "branch": "diag/tayya-rail-sampling",
+      "scope": "Original phone Accessibility once only. DEBUG reads existing recognizer states/touch counts during native run-loop activity and bounded connected-app window inventory. No new timer source, recognizer, delegate or test input. Interpret only with monotonic sampling overlap and the matching native pan identity.",
+      "status": "Tools gate and single native case queued",
+      "review": "Timer acquisition risk and stale Timer-style restore API corrected before any native run; CFRunLoopRemoveObserver used for expiry/restore. Remaining acquisition limits explicit."
+    }
   }
 }

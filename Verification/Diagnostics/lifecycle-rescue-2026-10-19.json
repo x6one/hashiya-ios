@@ -14,7 +14,11 @@
         "source": "a0d6f35e44618eb3b3482a314a922b480d5fddac",
         "run": 39321182827,
         "iPhone": "3/3 passed: audio1m49s, library2m44s, cards1m57s",
-        "iPad": "No flows executed: cold XCTest driver startup exceeded its default readiness deadline"
+        "iPad": {
+          "source": "21983ff8a8e9e806a1d313af3a07a7cf4c2bd431",
+          "run": 39323494599,
+          "result": "3/3 passed: audio2m40s, library4m03s, cards3m14s; final same-source release gates still pending"
+        }
       }
     },
     {
@@ -30,10 +34,18 @@
         "local_decoded_frames_seconds": [
           12.4,
           13.35,
+          14.0,
+          14.2,
           14.5,
           17,
           28
         ]
+      },
+      "candidate": {
+        "production_files_changed": 0,
+        "file": "UITests/LaunchTests.swift",
+        "change": "Wait up to existing standard5s for notebookTitle.value to equal full intended title before Save; exact full-name lookup and all original drawing assertions retained",
+        "native_result": "pending one targeted iPad case"
       }
     },
     {
@@ -50,7 +62,11 @@
         "http_server_start": "20:48:32"
       },
       "fix": "Focused-only MAESTRO_DRIVER_STARTUP_TIMEOUT180000: actual HTTP server readiness polling, no sleeps or application assertion changes. Recheck iPad only; phone3 already passed.",
-      "verification": "pending"
+      "verification": {
+        "source": "21983ff8a8e9e806a1d313af3a07a7cf4c2bd431",
+        "run": 39323494599,
+        "result": "Focused iPad3/3 passed. Previous cold-start deadline insufficiency is established; this pass alone does not prove it would have exceeded the old startup deadline."
+      }
     }
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",

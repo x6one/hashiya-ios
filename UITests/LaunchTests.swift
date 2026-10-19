@@ -225,7 +225,14 @@ final class LaunchTests: XCTestCase {
         let name = "Handwriting stages " + String(UUID().uuidString.prefix(8))
         let title = app.textFields["notebookTitle"]; title.tap()
         title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
-        app.buttons["إنشاء"].tap(); visibleLibraryDocument(name, in: app).tap()
+        // A prior run saved a title missing its final character. Confirm
+        // complete input before submitting, rather than assuming typing is ready.
+        let entered = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", name), object: title)
+        guard XCTWaiter.wait(for: [entered], timeout: 5) == .completed else {
+            XCTFail("Notebook title input was incomplete: " + String(describing: title.value)); return
+        }
+        print("Margin creation verified title: " + String(describing: title.value))
+        app.buttons["saveNotebook"].tap(); visibleLibraryDocument(name, in: app).tap()
         app.buttons["splitDocumentNotes"].tap()
         let text = app.textViews["splitNotes"]
         XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap(); text.typeText("Switch from text to handwriting")

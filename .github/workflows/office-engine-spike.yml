@@ -12,9 +12,8 @@ on:
         type: boolean
         required: true
         default: false
-  push:
-    branches: [main, 'work/native-link-probe']
-    paths: ['App/**', 'Tests/**', 'UITests/**', 'Tools/seed_files_fixtures.py', '.github/workflows/ios-check.yml', 'project.yml', 'Tools/*office*.py', 'Tools/package_native_app.py', 'Tools/require_preflight.py', 'Tools/select_app_xcode.py', 'NativeOffice/**', '.github/workflows/office-engine-spike.yml']
+  # Reusable callers can only build the unsigned package.
+  workflow_call:
 permissions:
   contents: read
   actions: read
@@ -127,7 +126,7 @@ jobs:
           path: NativeOfficePackage/*
           retention-days: 14
       - name: Archive and verify; upload only when explicitly selected
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.sign_archive || inputs.publish_to_apple) }}
+        if: ${{ github.event_name == 'workflow_dispatch' && contains(github.workflow_ref, '/.github/workflows/office-engine-spike.yml@') && (inputs.sign_archive || inputs.publish_to_apple) }}
         working-directory: hashiya-tools
         env:
           APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
@@ -144,7 +143,7 @@ jobs:
             python3 Tools/distribute_native_app.py --archive-only
           fi
       - name: Retain signed IPA and upload evidence
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && (inputs.sign_archive || inputs.publish_to_apple) }}
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && contains(github.workflow_ref, '/.github/workflows/office-engine-spike.yml@') && (inputs.sign_archive || inputs.publish_to_apple) }}
         uses: actions/upload-artifact@v4
         with:
           name: Tayya-Apple-distribution

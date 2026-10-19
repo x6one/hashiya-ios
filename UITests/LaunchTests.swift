@@ -299,6 +299,42 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
         XCTAssertTrue(inkTool.waitForExistence(timeout: 10))
         XCTAssertEqual(inkTool.value as? String, count, "Ink must survive a real app relaunch")
+        inkTool.tap()
+        XCTAssertTrue(app.scrollViews["inkToolbar"].waitForExistence(timeout: 5), "Reopened document must enter ink mode")
+        assertFreshInkUndoRedo(in: app, canvas: canvas, count: inkTool)
+
+    }
+
+
+    // Exercise new edits after reopening; prior-session undo history is not asserted.
+    private func assertFreshInkUndoRedo(in app: XCUIApplication, canvas: XCUIElement, count: XCUIElement) {
+        let restored = count.value as? String
+        guard let initial = Int(restored ?? "") else {
+            XCTFail("Reopened native ink surface must expose its saved stroke count"); return
+        }
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.35)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.45)))
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (Int(count.value as? String ?? "") ?? -1) > initial
+        }, object: count)
+        guard XCTWaiter.wait(for: [saved], timeout: 10) == .completed else {
+            XCTFail("A fresh stroke must be saved after reopening"); return
+        }
+        guard let edited = count.value as? String, let editedCount = Int(edited), editedCount > initial else {
+            XCTFail("Saved post-reopen stroke count must remain available"); return
+        }
+        guard tapInkTarget("inkUndo", in: app, writingSurface: canvas) else { return }
+        let undone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            count.value as? String == restored
+        }, object: count)
+        XCTAssertEqual(XCTWaiter.wait(for: [undone], timeout: 5), .completed,
+            "Undo after reopening must remove only the fresh stroke")
+        guard tapInkTarget("inkRedo", in: app, writingSurface: canvas) else { return }
+        let redone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            count.value as? String == edited
+        }, object: count)
+        XCTAssertEqual(XCTWaiter.wait(for: [redone], timeout: 5), .completed,
+            "Redo after reopening must restore the fresh stroke")
     }
 
     private func visibleLibraryDocument(_ title: String, in app: XCUIApplication) -> XCUIElement {
@@ -669,6 +705,9 @@ final class LaunchTests: XCTestCase {
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(canvas.value as? String, count)
         app.buttons["fitMargin"].tap()
         assertMarginInkVisible(canvas, in: app, stage: "relaunch")
+        assertFreshInkUndoRedo(in: app, canvas: canvas, count: canvas)
+        assertMarginInkVisible(canvas, in: app, stage: "relaunch-redo")
+
         app.buttons["nextMarginPage"].tap(); app.segmentedControls["marginMode"].buttons["نص"].tap()
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, "Second margin page")
     }
@@ -1089,9 +1128,12 @@ final class LaunchTests: XCTestCase {
         swatch.tap()
         capturePaperStudio(name + "-NativeColorPicker", in: app)
         close.tap()
+        // One fresh snapshot checks both original dismissal conditions.
+        let pickerElements = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier IN %@", ["nativeInkColorPicker", "closeInkColorPicker"]))
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            !picker.exists && !close.exists
-        }, object: picker)
+            pickerElements.count == 0
+        }, object: app)
         guard XCTWaiter.wait(for: [dismissed], timeout: 5) == .completed else {
             XCTFail("Native color picker must dismiss before testing ink actions"); return false
         }
@@ -1420,7 +1462,7 @@ final class LaunchTests: XCTestCase {
         let leadingEdge = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.width - 1, dy: frame.height * 0.5))
         leadingEdge.press(forDuration: 0.05,
-            thenDragTo: leadingEdge.withOffset(CGVector(dx: -frame.width * 0.65, dy: 0)))
+            thenDragTo: leadingEdge.withOffset(CGVector(dx: -frame.width * 0.85, dy: 0)))
         XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 10), "Native leading-edge Back must remain usable")
         visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
         XCTAssertTrue(pdf.waitForExistence(timeout: 15), "The workspace must reopen after edge navigation")

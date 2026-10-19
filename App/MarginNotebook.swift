@@ -138,7 +138,7 @@ struct InkToolbar: View {
     var allowsWidthFit = false
     let action: (String) -> Void
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        InkToolbarScrollView {
             HStack(spacing: 6) {
                 Menu { ForEach(InkBrush.allCases) { item in Button(item.rawValue, systemImage: item.symbol) { brush = item } } }
                 label: {
@@ -387,3 +387,4 @@ struct MarginNotebook: UIViewRepresentable {
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }
 }
+

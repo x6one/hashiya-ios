@@ -22,7 +22,9 @@ if not match:
     raise RuntimeError("Files LocalStorage container path was not returned")
 folder = Path(match.group(1).strip()) / "File Provider Storage"
 if not verify:
-    print("Files provider started; XCTest must export fixtures to On My device through native UI", flush=True)
+    # Release the setup app before XCTest launches Tayya. Provider data persists.
+    subprocess.run(["xcrun", "simctl", "terminate", simulator, "com.apple.DocumentsApp"], check=True)
+    print("Files provider initialized and foreground released; XCTest must export fixtures through native UI", flush=True)
 else:
     app_data = subprocess.check_output(
         ["xcrun", "simctl", "get_app_container", simulator, "com.ahmadalawi.hashiya", "data"], text=True).strip()

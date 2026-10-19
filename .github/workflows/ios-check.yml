@@ -10,9 +10,23 @@ concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  tools:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify fixture contracts and Python syntax
+        run: |
+          python3 -m unittest discover -s Tools -p 'test_*.py'
+          python3 -m compileall -q Tools
+          curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml
   test:
-    # Skip only duplicate internal PR jobs for push-covered main/work branches.
-    # Other internal branches and forks still require PR verification.
+    needs: tools
+    # Skip duplicate PR jobs only for branches covered by the push trigger.
+    # Forks and other internal branches still require PR verification.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
     runs-on: macos-15
     timeout-minutes: 60
@@ -47,16 +61,62 @@ jobs:
           PY
       - name: Mark native diagnostic session
         run: touch "$RUNNER_TEMP/tayya-native-start"
-      - name: Build and test
+      - name: Verify original ink and navigation regressions
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          # Every unique unit/UI case runs in the complete scheme exactly once.
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -only-testing:HashiyaUITests/LaunchTests/testTouchInkPersistsAfterRelaunch -only-testing:HashiyaUITests/LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
+      - name: Create independent clean simulator for the complete suite
+        run: |
+          python3 - <<'PY_CLEAN'
+          import json, os, subprocess
+          from pathlib import Path
+          previous = os.environ['SIMULATOR_ID']
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          selected = [(runtime, device) for runtime, rows in devices.items() for device in rows if device['udid'] == previous]
+          if len(selected) != 1:
+              raise SystemExit('Regression simulator identity is ambiguous')
+          runtime, device = selected[0]
+          device_type = device.get('deviceTypeIdentifier')
+          if not device_type:
+              types = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devicetypes', '--json']))['devicetypes']
+              matching = [item['identifier'] for item in types if item['name'] == device['name']]
+              if len(matching) != 1:
+                  raise SystemExit('Cannot reproduce the same simulator device type')
+              device_type = matching[0]
+          if device['state'] == 'Booted':
+              subprocess.run(['xcrun', 'simctl', 'shutdown', previous], check=True)
+          elif device['state'] != 'Shutdown':
+              raise SystemExit('Regression simulator has an unfinished state transition')
+          clean = subprocess.check_output(['xcrun', 'simctl', 'create',
+              'Tayya complete suite', device_type, runtime], text=True).strip()
+          if not clean or clean == previous:
+              raise SystemExit('Complete suite requires a distinct fresh simulator')
+          print('Independent complete-suite simulator:', device['name'], runtime, clean)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('REGRESSION_SIMULATOR_ID=' + previous + '\n')
+              output.write('SIMULATOR_ID=' + clean + '\n')
+          Path('NativeResults').mkdir(exist_ok=True)
+          Path('NativeResults/simulator-provenance.json').write_text(json.dumps({
+              'source': os.environ['GITHUB_SHA'], 'device_name': device['name'],
+              'runtime': runtime, 'device_type': device_type,
+              'regression_simulator': previous, 'complete_suite_simulator': clean,
+              'complete_suite_setup': 'fresh device created, boot and provider setup follow'}, indent=2) + '\n')
+          subprocess.run(['xcrun', 'simctl', 'boot', clean], check=True)
+          subprocess.run(['xcrun', 'simctl', 'bootstatus', clean, '-b'], check=True)
+          subprocess.run(['python3', 'Tools/seed_files_fixtures.py'],
+              env=dict(os.environ, SIMULATOR_ID=clean), check=True)
+          PY_CLEAN
+      - name: Verify complete unit and UI suites
+        run: |
+          set -o pipefail
+          # All unique unit/UI cases run in the complete scheme, after regressions pass.
+          # Native document export occurs only in this complete suite.
           # Keep ordinary cases at240s; only the two multi-surface journeys
           # explicitly request360s. Their functional5/10s waiters are unchanged.
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -derivedDataPath NativeBuild -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
       - name: Verify externally exported fixture bytes
         if: always()
         run: python3 Tools/seed_files_fixtures.py --verify
@@ -84,7 +144,7 @@ jobs:
           python3 - <<'PY'
           import os, subprocess
           from pathlib import Path
-          apps = list(Path.home().glob('Library/Developer/Xcode/DerivedData/Hashiya-*/Build/Products/Debug-iphonesimulator/Hashiya.app'))
+          apps = list(Path('NativeBuild/Build/Products/Debug-iphonesimulator').glob('Hashiya.app'))
           if len(apps) != 1:
               raise SystemExit('Expected exactly one app built by this preflight job')
           subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
@@ -168,17 +228,28 @@ jobs:
       - name: Export UI screenshots
         if: always()
         run: |
-          if [ -d TestResults.xcresult ]; then
-            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Screenshots
-          fi
+          status=0
+          for bundle in RegressionResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              output=Screenshots
+              if [ "$bundle" = RegressionResults ]; then output=RegressionScreenshots; fi
+              xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "$output" || status=1
+            fi
+          done
+          exit "$status"
       - name: Retain complete native test result
         if: always()
         run: |
-          if [ -d TestResults.xcresult ]; then
-            mkdir -p NativeResults
-            ditto -c -k --keepParent TestResults.xcresult NativeResults/TestResults.xcresult.zip
-            shasum -a 256 NativeResults/TestResults.xcresult.zip > NativeResults/TestResults.xcresult.sha256
-          fi
+          mkdir -p NativeResults
+          status=0
+          for bundle in RegressionResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              xcrun xcresulttool get test-results summary --path "$bundle.xcresult" > "NativeResults/$bundle-summary.json" || status=1
+              ditto -c -k --keepParent "$bundle.xcresult" "NativeResults/$bundle.xcresult.zip" || status=1
+              shasum -a 256 "NativeResults/$bundle.xcresult.zip" > "NativeResults/$bundle.xcresult.sha256" || status=1
+            fi
+          done
+          exit "$status"
       - name: Retain simulator document provider diagnostics
         if: failure()
         run: |
@@ -230,6 +301,8 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
+            regression-build.log
+            RegressionScreenshots/
             NativeResults/
             file-provider.log
             NativeFailure/
@@ -239,58 +312,11 @@ jobs:
           retention-days: 7
 
   device-package:
-    # A device package is a candidate only after both simulator suites pass.
+    # Only the exact-head push can satisfy the native Office preflight guard.
+    # This reusable job starts after XCTest, XCUITest, Maestro and exports pass.
+    if: github.event_name != 'pull_request'
     needs: test
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - name: Select current app toolchain
-        run: python3 Tools/select_app_xcode.py
-      - name: Generate project
-        run: |
-          brew install xcodegen
-          xcodegen generate
-      - name: Build unsigned device app
-        run: |
-          set -o pipefail
-          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath DeviceBuild CODE_SIGNING_ALLOWED=NO build | tee device-build.log
-      - name: Package for external signing
-        run: |
-          mkdir -p Payload
-          cp -R DeviceBuild/Build/Products/Release-iphoneos/Hashiya.app Payload/
-          zip -qry Hashiya-unsigned.ipa Payload
-          shasum -a 256 Hashiya-unsigned.ipa > Hashiya-unsigned.sha256
-          python3 - <<'PY'
-          import json, os, plistlib, subprocess
-          from pathlib import Path
-          app = Path('Payload/Hashiya.app')
-          info = plistlib.loads((app / 'Info.plist').read_bytes())
-          executable = app / info['CFBundleExecutable']
-          subprocess.run(['xcrun', 'lipo', str(executable), '-verify_arch', 'arm64'], check=True)
-          result = subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], capture_output=True, text=True)
-          report = {
-              'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
-              'version': info['CFBundleShortVersionString'], 'build': info['CFBundleVersion'],
-              'bundle_identifier': info['CFBundleIdentifier'], 'device_families': info['UIDeviceFamily'],
-              'architecture': 'arm64', 'code_signing_allowed': False,
-              'contains_provisioning_profile': (app / 'embedded.mobileprovision').exists(),
-              'codesign_verify_exit': result.returncode,
-              'codesign_diagnostic': (result.stdout + result.stderr).strip(),
-              'installation': 'Requires external signing with a valid certificate and provisioning profile. Not directly installable.'
-          }
-          Path('Hashiya-signing.json').write_text(json.dumps(report, indent=2) + '\n')
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Hashiya-device-unsigned
-          path: |
-            Hashiya-unsigned.ipa
-            Hashiya-unsigned.sha256
-            Hashiya-signing.json
-          retention-days: 14
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: device-build-log
-          path: device-build.log
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/office-engine-spike.yml

@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_tracking_handoff_identified_native_cancellation_candidate_pending",
+  "status": "targeted_rail_cancellation_passed_full_release_validation_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -56,16 +56,17 @@
       "iPhone",
       "iPad"
     ],
-    "xctest": "pending candidate",
-    "xcuitest": "pending candidate; targeted3 only before full32",
-    "maestro": "not run for candidate",
+    "xctest": "pending final integration source:68 including67 originals",
+    "xcuitest": "pending final integration source:32 original cases retained; two extended with fresh post-reopen Undo/Redo",
+    "maestro": "pending final integration source",
     "external_exported_bytes": "pending final source",
     "screenshots_captured": false,
     "screenshots_reviewed": false,
-    "full_native_office_device_build": "pending final source",
+    "full_native_office_device_build": "pending final integration source",
     "version_bundle_resources": "pending IPA",
     "ipa_zip_integrity": "pending IPA",
-    "ipa_sha256": null
+    "ipa_sha256": null,
+    "native_office_word_excel_runtime": "unverified: current hosted path builds unsigned iphoneos binary; no configured provisioned physical-device runtime. Build is not conversion proof."
   },
   "baseline": {
     "push_run": 39151098686,
@@ -147,7 +148,7 @@
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
     "next_source": "756ddd773c9881319adbf22eba664e64650b4b6d",
-    "next_scope": "Actual tracked-control cancellation then original phone and iPad ink/navigation gates; no full C or IPA until B succeeds.",
+    "next_scope": "Same-source sequential A→B(5 existing UI cases)→fresh simulator C(68 XCTest/32 UI per family)→Maestro3/bytes/captures→full native Office build/package. No merge or Apple upload.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -218,7 +219,7 @@
       "phone_failure_screenshot": 39177983881,
       "pad_dismissal_native_window": 39178393882
     },
-    "latest_report": "Verification/Diagnostics/rail-tracking-39187892547.json"
+    "latest_report": "Verification/Diagnostics/rail-cancellation-39189664681.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -247,13 +248,14 @@
     "prepared_source": "0740022a74cd4a485cb34d8b265a14060ccadb0c",
     "prepared_validation_run": 39177156534,
     "prepared_evidence_failure_path": "Both result bundles still attempted after intentional summary/attachment failure; step retains nonzero exit",
-    "prepared_validation_scope": "247408 V2 lint/export-failure validation passed; current074002 V3 fresh-simulator setup not natively qualified"
+    "prepared_validation_scope": "V2 actionlint/export-failure path verified earlier; V3 fresh-simulator transition statically reviewed, final source native qualification pending; B now also includes two extended existing relaunch cases."
   },
   "history": "Verification/Diagnostics/0.6.0-13-before-rescue-2026-10-19.json",
   "limitations": [
     "No candidate has met final release gates yet.",
     "Old native log collections are partial after timeout.",
-    "Physical-device pen/microphone behavior is not validated by simulator results."
+    "Physical-device pen/microphone behavior is not validated by simulator results.",
+    "Native Office Word/Excel conversion is not exercised by the unsigned hosted device build; a provisioned physical-device runtime gate is not configured."
   ],
   "input_candidate": {
     "source": "f47b77b9da7a26bb023574da83b45d4f4cc8fceb",
@@ -784,7 +786,7 @@
     "source": "756ddd773c9881319adbf22eba664e64650b4b6d",
     "branch": "diag/tayya-rail-cancellation",
     "run": 39189664681,
-    "accepted": false,
+    "accepted": "targeted qualification only; final-source full suite pending",
     "stage_A": {
       "tools_passed": 14,
       "failed": 0,
@@ -792,7 +794,32 @@
       "actionlint": "passed",
       "read_only_capture": "passed"
     },
-    "stage_B": "pending",
+    "stage_B": {
+      "status": "passed",
+      "run": 39189664681,
+      "iPhone": {
+        "accessibility_iterations_passed": 3,
+        "accessibility_durations_seconds": [
+          179.593,
+          144.866,
+          124.808
+        ],
+        "standard_passed": true,
+        "standard_seconds": 166.064,
+        "navigation_passed": true,
+        "navigation_seconds": 33.569
+      },
+      "iPad": {
+        "accessibility_passed": true,
+        "accessibility_seconds": 170.391,
+        "standard_passed": true,
+        "standard_seconds": 166.143,
+        "navigation_passed": true,
+        "navigation_seconds": 40.326
+      },
+      "total_executions": 8,
+      "failures": 0
+    },
     "production_files": [
       "App/InkToolbarScrollView.swift",
       "App/MarginNotebook.swift"
@@ -808,6 +835,33 @@
     "original_assertion_lines_retained": 224,
     "full_C": "not run",
     "ipa": "blocked",
-    "independent_review": "No blocking actual-source compile/layout/lifecycle issue found; actual geometry/environment/callback qualification required"
+    "independent_review": "No blocking actual-source compile/layout/lifecycle issue found; actual geometry/environment/callback qualification required",
+    "mechanism_evidence": {
+      "matched_tested_rail_callbacks": 2,
+      "inherited_decision": 0,
+      "owned_decision": 1,
+      "control_tracking": true,
+      "callback_inside_actual_drag": true,
+      "phone_offsets_before_after": [
+        0,
+        50
+      ],
+      "effective_width": 367.3333333333333,
+      "content_width": 417.3333333333333,
+      "accessibility_height": {
+        "baseline": 48,
+        "candidate": 49.666666666666686,
+        "review": "Natural intrinsic Dynamic Type measurement; no concrete clipping/reachability regression observed. Do not force smaller height."
+      },
+      "causality_limit": "New callback proves intervention on tested rail; prior inherited policy race strongly supported, hosting-layout effects not fully isolated."
+    },
+    "evidence": "Verification/Diagnostics/rail-cancellation-39189664681.json"
+  },
+  "integration_scope": {
+    "status": "pending final-source verification",
+    "font": "Adopt resource-name correction only; not the failed candidate's stability claim",
+    "fixtures": "Adopt independently red/green tested DocumentsApp cleanup only; not the failed candidate's overall UI qualification",
+    "rail": "Targeted8/8 original executions pass; same-source full release gates pending",
+    "test_harness": "Equivalent single absence query, deliberate completed edge input, fresh post-reopen Undo/Redo within existing cases"
   }
 }

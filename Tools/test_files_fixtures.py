@@ -51,6 +51,43 @@ class FilesFixtureTests(unittest.TestCase):
             runpy.run_path(str(SCRIPT), run_name='__main__')
         return output.getvalue()
 
+    def test_setup_releases_files_foreground_without_touching_exports(self):
+        self.export_to(self.provider / 'File Provider Storage')
+        self.export_to(self.documents)
+        before = {str(path.relative_to(self.root)): path.read_bytes()
+                  for folder in (self.provider, self.documents)
+                  for path in folder.rglob('*') if path.is_file()}
+        foreground = [None]
+
+        def command(arguments, **kwargs):
+            self.assertTrue(kwargs.get('check'))
+            if arguments == ['xcrun', 'simctl', 'launch', 'current-simulator',
+                             'com.apple.DocumentsApp']:
+                foreground[0] = 'com.apple.DocumentsApp'
+            elif arguments == ['xcrun', 'simctl', 'terminate', 'current-simulator',
+                               'com.apple.DocumentsApp']:
+                foreground[0] = None
+            else:
+                raise AssertionError('Unexpected setup mutation: ' + repr(arguments))
+
+        def lookup(arguments, **kwargs):
+            self.assertEqual(foreground[0], 'com.apple.DocumentsApp')
+            self.assertEqual(arguments, ['xcrun', 'simctl', 'get_app_container',
+                'current-simulator', 'com.apple.DocumentsApp', 'groups'])
+            return 'group.com.apple.FileProvider.LocalStorage: ' + str(self.provider) + '\n'
+
+        with patch.dict(os.environ, {'SIMULATOR_ID': 'current-simulator'}), \
+                patch.object(sys, 'argv', [str(SCRIPT)]), \
+                patch('subprocess.run', side_effect=command), \
+                patch('subprocess.check_output', side_effect=lookup), \
+                contextlib.redirect_stdout(io.StringIO()):
+            runpy.run_path(str(SCRIPT), run_name='__main__')
+        after = {str(path.relative_to(self.root)): path.read_bytes()
+                 for folder in (self.provider, self.documents)
+                 for path in folder.rglob('*') if path.is_file()}
+        self.assertEqual(after, before, 'Setup must preserve actual exported bytes')
+        self.assertIsNone(foreground[0], 'Setup must release Files before XCTest launches Tayya')
+
     def test_provider_root_exact_exports(self):
         self.export_to(self.provider / 'File Provider Storage')
         result = self.verify()

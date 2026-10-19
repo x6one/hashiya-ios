@@ -375,7 +375,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: ${{ fromJSON((inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]')) && '["iPad"]' || '["iPhone", "iPad"]') }}
+        family: ${{ fromJSON((inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]') || contains(github.event.head_commit.message, '[device:iPad]')) && '["iPad"]' || contains(github.event.head_commit.message, '[device:iPhone]') && '["iPhone"]' || '["iPhone", "iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select current app toolchain
@@ -434,10 +434,36 @@ jobs:
       - name: Verify all three Maestro lifecycles
         if: inputs.diagnostic != 'margin' && !contains(github.event.head_commit.message, '[diagnostic:margin]')
         env:
+          # Cold XCTest server reached readiness after142s in39321182827.
+          # Bound infrastructure startup only; flow/assertion waiters are unchanged.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
           MAESTRO_CLI_NO_ANALYTICS: 'true'
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
         run: maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
+      - name: Preserve margin storage boundaries
+        if: always() && (inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]'))
+        run: |
+          python3 - <<'PY_STORAGE'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          from Tools.collect_review_drawings import collect
+          root = Path(subprocess.check_output(['xcrun', 'simctl', 'get_app_container',
+              os.environ['SIMULATOR_ID'], 'com.ahmadalawi.hashiya', 'data'], text=True).strip())
+          output = Path('FocusedEvidence/storage'); output.mkdir(parents=True, exist_ok=True)
+          records = []
+          for name in ['library.json', 'sections.json']:
+              path = root / 'Documents' / name
+              if not path.exists():
+                  records.append({'name': name, 'exists': False}); continue
+              if path.stat().st_size > 2_000_000:
+                  raise RuntimeError('Storage evidence exceeds bound')
+              data = path.read_bytes(); (output / name).write_bytes(data)
+              records.append({'name': name, 'exists': True, 'sha256': hashlib.sha256(data).hexdigest()})
+          collect(root, output / 'saved-drawings')
+          (output / 'provenance.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'],
+              'run': os.environ['GITHUB_RUN_ID'], 'records': records, 'source_mutated': False}, indent=2))
+          PY_STORAGE
       - name: Preserve focused native evidence
         if: always()
         run: |
@@ -452,7 +478,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: focused-${{ inputs.diagnostic }}-${{ matrix.family }}
+          name: focused-${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}-${{ matrix.family }}
           path: |
             focused-build.log
             MaestroResults/

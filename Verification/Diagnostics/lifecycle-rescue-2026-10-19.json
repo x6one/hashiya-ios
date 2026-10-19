@@ -10,13 +10,47 @@
       "retained_reader_run": 39297793872,
       "original_artifact": 12209710711,
       "fix": "Explicit microphone: allow in shared clean launch; preserve later microphone: deny and every original lifecycle assertion. No production changes.",
-      "verification": "Pending focused Maestro3 on both families; local Tools16 and actionlint pass. Prior run39277996098 iPad recording lifecycle passed, other flows incomplete."
+      "verification": {
+        "source": "a0d6f35e44618eb3b3482a314a922b480d5fddac",
+        "run": 39321182827,
+        "iPhone": "3/3 passed: audio1m49s, library2m44s, cards1m57s",
+        "iPad": "No flows executed: cold XCTest driver startup exceeded its default readiness deadline"
+      }
     },
     {
       "name": "iPad testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion",
-      "cause_status": "unknown",
-      "evidence": "Original failure at LaunchTests.swift362/228 before any drawing; document Handwriting stages24458143 not found. Same case passed76.184s in39277996098. No proven document loss.",
-      "next": "Review existing typing video and native event/snapshot evidence before changing application or test. Reader39298799505 failed only because ffprobe was absent; original video retained in artifact12210240125. Decode locally without a new run."
+      "cause_status": "Proven saved title differs by final character; input-to-submit synchronization is a hypothesis, not proven storage loss",
+      "evidence": "Original failure362/228 searches Handwriting stages24458143; exact original AX identifies openNotebook-Handwriting stages2445814 and notebookActions-Handwriting stages2445814. Original video shows the created card. Creation code passes bound title unchanged to Notebook and persist. Same case passed76.184s in39277996098 with unchanged create path.",
+      "next": "One targeted native case after an exact-value condition before Save; existing document lookup and all split/rotation/expansion/drawing assertions retained. If matching input still produces a different saved title, investigate production state handoff instead of widening the selector.",
+      "video": {
+        "reader_run": 39298799505,
+        "artifact": 12210240125,
+        "sha256": "f34c311b54fb5570fef15bcf615a5e6afab54d8963bc078a078f6fdc9f4bf3db",
+        "full_archive_sha_and_crc_verified": true,
+        "local_decoded_frames_seconds": [
+          12.4,
+          13.35,
+          14.5,
+          17,
+          28
+        ]
+      }
+    },
+    {
+      "name": "Cold Maestro XCTest driver startup",
+      "cause_status": "proven server started after client deadline",
+      "source": "a0d6f35e44618eb3b3482a314a922b480d5fddac",
+      "run": 39321182827,
+      "artifact": 12220626374,
+      "artifact_sha256": "4ac3e4543ebffa33337a33ad7f305c274b7b4218fc22b6151efd86f34ab7b3d3",
+      "full_archive_sha_and_crc_verified": true,
+      "timestamps_utc": {
+        "driver_start": "20:46:10",
+        "client_timeout": "20:48:17",
+        "http_server_start": "20:48:32"
+      },
+      "fix": "Focused-only MAESTRO_DRIVER_STARTUP_TIMEOUT180000: actual HTTP server readiness polling, no sleeps or application assertion changes. Recheck iPad only; phone3 already passed.",
+      "verification": "pending"
     }
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",

@@ -1,0 +1,158 @@
+{
+  "problem": "testIndividualInkTargetsAtAccessibilityTextSize: native ink rail loses drag after a button begins tracking",
+  "source": "4a09c6adce73e648a885b6a4b5ab8064c4be229f",
+  "run": 39187892547,
+  "stage_A": {
+    "tools_passed": 14,
+    "failed": 0,
+    "python_syntax": "passed",
+    "actionlint": "passed"
+  },
+  "stage_B": {
+    "family": "iPhone",
+    "passed": 1,
+    "failed": 1,
+    "attempted": 2,
+    "max": 3,
+    "stopped_on_first_failure": true,
+    "durations_seconds": [
+      233.314,
+      130.702
+    ],
+    "failure_line": 968,
+    "original_line": 966,
+    "expected": "Fit Width scrolls into view after measured -58pt drag",
+    "actual": "Fit Width remains x431.3333 and native offset remains -62"
+  },
+  "proven": {
+    "scroll_class": "HostingScrollView",
+    "actual_policy_available": true,
+    "inherits_UIScrollView_touchesShouldCancel_implementation": true,
+    "actual_hit_is_UIControl": true,
+    "pan_delaysTouchesBegan": false,
+    "scroll_and_pan_remain_enabled": true,
+    "failure_control_begins_tracking": true,
+    "pass_control_tracking_true_not_observed_during_drag": true,
+    "same_content_and_viewport_geometry": true,
+    "main_thread_capture_seconds_before_after": [
+      0.001349541666741061,
+      0.00136774999998579
+    ],
+    "observation_count": 65,
+    "omitted_observations": 0,
+    "omitted_actions": 0,
+    "omitted_samples": 0,
+    "failure_sample_count_before_after": [
+      326,
+      356
+    ],
+    "critical_ancestor_omitted": false
+  },
+  "failure_trace": {
+    "scroll": "0x107302c00",
+    "pan": "0x12a7eba40",
+    "control": "0x12a721ab0",
+    "drag_uptime": [
+      926.8804982083334,
+      927.6550501666667
+    ],
+    "touch_seen": 927.220563,
+    "delayed_touch_recognizer_failed": 927.369348,
+    "control_tracking_true_inside_highlighted": 927.370031,
+    "pan_reset_possible_zero_touches": 927.385661,
+    "translation_at_reset_x": -15.333333333333343,
+    "offset_x_before_after": [
+      -62,
+      -62
+    ],
+    "control_tracking_false_again": 927.452992,
+    "scroll_tracking_after_reset": false,
+    "scroll_dragging_after_reset": false
+  },
+  "passing_control": {
+    "pan": "0x124074cf0",
+    "drag_uptime": [
+      789.3386253333334,
+      790.7809921666667
+    ],
+    "touch_seen": 789.967368,
+    "pan_began": 790.136028,
+    "scroll_tracking_and_dragging_true_at_begin": true,
+    "translation_at_begin_x": -6,
+    "offset_x_before_after": [
+      -62,
+      -12
+    ]
+  },
+  "root_cause": {
+    "direct_observations": "Delayed touch starts tracking the size UIControl before the pan; native scroll then stops tracking without scrolling. Successful control begins panning without observed UIControl tracking.",
+    "supported_inference": "Inherited UIScrollView default cancellation policy refuses to cancel UIControl tracking. The 150ms touch handoff races native pan recognition, making success depend on input/run-loop timing.",
+    "status": "strongly supported; exact default callback invocation not captured on old source",
+    "primary_documentation": "https://developer.apple.com/documentation/uikit/uiscrollview/touchesshouldcancel(in:)",
+    "interpretation_limits": [
+      "Method identity proves inherited implementation, not invocation/returned value in the failed touch",
+      "Read-only run-loop sampling can miss brief states and diagnostic logging can perturb timing; do not treat instrumented success as a repair"
+    ]
+  },
+  "artifact": {
+    "id": 12159157872,
+    "bytes": 151714950,
+    "sha256": "5ed86606b65170353bdf8a11206a49795a53c00da9b89176a597ad5b56d2c052",
+    "full_sha256_and_zip_crc_verified_locally": true,
+    "failed_scroll_attachment": "CF3A4AB8-D554-4AE3-B0B9-D3AE43449B03.txt",
+    "failed_scroll_attachment_bytes": 33133,
+    "passing_scroll_attachment": "D4C46504-A5A1-4329-988A-E0283C590177.txt",
+    "passing_scroll_attachment_bytes": 32468,
+    "full_raw_attachments_read": true,
+    "bounded_reader_stdout_truncated_attachment_chars": [
+      468,
+      1133
+    ]
+  },
+  "video_review": {
+    "file": "914016B9-FE99-4C8F-AC04-53166CFD0521.mp4",
+    "sha256": "5267cdc025d4f4d1ece608d70b0fe6a1ccd0cccd5d8f12b979d8f90f0508e74e",
+    "creation_utc": "2026-10-19T02:11:04Z",
+    "reviewed_frame_seconds": [
+      125.4,
+      125.5,
+      125.6,
+      125.7,
+      125.8,
+      125.9,
+      126,
+      126.1,
+      126.2,
+      126.3,
+      126.4,
+      126.5
+    ],
+    "contact_sha256": "be4e81295158d6e3a2ebdb2d3089b9497149efeb3ac8526fa19dbb5832c406e5",
+    "observation": "Rail stays stationary; no visible menu or modal during the failing input",
+    "reviewed": true
+  },
+  "decision": "Capture goal met; no repeat of unchanged diagnostic. Test one owned native cancellation policy candidate.",
+  "next_candidate": {
+    "branch": "diag/tayya-rail-cancellation",
+    "production_files": [
+      "App/InkToolbarScrollView.swift",
+      "App/MarginNotebook.swift"
+    ],
+    "scope": "Only own the ink rail scroll container and allow native cancellation of a tracking UIControl; retain exact HStack/buttons/Menu/picker/actions/style, ordinary touch delivery, models, data format and navigation boundary",
+    "proof_required": [
+      "Actual override callback on tested rail showing inherited=0 cancel=1 controlTracking=1",
+      "Original phone Accessibility until first failure/max3 then related Standard and navigation",
+      "Only after phone success, original iPad Accessibility/Standard/navigation; wide iPad need not scroll if all targets fit",
+      "Actual effective safe-area viewport, height/content width and reachability match approved layout"
+    ],
+    "accepted": false,
+    "independent_review": "No blocking actual-source compile/layout/lifecycle issue found; native qualification pending"
+  },
+  "release": {
+    "full_C": "not run",
+    "maestro": "not run",
+    "ipa": "blocked",
+    "merge": false,
+    "apple_upload": false
+  }
+}

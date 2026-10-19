@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "rescue_rail_failure_unresolved_sampled_control_pass_capture_pending",
+  "status": "rescue_rail_native_handoff_failure_captured_candidate_pending",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -125,13 +125,19 @@
       "outer_host_absence_not_directly_captured": true
     },
     "current_rail": {
-      "run": 39181028127,
+      "run": 39184752493,
       "original_assertion_line": 966,
       "native_scroll_offset_unchanged": true,
       "main_thread_capture_fast": true,
       "live_observer_attached_before_gesture": true,
       "omissions": 0,
-      "underlying_cause": "unproven; inspect possible/failed recognizer states before proposing production fix"
+      "underlying_cause": "not proven; view-tracking handoff race supported by same-source successful and failed traces",
+      "passes_before_failure": 2,
+      "failed_iteration": 3,
+      "native_touch_reaches_rail": true,
+      "pan_resets_at_translation_minus6_before_input_end": true,
+      "omitted_samples": 0,
+      "ancestor_omitted": false
     }
   },
   "diagnostics": {
@@ -140,8 +146,8 @@
     "edge_observer_pass_is_repair": false,
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
-    "next_source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
-    "next_scope": "iPhone original Accessibility until first failure/max3. Only state+touch-count changes consume a bounded512-record diagnostic log; translation/offset remain details. Full critical rail ancestor path up to24 with explicit omissions; original inputs/assertions/functional deadlines retained.",
+    "next_source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
+    "next_scope": "Single isolated native pan touch-delivery policy experiment; phone firstfailure/max3, then related tests, then iPad. No repeated capture without an intervention.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -171,13 +177,13 @@
         "sha256": "2cb5c4b8a485096b34870e8f678dbf7028e211dbb9e8dd6174f712c4c258c732"
       }
     ],
-    "next_interpretation_limit": "Compare sampled native hit point with exact original test input; instrumented pass is not repair",
+    "next_interpretation_limit": "Passing targeted cases alone is not repair or release qualification; match pan identity and real false→true intervention.",
     "transition_hit_run": 39173378390,
     "transition_hit_artifact": {
       "id": 12153657880,
       "sha256": "e99f9c7900e15efca3f4f0a63e0485c9bfc70da8eaf95e5470e3c520af8e69ff"
     },
-    "next_run": 39184752493,
+    "next_run": 39186654628,
     "deliberate_input_artifacts": [
       {
         "family": "iPhone",
@@ -212,7 +218,7 @@
       "phone_failure_screenshot": 39177983881,
       "pad_dismissal_native_window": 39178393882
     },
-    "latest_report": "Verification/Diagnostics/rail-input-39181028127.json"
+    "latest_report": "Verification/Diagnostics/rail-sampling-39184752493.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -222,7 +228,7 @@
     "native_toolchain_local": false,
     "independent_review": "No critical issue; reusable signing contract and internal-branch PR coverage findings addressed; native qualification pending",
     "later_diagnostic_local_execution": "blocked: exec-server transport disconnected; recovery timed out",
-    "later_diagnostic_checks": "d3 Stage A14 Tools,compileall,actionlint/read-only capture smoke passed; B fails1/4 original ink cases. Next diagnostic Stage A pending.",
+    "later_diagnostic_checks": "7db Stage A14 Tools,compileall,actionlint/read-only capture smoke passed; original phone Accessibility2pass/1fail. Native input complete; next isolated delivery policy candidate not qualified.",
     "fixture_setup_tools": {
       "run": 39176525816,
       "passed": 14,
@@ -438,13 +444,12 @@
     "artifact_sha256": "c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb",
     "evidence": "Verification/Diagnostics/rail-input-39181028127.json",
     "next": {
-      "source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
-      "branch": "diag/tayya-rail-sampling",
-      "run": 39184752493,
-      "scope": "iPhone original Accessibility until first failure/max3. Only state+touch-count changes consume a bounded512-record diagnostic log; translation/offset remain details. Full critical rail ancestor path up to24 with explicit omissions; original inputs/assertions/functional deadlines retained.",
-      "goal": "Capture failing native state transitions, compare to the proven passing touch path; no full C/IPA",
-      "stop_condition": "If all3 pass, failure reproduction is unsuccessful; do not claim a fix or continue unchanged sampling retries",
-      "review": "Compression and bounded max3 capture reviewed. Initial touch counts retained in native snapshot; deadlines/IDs/caps visible. Run-loop sampling is not continuous event delivery tracing."
+      "source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
+      "branch": "diag/tayya-rail-delivery",
+      "run": 39186654628,
+      "goal": "Test supported handoff hypothesis with one public flag; record actual UIControl tracking",
+      "stop_condition": "Stop on first failure, inspect new evidence; do not rerun unchanged",
+      "accepted": false
     },
     "sampled_control": {
       "source": "e373d09de0e86d2a4e0cd8f6487b0c875c6d6792",
@@ -495,6 +500,148 @@
       "app_window_count": 2,
       "higher_app_window_hit": null,
       "interpretation_limit": "Passing run only. Loop sampling can miss brief state/reset transitions. Existing160-record cap omitted194 changes; no production change adopted."
+    },
+    "failure_capture": {
+      "problem": "testIndividualInkTargetsAtAccessibilityTextSize: native horizontal rail sometimes aborts without moving Fit Width",
+      "baseline_source": "7db5acdf0331f1f445c69d445c0227ddfcc19ee3",
+      "run": 39184752493,
+      "stage_A": {
+        "tools_passed": 14,
+        "workflow_lint": "passed",
+        "python_syntax": "passed"
+      },
+      "stage_B": {
+        "family": "iPhone",
+        "passed": 2,
+        "failed": 1,
+        "attempted": 3,
+        "duration_seconds": [
+          136.633,
+          121.441,
+          114.399
+        ],
+        "failure_line": 968,
+        "original_assertion_line": 966
+      },
+      "proven": {
+        "same_native_scroll_before_after": true,
+        "content_width": 417.3333333333333,
+        "left_inset": 62,
+        "before_after_offset_x": [
+          -62,
+          -62
+        ],
+        "input_hits_width_menu": true,
+        "touch_reaches_pan": true,
+        "failed_pan_resets_before_input_ends": true,
+        "navigation_recognized_winner_observed": false,
+        "higher_app_window_hit": null,
+        "main_thread_capture_seconds": [
+          0.0013416667,
+          0.001267875
+        ],
+        "omitted_actions": 0,
+        "omitted_observations": 0,
+        "omitted_samples": 0,
+        "ancestor_omitted": false
+      },
+      "failure": {
+        "drag_uptime": [
+          2071.6717537083337,
+          2072.4258805833333
+        ],
+        "pan_touch_seen": 2071.986043,
+        "delayed_touch_recognizer_failed": 2072.137223,
+        "pan_possible_zero_touches": 2072.152229,
+        "translation_at_reset_x": -6
+      },
+      "passing_control": {
+        "iteration": 2,
+        "drag_uptime": [
+          1954.6912132083335,
+          1955.83681
+        ],
+        "pan_touch_seen": 1954.999291,
+        "delayed_touch_recognizer_failed": 1955.150161,
+        "pan_began": 1955.154004,
+        "offset_x": [
+          -62,
+          -12
+        ]
+      },
+      "root_cause": {
+        "status": "not proven",
+        "supported_hypothesis": "UIControl view-tracking handoff around150ms races pending native pan recognition; this is not proof that a control or other recognizer caused cancellation",
+        "sampling_limit": "Read-only run-loop sampling can miss brief state/reset transitions"
+      },
+      "artifact": {
+        "id": 12158370721,
+        "bytes": 182014627,
+        "sha256": "cba24083f9d821894e418ba567afdfbce76894a163c1f64b60bab96b7d664190",
+        "full_sha256_and_zip_crc_verified": true,
+        "reader_run": 39186115199,
+        "small_subset": {
+          "id": 12158241630,
+          "bytes": 6577819,
+          "sha256": "09f59d15c118952a396622a6b7ad6ba14ef830b91ce6eec857db82ab46fb80ec"
+        },
+        "video_only": {
+          "id": 12158032874,
+          "bytes": 32855094,
+          "sha256": "b17ede21d83273796788988c86590a2fe8fd6062e287ea6a1a315547933bf9ba"
+        }
+      },
+      "next_experiment": {
+        "branch": "diag/tayya-rail-delivery",
+        "production_policy": "Only InkToolbar enclosing pan.delaysTouchesBegan=true; snapshot once per pan identity, restore on detach/dismantle; no delegates/new recognizers/navigation policy changes",
+        "required_effect": "Native log must prove previous=0 current=1 and matching actual inkToolbar pan identity",
+        "diagnostic_only": "Add UIControl tracking/inside/highlighted and pan delivery flag to existing read-only DEBUG observation",
+        "original_test_input_assertions_timeouts_unchanged": true,
+        "phone": "Original Accessibility until first failure/max3; only after all pass, original Standard ink and navigation once",
+        "pad": "Only after phone success: original Accessibility, Standard ink and navigation",
+        "stop_condition": "If failure recurs, inspect newly captured tracking and flag state; do not rerun unchanged. If previous flag was already true or ownership mismatched, intervention is ineffective and unqualified.",
+        "accepted": false
+      },
+      "release": {
+        "full_suite": "not run",
+        "maestro": "not run",
+        "ipa": "blocked",
+        "merge": false,
+        "apple_upload": false
+      }
     }
+  },
+  "rail_delivery_candidate": {
+    "source": "ea46f6953a6f17579fc48c867da036e548b6d7bd",
+    "branch": "diag/tayya-rail-delivery",
+    "run": 39186654628,
+    "accepted": false,
+    "status": "queued; no success claimed",
+    "hypothesis": "UIControl view-tracking handoff races native rail pan recognition",
+    "production_files": [
+      "App/MarginNotebook.swift"
+    ],
+    "production_change": "Only nearest enclosing tool rail pan.delaysTouchesBegan=true, owned per identity and restored on detach/dismantle",
+    "diagnostic_files": [
+      "App/PDFWorkspace.swift"
+    ],
+    "test_file_changed_from_prior_capture": false,
+    "original_assertion_lines_retained": 224,
+    "original_hold_seconds": 0.1,
+    "case_time_allowance_seconds": [
+      240,
+      360
+    ],
+    "stage_A": "pending",
+    "stage_B": "pending",
+    "required_evidence": [
+      "false-to-true flag change",
+      "helper scroll/pan identity matches actual inkToolbar",
+      "original rail movement and Menu/color/Undo/Redo guards pass",
+      "related Standard and navigation pass each family"
+    ],
+    "independent_review": "No blocking helper Swift/API issue; iPad preference typo corrected before publication; sequential early stop intentional",
+    "full_C": "not run",
+    "ipa": "blocked"
   }
 }

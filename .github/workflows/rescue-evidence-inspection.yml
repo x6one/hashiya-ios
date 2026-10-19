@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - family: iPad
-            artifact: '12156116109'
-            sha256: 201e50dd9fc9eb3516f88046bc1cd19d7282e084b4211d69d1f9e7cb998a3e3a
+          - family: iPhone
+            artifact: '12156731933'
+            sha256: c1b97b32deabef93c5fea4bb1fae37833d6a7bda70ea4b841e6b5bb3722cc8fb
     steps:
       - uses: actions/checkout@v4
       - name: Check reader syntax
@@ -34,6 +34,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: selected-pad-saved-drawings
+          name: selected-rail-saved-drawings
           path: EvidenceInput/
           retention-days: 7

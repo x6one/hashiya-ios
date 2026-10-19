@@ -43,6 +43,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         if item.filename.lower().endswith((".png", ".jpg", ".jpeg"))]
     print("RESCUE_IMAGES " + json.dumps({"total": len(images), "entries": images[:100]}))
     attachment_budget = 90000
+    rail_attachment_budget = 160000
     for name in names:
         if name.endswith("-summary.json"):
             summary = json.loads(archive.read(name))
@@ -57,9 +58,9 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             lines = archive.read(name).decode(errors="replace").splitlines()
             print("RESCUE_NATIVE_HEADER " + json.dumps({"lines": len(lines), "first": lines[:4]}))
             selected = [line for line in lines if any(term in line for term in
-                ("TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
+                ("TayyaRescueNavigation observe", "TayyaRescueTransition", "DocumentNavigationBoundary acquire", "DocumentNavigationBoundary restore", "TayyaRescueNavigation action", "TayyaRescueNavigation scroll"))]
             print("RESCUE_NATIVE_BEGIN")
-            print("\n".join(selected[-120:]))
+            print("\n".join(selected[-400:]))
             print("RESCUE_NATIVE_END")
             start = os.environ.get("NATIVE_WINDOW_START", "")
             end = os.environ.get("NATIVE_WINDOW_END", "")
@@ -100,11 +101,22 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                         print("RESCUE_ATTACHMENT " + json.dumps({"test": group.get("testName", group.get("testIdentifier")), "name": human, "path": exported}))
                         relevant = ("NativeScrollState", "NativeInkState", "NativePalettePresentation", "NativePaletteDismissal",
                             "RedPixelPolling", "RedPixelFailureMeasurement", "TapGeometry")
-                        if any(term in human for term in relevant) and exported in names and attachment_budget > 0:
-                            body = archive.read(exported).decode(errors="replace")[:min(16000, attachment_budget)]
+                        if any(term in human for term in relevant) and exported in names:
+                            rail = "NativeScrollState" in human
+                            budget = rail_attachment_budget if rail else attachment_budget
+                            if budget <= 0:
+                                print("RESCUE_ATTACHMENT_OMITTED " + human)
+                                continue
+                            limit = min(32000 if rail else 16000, budget)
+                            raw = archive.read(exported).decode(errors="replace")
+                            body = raw[:limit]
                             print("RESCUE_ATTACHMENT_TEXT " + human)
                             print(body)
-                            attachment_budget -= len(body)
+                            print("RESCUE_ATTACHMENT_TRUNCATED_CHARS=" + str(max(0, len(raw) - len(body))))
+                            if rail:
+                                rail_attachment_budget -= len(body)
+                            else:
+                                attachment_budget -= len(body)
     saved_manifest = next((name for name in names if name.endswith("saved-drawings/manifest.json")), None)
     if saved_manifest:
         manifest = json.loads(archive.read(saved_manifest))

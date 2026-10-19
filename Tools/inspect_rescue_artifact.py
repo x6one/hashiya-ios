@@ -53,7 +53,7 @@ with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                 raise RuntimeError("Requested attachment absent: " + entry)
             raw = archive.read(entry)
             retained += len(raw)
-            if len(raw) > 24_000_000 or retained > 40_000_000:
+            if len(raw) > 64_000_000 or retained > 64_000_000:
                 raise RuntimeError("Exact attachment copy exceeds bounds")
             target = output / Path(entry).name
             target.write_bytes(raw)

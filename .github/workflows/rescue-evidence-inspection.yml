@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ matrix.artifact }}
           EXPECTED_SHA256: ${{ matrix.sha256 }}
-          EXACT_ATTACHMENT_PATHS: '["RailResults-attachments/D444EC8C-9A67-477B-AEB1-9EE93C487DD8","RailResults-attachments/207B12EE-8F34-44FD-9989-3A553B80F355","RailResults-attachments/0B949091-E1C2-4AF4-A19F-61FD9D6F8030","RailResults-attachments/993DE997-365B-43C6-8F15-F61388849121.png","RailResults-attachments/4858B8CD-0699-46C0-B70B-E0F441550577.mp4"]'
+          EXACT_ATTACHMENT_PATHS: '["RailResults-attachments/4858B8CD-0699-46C0-B70B-E0F441550577.mp4"]'
         run: python3 Tools/inspect_rescue_artifact.py
       - name: Extract bounded failure video frames
         run: |

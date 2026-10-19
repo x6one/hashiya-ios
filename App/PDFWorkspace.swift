@@ -1,3 +1,6 @@
+#if DEBUG
+import CoreFoundation
+#endif
 import SwiftUI
 import PDFKit
 import PencilKit
@@ -236,37 +239,49 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
                 }
                 rows.append("scroll=\(type(of: scroll)) id=\(ObjectIdentifier(scroll)) frame=\(frame) visible=\(visible) size=\(scroll.contentSize) offset=\(scroll.contentOffset) bounds=\(scroll.bounds) inset=\(scroll.adjustedContentInset) enabled=\(scroll.isScrollEnabled) bounce=\(scroll.bounces):\(scroll.alwaysBounceHorizontal) adjustment=\(scroll.contentInsetAdjustmentBehavior.rawValue) delaysTouches=\(scroll.delaysContentTouches) cancelsTouches=\(scroll.canCancelContentTouches) pan=\(ObjectIdentifier(scroll.panGestureRecognizer)):\(scroll.panGestureRecognizer.state.rawValue):\(scroll.panGestureRecognizer.isEnabled) touchRange=\(scroll.panGestureRecognizer.minimumNumberOfTouches)...\(scroll.panGestureRecognizer.maximumNumberOfTouches) touchTypes=\(scroll.panGestureRecognizer.allowedTouchTypes) point=\(point) hit=\(path.joined(separator: ">"))")
             }
-            rows.append("captureSeconds=\(ProcessInfo.processInfo.systemUptime - captureStart) observations=\(gestureObservations.count) events=\(gestureEvents) omittedEvents=\(omittedGestureEvents) omittedObservations=\(omittedGestureObservations) samples=\(inputSampleEvents) omittedSamples=\(omittedInputSampleEvents)")
+            rows.append("captureSeconds=\(ProcessInfo.processInfo.systemUptime - captureStart) observations=\(gestureObservations.count) events=\(gestureEvents) omittedEvents=\(omittedGestureEvents) omittedObservations=\(omittedGestureObservations) samples=\(inputSampleEvents) omittedSamples=\(omittedInputSampleEvents) sampleTicks=\(inputSampleTicks) sampledIDs=\(sampledGestureIDs.count) sampleDeadline=\(inputSampleDeadline)")
             return rows.joined(separator: "\n")
         }
-        // Passive bounded sampling sees failed/possible recognizers, which do
+        // Passive run-loop observation sees failed/possible recognizers, which do
         // not send target actions. It never changes recognizers or delegates.
-        private var inputSampler: Timer?
+        private var inputSampler: CFRunLoopObserver?
         private var inputSampleDeadline: TimeInterval = 0
         private var sampledGestureIDs: Set<ObjectIdentifier> = []
         private var inputSignatures: [ObjectIdentifier: String] = [:]
         private var inputSampleEvents = 0
         private var omittedInputSampleEvents = 0
+        private var inputSampleTicks = 0
+        private var lastInputHeartbeat: TimeInterval = 0
         private func armInputSampler(_ identities: Set<ObjectIdentifier>) {
             sampledGestureIDs = identities
             inputSampleDeadline = ProcessInfo.processInfo.systemUptime + 1.5
+            NSLog("TayyaRescueInput arm uptime=%f until=%f recognizers=%ld", ProcessInfo.processInfo.systemUptime, inputSampleDeadline, identities.count)
             if inputSampler == nil {
-                let timer = Timer(timeInterval: 0.01, repeats: true) { [weak self] timer in
+                let activities = CFRunLoopActivity.beforeSources.rawValue | CFRunLoopActivity.beforeWaiting.rawValue
+                let observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, activities, true, CFIndex.max) { [weak self] observer, _ in
                     MainActor.assumeIsolated {
-                        guard let self else { timer.invalidate(); return }
+                        guard let self else {
+                            CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes)
+                            return
+                        }
                         self.sampleNativeInputs()
                     }
                 }
-                inputSampler = timer
-                RunLoop.main.add(timer, forMode: .common)
+                inputSampler = observer
+                CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
             }
             sampleNativeInputs()
         }
         private func sampleNativeInputs() {
             let uptime = ProcessInfo.processInfo.systemUptime
             guard uptime <= inputSampleDeadline else {
-                inputSampler?.invalidate(); inputSampler = nil
+                if let observer = inputSampler { CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes) }; inputSampler = nil
                 return
+            }
+            inputSampleTicks += 1
+            if uptime - lastInputHeartbeat >= 0.1 {
+                lastInputHeartbeat = uptime
+                NSLog("TayyaRescueInput heartbeat uptime=%f ticks=%ld", uptime, inputSampleTicks)
             }
             for identity in sampledGestureIDs {
                 guard let gesture = gestureObservations[identity]?.gesture else { continue }
@@ -427,6 +442,7 @@ private struct DocumentNavigationBoundary: UIViewControllerRepresentable {
             inputSampler?.invalidate(); inputSampler = nil
             sampledGestureIDs.removeAll(); inputSignatures.removeAll()
             inputSampleEvents = 0; omittedInputSampleEvents = 0
+            inputSampleTicks = 0; lastInputHeartbeat = 0
             gestureObservations.removeAll()
             gestureEvents = 0
             omittedGestureEvents = 0

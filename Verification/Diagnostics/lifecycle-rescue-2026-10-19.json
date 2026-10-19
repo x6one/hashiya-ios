@@ -96,10 +96,21 @@
     },
     {
       "name": "Native color picker content absent on iPhone accessibility journey",
-      "cause_status": "Unknown; real empty content, not just an accessibility lookup failure",
+      "cause_status": "Proven delayed OS ColorPickerUIService bootstrap in first failure; reason for delay unknown; second full prerequisite also failed with genuinely blank picker",
       "evidence": "Saved video remains white at55s and90s, only Done visible; exact AX contains nativeInkColorPicker/closeInkColorPicker but no native content. Same run Standard case and iPad cases pass. App picker and test helper unchanged since baseline successful qualification. No production repair adopted.",
-      "hypothesis": "Inspect original OS ColorPickerUIService logs to distinguish remote service initialization failure from app presentation/lifecycle error; reproduce original case once with service logs, unchanged assertions/time budgets.",
-      "diagnostic_scope": "color iPhone only; saved original xcresult decoded on macOS because Linux has no Apple log/xcresulttool; same job reproduces only original failing test. No retries, prewarming, timeout increases, skipped tests or full gate rerun."
+      "hypothesis": "Controlled probe: focused success lacked Files initialization performed by full prerequisite. Run only original accessibility case with the same Files initialization, unchanged assertions and caps; decode saved attempt2 OS launchd/runningboard/ColorPicker events to distinguish fixture side effects from unrelated launch delay.",
+      "diagnostic_scope": "color iPhone only; saved original xcresult decoded on macOS because Linux has no Apple log/xcresulttool; same job reproduces only original failing test. No retries, prewarming, timeout increases, skipped tests or full gate rerun.",
+      "observed_service_delay": {
+        "original_failure": "App bootstrap request21:37:06.640; OS bootstrap success21:37:50.000,43.360s, after the original5s readiness guard failed",
+        "unseeded_success": "21:58:15.522 to21:58:15.709,0.187s; original case1/1passed167.594s",
+        "unseeded_run": 39330535656,
+        "artifact": 12225410182,
+        "sha256": "e601c46707dcde7b5877de7372c8c745658aec61549d0a5aa3fd9c38bb144cd4",
+        "sha256_crc_verified": true,
+        "both_native_picker_screenshots_reviewed": true,
+        "shared_noncausal_errors": "Both pass and fail emit identical libxpc0x87 and missing cache errors; shader compilation38ms vs35ms. These do not explain43s bootstrap."
+      },
+      "no_production_repair_adopted": true
     }
   ],
   "diagnostic_workflow": "workflow_dispatch diagnostic=maestro or margin, or an explicit [diagnostic:maestro]/[diagnostic:margin] push message runs only selected native scope; default none and ordinary push/PR retain original complete release gate. Focused results cannot qualify packaging.",
@@ -117,6 +128,13 @@
     "iPhone": "2/3 regression cases passed; testIndividualInkTargetsAtAccessibilityTextSize failed at1102,103.239s",
     "artifact": 12223214574,
     "artifact_sha256": "9ff669a274d17c47c71094c789e60782bde338184f6cc08fbe3582d0adf6872b",
-    "sha256_and_crc_verified": true
+    "sha256_and_crc_verified": true,
+    "attempt2": {
+      "result": "same iPhone accessibility native picker content failure1102; standard144.525s and navigation37.542s pass; full/IPA still did not execute",
+      "failed_case_seconds": 81.069,
+      "artifact": 12225054072,
+      "sha256": "6a786a985b6eed93bdb1b07686322a502f3408393e992265a0a5543d02de9577",
+      "full_sha256_crc_verified": true
+    }
   }
 }

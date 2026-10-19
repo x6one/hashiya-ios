@@ -416,6 +416,9 @@ jobs:
         if: inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]')
         run: |
           mkdir -p FocusedEvidence
+          # The selected run has multiple attempts. Assert the exact second
+          # failure bundle before attributing any decoded event to this probe.
+          echo '28c62da55e82f944ec91402cd5488ccda25dcd8dd330f72e5c9c6f53e1ddabc5  OriginalColorEvidence/NativeResults/RegressionResults.xcresult.zip' | shasum -a 256 -c -
           unzip -q OriginalColorEvidence/NativeResults/RegressionResults.xcresult.zip -d OriginalColorEvidence
           xcrun xcresulttool export diagnostics --path OriginalColorEvidence/RegressionResults.xcresult --output-path OriginalColorDiagnostics
           python3 - <<'PY_LOGS'
@@ -425,10 +428,10 @@ jobs:
           print('Saved unified log archives:', len(archives))
           if not archives:
               raise SystemExit('Original color failure contains no exported unified logs')
-          predicate = 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color"))'
+          predicate = 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color")) OR ((process == "runningboardd" OR process == "launchd" OR process == "SpringBoard") AND eventMessage CONTAINS[c] "ColorPicker")'
           for i, archive in enumerate(archives):
               with Path(f'FocusedEvidence/original-color-service-{i}.log').open('w') as out:
-                  subprocess.run(['log', 'show', '--archive', str(archive), '--style', 'compact', '--info', '--debug', '--start', '2026-10-19 21:36:30', '--end', '2026-10-19 21:38:20', '--predicate', predicate], stdout=out, check=True)
+                  subprocess.run(['log', 'show', '--archive', str(archive), '--style', 'compact', '--info', '--debug', '--start', '2026-10-19 22:12:30', '--end', '2026-10-19 22:14:00', '--predicate', predicate], stdout=out, check=True)
               print('Decoded saved service log:', archive)
           PY_LOGS
       - name: Build or reproduce only the selected journey
@@ -441,6 +444,10 @@ jobs:
           if [ "$DIAGNOSTIC" = margin ]; then
             xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
           elif [ "$DIAGNOSTIC" = color ]; then
+            # Match the prerequisite gate's only additional setup step. The
+            # previous unseeded diagnostic passed; seeded full prerequisites
+            # failed twice. Keep the original app, input and 5s guards intact.
+            python3 Tools/seed_files_fixtures.py
             xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
           else
             xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
@@ -500,7 +507,7 @@ jobs:
         if: always() && (inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]'))
         run: |
           mkdir -p FocusedEvidence
-          xcrun simctl spawn "$SIMULATOR_ID" log show --style compact --info --debug --last 20m --predicate 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color"))' > FocusedEvidence/current-color-service.log
+          xcrun simctl spawn "$SIMULATOR_ID" log show --style compact --info --debug --last 20m --predicate 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color")) OR ((process == "runningboardd" OR process == "launchd" OR process == "SpringBoard") AND eventMessage CONTAINS[c] "ColorPicker")' > FocusedEvidence/current-color-service.log
       - name: Preserve focused native evidence
         if: always()
         run: |

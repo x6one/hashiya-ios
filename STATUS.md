@@ -12,6 +12,14 @@ Only the InkToolbar scroll holder changes. Its HStack/actions/picker/style are r
 
 The rejected delayed-touch-delivery experiment remains reverted. [Its report](Verification/Diagnostics/rail-delivery-39186654628.json). [Original failure capture](Verification/Diagnostics/rail-tracking-39187892547.json).
 
+## Current integration result
+
+Source `f2c376b7651c5d62bd92b49dc0cbdd3168a93910`, [run39277996098](https://github.com/x6one/hashiya-ios/actions/runs/39277996098): Stage A14 Tools/syntax/lint pass. Phone B4/5: both ink cases, document post-reopen Undo/Redo and navigation pass; the added margin fresh-stroke check fails321. Phone full C is not reached. iPad remains running.
+
+The added test input is invalid on the phone's fitted page: actual synthesized startx132 is outside paperx178.713–261.287. Old ink/count1 remain visible. [Exact screenshot/event evidence](Verification/Diagnostics/reopen-geometry-39277996098.json). This is a test-calibration error, not proven drawing loss. All original assertions/case deadlines remain.
+
+Isolated correction `4c599d16dc8fc4b668f2a9154c8d1ef6548285bd`, [run39281549900](https://github.com/x6one/hashiya-ios/actions/runs/39281549900), tests the same existing phone margin case once with a centered vertical stroke inside the fitted paper. Production code and document gesture are unchanged. Targeted result pending; no unchanged retry or full rerun started.
+
 ## Final-source verification now required
 
 The integration contains the bounded rail repair, public font resources for newly generated guide PDFs, Files fixture foreground cleanup, and equivalent single-query picker dismissal. A deliberate85% Back input replaces the previously cancelled65% test input; this is test calibration, not a claimed navigation production repair.

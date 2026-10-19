@@ -7,7 +7,7 @@
     1,
     2
   ],
-  "status": "targeted_rail_cancellation_passed_full_release_validation_pending",
+  "status": "final_phone_stage_B_failed_added_margin_gesture_outside_fitted_paper",
   "accepted_ipa": false,
   "merge_performed": false,
   "apple_upload_performed": false,
@@ -45,7 +45,7 @@
     }
   },
   "native_validation": {
-    "exact_source_commit": null,
+    "exact_source_commit": "f2c376b7651c5d62bd92b49dc0cbdd3168a93910",
     "required_cases_per_family": {
       "xctest": 68,
       "original_xctest_retained": 67,
@@ -56,8 +56,8 @@
       "iPhone",
       "iPad"
     ],
-    "xctest": "pending final integration source:68 including67 originals",
-    "xcuitest": "pending final integration source:32 original cases retained; two extended with fresh post-reopen Undo/Redo",
+    "xctest": "Phone full C not reached; iPad current run pending",
+    "xcuitest": "Phone B4/5; four original/related cases pass, added margin post-reopen input starts outside fitted paper",
     "maestro": "pending final integration source",
     "external_exported_bytes": "pending final source",
     "screenshots_captured": false,
@@ -148,7 +148,7 @@
     "font_red_artifact": 12151789151,
     "font_red_artifact_sha256": "18a878ad5a5b5ee2aa30d89bf9c259e810da8fc71d41fcb515e53c7bf94c9480",
     "next_source": "756ddd773c9881319adbf22eba664e64650b4b6d",
-    "next_scope": "Same-source sequential A→B(5 existing UI cases)→fresh simulator C(68 XCTest/32 UI per family)→Maestro3/bytes/captures→full native Office build/package. No merge or Apple upload.",
+    "next_scope": "Qualify only the corrected added margin gesture inside actual fitted paper; preserve iPad current validation. No IPA/merge/upload.",
     "qualification_artifacts": [
       {
         "family": "iPhone",
@@ -219,7 +219,7 @@
       "phone_failure_screenshot": 39177983881,
       "pad_dismissal_native_window": 39178393882
     },
-    "latest_report": "Verification/Diagnostics/rail-cancellation-39189664681.json"
+    "latest_report": "Verification/Diagnostics/reopen-geometry-39277996098.json"
   },
   "local_checks": {
     "tools_baseline_source": "c8903523e8831b24d78e87923ea966408dd5419d",
@@ -863,5 +863,13 @@
     "fixtures": "Adopt independently red/green tested DocumentsApp cleanup only; not the failed candidate's overall UI qualification",
     "rail": "Targeted8/8 original executions pass; same-source full release gates pending",
     "test_harness": "Equivalent single absence query, deliberate completed edge input, fresh post-reopen Undo/Redo within existing cases"
+  },
+  "reopen_geometry_candidate": {
+    "source": "4c599d16dc8fc4b668f2a9154c8d1ef6548285bd",
+    "run": 39281549900,
+    "status": "targeted phone case pending",
+    "production_change": false,
+    "evidence": "Verification/Diagnostics/reopen-geometry-39277996098.json",
+    "native_case_caps_unchanged": true
   }
 }

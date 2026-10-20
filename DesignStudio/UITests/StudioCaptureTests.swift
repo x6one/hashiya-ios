@@ -193,8 +193,44 @@ final class StudioCaptureTests: XCTestCase {
         assertUsable(filter)
         let label = filter.staticTexts.firstMatch
         let traits = UITraitCollection(preferredContentSizeCategory: .accessibilityLarge)
-        XCTAssertLessThanOrEqual(label.frame.height, UIFont.preferredFont(forTextStyle: .caption, compatibleWith: traits).lineHeight + 3)
+        XCTAssertLessThanOrEqual(label.frame.height, UIFont.preferredFont(forTextStyle: .caption1, compatibleWith: traits).lineHeight + 3)
         snapshot("Polish-Accessibility-Library")
+        app.terminate()
+    }
+
+    func testPolishDraftAndThreePenPresetsSurviveRelaunch() {
+        let args = ["--draft-id", "polish-reopen", "--reset-draft"]
+        let app = launch("margin", extra: args)
+        let note = app.textViews["marginText"]
+        note.tap()
+        note.typeText(" محفوظ")
+        app.buttons["dismissKeyboard"].tap()
+        XCTAssertEqual(app.staticTexts["saveStatus"].value as? String, "saved")
+        app.buttons["favoritePens"].tap()
+        XCTAssertTrue(app.buttons["savePen-1"].waitForExistence(timeout: 5))
+        for index in 1...3 { assertUsable(app.buttons["savePen-\(index)"]) }
+        app.buttons["savePen-1"].tap()
+        snapshot("Polish-Favorite-Pens")
+        app.terminate()
+        let reopened = launch("margin", extra: ["--draft-id", "polish-reopen"])
+        XCTAssertTrue((reopened.textViews["marginText"].value as? String ?? "").contains("محفوظ"))
+        reopened.buttons["favoritePens"].tap()
+        XCTAssertEqual(reopened.buttons["usePen-1"].value as? String, "pen:#244C43:3")
+        reopened.terminate()
+    }
+
+    func testPolishDirectPageJumpAndLastVisitedPage() {
+        let app = launch("document")
+        app.buttons["pageCount"].tap()
+        let input = app.textFields["pageNumberInput"]
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("12")
+        app.buttons["jumpToPage"].tap()
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
+        app.buttons["pageCount"].tap()
+        app.buttons["lastVisitedPage"].tap()
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
         app.terminate()
     }
 

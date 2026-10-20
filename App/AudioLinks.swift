@@ -39,7 +39,7 @@ struct LinkedAudioScreen: View {
         NavigationStack {
             List {
                 if audio.clips.isEmpty && legacyPages.isEmpty {
-                    ContentUnavailableView("لا توجد تسجيلات", systemImage: "waveform", description: Text("ابدأ التسجيل من أدوات الدراسة. يبقى عرض المستند والحاشية كما اخترته."))
+                    ContentUnavailableView("لا توجد تسجيلات", systemImage: "waveform", description: Text("ابدأ التسجيل من أدوات الدراسة. يبقى عرض المستند والملاحظات كما اخترته."))
                 }
                 Section("أوقات الكتابة") {
                     if audio.markers.isEmpty { Text("تُحفظ أوقات الكتابة تلقائيًا أثناء التسجيل.").font(.caption).foregroundStyle(.secondary) }

@@ -1,0 +1,10 @@
+only_rules:
+  - force_cast
+  - force_try
+  - trailing_whitespace
+  - trailing_semicolon
+  - opening_brace
+  - closing_brace
+  - comma
+  - colon
+  - return_arrow_whitespace

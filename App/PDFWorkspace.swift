@@ -422,7 +422,7 @@ struct DocumentScreen: View {
                         WorkspaceAction(title: "نص", symbol: "textformat", selected: workspace.tool == .text) { pageFocused = false; workspace.tool = .text }.accessibilityIdentifier("textTool")
                         WorkspaceAction(title: "تحديد", symbol: "lasso", selected: workspace.tool == .lasso) { workspace.tool = .lasso }
                         WorkspaceAction(title: "تقسيم", symbol: "rectangle.split.2x1", selected: splitNotes && !notesExpanded) { workspace.tool = .read; notesExpanded = false; splitNotes.toggle() }.accessibilityIdentifier("splitDocumentNotes")
-                        WorkspaceAction(title: "الحاشية", symbol: "note.text", selected: notesExpanded) { workspace.tool = .read; splitNotes = true; notesExpanded = true }.accessibilityIdentifier("openMargin")
+                        WorkspaceAction(title: "الملاحظات", symbol: "note.text", selected: notesExpanded) { workspace.tool = .read; splitNotes = true; notesExpanded = true }.accessibilityIdentifier("openMargin")
                     case .pages:
                         WorkspaceAction(title: "إضافة ورقة", symbol: "doc.badge.plus") { showPaperPicker = true }.accessibilityIdentifier("addWritingPaper")
                         WorkspaceAction(title: "كل الصفحات", symbol: "square.grid.2x2") { showDocumentPages = true }.accessibilityIdentifier("documentPages")
@@ -480,7 +480,7 @@ struct DocumentScreen: View {
                 Button("حذف الصفحة", role: .destructive) { changeDocumentPage(number: number); confirmDocumentDeletion = false }
                     .accessibilityIdentifier("confirmDocumentPageDeletion")
                 Button("إلغاء", role: .cancel) { deletingPage = nil }
-            } message: { _ in Text("حواشيك المستقلة تبقى محفوظة. يمكنك التراجع عن الحذف ما لم تعدّل المستند بعده.") }
+            } message: { _ in Text("ملاحظاتك المستقلة تبقى محفوظة. يمكنك التراجع عن الحذف ما لم تعدّل المستند بعده.") }
             .sheet(item: $cardDraft) { card in CardEditor(card: card) { updated in
                 let cards = FlashcardStore(url: cardsURL); let saved = cards.save(updated); if let error = cards.error { workspace.error = error }; return saved
             } }
@@ -507,13 +507,13 @@ struct DocumentScreen: View {
     private func recordMarginText(_ text: String, _ id: UUID) {
         workspace.canUndoPageDeletion = false
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
-        do { try audio.link(page: source, label: "حاشية \(margins.position + 1): " + String(text.suffix(70))) }
+        do { try audio.link(page: source, label: "ملاحظة \(margins.position + 1): " + String(text.suffix(70))) }
         catch { workspace.error = error.localizedDescription }
     }
     private func recordMarginInk(_ count: Int, _ id: UUID) {
         workspace.canUndoPageDeletion = false
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
-        do { try audio.link(page: source, strokeCount: count, label: "خط يد في الحاشية \(margins.position + 1)") }
+        do { try audio.link(page: source, strokeCount: count, label: "خط يد في الملاحظات \(margins.position + 1)") }
         catch { workspace.error = error.localizedDescription }
     }
     private var lassoControls: some View {

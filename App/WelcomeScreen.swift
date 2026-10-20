@@ -15,7 +15,7 @@ struct WelcomeScreen: View {
                             .font(.largeTitle.weight(.bold))
                             .foregroundStyle(TayyaTheme.text)
                             .accessibilityAddTraits(.isHeader)
-                        Text("اقرأ مستنداتك، واكتب عليها، واجمع أفكارك في صفحات حاشية مستقلة.")
+                        Text("اقرأ مستنداتك، واكتب عليها، واجمع أفكارك في صفحات ملاحظة مستقلة.")
                             .font(.title3)
                             .lineSpacing(4)
                             .foregroundStyle(TayyaTheme.detail)

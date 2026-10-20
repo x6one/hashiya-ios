@@ -13,8 +13,8 @@
 ## 1. Foundation and focused native gate
 
 - [x] Inspect both current heads, local changes, actual baseline jobs and approved design evidence; establish isolated integration branch.
-- [ ] Add a focused integration workflow using existing toolchain/simulator selection and retained xcresult evidence; exclude ordinary integration commits from expensive release jobs.
-- [ ] Add failing native appearance contracts for approved semantic colors and a display-copy regression using existing Notes identifiers. Run that subset before changing production behavior.
+- [x] Add a focused integration workflow using existing toolchain/simulator selection and retained xcresult evidence; exclude ordinary integration commits from expensive release jobs.
+- [x] Add failing native appearance contracts for approved semantic colors and a display-copy regression using existing Notes identifiers. Run that subset before changing production behavior.
 - [ ] Update TayyaTheme semantic colors, add shared metrics/styles, change only displayed Notes copy and affected text tests; run the focused tests and relevant Python checks. Commit actual evidence.
 
 ## 2. Real library and language/accessibility
@@ -55,4 +55,10 @@
 
 ## Resume record
 
-Baseline already verified: run 39342393075 at dbdb264. Do not repeat. Current task: step 1, first focused RED native test. Record new runs, hypotheses, modified files and exact results here after meaningful milestones; a running command must be identified before restarting it. No implementation changes existed at branch creation.
+Baseline already verified: run 39342393075 at dbdb264. Do not repeat. Current task: step 1 GREEN verification plus isolated workspace/audio RED contracts and the complete old-data fixture. Record new runs, hypotheses, modified files and exact results here after meaningful milestones; a running command must be identified before restarting it. No implementation changes existed at branch creation.
+
+### 2026-10-20 foundation RED evidence
+
+Commit abfa532052f4a712f9d80dcd2612ca75e974c415, [run 39502023702](https://github.com/x6one/hashiya-ios/actions/runs/39502023702): both devices compiled the real production target and executed 2 tests. `testApprovedChromePaletteInBothAppearances` failed on 37 color-channel assertions (lines 22–24); `testChromeAppearanceDoesNotChangeStoredInkColor` passed. This proves the palette mismatch before its fix, not an app crash. Logs retained in Actions. The first iPhone run took longer during simulator/build startup; it completed its tests, not a hung command.
+
+Next native selection combines foundation GREEN, new audio/workspace RED contracts, and legacy-compatibility verification in one build per device. No complete production gate has been repeated. App edits are approved palette/shared components, real library chrome/filter sizing and display-only Notes copy; existing paths, keys, IDs, data models and native engines are retained. Local Python remains 17/17.

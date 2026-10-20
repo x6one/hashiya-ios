@@ -114,7 +114,7 @@ final class LaunchTests: XCTestCase {
         let text = app.textViews["splitNotes"]; text.tap(); text.typeText("Recover this page")
         // Dismiss the keyboard through a real mode change before using the footer.
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
-        app.buttons["deleteMarginPage"].tap(); app.sheets.buttons["حذف صفحة الحاشية"].tap()
+        app.buttons["deleteMarginPage"].tap(); app.sheets.buttons["حذف صفحة الملاحظات"].tap()
         let deleted = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1/1"), object: app.buttons["marginPages"])
         XCTAssertEqual(XCTWaiter.wait(for: [deleted], timeout: 5), .completed)
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/1")

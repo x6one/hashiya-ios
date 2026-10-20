@@ -39,13 +39,13 @@ struct MarginPane: View {
         .background(TayyaTheme.paper)
             .sheet(isPresented: $showPages) { MarginPageList(store: store, sourcePage: sourcePage, jump: jump) }
             .sheet(isPresented: Binding(get: { exported != nil }, set: { if !$0 { exported = nil } })) { if let exported { ShareDocument(url: exported) } }
-            .alert("حفظ الحاشية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
+            .alert("حفظ الملاحظات", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
                 Button("حاول الحفظ مجددًا") { _ = store.flush() }; Button("حسنًا", role: .cancel) { }
             } message: { Text(store.error ?? "") }
-            .confirmationDialog("نقل صفحة الحاشية إلى المحذوفات؟", isPresented: $confirmMarginDeletion, titleVisibility: .visible) {
-                Button("حذف صفحة الحاشية", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil; confirmMarginDeletion = false }
+            .confirmationDialog("نقل صفحة الملاحظات إلى المحذوفات؟", isPresented: $confirmMarginDeletion, titleVisibility: .visible) {
+                Button("حذف صفحة الملاحظات", role: .destructive) { if let id = deletingPage { _ = store.delete(id) }; deletingPage = nil; confirmMarginDeletion = false }
                 Button("إلغاء", role: .cancel) { deletingPage = nil }
-            } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الحاشية.") }
+            } message: { Text("يمكنك استعادتها مع نصها وخط اليد من قائمة صفحات الملاحظات.") }
             .onChange(of: editor.handwriting) { old, new in
                 traceMarginRender("onChange old=\(old) new=\(new)")
                 textFocused = false
@@ -117,7 +117,7 @@ private struct MarginPaneContent: View {
                 }
                 if !textFocused && !compactChrome { footer(page) }
             } else {
-                ContentUnavailableView("تعذّر فتح الحاشية", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
+                ContentUnavailableView("تعذّر فتح الملاحظات", systemImage: "exclamationmark.doc", description: Text("لم يتم استبدال بياناتك. أغلق المستند وأعد فتحه."))
             }
         }
     }
@@ -165,24 +165,24 @@ private struct MarginPaneContent: View {
     private func headerControls(compactChrome: Bool) -> some View {
         HStack(spacing: 6) {
             Button { store.move(-1) } label: {
-                marginHeaderTarget("السابق في الحاشية", symbol: "chevron.right")
+                marginHeaderTarget("السابق في الملاحظات", symbol: "chevron.right")
             }.disabled(store.position == 0).accessibilityIdentifier("previousMarginPage")
             Button { showPages = true } label: {
                 VStack(spacing: 2) {
-                    Text("الحاشية").font(.headline).foregroundStyle(TayyaTheme.text)
+                    Text("الملاحظات").font(.headline).foregroundStyle(TayyaTheme.text)
                     Text("\(store.position + 1) من \(store.pages.count)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail)
                 }.fixedSize(horizontal: true, vertical: true)
                     .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
             }.accessibilityIdentifier("marginPages").accessibilityValue("\(store.position + 1)/\(store.pages.count)")
             Button { store.move(1) } label: {
-                marginHeaderTarget("التالي في الحاشية", symbol: "chevron.left")
+                marginHeaderTarget("التالي في الملاحظات", symbol: "chevron.left")
             }.disabled(store.position + 1 >= store.pages.count).accessibilityIdentifier("nextMarginPage")
             Spacer(minLength: 0)
             Button { _ = store.add(linkedTo: sourcePage) } label: {
-                marginHeaderTarget("إضافة صفحة حاشية", symbol: "plus")
+                marginHeaderTarget("إضافة صفحة ملاحظات", symbol: "plus")
             }.accessibilityIdentifier("addMarginPage")
             Button { toggleExpanded() } label: {
-                marginHeaderTarget(expanded ? "العودة إلى المستند" : "تكبير الحاشية",
+                marginHeaderTarget(expanded ? "العودة إلى المستند" : "تكبير الملاحظات",
                     symbol: expanded ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right")
             }.accessibilityIdentifier("expandMargin")
             if compactChrome, let page = store.current {
@@ -220,7 +220,7 @@ private struct MarginPaneContent: View {
                             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink)
                 }
-                else { Text("حاشية عامة").foregroundStyle(.secondary) }
+                else { Text("ملاحظات عامة").foregroundStyle(.secondary) }
                 Spacer()
                 Label(store.saved ? "محفوظ" : "لم يُحفظ", systemImage: store.saved ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(store.saved ? TayyaTheme.ink : Color.red)
             }.font(.caption).padding(.horizontal, 12).padding(.top, 4) }
@@ -322,7 +322,7 @@ private struct MarginModeControl: UIViewRepresentable {
         control = UISegmentedControl(items: titles)
         #endif
         control.accessibilityIdentifier = "marginMode"
-        control.accessibilityLabel = "طريقة تدوين الحاشية"
+        control.accessibilityLabel = "طريقة تدوين الملاحظات"
         control.semanticContentAttribute = .forceRightToLeft
         control.apportionsSegmentWidthsByContent = false
         control.selectedSegmentTintColor = UIColor(TayyaTheme.ink)
@@ -418,7 +418,7 @@ struct MarginPageList: View {
                             .disabled(page.sourcePage == nil).accessibilityIdentifier("unlinkMarginPage")
                     }
                 }
-                Section("صفحات الحاشية") {
+                Section("صفحات الملاحظات") {
                     ForEach(store.pages) { page in
                         Button {
                             if store.select(page.id) { dismiss() }
@@ -426,8 +426,8 @@ struct MarginPageList: View {
                             HStack(spacing: 12) {
                                 thumbnail(page)
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text(page.title.isEmpty ? "الحاشية \((store.pages.firstIndex { $0.id == page.id } ?? 0) + 1)" : page.title).font(.headline)
-                                    Text(page.sourcePage.map { "مرتبطة بصفحة \($0)" } ?? "حاشية عامة").font(.caption).foregroundStyle(.secondary)
+                                    Text(page.title.isEmpty ? "الملاحظات \((store.pages.firstIndex { $0.id == page.id } ?? 0) + 1)" : page.title).font(.headline)
+                                    Text(page.sourcePage.map { "مرتبطة بصفحة \($0)" } ?? "ملاحظات عامة").font(.caption).foregroundStyle(.secondary)
                                     if !page.text.isEmpty { Text(page.text).lineLimit(2).font(.caption).foregroundStyle(.secondary) }
                                 }
                                 Spacer()
@@ -443,7 +443,7 @@ struct MarginPageList: View {
                         ForEach(store.deletedPages) { page in
                             HStack {
                                 VStack(alignment: .leading) {
-                                    Text(page.title.isEmpty ? "صفحة حاشية" : page.title)
+                                    Text(page.title.isEmpty ? "صفحة ملاحظات" : page.title)
                                     Text(page.text).font(.caption).lineLimit(2).foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -452,7 +452,7 @@ struct MarginPageList: View {
                         }
                     }
                 }
-            }.navigationTitle("صفحات الحاشية").toolbar {
+            }.navigationTitle("صفحات الملاحظات").toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("تم") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) { Button("صفحة جديدة", systemImage: "plus") { if store.add(linkedTo: sourcePage) { dismiss() } } }
             }

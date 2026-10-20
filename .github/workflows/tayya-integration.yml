@@ -30,6 +30,21 @@ jobs:
           python3 Tools/select_app_xcode.py
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen generate
+      - name: Lint only integration Swift files
+        if: matrix.family == 'iPhone'
+        run: |
+          for tool in swiftlint swiftformat; do
+            command -v "$tool" >/dev/null || brew install "$tool"
+          done
+          git fetch --no-tags --depth=1 origin dbdb264bf86a6606be095aad22cd303ad01e2071
+          python3 - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git', 'diff', '--name-only', '--diff-filter=ACMR', 'dbdb264bf86a6606be095aad22cd303ad01e2071', 'HEAD', '--', 'App', 'Tests', 'UITests'], text=True).splitlines()
+          paths = [path for path in paths if path.endswith('.swift')]
+          if paths:
+              subprocess.run(['swiftformat', '--lint', '--config', '.integration.swiftformat'] + paths, check=True)
+              subprocess.run(['swiftlint', 'lint', '--strict', '--config', '.integration.swiftlint.yml'] + paths, check=True)
+          PY
       - name: Select available simulator and focused suite
         env:
           DEVICE_FAMILY: ${{ matrix.family }}
@@ -44,9 +59,8 @@ jobs:
           matching.sort(key=lambda row: (row[0], 'Pro Max' in row[1]['name'] if family == 'iPhone' else ('Pro' in row[1]['name'] and '13' in row[1]['name'])), reverse=True)
           if not matching:
               raise SystemExit('Required simulator family unavailable')
-          match = re.search(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
-          suite = os.environ.get('REQUESTED_SUITE') or (match[1] if match else '')
-          suite = suite.removesuffix('-red')
+          requested = os.environ.get('REQUESTED_SUITE')
+          suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
               'foundation': ['HashiyaTests/StudioIntegrationThemeTests'],
               'library': ['HashiyaTests/DocumentTests', 'HashiyaTests/DocumentImportTests', 'HashiyaTests/ReadingPositionTests', 'HashiyaUITests/StudioIntegrationTests'],
@@ -55,19 +69,28 @@ jobs:
               'compatibility': ['HashiyaTests/PageRemovalTests', 'HashiyaTests/StudioDataCompatibilityTests'],
               'all': ['HashiyaTests', 'HashiyaUITests/StudioIntegrationTests']
           }
-          if suite not in selections:
-              raise SystemExit('Unknown focused suite: ' + suite)
+          selected = []
+          for requested_suite in suites:
+              suite = requested_suite.removesuffix('-red')
+              if suite not in selections:
+                  raise SystemExit('Unknown focused suite: ' + suite)
+              # RED runs isolate the new failing contracts, not adjacent green suites.
+              names = ['HashiyaUITests/StudioIntegrationTests'] if requested_suite == 'workspace-red' else ['HashiyaTests/StudioAudioIntegrationTests'] if requested_suite == 'audio-red' else selections[suite]
+              selected += [name for name in names if name not in selected]
+          if not selected:
+              raise SystemExit('No production tests selected')
           with open('integration-selection.json', 'w') as out:
-              json.dump({'sha': os.environ['GITHUB_SHA'], 'family': family, 'device': matching[0][1], 'suite': suite, 'onlyTesting': selections[suite]}, out, indent=2)
+              json.dump({'sha': os.environ['GITHUB_SHA'], 'family': family, 'device': matching[0][1], 'suites': suites, 'onlyTesting': selected}, out, indent=2)
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               out.write('SIMULATOR_ID=' + matching[0][1]['udid'] + '\n')
           PY
-      - name: Run selected production tests
+      - name: Boot simulator and prepare existing file fixtures
         run: |
-          set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
+      - name: Run selected production tests
+        run: |
           python3 - <<'PY'
           import json, os, subprocess
           selection = json.load(open('integration-selection.json'))
@@ -81,9 +104,20 @@ jobs:
           if [ -d IntegrationResults.xcresult ]; then
             mkdir -p IntegrationEvidence
             xcrun xcresulttool get test-results summary --path IntegrationResults.xcresult > IntegrationEvidence/summary.json
+            xcrun xcresulttool get test-results tests --path IntegrationResults.xcresult > IntegrationEvidence/tests.json
             xcrun xcresulttool export attachments --path IntegrationResults.xcresult --output-path IntegrationEvidence/Screenshots
             ditto -c -k --keepParent IntegrationResults.xcresult IntegrationEvidence/IntegrationResults.xcresult.zip
           fi
+      - name: Require executed tests without failures or skips
+        run: |
+          python3 - <<'PY'
+          import json
+          summary = json.load(open('IntegrationEvidence/summary.json'))
+          assert summary['result'] == 'Passed', summary
+          assert summary['passedTests'] > 0, 'An empty test selection is not verification'
+          assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
+          print('Verified native tests:', summary['passedTests'])
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v4

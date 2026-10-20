@@ -3,22 +3,27 @@ import UIKit
 
 /// Semantic colors adapt to the system appearance without tinting PDF pages.
 enum TayyaTheme {
-    static let paper = adaptive(light: (0.975, 0.96, 0.925), dark: (0.065, 0.085, 0.075))
-    static let surface = adaptive(light: (1, 1, 0.99), dark: (0.11, 0.145, 0.125))
-    static let mutedSurface = adaptive(light: (0.945, 0.93, 0.89), dark: (0.145, 0.18, 0.155))
-    static let separator = adaptive(light: (0.83, 0.84, 0.79), dark: (0.29, 0.35, 0.30))
-    static let selection = adaptive(light: (0.88, 0.925, 0.88), dark: (0.16, 0.25, 0.20))
-    static let text = adaptive(light: (0.14, 0.19, 0.17), dark: (0.925, 0.94, 0.90))
-    static let detail = adaptive(light: (0.38, 0.43, 0.40), dark: (0.67, 0.74, 0.69))
-    static let ink = adaptive(light: (0.07, 0.25, 0.22), dark: (0.75, 0.88, 0.79))
-    static let copper = adaptive(light: (0.59, 0.30, 0.18), dark: (0.90, 0.60, 0.41))
+    static let paper = adaptive(0xF8F7F3, 0x151E1B)
+    static let surface = adaptive(0xFFFFFF, 0x202C27)
+    static let mutedSurface = adaptive(0xE9EFEA, 0x314A3E)
+    static let separator = adaptive(0xDEE3DE, 0x405147)
+    static let selection = adaptive(0xE9EFEA, 0x314A3E)
+    static let text = adaptive(0x282C2B, 0xF1F3EE)
+    static let detail = adaptive(0x5E6963, 0xB0BDB5)
+    static let ink = adaptive(0x244C43, 0xB9D8C9)
+    static let onInk = adaptive(0xFFFFFF, 0x151E1B)
+    static let copper = adaptive(0xC48F68, 0xD5A583)
+    static let destructive = adaptive(0xA83432, 0xFFB4AB)
     static let fold = copper
+    // Drawing defaults are appearance-independent. Never resolve chrome into ink.
     static let brandInk = Color(red: 0.07, green: 0.25, blue: 0.22)
     static let ivory = Color(red: 0.965, green: 0.925, blue: 0.85)
-    private static func adaptive(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
+    private static func adaptive(_ light: Int, _ dark: Int) -> Color {
         Color(uiColor: UIColor { traits in
             let value = traits.userInterfaceStyle == .dark ? dark : light
-            return UIColor(red: value.0, green: value.1, blue: value.2, alpha: 1)
+            return UIColor(red: CGFloat((value >> 16) & 255) / 255,
+                           green: CGFloat((value >> 8) & 255) / 255,
+                           blue: CGFloat(value & 255) / 255, alpha: 1)
         })
     }
 }

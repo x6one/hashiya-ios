@@ -176,7 +176,7 @@ struct LibraryScreen: View {
     }
     private var libraryContent: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: TayyaMetrics.section) {
                 libraryHeading
                 if !showTrash {
                     libraryActions
@@ -229,7 +229,8 @@ struct LibraryScreen: View {
                         ForEach(filtered) { note in notebookCard(note) }
                     }
                 }
-            }.padding(sizeClass == .regular ? 24 : 16)
+            }.padding(sizeClass == .regular ? TayyaMetrics.section : TayyaMetrics.spacing)
+                .frame(maxWidth: 1060).frame(maxWidth: .infinity)
         }.searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "ابحث في دفاترك")
     }
     private var gridColumns: [GridItem] {
@@ -237,7 +238,8 @@ struct LibraryScreen: View {
         return sizeClass == .regular ? [GridItem(.adaptive(minimum: 180, maximum: 250), spacing: 16)] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
     }
     private var libraryHeading: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: TayyaMetrics.compact) {
+            TayyaBrand()
             Text(libraryTitle).font(.largeTitle.weight(.bold)).foregroundStyle(TayyaTheme.text)
                 .fixedSize(horizontal: false, vertical: true)
             if !showTrash {
@@ -251,8 +253,7 @@ struct LibraryScreen: View {
             Button { creating = true } label: {
                 Label("دفتر جديد", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
                     .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(TayyaTheme.paper)
-            }.buttonStyle(.borderedProminent).accessibilityIdentifier("createNotebook")
+            }.buttonStyle(TayyaPrimaryButtonStyle()).accessibilityIdentifier("createNotebook")
             Button { importing = true } label: {
                 Label("استيراد ملف", systemImage: "square.and.arrow.down").frame(maxWidth: .infinity, minHeight: 44)
                     .fixedSize(horizontal: false, vertical: true)
@@ -274,8 +275,9 @@ struct LibraryScreen: View {
     }
     private func filterButton(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(title, action: action).font(.subheadline.weight(selected ? .semibold : .regular))
-            .padding(.horizontal, 14).frame(minHeight: 44)
-            .background(selected ? TayyaTheme.selection : TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+            .fixedSize(horizontal: true, vertical: true)
+            .padding(.horizontal, TayyaMetrics.spacing).frame(minHeight: TayyaMetrics.touch)
+            .background(selected ? TayyaTheme.selection : TayyaTheme.surface, in: Capsule())
             .buttonStyle(.plain).foregroundStyle(selected ? TayyaTheme.ink : TayyaTheme.detail)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: selected)
             .accessibilityAddTraits(selected ? .isSelected : [])
@@ -401,8 +403,8 @@ struct LibraryScreen: View {
                 }.accessibilityIdentifier("notebookActions-" + note.title)
             }
         }
-        .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 16))
-        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(TayyaTheme.separator, lineWidth: 0.5) }
+        .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: TayyaMetrics.cardRadius))
+        .overlay { RoundedRectangle(cornerRadius: TayyaMetrics.cardRadius).strokeBorder(TayyaTheme.separator, lineWidth: 0.5) }
     }
     private func notebookCover(_ note: Notebook) -> some View {
         let color = NotebookCoverStyle.color(for: note.id)

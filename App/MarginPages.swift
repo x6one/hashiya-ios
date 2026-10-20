@@ -19,7 +19,7 @@ struct MarginIndex: Codable {
 }
 enum MarginError: LocalizedError {
     case damaged
-    var errorDescription: String? { "تعذّر فتح صفحات الحاشية. بياناتك محفوظة ولم يتم استبدالها." }
+    var errorDescription: String? { "تعذّر فتح صفحات الملاحظات. بياناتك محفوظة ولم يتم استبدالها." }
 }
 
 /// Each page is an atomic file. The index is published only after a new page
@@ -171,7 +171,7 @@ enum MarginError: LocalizedError {
         let renderer = UIGraphicsPDFRenderer(bounds: bounds)
         try renderer.writePDF(to: url) { context in
             for (index, page) in pages.enumerated() {
-                let title = page.title.isEmpty ? "الحاشية \(index + 1)" : page.title
+                let title = page.title.isEmpty ? "الملاحظات \(index + 1)" : page.title
                 func begin(_ suffix: String = "") {
                     context.beginPage(); PaperColor.cream.uiColor.setFill(); context.cgContext.fill(bounds)
                     ((title + suffix) as NSString).draw(in: CGRect(x: 40, y: 25, width: 570, height: 35), withAttributes: [.font: UIFont.systemFont(ofSize: 20), .foregroundColor: UIColor.darkGray])

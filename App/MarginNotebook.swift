@@ -286,7 +286,7 @@ struct MarginNotebook: UIViewRepresentable {
         canvas.bounces = false
         canvas.isAccessibilityElement = true
         canvas.accessibilityIdentifier = "marginInkCanvas"
-        canvas.accessibilityLabel = "ورقة الحاشية بخط اليد"
+        canvas.accessibilityLabel = "ورقة الملاحظات بخط اليد"
         configure(canvas, context: context)
         #if DEBUG
         MarginRenderDiagnostics.recordCanvas("makeUIView return page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)

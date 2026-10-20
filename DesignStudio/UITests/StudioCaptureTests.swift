@@ -282,37 +282,39 @@ final class StudioCaptureTests: XCTestCase {
     }
 
     func testCompactAccessibleDocumentUsesReversibleFocus() {
-        let app = launch("document", extra: ["--extra-large-type"])
-        app.buttons["nextPage"].tap()
-        XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
-        XCUIDevice.shared.orientation = .landscapeLeft
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
-            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                app.buttons["focusToggle"].value as? String == "focused"
-                    && pdf.frame.height >= app.windows.firstMatch.frame.height * 0.5
-            }, object: nil)
-            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed,
-                           "Largest-type landscape needs readable PDF space; pdf=\(pdf.frame) window=\(app.windows.firstMatch.frame) focus=\(String(describing: app.buttons["focusToggle"].value))")
-            assertUsable(app.buttons["focusToggle"])
-            XCTAssertFalse(app.buttons["nextPage"].exists)
-            snapshot("Polish-CompactAccessible-DocumentFocus")
-            app.buttons["focusToggle"].tap()
-            XCTAssertTrue(app.buttons["nextPage"].waitForExistence(timeout: 5))
+        for extra in [["--extra-large-type"], ["--extra-large-type", "--english", "--dark"]] {
+            let app = launch("document", extra: extra)
+            app.buttons["nextPage"].tap()
             XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
-            XCUIDevice.shared.orientation = .portrait
-            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "standard")
-            app.buttons["focusToggle"].tap()
             XCUIDevice.shared.orientation = .landscapeLeft
-            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused")
-            XCUIDevice.shared.orientation = .portrait
-            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused", "An explicit focus choice survives rotation")
-            app.buttons["focusToggle"].tap()
-        } else {
-            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "standard", "The tablet keeps its regular-height workspace")
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
+                let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    app.buttons["focusToggle"].value as? String == "focused"
+                        && pdf.frame.height >= app.windows.firstMatch.frame.height * 0.5
+                }, object: nil)
+                XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed,
+                               "Largest-type landscape needs readable PDF space; pdf=\(pdf.frame) window=\(app.windows.firstMatch.frame) focus=\(String(describing: app.buttons["focusToggle"].value))")
+                assertUsable(app.buttons["focusToggle"])
+                XCTAssertFalse(app.buttons["nextPage"].exists)
+                snapshot("Polish-CompactAccessible-DocumentFocus-\(extra.contains("--english") ? "English-Dark" : "Arabic-Light")")
+                app.buttons["focusToggle"].tap()
+                XCTAssertTrue(app.buttons["nextPage"].waitForExistence(timeout: 5))
+                XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+                XCUIDevice.shared.orientation = .portrait
+                XCTAssertEqual(app.buttons["focusToggle"].value as? String, "standard")
+                app.buttons["focusToggle"].tap()
+                XCUIDevice.shared.orientation = .landscapeLeft
+                XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused")
+                XCUIDevice.shared.orientation = .portrait
+                XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused", "An explicit focus choice survives rotation")
+                app.buttons["focusToggle"].tap()
+            } else {
+                XCTAssertEqual(app.buttons["focusToggle"].value as? String, "standard", "The tablet keeps its regular-height workspace")
+            }
+            XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+            app.terminate()
         }
-        XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
-        app.terminate()
     }
 
     func testPolishExtremeTypeAndLandscapeCaptures() {
@@ -481,7 +483,17 @@ final class StudioCaptureTests: XCTestCase {
     }
 
     private func snapshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        let app = XCUIApplication()
+        let landscape = XCUIDevice.shared.orientation.isLandscape
+        let oriented = NSPredicate { _, _ in
+            let frame = app.windows.firstMatch.frame
+            return landscape ? frame.width > frame.height : frame.height > frame.width
+        }
+        if !oriented.evaluate(with: nil) {
+            let ready = XCTNSPredicateExpectation(predicate: oriented, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed, "Capture waits for actual window orientation")
+        }
+        let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Studio-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)

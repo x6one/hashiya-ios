@@ -1,0 +1,88 @@
+name: Tayya Studio design previews
+on:
+  push:
+    branches: [design/tayya-studio-2]
+    paths: ['DesignStudio/**', '.github/workflows/tayya-studio-preview.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: studio-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    runs-on: macos-15
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
+    defaults:
+      run:
+        working-directory: DesignStudio
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select toolchain and audit existing tools
+        run: |
+          python3 ../Tools/select_app_xcode.py
+          for tool in xcodegen swiftlint swiftformat; do
+            if ! command -v "$tool" >/dev/null; then brew install "$tool"; fi
+            "$tool" --version
+          done
+      - name: Check formatting and lint only preview Swift
+        run: |
+          swiftformat App Tests UITests --lint --config .swiftformat
+          swiftlint lint --strict --config .swiftlint.yml App Tests UITests
+      - name: Generate isolated preview project and choose simulator
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+        run: |
+          xcodegen generate
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','--json']))['devices']
+          family = os.environ['DEVICE_FAMILY']
+          choices = [(tuple(map(int,re.findall(r'\d+',runtime))), d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(family)]
+          # Small phone exposes crowding; 11-inch tablet exposes split constraints.
+          choices.sort(key=lambda x:(x[0], ('Pro' in x[1]['name'] and 'Max' not in x[1]['name']) if family=='iPhone' else '11' in x[1]['name']), reverse=True)
+          if not choices: raise SystemExit('Required simulator unavailable')
+          picked = choices[0][1]
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('SIMULATOR_ID='+picked['udid']+'\n')
+          print(picked['name'],picked['udid'])
+          PY
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --batteryState charged --batteryLevel 100
+      - name: Test prototype contracts and capture real SwiftUI
+        env:
+          RED_PROBE: ${{ contains(github.event.head_commit.message, '[studio:red]') }}
+        run: |
+          set -o pipefail
+          options=()
+          if [ "$RED_PROBE" = true ]; then options+=('-only-testing:StudioTests/StudioSessionTests'); fi
+          xcodebuild test -project TayyaStudio.xcodeproj -scheme TayyaStudio -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath "$RUNNER_TEMP/StudioBuild" -resultBundlePath Studio.xcresult -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 "${options[@]}" CODE_SIGNING_ALLOWED=NO 2>&1 | tee studio-build.log
+      - name: Export actual images and source manifest
+        if: always()
+        env:
+          FAMILY: ${{ matrix.family }}
+        run: |
+          mkdir -p Evidence/Screenshots
+          if [ -d Studio.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path Studio.xcresult > Evidence/summary.json
+            xcrun xcresulttool export attachments --path Studio.xcresult --output-path Evidence/Screenshots
+            ditto -c -k --keepParent Studio.xcresult Evidence/Studio.xcresult.zip
+          fi
+          python3 - <<'PY'
+          import json,os,pathlib,hashlib
+          p=pathlib.Path('Evidence'); files=[]
+          for f in sorted(p.rglob('*.png')):
+            files.append({'file':str(f.relative_to(p)), 'sha256':hashlib.sha256(f.read_bytes()).hexdigest()})
+          (p/'source.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'family':os.environ['FAMILY'],'type':'Actual SwiftUI prototype simulator captures; production UI not changed','images':files},indent=2))
+          PY
+          cp studio-build.log Evidence/ || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Studio-2-${{ matrix.family }}
+          path: DesignStudio/Evidence/
+          retention-days: 14

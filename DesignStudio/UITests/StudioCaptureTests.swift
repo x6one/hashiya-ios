@@ -205,11 +205,12 @@ final class StudioCaptureTests: XCTestCase {
         note.tap()
         note.typeText(" محفوظ")
         app.buttons["dismissKeyboard"].tap()
-        XCTAssertEqual(app.staticTexts["saveStatus"].value as? String, "saved")
+        assertSaved(app)
         app.buttons["favoritePens"].tap()
         XCTAssertTrue(app.buttons["savePen-1"].waitForExistence(timeout: 5))
         for index in 1...3 { assertUsable(app.buttons["savePen-\(index)"]) }
         app.buttons["savePen-1"].tap()
+        assertSaved(app)
         snapshot("Polish-Favorite-Pens")
         app.terminate()
         let reopened = launch("margin", extra: ["--draft-id", "polish-reopen"])
@@ -234,6 +235,36 @@ final class StudioCaptureTests: XCTestCase {
         app.terminate()
     }
 
+    func testPolishMarkerKeepsClosedNotesClosed() {
+        let app = launch("audio")
+        app.buttons["audioStop"].tap()
+        app.buttons["العودة للمستند"].tap()
+        if UIDevice.current.userInterfaceIdiom == .pad { app.buttons["tool-margin"].tap() }
+        XCTAssertFalse(app.textViews["marginText"].exists)
+        app.buttons["openPageAudio"].tap()
+        let marker = app.buttons["marker-manual-8-138"]
+        if !marker.isHittable { app.swipeUp() }
+        marker.tap()
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+        XCTAssertFalse(app.textViews["marginText"].exists, "Playback must preserve the user's closed Notes layout")
+        app.buttons["openPageAudio"].tap()
+        let active = app.buttons["marker-manual-8-138"]
+        if !active.isHittable { app.swipeUp() }
+        XCTAssertEqual(active.value as? String, "playing")
+        snapshot("Polish-Audio-ActiveMarker")
+        app.terminate()
+    }
+
+    func testPolishExtremeTypeAndLandscapeCaptures() {
+        for scene in ["document", "margin", "library"] {
+            let app = launch(scene, extra: ["--extra-large-type"])
+            snapshot("ExtremeType-\(scene)-Portrait")
+            XCUIDevice.shared.orientation = .landscapeLeft
+            snapshot("ExtremeType-\(scene)-Landscape")
+            app.terminate()
+        }
+    }
+
     private func captureScenes(dark: Bool) {
         for scene in ["library", "document", "margin", "audio", "cards"] {
             let app = launch(scene, extra: dark ? ["--dark"] : [])
@@ -243,7 +274,7 @@ final class StudioCaptureTests: XCTestCase {
                 assertUsable(app.buttons["focusToggle"])
             }
             snapshot("\(dark ? "Dark" : "Light")-\(scene)-Portrait")
-            if UIDevice.current.userInterfaceIdiom == .pad && (scene == "document" || scene == "library") {
+            if ["document", "margin", "library", "audio"].contains(scene) {
                 XCUIDevice.shared.orientation = .landscapeLeft
                 snapshot("\(dark ? "Dark" : "Light")-\(scene)-Landscape")
             }
@@ -259,6 +290,11 @@ final class StudioCaptureTests: XCTestCase {
         let ready = ["library": "libraryAdd", "document": "focusToggle", "margin": "focusToggle", "audio": "audioStop", "cards": "revealAnswer"][scene] ?? "focusToggle"
         XCTAssertTrue(app.buttons[ready].waitForExistence(timeout: 12), "Ready control for \(scene)")
         return app
+    }
+
+    private func assertSaved(_ app: XCUIApplication) {
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "saved"), object: app.staticTexts["saveStatus"])
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed, "Wait for actual atomic preview save completion")
     }
 
     private func assertUsable(_ button: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {

@@ -1,3 +1,5 @@
+import PDFKit
+import PencilKit
 import SwiftUI
 
 enum StudioScene: String { case library, document, margin, audio, cards }
@@ -39,6 +41,7 @@ struct StudioRoot: View {
     @StateObject private var documentInk = StudioCanvas()
     @StateObject private var marginInk = StudioCanvas(margin: true)
     @StateObject private var pdf = StudioPDFController()
+    @StateObject private var draft = StudioDraft()
     @State private var prepared = false
     @Environment(\.scenePhase) private var phase
     private var args: [String] { ProcessInfo.processInfo.arguments }
@@ -49,16 +52,24 @@ struct StudioRoot: View {
             .foregroundStyle(StudioTheme.text).tint(StudioTheme.primary)
             .environment(\.layoutDirection, english ? .leftToRight : .rightToLeft)
             .environment(\.locale, Locale(identifier: english ? "en" : "ar"))
-            .transformEnvironment(\.dynamicTypeSize) { if args.contains("--large-type") { $0 = .accessibility2 } }
+            .transformEnvironment(\.dynamicTypeSize) { if args.contains("--extra-large-type") { $0 = .accessibility5 } else if args.contains("--large-type") { $0 = .accessibility2 } }
             .preferredColorScheme(appearance)
             .sheet(item: $navigation.sheet) { sheet in
-                StudioSheetView(sheet: sheet, session: session, navigation: navigation)
+                StudioSheetView(sheet: sheet, session: session, navigation: navigation, pdf: pdf, draft: draft)
                     .environment(\.layoutDirection, english ? .leftToRight : .rightToLeft)
                     .preferredColorScheme(appearance)
+                    .transformEnvironment(\.dynamicTypeSize) { if args.contains("--extra-large-type") { $0 = .accessibility5 } else if args.contains("--large-type") { $0 = .accessibility2 } }
             }
             .onAppear {
                 guard !prepared else { return }
                 prepared = true
+                session.page = draft.state.page
+                session.lastVisitedPage = draft.state.lastPage
+                navigation.savedText = draft.state.text
+                if let data = draft.state.pdf, let document = PDFDocument(data: data) { pdf.view.document = document; pdf.contentChanged() }
+                if let drawing = try? PKDrawing(data: draft.state.documentInk) { documentInk.view.drawing = drawing }
+                if let drawing = try? PKDrawing(data: draft.state.marginInk) { marginInk.view.drawing = drawing }
+                pdf.onPageChange = { page in session.changePage(to: page) }
                 session.marginOpen = UIDevice.current.userInterfaceIdiom == .pad
                 session.title = L("محاضرة المحاسبة", "Accounting lecture")
                 if navigation.scene == .audio {
@@ -74,12 +85,16 @@ struct StudioRoot: View {
             .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
                 if !args.contains("--capture") { session.tick(seconds: 1) }
             }
+            .onChange(of: session.page) { _, page in
+                draft.state.page = page
+                draft.state.lastPage = session.lastVisitedPage
+            }
             .onChange(of: phase) { _, value in if value == .background { session.sceneBecameInactive() } }
     }
     @ViewBuilder private var content: some View {
         switch navigation.scene {
         case .library: StudioLibrary(navigation: navigation)
-        case .document, .margin: StudioWorkspace(session: session, navigation: navigation, documentInk: documentInk, marginInk: marginInk, pdf: pdf)
+        case .document, .margin: StudioWorkspace(session: session, navigation: navigation, documentInk: documentInk, marginInk: marginInk, pdf: pdf, draft: draft)
         case .audio: StudioAudio(session: session, navigation: navigation)
         case .cards: StudioCards(navigation: navigation, session: session)
         }

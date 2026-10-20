@@ -4,27 +4,31 @@ struct StudioRecordingStrip: View {
     @ObservedObject var session: StudioSession
     @ObservedObject var navigation: StudioNavigation
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: StudioMetrics.compact) {
             Button {
                 if session.recording { session.sceneBecameInactive() }
                 else { session.beginRecording() }
             } label: {
                 Image(systemName: session.recording ? "stop.fill" : "mic")
-                    .font(.system(size: 17, weight: .medium)).frame(width: 44, height: 44)
+                    .font(.system(size: StudioMetrics.icon, weight: .medium))
+                    .frame(width: StudioMetrics.touch, height: StudioMetrics.touch)
                     .foregroundStyle(session.recording ? StudioTheme.destructive : StudioTheme.primary)
                     .background(session.recording ? StudioTheme.destructive.opacity(0.1) : StudioTheme.selection, in: Circle())
+                    .contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(session.recording ? L("إيقاف وحفظ", "Stop and save") : L("بدء التسجيل", "Start recording"))
                 .accessibilityIdentifier("recordAction").accessibilityValue(session.recording ? "recording" : "idle")
             Button { navigation.scene = .audio } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(session.recording ? L("جارٍ التسجيل", "Recording") : L("تسجيلات الصفحة", "Page recordings")).font(.caption.weight(.semibold))
-                    Text(L("الصفحة \(session.page)", "Page \(session.page)")).font(.caption2).foregroundStyle(StudioTheme.secondary)
-                }.frame(minHeight: 44).contentShape(Rectangle())
+                HStack(spacing: StudioMetrics.compact) {
+                    Text(session.recording ? L("جارٍ التسجيل", "Recording") : session.playing ? L("جارٍ التشغيل", "Playing") : L("تسجيلات الصفحة", "Page recordings"))
+                        .font(.caption.weight(.semibold)).lineLimit(1)
+                    Spacer(minLength: 0)
+                    Text(studioTime(session.recording ? session.elapsed : session.playhead))
+                        .font(.caption.monospacedDigit()).environment(\.layoutDirection, .leftToRight)
+                    Image(systemName: "chevron.up").font(.caption)
+                }.frame(height: StudioMetrics.touch).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("openPageAudio")
-            StudioWaveform(active: session.recording).frame(height: 24)
-            Text(studioTime(session.recording ? session.elapsed : session.playhead)).font(.caption.monospacedDigit())
-                .environment(\.layoutDirection, .leftToRight)
-        }.padding(.horizontal, 16).padding(.vertical, 8).background(StudioTheme.surface)
+                .accessibilityHint(L("توسيع تفاصيل التسجيل والعلامات", "Expand recording details and markers"))
+        }.padding(.horizontal, StudioMetrics.inset).background(StudioTheme.surface)
             .overlay(alignment: .top) { StudioTheme.divider.frame(height: 0.5) }
     }
 }
@@ -38,6 +42,7 @@ struct TayyaAudioCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(session.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    Text(L("مدة التسجيل", "Duration") + " · " + studioTime(session.recording ? session.elapsed : session.duration)).font(.caption).foregroundStyle(StudioTheme.secondary)
                     Label(L("مبادئ المحاسبة · صفحة \(session.page)", "Accounting principles · Page \(session.page)"), systemImage: "doc")
                         .font(.caption).foregroundStyle(StudioTheme.secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading)
@@ -47,7 +52,7 @@ struct TayyaAudioCard: View {
             VStack(spacing: 8) {
                 Text(studioTime(session.recording ? session.elapsed : session.playhead)).font(.system(.largeTitle, design: .rounded).monospacedDigit().weight(.medium))
                     .environment(\.layoutDirection, .leftToRight).accessibilityIdentifier("audioTime")
-                Label(session.recording ? L("جارٍ التسجيل", "Recording") : L("جاهز للتشغيل", "Ready to play"), systemImage: session.recording ? "record.circle.fill" : "waveform")
+                Label(session.recording ? L("جارٍ التسجيل", "Recording") : (session.playing ? L("جارٍ التشغيل", "Playing") : L("جاهز للتشغيل", "Ready to play")), systemImage: session.recording ? "record.circle.fill" : "waveform")
                     .font(.caption).foregroundStyle(session.recording ? StudioTheme.destructive : StudioTheme.secondary)
             }
             if session.recording {
@@ -101,6 +106,7 @@ struct StudioAudio: View {
                     VStack(spacing: 0) {
                         ForEach(session.markers) { marker in
                             Button {
+                                guard !session.recording else { return }
                                 session.activate(marker)
                                 navigation.scene = .document
                             } label: {
@@ -109,12 +115,16 @@ struct StudioAudio: View {
                                         .frame(width: 36, height: 36).background(StudioTheme.selection, in: Circle())
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(marker.label).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                                        Text(L("الصفحة \(marker.page)", "Page \(marker.page)")).font(.caption).foregroundStyle(StudioTheme.secondary)
+                                        Text(session.title + " · " + L("الصفحة \(marker.page)", "Page \(marker.page)")).font(.caption).foregroundStyle(StudioTheme.secondary)
                                     }.frame(maxWidth: .infinity, alignment: .leading)
                                     Text(studioTime(marker.time)).font(.caption.monospacedDigit()).foregroundStyle(StudioTheme.secondary)
-                                    Image(systemName: "play.fill").font(.caption)
+                                    Image(systemName: session.playing && session.activeMarkerID == marker.id ? "waveform" : session.recording ? "flag" : "play.fill").font(.caption).foregroundStyle(StudioTheme.primary)
                                 }.padding(16).frame(minHeight: 56).contentShape(Rectangle())
-                            }.buttonStyle(.plain).disabled(session.recording).accessibilityIdentifier("marker-\(marker.kind)-\(marker.page)-\(Int(marker.time))")
+                            }.buttonStyle(.plain).foregroundStyle(StudioTheme.text)
+                                .background(session.playing && session.activeMarkerID == marker.id ? StudioTheme.selection : Color.clear)
+                                .accessibilityValue(session.playing && session.activeMarkerID == marker.id ? "playing" : "idle")
+                                .accessibilityHint(session.recording ? L("أوقف التسجيل لتشغيل العلامة", "Stop recording to play this marker") : L("انتقال للصفحة وتشغيل من العلامة", "Go to page and play from marker"))
+                                .accessibilityIdentifier("marker-\(marker.kind)-\(marker.page)-\(Int(marker.time))")
                             if marker.id != session.markers.last?.id { Divider().padding(.leading, 64) }
                         }
                     }.background(StudioTheme.surface, in: RoundedRectangle(cornerRadius: 16))

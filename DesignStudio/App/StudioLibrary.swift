@@ -115,21 +115,19 @@ struct StudioLibrary: View {
                                 let labels = [L("الكل", "All"), L("الجامعة", "University"), L("شخصي", "Personal")]
                                 Button { selectedSection = index; query = index == 2 ? L("دفتر", "ideas") : "" } label: {
                                     Label(labels[index], systemImage: index == 0 ? "books.vertical" : "folder")
-                                        .font(.caption.weight(.medium)).padding(.horizontal, 16).frame(minHeight: 44)
+                                        .font(.caption.weight(.medium)).fixedSize(horizontal: true, vertical: true)
+                                        .padding(.horizontal, StudioMetrics.spacing).frame(minHeight: StudioMetrics.touch)
                                         .background(selectedSection == index ? StudioTheme.selection : StudioTheme.surface, in: Capsule())
-                                }.buttonStyle(.plain)
+                                }.buttonStyle(.plain).accessibilityIdentifier("libraryFilter-\(index)")
+                                    .accessibilityAddTraits(selectedSection == index ? .isSelected : [])
                             }
-                        }
+                        }.padding(.vertical, StudioMetrics.unit)
                     }
                 }
                 VStack(spacing: 16) {
-                    HStack {
-                        TayyaSectionHeader(title: L("دفاترك", "Your notebooks"), detail: "\(filtered.count)")
-                        Button { favorites.toggle() } label: {
-                            Label(L("المفضلة", "Favorites"), systemImage: favorites ? "star.fill" : "star")
-                                .font(.caption).padding(.horizontal, 12).frame(minHeight: 44)
-                                .background(favorites ? StudioTheme.selection : Color.clear, in: Capsule())
-                        }.buttonStyle(.plain)
+                    ViewThatFits(in: .horizontal) {
+                        HStack { notebookHeading; favoriteFilter }
+                        VStack(alignment: .leading, spacing: StudioMetrics.compact) { notebookHeading; favoriteFilter }
                     }
                     if filtered.isEmpty { TayyaEmptyState(title: L("لا توجد ملفات", "No documents"), message: L("جرّب كلمة بحث أخرى أو أضف دفترًا.", "Try another search or add a notebook.")) }
                     let columns = type.isAccessibilitySize ? 1 : width > 700 ? 3 : 2
@@ -143,6 +141,18 @@ struct StudioLibrary: View {
                 }
             }.padding(24).frame(maxWidth: 1060).frame(maxWidth: .infinity)
         }
+    }
+    private var notebookHeading: some View {
+        TayyaSectionHeader(title: L("دفاترك", "Your notebooks"), detail: "\(filtered.count)")
+    }
+    private var favoriteFilter: some View {
+        Button { favorites.toggle() } label: {
+            Label(L("المفضلة", "Favorites"), systemImage: favorites ? "star.fill" : "star")
+                .font(.caption).fixedSize(horizontal: true, vertical: true)
+                .padding(.horizontal, StudioMetrics.inset).frame(minHeight: StudioMetrics.touch)
+                .background(favorites ? StudioTheme.selection : Color.clear, in: Capsule())
+                .contentShape(Capsule())
+        }.buttonStyle(.plain).accessibilityAddTraits(favorites ? .isSelected : [])
     }
     private var bottomTabs: some View {
         HStack(spacing: 4) { ForEach(0..<4) { tab($0) } }

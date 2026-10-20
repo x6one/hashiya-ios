@@ -12,6 +12,8 @@ struct StudioMarker: Identifiable {
 /// In-memory design demonstrator; never opens production files or a microphone.
 final class StudioSession: ObservableObject {
     @Published var page = 7
+    @Published var lastVisitedPage: Int?
+    @Published var activeMarkerID: UUID?
     @Published var recording = false
     @Published var playing = false
     @Published var elapsed: Double = 0
@@ -39,6 +41,7 @@ final class StudioSession: ObservableObject {
     func changePage(to value: Int) {
         let next = min(totalPages, max(1, value))
         guard page != next else { return }
+        lastVisitedPage = page
         page = next
         if recording { markers.append(StudioMarker(page: page, time: elapsed, label: L("الانتقال للصفحة \(page)", "Turn to page \(page)"), kind: "page")) }
     }
@@ -54,7 +57,16 @@ final class StudioSession: ObservableObject {
         guard !recording else { return }
         changePage(to: marker.page)
         seek(to: marker.time)
+        activeMarkerID = marker.id
         playing = true
+    }
+    @discardableResult func jump(to text: String) -> Bool {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty, clean.allSatisfy({ $0.wholeNumberValue != nil }) else { return false }
+        let digits = clean.compactMap { $0.wholeNumberValue }.map(String.init).joined()
+        guard let target = Int(digits), (1...totalPages).contains(target) else { return false }
+        changePage(to: target)
+        return true
     }
     func seek(to time: Double) { if time.isFinite { playhead = min(duration, max(0, time)) } }
     func setRate(_ value: Double) { if value.isFinite { rate = min(2, max(0.75, value)) } }

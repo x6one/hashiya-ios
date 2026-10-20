@@ -8,12 +8,21 @@ struct TayyaIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 19, weight: .regular))
-                .frame(minWidth: 44, minHeight: 44)
+            Image(systemName: symbol).font(.system(size: StudioMetrics.icon, weight: .regular))
+                .frame(minWidth: StudioMetrics.touch, minHeight: StudioMetrics.touch)
                 .foregroundStyle(selected ? StudioTheme.primary : StudioTheme.secondary)
-                .background(selected ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12))
+                .background(selected ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: StudioMetrics.controlRadius))
                 .contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityLabel(title).help(title)
+    }
+}
+
+struct StudioSaveStatus: View {
+    @ObservedObject var draft: StudioDraft
+    var body: some View {
+        Text(draft.status == "saved" ? L("محفوظ محليًا", "Saved locally") : draft.status == "failed" ? L("تعذّر الحفظ", "Could not save") : draft.status == "saving" ? L("جارٍ الحفظ", "Saving") : L("مسودة المعاينة", "Preview draft"))
+            .font(.caption2).foregroundStyle(draft.status == "failed" ? StudioTheme.destructive : StudioTheme.secondary).lineLimit(1)
+            .accessibilityIdentifier("saveStatus").accessibilityValue(draft.status)
     }
 }
 
@@ -27,7 +36,7 @@ struct TayyaPrimaryButton: View {
             Label(title, systemImage: symbol).font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .foregroundStyle(StudioTheme.onPrimary)
-                .background(StudioTheme.primary, in: RoundedRectangle(cornerRadius: 12))
+                .background(StudioTheme.primary, in: RoundedRectangle(cornerRadius: StudioMetrics.controlRadius))
         }.buttonStyle(.plain)
     }
 }
@@ -37,7 +46,7 @@ struct TayyaToolbar<Content: View>: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4, content: content).padding(.horizontal, 12)
-        }.frame(minHeight: 52).background(StudioTheme.surface)
+        }.frame(minHeight: StudioMetrics.touch).background(StudioTheme.surface)
     }
 }
 

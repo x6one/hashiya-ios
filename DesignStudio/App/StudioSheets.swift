@@ -4,18 +4,25 @@ struct StudioSheetView: View {
     let sheet: StudioSheet
     @ObservedObject var session: StudioSession
     @ObservedObject var navigation: StudioNavigation
+    let pdf: StudioPDFController
+    @ObservedObject var draft: StudioDraft
     @State private var text = ""
     @State private var answer = ""
+    @State private var pageNumber = ""
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) { contents }
+                VStack(alignment: .leading, spacing: 24) {
+                    contents
+                    if sheet == .pens || sheet == .text { StudioSaveStatus(draft: draft) }
+                }
                     .padding(24).frame(maxWidth: 720).frame(maxWidth: .infinity)
             }.background(StudioTheme.background)
                 .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button(L("تم", "Done")) { dismiss() } } }
         }.foregroundStyle(StudioTheme.text).tint(StudioTheme.primary)
+            .onAppear { if sheet == .text { text = navigation.savedText } }
     }
     private var title: String {
         switch sheet {
@@ -63,13 +70,32 @@ struct StudioSheetView: View {
         }
     }
     private var pages: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 16) {
-            ForEach(1...24, id: \.self) { page in
-                Button { session.changePage(to: page); dismiss() } label: {
-                    VStack(spacing: 12) { Image(systemName: "doc").font(.largeTitle); Text("\(page)").font(.caption) }
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                        .background(page == session.page ? StudioTheme.selection : StudioTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-                }.buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: StudioMetrics.spacing) {
+            HStack(spacing: StudioMetrics.compact) {
+                TextField(L("رقم الصفحة", "Page number"), text: $pageNumber)
+                    .keyboardType(.numberPad).textFieldStyle(.roundedBorder).frame(minHeight: StudioMetrics.touch)
+                    .accessibilityIdentifier("pageNumberInput")
+                Button(L("انتقال", "Go")) { if session.jump(to: pageNumber) { dismiss() } }
+                    .frame(minWidth: StudioMetrics.touch, minHeight: StudioMetrics.touch)
+                    .accessibilityIdentifier("jumpToPage")
+            }
+            if let last = session.lastVisitedPage {
+                Button { session.changePage(to: last); dismiss() } label: {
+                    Label(L("آخر صفحة زرتها: \(last)", "Last visited page: \(last)"), systemImage: "arrow.uturn.backward")
+                        .font(.subheadline).frame(minHeight: StudioMetrics.touch)
+                }.accessibilityIdentifier("lastVisitedPage")
+            }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: StudioMetrics.spacing) {
+                ForEach(0..<pdf.thumbnails.pageCount, id: \.self) { index in
+                    let page = index + 1
+                    Button { session.changePage(to: page); dismiss() } label: {
+                        StudioPageThumbnail(page: page, selected: page == session.page, store: pdf.thumbnails)
+                            .padding(StudioMetrics.compact).contentShape(Rectangle())
+                    }.buttonStyle(.plain).accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("pickPage-\(page)")
+                        .accessibilityLabel(L("الصفحة \(page)", "Page \(page)"))
+                        .accessibilityAddTraits(page == session.page ? .isSelected : [])
+                }
             }
         }
     }
@@ -84,19 +110,25 @@ struct StudioSheetView: View {
     }
     private var pens: some View {
         ForEach(0..<3) { index in
-            Button { navigation.preset = index + 1; dismiss() } label: {
-                HStack(spacing: 16) {
-                    Image(systemName: index == 2 ? "highlighter" : "pencil.tip").font(.title2)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text([L("قلم الدراسة", "Study pen"), L("قلم العناوين", "Heading pen"), L("قلم التمييز", "Highlighter")][index]).font(.headline)
-                        Text(["3 pt", "6 pt", "12 pt"][index]).font(.caption).foregroundStyle(StudioTheme.secondary)
-                    }
-                    Spacer()
-                    Circle().fill(Color(uiColor: StudioTheme.ui([0x244C43, 0xA14F2B, 0xD8AF47][index]))).frame(width: 24, height: 24)
-                    Image(systemName: "star.fill").foregroundStyle(StudioTheme.copper)
-                }.frame(minHeight: 56).studioCard()
-            }.buttonStyle(.plain)
+            HStack(spacing: StudioMetrics.inset) {
+                let pen = draft.state.pens[index]
+                Button { navigation.preset = index + 1; dismiss() } label: {
+                    HStack(spacing: StudioMetrics.inset) {
+                        Image(systemName: pen.brush == "highlighter" ? "highlighter" : pen.brush == "pencil" ? "pencil" : "pencil.tip")
+                            .font(.title2).foregroundStyle(Color(uiColor: StudioTheme.ui(pen.color)))
+                        VStack(alignment: .leading, spacing: StudioMetrics.unit) {
+                            Text(L("قلم \(index + 1)", "Pen \(index + 1)")).font(.headline)
+                            Text(String(format: "#%06X · %g pt", pen.color, pen.width)).font(.caption).foregroundStyle(StudioTheme.secondary)
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }.frame(minHeight: 56).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("usePen-\(index + 1)").accessibilityValue(pen.description)
+                TayyaIconButton(title: L("حفظ الإعداد الحالي في القلم \(index + 1)", "Save current settings to pen \(index + 1)"), symbol: "square.and.arrow.down") {
+                    draft.savePen(at: index, pen: draft.state.currentPen)
+                }.accessibilityIdentifier("savePen-\(index + 1)")
+            }.studioCard()
         }
+        Text(L("اختر اللون والنوع والسماكة، ثم احفظ الإعداد في أي من الأقلام الثلاثة. محفوظة في مساحة المعاينة فقط.", "Choose color, type and width, then save to any of the three slots. Stored only in this preview's sandbox."))
+            .font(.caption).foregroundStyle(StudioTheme.secondary).fixedSize(horizontal: false, vertical: true)
     }
     private var templates: some View {
         ForEach(0..<4) { index in

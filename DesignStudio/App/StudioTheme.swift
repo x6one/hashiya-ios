@@ -25,7 +25,8 @@ enum StudioTheme {
                           "gobackward.10", "goforward.10", "flag", "sidebar.leading",
                           "arrow.up.left.and.arrow.down.right", "arrow.down.right.and.arrow.up.left",
                           "ellipsis", "checkmark", "star", "star.fill", "xmark", "waveform",
-                          "doc", "doc.badge.plus", "trash", "externaldrive", "slider.horizontal.3"]
+                          "doc", "doc.badge.plus", "trash", "externaldrive", "slider.horizontal.3", "rectangle.split.2x1", "keyboard.chevron.compact.down",
+                          "paintpalette", "text.alignright", "square.and.pencil", "selection.pin.in.out", "doc.on.doc", "chevron.up"]
 
     static func ui(_ value: Int) -> UIColor {
         UIColor(red: CGFloat((value >> 16) & 255) / 255,
@@ -36,6 +37,21 @@ enum StudioTheme {
     private static func color(_ light: Int, _ dark: Int) -> Color {
         Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? ui(dark) : ui(light) })
     }
+}
+
+/// Shared layout values for the preview; semantic colors remain in StudioTheme.
+enum StudioMetrics {
+    static let unit: CGFloat = 4
+    static let compact: CGFloat = 8
+    static let inset: CGFloat = 12
+    static let spacing: CGFloat = 16
+    static let section: CGFloat = 24
+    static let touch: CGFloat = 44
+    static let icon: CGFloat = 19
+    static let controlRadius: CGFloat = 12
+    static let cardRadius: CGFloat = 16
+    static let notesMinimum: CGFloat = 340
+    static let documentMinimum: CGFloat = 300
 }
 
 extension View {

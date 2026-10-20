@@ -49,8 +49,26 @@ enum StudioPDF {
 }
 
 final class StudioPDFController: ObservableObject {
+    var onPageChange: ((Int) -> Void)?
+    private var pageObserver: NSObjectProtocol?
+    lazy var thumbnails = StudioThumbnailStore(document: view.document ?? PDFDocument())
+    func contentChanged() {
+        if let document = view.document { thumbnails.replaceDocument(document) }
+    }
+    func updateText(_ text: String, size: Double, color: Int, alignment: Int, page number: Int) {
+        guard let page = view.document?.page(at: number - 1), !text.isEmpty else { return }
+        let annotation = page.annotations.first { $0.type == "FreeText" }
+            ?? PDFAnnotation(bounds: CGRect(x: 60, y: 480, width: 460, height: 110), forType: .freeText, withProperties: nil)
+        annotation.contents = text
+        annotation.font = UIFont.systemFont(ofSize: size)
+        annotation.fontColor = StudioTheme.ui(color)
+        annotation.color = .clear
+        annotation.alignment = alignment == 1 ? .center : alignment == 2 ? .left : .right
+        if !page.annotations.contains(where: { $0 === annotation }) { page.addAnnotation(annotation) }
+        contentChanged()
+    }
     lazy var view: PDFView = {
-        let view = PDFView()
+        let view = StudioReadingPDFView()
         view.document = StudioPDF.make()
         view.autoScales = true
         view.displayMode = .singlePage
@@ -58,8 +76,34 @@ final class StudioPDFController: ObservableObject {
         view.backgroundColor = .clear
         view.pageShadowsEnabled = false
         view.accessibilityIdentifier = "nativeStudyPDF"
+        pageObserver = NotificationCenter.default.addObserver(forName: .PDFViewPageChanged, object: view, queue: .main) { [weak self, weak view] _ in
+            guard let view, let document = view.document, let page = view.currentPage else { return }
+            self?.onPageChange?(document.index(for: page) + 1)
+        }
         return view
     }()
+    deinit { if let pageObserver { NotificationCenter.default.removeObserver(pageObserver) } }
+}
+
+/// Preserve the reading destination and scale as chrome or Notes changes the viewport.
+final class StudioReadingPDFView: PDFView {
+    private var previousSize = CGSize.zero
+    private var restoring = false
+    override func layoutSubviews() {
+        guard !restoring, bounds.width > 0, bounds.height > 0 else { super.layoutSubviews(); return }
+        let changed = previousSize != .zero && previousSize != bounds.size
+        let destination = currentDestination.flatMap { d in d.page.map { PDFDestination(page: $0, at: d.point) } }
+        let scale = scaleFactor
+        previousSize = bounds.size
+        super.layoutSubviews()
+        if changed, let destination, scale > 0 {
+            restoring = true
+            autoScales = false
+            scaleFactor = scale
+            go(to: destination)
+            restoring = false
+        }
+    }
 }
 
 struct StudioPDFView: UIViewRepresentable {
@@ -76,6 +120,7 @@ final class StudioCanvas: NSObject, ObservableObject, PKCanvasViewDelegate {
     let view = PKCanvasView()
     var onActivate: (() -> Void)?
     var onStroke: (() -> Void)?
+    var onDrawingChange: (() -> Void)?
     private(set) var brush = "pen"
     private(set) var color = 0x244C43
     private(set) var width: CGFloat = 3
@@ -88,7 +133,7 @@ final class StudioCanvas: NSObject, ObservableObject, PKCanvasViewDelegate {
         view.tool = PKInkingTool(.pen, color: StudioTheme.ui(0x244C43), width: 3)
         view.accessibilityIdentifier = margin ? "marginCanvas" : "documentCanvas"
         view.isAccessibilityElement = true
-        view.accessibilityLabel = margin ? L("سطح رسم الحاشية", "Margin drawing canvas") : L("سطح رسم المستند", "Document drawing canvas")
+        view.accessibilityLabel = margin ? L("سطح رسم الملاحظات", "Notes drawing canvas") : L("سطح رسم المستند", "Document drawing canvas")
         if margin {
             let points = (0...28).map { index in
                 PKStrokePoint(location: CGPoint(x: 28 + Double(index) * 8, y: 65 + sin(Double(index) / 5) * 9), timeOffset: Double(index) / 20, size: CGSize(width: 2.5, height: 2.5), opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2)
@@ -104,6 +149,7 @@ final class StudioCanvas: NSObject, ObservableObject, PKCanvasViewDelegate {
         let count = canvasView.drawing.strokes.count
         if count > previousCount { onStroke?() }
         previousCount = count
+        onDrawingChange?()
         view.accessibilityValue = String(count)
     }
     func configure(tool: String, color: Int, width: CGFloat) {

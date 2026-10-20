@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:review-red]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
     defaults:
       run:
         working-directory: DesignStudio
@@ -57,6 +57,7 @@ jobs:
         env:
           RED_PROBE: ${{ contains(github.event.head_commit.message, '[studio:red]') }}
           REMAINING_ONLY: ${{ contains(github.event.head_commit.message, '[studio:remaining]') }}
+          REVIEW_RED: ${{ contains(github.event.head_commit.message, '[studio:review-red]') }}
           POLISH_ONLY: ${{ contains(github.event.head_commit.message, '[studio:polish]') }}
           POLISH_RED: ${{ contains(github.event.head_commit.message, '[studio:polish-red]') }}
           ACCESSIBLE_LAYOUT_ONLY: ${{ contains(github.event.head_commit.message, '[studio:layout]') }}
@@ -69,6 +70,12 @@ jobs:
           if [ "$POLISH_ONLY" = true ]; then
             options+=('-only-testing:StudioTests/StudioPolishTests')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishMarkerKeepsClosedNotesClosed')
+          fi
+          if [ "$REVIEW_RED" = true ]; then
+            options+=('-only-testing:StudioTests/StudioPolishTests')
+            options+=('-only-testing:StudioTests/StudioReviewRegressionTests')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testReviewTextTargetFollowsVisibleSurface')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testReviewExpandedNotesLayoutSurvivesMarkerReturn')
           fi
           if [ "$RED_PROBE" = true ]; then options+=('-only-testing:StudioTests/StudioSessionTests'); fi
           if [ "$REMAINING_ONLY" = true ]; then

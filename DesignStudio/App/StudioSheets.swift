@@ -108,7 +108,7 @@ struct StudioSheetView: View {
             }
         }
     }
-    private var pens: some View {
+    @ViewBuilder private var pens: some View {
         ForEach(0..<3) { index in
             HStack(spacing: StudioMetrics.inset) {
                 let pen = draft.state.pens[index]

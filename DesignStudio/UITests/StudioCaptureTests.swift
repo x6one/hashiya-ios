@@ -265,6 +265,37 @@ final class StudioCaptureTests: XCTestCase {
         }
     }
 
+    func testReviewTextTargetFollowsVisibleSurface() {
+        let app = launch("document")
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            app.buttons["inkTarget"].tap()
+            app.buttons["tool-margin"].tap()
+            XCTAssertFalse(app.textViews["marginText"].exists)
+        }
+        app.buttons["tool-text"].tap()
+        app.buttons["editText"].tap()
+        XCTAssertTrue(app.navigationBars["ملاحظة نصية"].waitForExistence(timeout: 5), "A closed Notes panel must never receive document text commands")
+        app.terminate()
+    }
+
+    func testReviewExpandedNotesLayoutSurvivesMarkerReturn() {
+        let app = launch("audio")
+        app.buttons["audioStop"].tap()
+        app.buttons["العودة للمستند"].tap()
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            app.buttons["notesLayout"].tap()
+            XCTAssertTrue(app.buttons["showDocument"].waitForExistence(timeout: 5))
+            app.buttons["openPageAudio"].tap()
+            let marker = app.buttons["marker-manual-8-138"]
+            if !marker.isHittable { app.swipeUp() }
+            marker.tap()
+            XCTAssertTrue(app.buttons["showDocument"].waitForExistence(timeout: 5), "Audio navigation must retain expanded Notes presentation")
+            XCTAssertTrue(app.textViews["marginText"].exists)
+        }
+        snapshot("Polish-Notes-ExpandedAfterMarker")
+        app.terminate()
+    }
+
     private func captureScenes(dark: Bool) {
         for scene in ["library", "document", "margin", "audio", "cards"] {
             let app = launch(scene, extra: dark ? ["--dark"] : [])

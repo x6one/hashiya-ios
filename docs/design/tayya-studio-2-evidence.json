@@ -1,5 +1,5 @@
 {
-  "phase": "B — polish complete;39/39 behavior +12/12 corrected-capture cases passed each family; user visual approval pending",
+  "phase": "Final Studio visual qualification passed; user visual approval required before phaseC",
   "stable_source": "dbdb264bf86a6606be095aad22cd303ad01e2071",
   "sources": [
     {
@@ -45,10 +45,10 @@
       }
     },
     {
-      "folder": "polish",
+      "folder": "previous_polish",
       "sha": "e15ffdf30577e48360e749a6e7e532d2a982b4e2",
       "run": 39401061917,
-      "result": "12/12 UI capture cases passed EACH family,0 failures/skips;47 phone+48 tablet original PNGs verified. App/unit/project hashes match full39/39 gate6d513cf; this capture-only SHA does not claim17unit+22UI execution.",
+      "result": "12/12 UI capture cases passed EACH family,0 failures/skips;47 phone+48 tablet original PNGs verified. App/unit/project hashes match full39/39 gate6d513cf; this capture-only SHA does not claim17unit+22UI execution. Historical before evidence: final160-image audit later found diagonal phone raster frames despite correct aspect/EXIF.",
       "artifact_ids": {
         "iPhone": 12256676375,
         "iPad": 12255571034
@@ -57,6 +57,26 @@
         "iPhone": "a48791bd7b95c4cadd68031a8122da6f11fad7ca78390661ee2d78bfc3b92e3b",
         "iPad": "5b2e12f686067be6f964493968f0d891b7ffe61fb96dc333a317b132332d0966"
       }
+    },
+    {
+      "folder": "polish",
+      "sha": "e94c2cbb6f6914e0ebb21ded090beaa54013e4df",
+      "run": 39491602063,
+      "result": "22unit+24UI=46/46 EACH family;0failures,0skips,0expectedfailures",
+      "jobs": {
+        "iPad": 118865903075,
+        "iPhone": 118865903786
+      },
+      "require_native_metadata": true,
+      "required_test_count": 46,
+      "artifact_ids": {
+        "iPhone": 12297635571,
+        "iPad": 12296912409
+      },
+      "verified_archive_sha256": {
+        "iPhone": "5451198479f1cb6426176a5bfa50c61f9fbd2239b832c9f865c589340f6c3d6b",
+        "iPad": "d4def3c9cd56ed3fd354ddd31cdcda4ebe73656acb178091fc2c73df672000b9"
+      }
     }
   ],
   "not_a_single_sha_full_production_gate": true,
@@ -64,36 +84,36 @@
   "audio_preview": "In-memory simulation; no microphone, M4A persistence or device recording proof. Native PencilKit stroke callback creates a demo timestamp marker.",
   "production_changes": false,
   "approval": "User must approve visual design before phase C.",
-  "download_verification": "Six historical archives, bothfee, both6d full-gate archives, compact target and bothe15 final capture archives independently SHA256/ZIP-CRC checked; all PNG hashes verified. All95 final PNG display orientations checked read-only. No image bytes edited.",
-  "visual_review": "Representative final original PNGs inspected: phone Arabic/light and English/dark compact focus, large-type library2-row tabs, pen rail, active audio marker and dark standalone Notes; tablet AX5 landscape Notes, dark restored split, expanded Notes and actual thumbnails. All95 final original orientation checks passed. Vertical Notes scrolling remains available at short landscape height. User visual approval pending; no production/microphone qualification.",
+  "download_verification": "Previous160 recovered ZIP SHA b0d74e9e3296169c7a3b5878c29e71202b9602dd5e31a5e0ed21ab70738f8adc and CRC verified; every restored numbered image/source/test/hash/byte matched. Final native artifacts pending. Final native archives SHA256/CRC checked, every PNG hash and native sidecar verified; window/EXIF display aspect and read-only black-pixel check passed. No image bytes edited.",
+  "visual_review": "All160historicalrecords/149unique audited. Final137nativecaptures: phone67/54unique(65recordsidenticaltoauditede72+2neworiginal-resolutionviews), pad70/56unique(allbyteidenticaltoauditede72). All18phone/19padlandscaperecords upright; no blackwedges. No concrete bounded visual blocker. Default image-tool preview false missingchart disproved by original-resolutionviews/exact-colorpixels. Staticimagesdonotprove scroll/touch; nativeUItestscoverbehavior.",
   "reference_images": [
     "019-iPad.png",
-    "038-iPhone.png",
     "034-iPhone.png",
-    "045-iPhone.png",
+    "037-iPhone.png",
+    "038-iPhone.png",
     "042-iPhone.png",
-    "037-iPhone.png"
+    "045-iPhone.png",
+    "108-iPad.png",
+    "119-iPhone.png",
+    "128-iPhone.png",
+    "143-iPhone.png",
+    "155-iPhone.png",
+    "157-iPhone.png",
+    "160-iPhone.png"
   ],
-  "visual_follow_up": {
-    "problem": "Phone accessibility text in compact landscape leaves PDF35.33pt of402pt height",
-    "before_sha": "fee2194141c1949d852827f9f1b6a4628e7b17b1",
-    "before_run": 39392309880,
-    "before_artifact_id": 12251660170,
-    "red_sha": "0faee7c49f1f575707ecdf643d1141018da8f613",
-    "red_run": 39395079922,
-    "fix_sha": "872b0867b3b6c03f727eaab849d0a2284effb4de",
-    "fix_run": 39396364348,
-    "status": "Compact focus fixed and full39 regression passed each family at6d; screenshot-method repair tracked separately",
-    "verification_sha": "7326e0cdb459bd92a0f607cccc3fff6066d56e4e",
-    "verification_run": 39397149322,
-    "fix_run_result": "Formatting failed before tests; one extra blank line removed without behavior changes",
-    "verification_result": "3/3 passed,0 failures/skips; original native focused PDF captures inspected",
-    "verification_artifact_id": 12253955234,
-    "verification_archive_sha256": "50a75efcad75b5183bae6d6ec0eee862c925f03391ac11921d22c6d0f345f7d9",
-    "final_capture_sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
-    "final_capture_run": 39398450073
+  "gallery": {
+    "historical_original_pngs": 160,
+    "new_original_pngs": 137,
+    "new_phone_pngs": 67,
+    "new_tablet_pngs": 70,
+    "total_original_pngs": 297,
+    "comparison": "compare.html",
+    "index": "index.html",
+    "history": "history.html",
+    "image_bytes_modified": false,
+    "offline_builder_tests": "10/10passed"
   },
-  "full_design_gate": {
+  "historical_full_design_gate": {
     "sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
     "run": 39398450073,
     "result": "17 unit +22 UI passed EACH family,0 failures/skips. Capture export defect discovered by actual PNG review; behavior gate remains valid.",
@@ -121,7 +141,7 @@
       }
     }
   },
-  "capture_protocol_follow_up": {
+  "historical_capture_protocol_follow_up": {
     "before_sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
     "before_run": 39398450073,
     "evidence": "Actual iPad app.screenshot landscape PNG raw2420x1668 EXIF8 displays1668x2420 with black/clipped content; portrait correct. Older full-screen capture raw1668x2420 EXIF8 displays2420x1668 without clipping. Offline actual-image landscape contract RED on new file, PASS on older full-screen file.",
@@ -135,15 +155,79 @@
       "iPad": 48
     }
   },
-  "gallery": {
-    "historical_original_pngs": 65,
-    "new_original_pngs": 95,
-    "new_phone_pngs": 47,
-    "new_tablet_pngs": 48,
-    "total_original_pngs": 160,
-    "comparison": "compare.html",
-    "index": "index.html",
-    "image_bytes_modified": false,
-    "offline_builder_tests": "4/4 passed"
+  "historical_visual_follow_up": {
+    "problem": "Phone accessibility text in compact landscape leaves PDF35.33pt of402pt height",
+    "before_sha": "fee2194141c1949d852827f9f1b6a4628e7b17b1",
+    "before_run": 39392309880,
+    "before_artifact_id": 12251660170,
+    "red_sha": "0faee7c49f1f575707ecdf643d1141018da8f613",
+    "red_run": 39395079922,
+    "fix_sha": "872b0867b3b6c03f727eaab849d0a2284effb4de",
+    "fix_run": 39396364348,
+    "status": "Compact focus fixed and full39 regression passed each family at6d; screenshot-method repair tracked separately",
+    "verification_sha": "7326e0cdb459bd92a0f607cccc3fff6066d56e4e",
+    "verification_run": 39397149322,
+    "fix_run_result": "Formatting failed before tests; one extra blank line removed without behavior changes",
+    "verification_result": "3/3 passed,0 failures/skips; original native focused PDF captures inspected",
+    "verification_artifact_id": 12253955234,
+    "verification_archive_sha256": "50a75efcad75b5183bae6d6ec0eee862c925f03391ac11921d22c6d0f345f7d9",
+    "final_capture_sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
+    "final_capture_run": 39398450073
+  },
+  "full_design_gate": {
+    "sha": "e94c2cbb6f6914e0ebb21ded090beaa54013e4df",
+    "run": 39491602063,
+    "result": "22unit+24UI=46/46 EACH family;0failures,0skips,0expectedfailures",
+    "jobs": {
+      "iPad": 118865903075,
+      "iPhone": 118865903786
+    },
+    "artifact_ids": {
+      "iPhone": 12297635571,
+      "iPad": 12296912409
+    },
+    "verified_archive_sha256": {
+      "iPhone": "5451198479f1cb6426176a5bfa50c61f9fbd2239b832c9f865c589340f6c3d6b",
+      "iPad": "d4def3c9cd56ed3fd354ddd31cdcda4ebe73656acb178091fc2c73df672000b9"
+    },
+    "devices": {
+      "iPhone": {
+        "architecture": "arm64",
+        "deviceId": "E952A9B0-CC78-435C-BF08-06AD47FE1076",
+        "deviceName": "iPhone 17 Pro",
+        "modelName": "iPhone 17 Pro",
+        "osBuildNumber": "23C54",
+        "osVersion": "26.2",
+        "platform": "iOS Simulator"
+      },
+      "iPad": {
+        "architecture": "arm64",
+        "deviceId": "93F8D73D-86A4-455D-8E33-EFA55B5760E4",
+        "deviceName": "iPad Pro 11-inch (M5)",
+        "modelName": "iPad Pro 11-inch (M5)",
+        "osBuildNumber": "23C54",
+        "osVersion": "26.2",
+        "platform": "iOS Simulator"
+      }
+    }
+  },
+  "targeted_verification": {
+    "sha": "e98a64a471099590c42e8f75672f555560e2e894",
+    "run": 39489844842,
+    "result": "3/3each family,0fail/skip:2Notesformatting/persistenceunits+contextviewportUI withnondefaultPencil/purple/6pt; all3locale/typeconfigurations; nooriginal assertions weakened"
+  },
+  "diagnostic_evidence": {
+    "failed_full": {
+      "sha": "e72b05c9eeb70892e5d17d44dfd63a01c482895c",
+      "run": 39483968667,
+      "result": "45/46each,0skip; phonecontextpredicate,padNotesreadiness"
+    },
+    "diagnostic_only": {
+      "sha": "fffba6ec260eca240f863d28beb7737dd3bab914",
+      "run": 39487876941,
+      "result": "2/2each,geometryequalallconfigurations; noappbehaviorrepair"
+    },
+    "phone_frame": "Originalintermittentfailureexactcauseunproven. Baseline nowrequiresclosedcolorsheet+consecutiveequalpositivePDFframes;1ptheight/y retainedandx/widthadded. No speculativeappgeometryfix.",
+    "save_readiness": "Diskwrite19:37:07.412,main saved publication19:37:11.777(4.63saftermutation),shaderstall4.289s;5spredicate missedpublish. RetainedCombine saved event+asyncXCTest5s retainsallroundtripassertions."
   }
 }

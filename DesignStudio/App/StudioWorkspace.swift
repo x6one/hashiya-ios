@@ -11,7 +11,8 @@ struct StudioWorkspace: View {
     @State private var inkTool = "pen"
     @State private var inkColor = 0x244C43
     @State private var inkWidth: CGFloat = 3
-    @State private var focus = false
+    @State private var manualFocus = false
+    @State private var compactToolsVisible = false
     @State private var sidebar = true
     @State private var bookmark = false
     @State private var fraction: CGFloat = 0.64
@@ -26,6 +27,19 @@ struct StudioWorkspace: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     private var tablet: Bool { UIDevice.current.userInterfaceIdiom == .pad }
     private var marginOnly: Bool { navigation.scene == .margin }
+    private var needsCompactFocus: Bool { !tablet && verticalClass == .compact && typeSize.isAccessibilitySize }
+    private var focus: Bool { manualFocus || (needsCompactFocus && !compactToolsVisible) }
+
+    private func toggleFocus() {
+        if focus {
+            manualFocus = false
+            compactToolsVisible = needsCompactFocus
+        } else {
+            manualFocus = true
+            compactToolsVisible = false
+        }
+    }
+
 
     private var activeMargin: Bool {
         get { session.activeNotes }
@@ -87,6 +101,7 @@ struct StudioWorkspace: View {
                     else { inkColor = value; updateInk() }
                 }
             }
+            .onChange(of: needsCompactFocus) { _, _ in compactToolsVisible = false }
             .onChange(of: activeMargin) { _, _ in syncInkToolbar() }
             .onChange(of: editingNotes) { _, _ in syncInkToolbar() }
             .onChange(of: navigation.scene) { _, _ in activeMargin = marginOnly; syncInkToolbar() }
@@ -125,7 +140,7 @@ struct StudioWorkspace: View {
                     .accessibilityIdentifier("bookmarkAction")
                 TayyaIconButton(title: L("مشاركة وتصدير", "Share and export"), symbol: "square.and.arrow.up") { navigation.sheet = .share }
             }
-            TayyaIconButton(title: focus ? L("إظهار الأدوات", "Show tools") : L("وضع التركيز", "Focus mode"), symbol: focus ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right", selected: focus) { focus.toggle() }
+            TayyaIconButton(title: focus ? L("إظهار الأدوات", "Show tools") : L("وضع التركيز", "Focus mode"), symbol: focus ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right", selected: focus) { toggleFocus() }
                 .accessibilityIdentifier("focusToggle").accessibilityValue(focus ? "focused" : "standard")
         }.padding(.horizontal, 12).padding(.vertical, 8).background(StudioTheme.surface)
     }

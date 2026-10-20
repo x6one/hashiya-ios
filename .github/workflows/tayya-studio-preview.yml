@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:compact-') && '["iPhone"]' || contains(github.event.head_commit.message, '[studio:save-probe]') && '["iPhone"]' || contains(github.event.head_commit.message, '[studio:page-jump]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:review-red]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:incarnation-red]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:compact-') && '["iPhone"]' || contains(github.event.head_commit.message, '[studio:save-probe]') && '["iPhone"]' || contains(github.event.head_commit.message, '[studio:page-jump]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:review-red]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
     defaults:
       run:
         working-directory: DesignStudio
@@ -71,9 +71,14 @@ jobs:
           ACCESSIBLE_LAYOUT_ONLY: ${{ contains(github.event.head_commit.message, '[studio:layout]') }}
           APPROVAL_ONLY: ${{ contains(github.event.head_commit.message, '[studio:approval') }}
           APPROVAL_GREEN: ${{ contains(github.event.head_commit.message, '[studio:approval]') }}
+          INCARNATION_RED: ${{ contains(github.event.head_commit.message, '[studio:incarnation-red]') }}
         run: |
           set -o pipefail
           options=()
+          if [ "$INCARNATION_RED" = true ]; then
+            options+=('-only-testing:StudioTests/StudioApprovalTests/testReinsertedEditedPageNeverReusesAnEarlierRenderKey')
+            options+=('-only-testing:StudioTests/StudioApprovalTests/testReviewPDFContainsDistinctTextTableImageInkAndBlankPages')
+          fi
           if [ "$APPROVAL_ONLY" = true ]; then
             options+=('-only-testing:StudioTests/StudioApprovalTests')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testApprovalExtremeTypeCoreToolsFitWithoutOverlappingLabels')

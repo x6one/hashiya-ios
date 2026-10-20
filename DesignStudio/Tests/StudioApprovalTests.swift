@@ -3,9 +3,32 @@ import XCTest
 @testable import TayyaStudio
 
 final class StudioApprovalTests: XCTestCase {
+    @MainActor func testReinsertedEditedPageNeverReusesAnEarlierRenderKey() throws {
+        let document = StudioPDF.make()
+        let page = try XCTUnwrap(document.page(at: 0))
+        let store = StudioThumbnailStore(document: document)
+        let original = store.imageKey(page: 1)
+        let annotation = PDFAnnotation(bounds: CGRect(x: 20, y: 20, width: 100, height: 50), forType: .freeText, withProperties: nil)
+        annotation.contents = "Edited before reinsertion"
+        page.addAnnotation(annotation)
+        store.replaceDocument(document, changedPages: [1])
+        let edited = store.imageKey(page: 1)
+        XCTAssertNotEqual(original, edited)
+        document.removePage(at: 0)
+        store.replaceDocument(document)
+        document.insert(page, at: 0)
+        store.replaceDocument(document)
+        let reinserted = store.imageKey(page: 1)
+        XCTAssertNotEqual(reinserted, original, "A still-pending pre-edit render must never match a reinserted page")
+        XCTAssertNotEqual(reinserted, edited, "Reinsertion starts a new cache incarnation")
+    }
+
     @MainActor func testReviewPDFContainsDistinctTextTableImageInkAndBlankPages() async throws {
         let document = StudioPDF.make()
         XCTAssertEqual(document.pageCount, 24)
+        for index in 0..<5 {
+            print("StudioReviewPDFPage\(index + 1)=\((document.page(at: index)?.string ?? "").debugDescription)")
+        }
         XCTAssertTrue(document.page(at: 0)?.string?.contains("مبادئ المحاسبة") == true)
         XCTAssertTrue(document.page(at: 1)?.string?.contains("ميزان المراجعة") == true)
         XCTAssertTrue(document.page(at: 2)?.string?.contains("صورة توضيحية") == true)

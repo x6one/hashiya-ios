@@ -281,6 +281,40 @@ final class StudioCaptureTests: XCTestCase {
         app.terminate()
     }
 
+    func testCompactAccessibleDocumentUsesReversibleFocus() {
+        let app = launch("document", extra: ["--extra-large-type"])
+        app.buttons["nextPage"].tap()
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                app.buttons["focusToggle"].value as? String == "focused"
+                    && pdf.frame.height >= app.windows.firstMatch.frame.height * 0.5
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed,
+                           "Largest-type landscape needs readable PDF space; pdf=\(pdf.frame) window=\(app.windows.firstMatch.frame) focus=\(String(describing: app.buttons["focusToggle"].value))")
+            assertUsable(app.buttons["focusToggle"])
+            XCTAssertFalse(app.buttons["nextPage"].exists)
+            snapshot("Polish-CompactAccessible-DocumentFocus")
+            app.buttons["focusToggle"].tap()
+            XCTAssertTrue(app.buttons["nextPage"].waitForExistence(timeout: 5))
+            XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+            XCUIDevice.shared.orientation = .portrait
+            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "standard")
+            app.buttons["focusToggle"].tap()
+            XCUIDevice.shared.orientation = .landscapeLeft
+            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused")
+            XCUIDevice.shared.orientation = .portrait
+            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused", "An explicit focus choice survives rotation")
+            app.buttons["focusToggle"].tap()
+        } else {
+            XCTAssertEqual(app.buttons["focusToggle"].value as? String, "standard", "The tablet keeps its regular-height workspace")
+        }
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+        app.terminate()
+    }
+
     func testPolishExtremeTypeAndLandscapeCaptures() {
         for scene in ["document", "margin", "library"] {
             let app = launch(scene, extra: ["--extra-large-type"])

@@ -144,7 +144,7 @@ struct StudioWorkspace: View {
                             if tablet {
                                 Button(L("إظهار المصغرات", "Toggle thumbnails"), systemImage: "sidebar.leading") { sidebar.toggle() }
                             }
-                        } label: { Image(systemName: "ellipsis").frame(width: StudioMetrics.touch, height: StudioMetrics.touch) }
+                        } label: { Image(systemName: "ellipsis").font(.system(size: StudioMetrics.icon)).foregroundStyle(StudioTheme.secondary).frame(width: StudioMetrics.touch, height: StudioMetrics.touch) }
                             .accessibilityLabel(L("إجراءات المستند", "Document actions"))
                     }
                     focusButton
@@ -360,7 +360,7 @@ struct StudioWorkspace: View {
                 Button(L("يمين", "Right")) { var style = contextTextStyle; style.alignment = 0; setTextStyle(style) }
                 Button(L("وسط", "Center")) { var style = contextTextStyle; style.alignment = 1; setTextStyle(style) }
                 Button(L("يسار", "Left")) { var style = contextTextStyle; style.alignment = 2; setTextStyle(style) }
-            } label: { Image(systemName: "text.alignright").frame(width: StudioMetrics.touch, height: StudioMetrics.touch) }
+            } label: { Image(systemName: "text.alignright").font(.system(size: StudioMetrics.icon)).foregroundStyle(StudioTheme.secondary).frame(width: StudioMetrics.touch, height: StudioMetrics.touch) }
                 .accessibilityLabel(L("محاذاة النص", "Text alignment"))
             Button {
                 if editingNotes { notesFocused = true }

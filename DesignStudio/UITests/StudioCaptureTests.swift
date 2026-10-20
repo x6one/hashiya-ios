@@ -8,10 +8,19 @@ final class StudioCaptureTests: XCTestCase {
         for extra in [[], ["--extra-large-type"], ["--extra-large-type", "--english", "--dark"]] as [[String]] {
             let app = launch("document", extra: extra)
             if app.buttons["showDocument"].exists { app.buttons["showDocument"].tap() }
+            // Exercise nondefault settings: a reset to the defaults must fail.
+            let english = extra.contains("--english")
+            app.buttons[english ? "Pen type" : "نوع القلم"].tap()
+            app.buttons[english ? "Pencil" : "رصاص"].tap()
+            app.buttons[english ? "Pen width" : "سماكة القلم"].tap()
+            app.buttons["6 pt"].tap()
+            app.buttons["inkColor"].tap()
+            app.buttons["#68458A"].tap()
             let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
             let original = pdf.frame
             let inkValue = app.buttons["inkColor"].value as? String
             XCTAssertNotNil(inkValue, "Read actual brush/color/width state through the pen's accessibility value")
+            XCTAssertEqual(inkValue, "pencil:#68458A:6")
             for tool in ["text", "select", "pen"] {
                 app.buttons["tool-\(tool)"].tap()
                 let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -19,6 +28,9 @@ final class StudioCaptureTests: XCTestCase {
                 }, object: nil)
                 XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed, "Tool selection must retain the PDF viewport")
                 XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
+                if tool == "text" && !extra.isEmpty {
+                    snapshot("Approval-Text-Context-\(english ? "English-Dark" : "Arabic-Light")-ExtremeType-Portrait")
+                }
             }
             XCTAssertEqual(app.buttons["inkColor"].value as? String, inkValue)
             snapshot("Approval-Context-\(extra.contains("--english") ? "English-Dark-ExtremeType" : extra.isEmpty ? "Default" : "ExtremeType")-Portrait")
@@ -29,12 +41,15 @@ final class StudioCaptureTests: XCTestCase {
     func testApprovalExtremeTypeCoreToolsFitWithoutOverlappingLabels() {
         for extra in [["--extra-large-type"], ["--extra-large-type", "--english", "--dark"]] {
             let app = launch("document", extra: extra)
+            let expectedLabels = extra.contains("--english")
+                ? ["pen": "Pen", "text": "Text", "select": "Select", "margin": "Notes", "pages": "Pages"]
+                : ["pen": "قلم", "text": "نص", "select": "تحديد", "margin": "الملاحظات", "pages": "صفحات"]
             var previous: CGRect?
             for id in ["pen", "text", "select", "margin", "pages"] {
                 let button = app.buttons["tool-\(id)"]
                 assertUsable(button)
                 XCTAssertLessThanOrEqual(button.frame.height, 52, "Core tools stay compact at AX5 so the document retains reading space")
-                XCTAssertFalse(button.label.isEmpty, "Every core tool retains its full VoiceOver name")
+                XCTAssertEqual(button.label, expectedLabels[id], "Every core tool retains its complete VoiceOver name")
                 if let caption = button.staticTexts.allElementsBoundByIndex.first {
                     XCTAssertTrue(button.frame.insetBy(dx: -1, dy: -1).contains(caption.frame), "Visible tool words must fit inside their own touch target")
                 }

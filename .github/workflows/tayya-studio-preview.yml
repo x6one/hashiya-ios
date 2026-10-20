@@ -12,7 +12,7 @@ concurrency:
 jobs:
   preview:
     runs-on: macos-15
-    # The full 39-case design capture suite has a larger job budget; per-test limits stay 180/240s.
+    # Full approval gate:22 unit +24 UI cases on EACH family; per-test limits stay180/240s.
     timeout-minutes: ${{ contains(github.event.head_commit.message, '[studio:') && 25 || 35 }}
     strategy:
       fail-fast: false

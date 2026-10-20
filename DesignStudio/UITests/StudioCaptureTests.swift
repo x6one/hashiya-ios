@@ -127,6 +127,77 @@ final class StudioCaptureTests: XCTestCase {
         }
     }
 
+    func testPolishNotesDisplayCopy() {
+        let app = launch("margin")
+        let heading = app.descendants(matching: .any).matching(identifier: "marginHeading").firstMatch
+        XCTAssertTrue(heading.label.contains("الملاحظات"), "Section display name must be Notes without changing its identifier")
+        XCTAssertTrue(app.buttons["tool-margin"].label.contains("الملاحظات"))
+        snapshot("Polish-Notes-Copy")
+        app.terminate()
+    }
+
+    func testPolishContextToolsAndCompactAudio() {
+        let app = launch("document")
+        XCTAssertLessThanOrEqual(app.buttons["recordAction"].frame.height, 48)
+        XCTAssertLessThanOrEqual(app.buttons["openPageAudio"].frame.height, 48, "Idle audio must reserve one compact row")
+        app.buttons["tool-text"].tap()
+        XCTAssertTrue(app.buttons["editText"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["inkColor"].exists)
+        snapshot("Polish-Text-Context")
+        app.buttons["tool-select"].tap()
+        XCTAssertTrue(app.buttons["selectText"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["editText"].exists)
+        app.buttons["tool-pen"].tap()
+        XCTAssertTrue(app.buttons["inkColor"].waitForExistence(timeout: 5))
+        snapshot("Polish-Pen-Context")
+        app.terminate()
+    }
+
+    func testPolishAccessibleNotesHaveReadableWidth() {
+        let app = launch("document", extra: ["--large-type"])
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let notes = app.textViews["marginText"]
+            XCTAssertTrue(notes.waitForExistence(timeout: 5))
+            XCTAssertGreaterThan(notes.frame.width, app.windows.firstMatch.frame.width * 0.6, "Accessibility Notes must expand beyond a narrow split")
+            assertUsable(app.buttons["showDocument"])
+            snapshot("Polish-Accessibility-ExpandedNotes")
+            app.buttons["showDocument"].tap()
+            XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
+            XCTAssertFalse(app.textViews["marginText"].exists)
+            assertUsable(app.buttons["showNotes"])
+        } else {
+            assertUsable(app.buttons["tool-margin"])
+        }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        snapshot("Polish-Accessibility-Landscape")
+        app.terminate()
+    }
+
+    func testPolishPickerUsesRealPageThumbnails() {
+        let app = launch("document")
+        app.buttons["pageThumbnails"].tap()
+        let preview = app.images["pagePreview-1"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 10), "A PDFKit-rendered page image must replace the placeholder symbol")
+        XCTAssertEqual(preview.value as? String, "rendered")
+        assertUsable(app.buttons["pickPage-1"])
+        snapshot("Polish-Real-PageThumbnails")
+        app.buttons["pickPage-1"].tap()
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "1")
+        app.terminate()
+    }
+
+    func testPolishLargeLibraryFiltersStayWhole() {
+        let app = launch("library", extra: ["--large-type"])
+        let filter = app.buttons["libraryFilter-0"]
+        XCTAssertTrue(filter.waitForExistence(timeout: 5))
+        assertUsable(filter)
+        let label = filter.staticTexts.firstMatch
+        let traits = UITraitCollection(preferredContentSizeCategory: .accessibilityLarge)
+        XCTAssertLessThanOrEqual(label.frame.height, UIFont.preferredFont(forTextStyle: .caption, compatibleWith: traits).lineHeight + 3)
+        snapshot("Polish-Accessibility-Library")
+        app.terminate()
+    }
+
     private func captureScenes(dark: Bool) {
         for scene in ["library", "document", "margin", "audio", "cards"] {
             let app = launch(scene, extra: dark ? ["--dark"] : [])

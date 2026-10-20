@@ -57,10 +57,14 @@ jobs:
         env:
           RED_PROBE: ${{ contains(github.event.head_commit.message, '[studio:red]') }}
           REMAINING_ONLY: ${{ contains(github.event.head_commit.message, '[studio:remaining]') }}
+          POLISH_RED: ${{ contains(github.event.head_commit.message, '[studio:polish-red]') }}
           ACCESSIBLE_LAYOUT_ONLY: ${{ contains(github.event.head_commit.message, '[studio:layout]') }}
         run: |
           set -o pipefail
           options=()
+          if [ "$POLISH_RED" = true ]; then
+            for test in testPolishNotesDisplayCopy testPolishContextToolsAndCompactAudio testPolishAccessibleNotesHaveReadableWidth testPolishPickerUsesRealPageThumbnails testPolishLargeLibraryFiltersStayWhole; do options+=("-only-testing:StudioUITests/StudioCaptureTests/$test"); done
+          fi
           if [ "$RED_PROBE" = true ]; then options+=('-only-testing:StudioTests/StudioSessionTests'); fi
           if [ "$REMAINING_ONLY" = true ]; then
             options+=('-only-testing:StudioTests/StudioVisualContractTests/testPreviewPDFContainsRealSelectableContentAndAllPages')

@@ -1,0 +1,55 @@
+{
+  "phase": "B — native visual proposal; production approval pending",
+  "stable_source": "dbdb264bf86a6606be095aad22cd303ad01e2071",
+  "sources": [
+    {
+      "folder": "baseline",
+      "sha": "deb33853b662da3a8fa75f68d2ac3e4bea9d9fcf",
+      "run": 39357373192,
+      "result": "9/10 unit and4/6 UI passed each family; full primary/English/large-type captures retained. PDF and marker failures repaired in next source.",
+      "artifact_ids": {
+        "iPhone": 12235824571,
+        "iPad": 12236411128
+      },
+      "verified_archive_sha256": {
+        "iPhone": "3fefcaf75354c6dcb6886f101cf68a78fbcf54a030b0267f91abf32893c89667",
+        "iPad": "646f5369cb218e10df667c5a998f6d68033b462ac07b99fa5d0146acfade810f"
+      }
+    },
+    {
+      "folder": "repair",
+      "sha": "7c59e88fc2b6fb759ad456ddb876112b18a7cb64",
+      "run": 39361610772,
+      "result": "4/4 focused tests passed each family: exact-title PDF extraction, nonzero marker seek, actual-stroke recording+focus and updated PDF captures.",
+      "artifact_ids": {
+        "iPhone": 12238270163,
+        "iPad": 12237198843
+      },
+      "verified_archive_sha256": {
+        "iPhone": "08a9e71113e7843d36b9c60ad5a97473759badddfd7f5d98e2571e00db4a6993",
+        "iPad": "232b294398bea16014fc12ae2142c5b17375420bc9b62e20140330a7e0ce7d8f"
+      }
+    },
+    {
+      "folder": "layout",
+      "sha": "80084b0ffc3809e98cfa7822a8eeb8103084f959",
+      "run": 39368421932,
+      "result": "Passed1/1 targeted UI test each family, zero failures/skips. Whole Pages and Margin labels, touch bounds and new accessibility captures verified.",
+      "artifact_ids": {
+        "iPhone": 12240671852,
+        "iPad": 12241015583
+      },
+      "verified_archive_sha256": {
+        "iPhone": "6c38ef2220b624d42f8f163bb5fb3b6f0d02537ce7c4f0b1244809de96956969",
+        "iPad": "07b83a9380356ced3d9c7999f5f8298c8d0df593b20aedf52507cdd17c6ff677"
+      }
+    }
+  ],
+  "not_a_single_sha_full_production_gate": true,
+  "no_original_68_32_maestro_retests": "Production sources unchanged; user requested focused verification and retained successful evidence.",
+  "audio_preview": "In-memory simulation; no microphone, M4A persistence or device recording proof. Native PencilKit stroke callback creates a demo timestamp marker.",
+  "production_changes": false,
+  "approval": "User must approve visual design before phase C.",
+  "download_verification": "All six source archives independently downloaded: metadata SHA256 and all ZIP CRC verified. Gallery retains original image bytes and validates hashes against each source.json.",
+  "visual_review": "Actual light/dark library, document, margin, audio, review; English, large type, iPad portrait/landscape; fixed accessible labels reviewed. New PencilKit mark and marker seek02:18/page8 pass targeted UI tests. This is proposal evidence, not full production qualification."
+}

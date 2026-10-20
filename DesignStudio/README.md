@@ -52,6 +52,30 @@ boot now uses the selected UDID directly. No production tests were removed/skipp
 Existing full stable qualification remains run39342393075 on dbdb264; this preview
 suite is separate and does not re-qualify production.
 
+### Review handoff — 2026-10-20
+
+Primary light/dark, English/accessibility, thumbnail and flashcard captures passed
+in run39357373192 (`deb3385`), while3 cases still failed. Run39361610772 (`7c59e88`)
+then passed those3 cases plus updated PDF captures on both families. The actual
+variable Arabic PDF face split letter dots in extraction; public Arial document
+faces retain the full required title. Marker rows now hit across their complete
+rectangle; original center taps pass page8/time02:18 and real-stroke mark checks.
+
+Actual visual review found broken words at accessibility sizes despite those prior
+captures passing. Run39368421932 (`80084b0`) passes a new targeted label-line-height
+and44pt test on both families. The phone dock uses3 columns at accessibility sizes;
+the tablet margin title has its own row. All six retained archives were independently
+SHA256/CRC checked. No successful suite was rerun just to qualify documentation.
+
+The `Tayya Studio review gallery` workflow assembles original PNG bytes from these
+three runs into one `Tayya-Studio-2-Review` artifact with an offline `index.html`,
+source/test/hash manifest, design system, action map and production rollout plan.
+Download/extract the artifact and open `index.html`. Each picture links to its exact
+source run; earlier captures remain in `all-images.json`. Results span targeted
+source revisions; no single-SHA full production qualification is claimed.
+
+**STOP:** visual approval is required before any production redesign or migration.
+
 See the [design specification](../docs/superpowers/specs/2026-10-20-tayya-studio-2-design.md),
 [staged plan](../docs/superpowers/plans/2026-10-20-tayya-studio-2.md) and
 [action map](../docs/design/tayya-studio-2-actions.md).

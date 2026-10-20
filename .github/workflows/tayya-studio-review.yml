@@ -1,0 +1,55 @@
+name: Tayya Studio review gallery
+on:
+  push:
+    branches: [design/tayya-studio-2]
+    paths: ['docs/design/tayya-studio-2-evidence.json', 'DesignStudio/Tools/build_review_gallery.py', '.github/workflows/tayya-studio-review.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read frozen evidence source IDs
+        id: evidence
+        run: |
+          python3 - <<'PY'
+          import json,os
+          p=json.load(open('docs/design/tayya-studio-2-evidence.json'))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            for s in p['sources']: f.write(s['folder']+'='+str(s['run'])+'\n')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.evidence.outputs.baseline }}
+          pattern: Tayya-Studio-2-*
+          path: source-evidence/baseline
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.evidence.outputs.repair }}
+          pattern: Tayya-Studio-2-*
+          path: source-evidence/repair
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.evidence.outputs.layout }}
+          pattern: Tayya-Studio-2-*
+          path: source-evidence/layout
+      - name: Assemble verified original screenshots and design documents
+        run: |
+          python3 DesignStudio/Tools/build_review_gallery.py source-evidence Tayya-Studio-2-Review docs/design/tayya-studio-2-evidence.json
+          cp docs/superpowers/specs/2026-10-20-tayya-studio-2-design.md Tayya-Studio-2-Review/Design-System.md
+          cp docs/superpowers/plans/2026-10-20-tayya-studio-2.md Tayya-Studio-2-Review/Implementation-Plan.md
+          cp docs/design/tayya-studio-2-actions.md Tayya-Studio-2-Review/Actions.md
+          find Tayya-Studio-2-Review -type f -print0 | sort -z | xargs -0 sha256sum > Tayya-Studio-2-Review.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Studio-2-Review
+          path: |
+            Tayya-Studio-2-Review/
+            Tayya-Studio-2-Review.sha256
+          retention-days: 14

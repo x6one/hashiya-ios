@@ -32,12 +32,12 @@ sample state and PDFKit/PencilKit. The stable production target and data remain 
 views consume it as ObservableObject. No PageAudio/storage calls.
 
 - [x] Verify stable SHA/run; create separate worktree and remote branch at exact SHA.
-- [ ] Write XCTest contracts before state implementation: recording page switch,
+- [x] Write XCTest contracts before state implementation: recording page switch,
   writing/manual marks, seek clamps, clip rename preservation, speed bounds,
   interruption stop and independent margin state.
-- [ ] Run isolated model RED probe on one macOS simulator. Expected assertion
+- [x] Run isolated model RED probe on one macOS simulator. Expected assertion
   failures from unimplemented behavior, not compile or environment errors.
-- [ ] Implement only sample-state behavior, run same tests GREEN with captures.
+- [x] Implement only sample-state behavior, run same tests GREEN with captures.
 
 ### Task 2: Design system and native proposal (B)
 
@@ -47,11 +47,11 @@ views consume it as ObservableObject. No PageAudio/storage calls.
 **Interfaces:** Shared themed components consume StudioSession; document factory
 returns PDFDocument; canvas uses PencilKit and stays in preview memory.
 
-- [ ] Implement exact semantic colors/spacing/touch targets and localized copy.
-- [ ] Library, phone study, iPad workspace, margin, audio and review screens.
-- [ ] Wire prototype controls to working state/sheets; no decorative dead buttons.
-- [ ] Unit-check actual symbol availability and contrast pairs on iOS.
-- [ ] Format/lint changed preview files only; run state/unit/capture tests.
+- [x] Implement exact semantic colors/spacing/touch targets and localized copy.
+- [x] Library, phone study, iPad workspace, margin, audio and review screens.
+- [x] Wire prototype controls to working state/sheets; no decorative dead buttons.
+- [x] Unit-check actual symbol availability and contrast pairs on iOS.
+- [x] Format/lint changed preview files only; run state/unit/capture tests.
 
 ### Task 3: Evidence and approval package (B)
 
@@ -59,10 +59,10 @@ returns PDFDocument; canvas uses PencilKit and stays in preview memory.
 `docs/design/tayya-studio-2-actions.md`; workflow exports screenshots/xcresult/manifest.
 **Interfaces:** named screenshot attachments + summary JSON + source SHA manifest.
 
-- [ ] Capture all five primary scenes light/dark on both families, tablet portrait
+- [x] Capture all five primary scenes light/dark on both families, tablet portrait
   and landscape, English and accessibility examples, focus and audio marker actions.
-- [ ] Check actual geometry/reachability; review real PNGs before acceptance.
-- [ ] Publish artifacts via Actions, provide links and exact SHA, stop for visual approval.
+- [x] Check actual geometry/reachability; review real PNGs before acceptance.
+- [x] Publish artifacts via Actions, provide links and exact SHA, stop for visual approval.
 
 ## Production rollout AFTER approval (C/D; do not execute now)
 

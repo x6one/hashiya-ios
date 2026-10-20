@@ -45,6 +45,7 @@ struct TayyaDocumentCard: View {
 }
 
 struct StudioLibrary: View {
+    @ObservedObject var session: StudioSession
     @ObservedObject var navigation: StudioNavigation
     @State private var query = ""
     @State private var selectedSection = 0
@@ -101,8 +102,8 @@ struct StudioLibrary: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(L("متابعة القراءة", "Continue reading")).font(.caption).foregroundStyle(StudioTheme.secondary)
                             Text(L("مبادئ المحاسبة", "Accounting principles")).font(.headline)
-                            ProgressView(value: 7, total: 24).tint(StudioTheme.primary)
-                            Text(L("صفحة 7 من 24", "Page 7 of 24")).font(.caption2).foregroundStyle(StudioTheme.secondary)
+                            ProgressView(value: Double(session.page), total: Double(session.totalPages)).tint(StudioTheme.primary)
+                            Text(L("صفحة \(session.page) من \(session.totalPages)", "Page \(session.page) of \(session.totalPages)")).font(.caption2).foregroundStyle(StudioTheme.secondary)
                         }
                         Image(systemName: "chevron.forward").font(.caption)
                     }.padding(16).background(StudioTheme.selection, in: RoundedRectangle(cornerRadius: 16))

@@ -296,6 +296,31 @@ final class StudioCaptureTests: XCTestCase {
         app.terminate()
     }
 
+    func testReviewAccessibleDocumentChoiceSurvivesMarkerReturn() {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let app = launch("audio", extra: ["--large-type"])
+            if !app.buttons["audioStop"].isHittable { app.swipeUp() }
+            app.buttons["audioStop"].tap()
+            app.buttons["العودة للمستند"].tap()
+            app.buttons["showDocument"].tap()
+            XCTAssertFalse(app.textViews["marginText"].exists)
+            app.buttons["openPageAudio"].tap()
+            let marker = app.buttons["marker-manual-8-138"]
+            if !marker.isHittable { app.swipeUp() }
+            marker.tap()
+            XCTAssertTrue(app.buttons["showNotes"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.textViews["marginText"].exists)
+            XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+            snapshot("Polish-Accessibility-DocumentAfterMarker")
+            app.terminate()
+        } else {
+            let app = launch("document", extra: ["--large-type"])
+            XCTAssertFalse(app.textViews["marginText"].exists)
+            assertUsable(app.buttons["tool-margin"])
+            app.terminate()
+        }
+    }
+
     private func captureScenes(dark: Bool) {
         for scene in ["library", "document", "margin", "audio", "cards"] {
             let app = launch(scene, extra: dark ? ["--dark"] : [])

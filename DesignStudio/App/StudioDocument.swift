@@ -55,6 +55,20 @@ final class StudioPDFController: ObservableObject {
     func contentChanged() {
         if let document = view.document { thumbnails.replaceDocument(document) }
     }
+    func text(on number: Int) -> String {
+        view.document?.page(at: number - 1)?.annotations.first { $0.type == "FreeText" }?.contents ?? ""
+    }
+    func textStyle(on number: Int) -> StudioTextStyle {
+        var style = StudioTextStyle()
+        guard let annotation = view.document?.page(at: number - 1)?.annotations.first(where: { $0.type == "FreeText" }) else { return style }
+        style.size = Double(annotation.font?.pointSize ?? 18)
+        style.alignment = annotation.alignment == .center ? 1 : annotation.alignment == .left ? 2 : 0
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        if annotation.fontColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha) == true {
+            style.color = Int((red * 255).rounded()) << 16 | Int((green * 255).rounded()) << 8 | Int((blue * 255).rounded())
+        }
+        return style
+    }
     func updateText(_ text: String, size: Double, color: Int, alignment: Int, page number: Int) {
         guard let page = view.document?.page(at: number - 1), !text.isEmpty else { return }
         let annotation = page.annotations.first { $0.type == "FreeText" }
@@ -88,21 +102,47 @@ final class StudioPDFController: ObservableObject {
 /// Preserve the reading destination and scale as chrome or Notes changes the viewport.
 final class StudioReadingPDFView: PDFView {
     private var previousSize = CGSize.zero
+    private var pending: (page: PDFPage, point: CGPoint, scale: CGFloat)?
     private var restoring = false
+    private var readingPoint: CGPoint { CGPoint(x: bounds.midX, y: bounds.minY + 1) }
+    private var scroll: UIScrollView? {
+        var ancestor = documentView?.superview
+        while let view = ancestor, !(view is UIScrollView), view !== self { ancestor = view.superview }
+        return ancestor as? UIScrollView
+    }
+    // Capture-before-resize / scroll-displacement mechanism from the proven
+    // production ResizingPDFView; never navigate to a page during layout.
+    override var frame: CGRect { willSet { if newValue.size != frame.size { capture() } } }
+    override var bounds: CGRect { willSet { if newValue.size != bounds.size { capture() } } }
+    private func capture() {
+        guard !restoring, pending == nil, bounds.width > 0, bounds.height > 0,
+              let page = page(for: readingPoint, nearest: true) else { return }
+        pending = (page, convert(readingPoint, to: page), scaleFactor)
+    }
+    func navigate(to page: PDFPage) { pending = nil; go(to: page) }
     override func layoutSubviews() {
-        guard !restoring, bounds.width > 0, bounds.height > 0 else { super.layoutSubviews(); return }
-        let changed = previousSize != .zero && previousSize != bounds.size
-        let destination = currentDestination.flatMap { d in d.page.map { PDFDestination(page: $0, at: d.point) } }
-        let scale = scaleFactor
+        guard !restoring else { super.layoutSubviews(); return }
+        let resized = previousSize != bounds.size
         previousSize = bounds.size
+        let anchor = pending
+        pending = nil
+        restoring = true
+        defer { restoring = false }
         super.layoutSubviews()
-        if changed, let destination, scale > 0 {
-            restoring = true
-            autoScales = false
-            scaleFactor = scale
-            go(to: destination)
-            restoring = false
-        }
+        guard resized, bounds.width > 0, bounds.height > 0, let anchor, anchor.scale > 0,
+              let document, document.index(for: anchor.page) < document.pageCount else { return }
+        autoScales = false
+        scaleFactor = anchor.scale
+        layoutDocumentView()
+        guard let scroll else { return }
+        let moved = convert(anchor.point, from: anchor.page)
+        let proposed = CGPoint(x: scroll.contentOffset.x + moved.x - readingPoint.x,
+                               y: scroll.contentOffset.y + moved.y - readingPoint.y)
+        let inset = scroll.adjustedContentInset
+        let minX = -inset.left, minY = -inset.top
+        let maxX = max(minX, scroll.contentSize.width - scroll.bounds.width + inset.right)
+        let maxY = max(minY, scroll.contentSize.height - scroll.bounds.height + inset.bottom)
+        scroll.setContentOffset(CGPoint(x: min(maxX, max(minX, proposed.x)), y: min(maxY, max(minY, proposed.y))), animated: false)
     }
 }
 
@@ -112,7 +152,8 @@ struct StudioPDFView: UIViewRepresentable {
     func makeUIView(context: Context) -> PDFView { controller.view }
     func updateUIView(_ view: PDFView, context: Context) {
         guard let document = view.document, let target = document.page(at: page - 1), view.currentPage !== target else { return }
-        view.go(to: target)
+        if let reading = view as? StudioReadingPDFView { reading.navigate(to: target) }
+        else { view.go(to: target) }
     }
 }
 

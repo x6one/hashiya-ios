@@ -68,7 +68,15 @@ jobs:
             for test in testPolishNotesDisplayCopy testPolishContextToolsAndCompactAudio testPolishAccessibleNotesHaveReadableWidth testPolishPickerUsesRealPageThumbnails testPolishLargeLibraryFiltersStayWhole testPolishDraftAndThreePenPresetsSurviveRelaunch testPolishDirectPageJumpAndLastVisitedPage; do options+=("-only-testing:StudioUITests/StudioCaptureTests/$test"); done
           fi
           if [ "$POLISH_ONLY" = true ]; then
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testReviewAccessibleDocumentChoiceSurvivesMarkerReturn')
             options+=('-only-testing:StudioTests/StudioPolishTests')
+            options+=('-only-testing:StudioTests/StudioReviewRegressionTests')
+            options+=('-only-testing:StudioTests/StudioVisualContractTests')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testReviewTextTargetFollowsVisibleSurface')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testReviewExpandedNotesLayoutSurvivesMarkerReturn')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testRecordingNavigationMarkersAndFocusStayIndependent')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testNonzeroMarkerSeeksAndReturnsToItsPage')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testAccessibleEditorLabelsStayWhole')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishMarkerKeepsClosedNotesClosed')
           fi
           if [ "$REVIEW_RED" = true ]; then

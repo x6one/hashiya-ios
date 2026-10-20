@@ -22,6 +22,9 @@ final class StudioSession: ObservableObject {
     @Published var title = "محاضرة المحاسبة"
     @Published var markers: [StudioMarker] = []
     @Published var marginOpen = false
+    @Published var notesExpanded = false
+    @Published var showingDocument = false
+    @Published var activeNotes = false
     let totalPages = 24
     let duration: Double = 760
     let clipReference = "sample-session.m4a"

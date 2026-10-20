@@ -9,6 +9,7 @@ struct StudioSheetView: View {
     @State private var text = ""
     @State private var answer = ""
     @State private var pageNumber = ""
+    @State private var textPage = 7
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -22,7 +23,7 @@ struct StudioSheetView: View {
                 .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button(L("تم", "Done")) { dismiss() } } }
         }.foregroundStyle(StudioTheme.text).tint(StudioTheme.primary)
-            .onAppear { if sheet == .text { text = navigation.savedText } }
+            .onAppear { if sheet == .text { textPage = session.page; text = pdf.text(on: textPage) } }
     }
     private var title: String {
         switch sheet {
@@ -58,7 +59,14 @@ struct StudioSheetView: View {
             }
             TayyaPrimaryButton(title: L("حفظ", "Save"), symbol: "checkmark") {
                 if sheet == .newCard { navigation.cards.append(StudioStudyCard(page: session.page, question: text, answer: answer)) }
-                else { session.markWriting(text); navigation.savedText = text }
+                else {
+                    let style = draft.state.documentTextStyles?[textPage] ?? pdf.textStyle(on: textPage)
+                    pdf.updateText(text, size: style.size, color: style.color, alignment: style.alignment, page: textPage)
+                    draft.state.text = text
+                    draft.state.pdf = pdf.view.document?.dataRepresentation()
+                    session.markWriting(text)
+                    navigation.savedText = text
+                }
                 dismiss()
             }.disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (sheet == .newCard && answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
         case .trash:
@@ -102,7 +110,7 @@ struct StudioSheetView: View {
     private var colors: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 16) {
             ForEach([0x244C43, 0xA14F2B, 0x68458A, 0x2D6382, 0x282C2B, 0xAA3333], id: \.self) { color in
-                Button { navigation.color = color; dismiss() } label: {
+                Button { navigation.color = color; navigation.onColorPick?(color); dismiss() } label: {
                     Circle().fill(Color(uiColor: StudioTheme.ui(color))).frame(width: 44, height: 44).padding(8)
                 }.buttonStyle(.plain).accessibilityLabel(String(format: "#%06X", color))
             }

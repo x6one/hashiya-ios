@@ -13,10 +13,8 @@ final class StudioReviewRegressionTests: XCTestCase {
         navigation.scene = .document
         let pdf = StudioPDFController()
         let workspace = StudioWorkspace(session: session, navigation: navigation, documentInk: StudioCanvas(), marginInk: StudioCanvas(margin: true), pdf: pdf, draft: draft)
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 900, height: 1000))
-        window.rootViewController = UIHostingController(rootView: workspace)
-        window.makeKeyAndVisible()
-        defer { window.isHidden = true }
+        let (window, previous) = try studioTestWindow(UIHostingController(rootView: workspace))
+        defer { window.isHidden = true; previous?.makeKeyAndVisible() }
         waitUntil { pdf.view.window != nil }
         pdf.updateText("PAGE-7", size: 18, color: 0x244C43, alignment: 0, page: 7)
         pdf.updateText("PAGE-8", size: 18, color: 0x244C43, alignment: 0, page: 8)
@@ -46,10 +44,9 @@ final class StudioReviewRegressionTests: XCTestCase {
         draft.state.textSize = 32
         let session = StudioSession(), navigation = StudioNavigation(), pdf = StudioPDFController()
         navigation.scene = .margin
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 900, height: 1000))
-        window.rootViewController = UIHostingController(rootView: StudioWorkspace(session: session, navigation: navigation, documentInk: StudioCanvas(), marginInk: StudioCanvas(margin: true), pdf: pdf, draft: draft))
-        window.makeKeyAndVisible()
-        defer { window.isHidden = true }
+        let host = UIHostingController(rootView: StudioWorkspace(session: session, navigation: navigation, documentInk: StudioCanvas(), marginInk: StudioCanvas(margin: true), pdf: pdf, draft: draft))
+        let (window, previous) = try studioTestWindow(host)
+        defer { window.isHidden = true; previous?.makeKeyAndVisible() }
         func editor(in view: UIView) -> UITextView? {
             if let text = view as? UITextView, text.text == draft.state.notes { return text }
             return view.subviews.lazy.compactMap { editor(in: $0) }.first

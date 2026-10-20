@@ -8,6 +8,12 @@ struct StudioPenPreset: Codable, Equatable {
     var description: String { String(format: "%@:#%06X:%g", brush, color, width) }
 }
 
+struct StudioTextStyle: Codable {
+    var size = 18.0
+    var color = 0x244C43
+    var alignment = L("ar", "en") == "ar" ? 0 : 2
+}
+
 struct StudioDraftState: Codable {
     var notes = L("ملاحظات مهمة\n\n• التركيز على طرفي المعادلة.\n• مراجعة المثال قبل المحاضرة القادمة.", "Key ideas\n\n• Watch both sides of the equation.\n• Review the example before the next lecture.")
     var page = 7
@@ -16,7 +22,9 @@ struct StudioDraftState: Codable {
     var text = ""
     var textSize = 18.0
     var textColor = 0x244C43
-    var textAlignment = 0
+    var textAlignment = L("ar", "en") == "ar" ? 0 : 2
+    // Optional so drafts written before this field remain decodable.
+    var documentTextStyles: [Int: StudioTextStyle]?
     var documentInk = Data()
     var marginInk = Data()
     var pdf: Data?

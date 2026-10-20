@@ -16,11 +16,10 @@ struct StudioWorkspace: View {
     @State private var bookmark = false
     @State private var fraction: CGFloat = 0.64
     @State private var dragOrigin: CGFloat?
-    @State private var activeMargin = false
-    @State private var expandedNotes = false
-    @State private var showingDocument = false
     @State private var selectionExists = false
+    @State private var narrowPane = false
     @FocusState private var notesFocused: Bool
+    @ScaledMetric(relativeTo: .body) private var bodyScale: CGFloat = 17
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.verticalSizeClass) private var verticalClass
     @Environment(\.layoutDirection) private var direction
@@ -28,17 +27,38 @@ struct StudioWorkspace: View {
     private var tablet: Bool { UIDevice.current.userInterfaceIdiom == .pad }
     private var marginOnly: Bool { navigation.scene == .margin }
 
+    private var activeMargin: Bool {
+        get { session.activeNotes }
+        nonmutating set { session.activeNotes = newValue }
+    }
+    private var expandedPresentation: Bool { session.notesExpanded || typeSize.isAccessibilitySize || narrowPane }
+    private var editingNotes: Bool {
+        marginOnly || (tablet && session.marginOpen && !focus && (!expandedPresentation || !session.showingDocument) && (activeMargin || expandedPresentation))
+    }
+    private var notesAlignment: TextAlignment {
+        if draft.state.textAlignment == 1 { return .center }
+        return (draft.state.textAlignment == 0) == (direction == .rightToLeft) ? .leading : .trailing
+    }
+    private var contextTextStyle: StudioTextStyle {
+        editingNotes ? StudioTextStyle(size: draft.state.textSize, color: draft.state.textColor, alignment: draft.state.textAlignment)
+            : draft.state.documentTextStyles?[session.page] ?? pdf.textStyle(on: session.page)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
             if !focus && !notesFocused { TayyaPageNavigator(session: session) { navigation.sheet = .pages } }
             GeometryReader { geo in
-                if marginOnly {
-                    marginPanel.padding(16)
-                } else if tablet {
-                    tabletContent(size: geo.size)
-                } else {
-                    documentPanel.padding(.horizontal, 12).padding(.vertical, 8)
+                Group {
+                    if marginOnly {
+                        marginPanel.padding(16)
+                    } else if tablet {
+                        tabletContent(size: geo.size)
+                    } else {
+                        documentPanel.padding(.horizontal, 12).padding(.vertical, 8)
+                    }
+                }.onChange(of: geo.size.width, initial: true) { _, width in
+                    narrowPane = width < StudioMetrics.documentMinimum + StudioMetrics.notesMinimum + 3 * StudioMetrics.spacing
                 }
             }
             if !focus && !notesFocused {
@@ -51,7 +71,9 @@ struct StudioWorkspace: View {
         }.background(StudioTheme.background)
             .onAppear {
                 fraction = CGFloat(draft.state.split)
-                activeMargin = marginOnly || (tablet && typeSize.isAccessibilitySize && session.marginOpen)
+                if marginOnly { activeMargin = true }
+                else if !session.marginOpen || (expandedPresentation && session.showingDocument) { activeMargin = false }
+                else if expandedPresentation { activeMargin = true }
                 currentCanvas.configure(tool: draft.state.currentPen.brush, color: draft.state.currentPen.color, width: CGFloat(draft.state.currentPen.width))
                 syncInkToolbar()
                 documentInk.onActivate = { activeMargin = false }
@@ -60,22 +82,23 @@ struct StudioWorkspace: View {
                 marginInk.onStroke = { session.markWriting(L("خط يد في الملاحظات", "Notes handwriting")) }
                 documentInk.onDrawingChange = { draft.state.documentInk = documentInk.view.drawing.dataRepresentation() }
                 marginInk.onDrawingChange = { draft.state.marginInk = marginInk.view.drawing.dataRepresentation() }
+                navigation.onColorPick = { value in
+                    if tool == "text" { var style = contextTextStyle; style.color = value; setTextStyle(style) }
+                    else { inkColor = value; updateInk() }
+                }
             }
             .onChange(of: activeMargin) { _, _ in syncInkToolbar() }
+            .onChange(of: editingNotes) { _, _ in syncInkToolbar() }
             .onChange(of: navigation.scene) { _, _ in activeMargin = marginOnly; syncInkToolbar() }
             .onDisappear {
                 documentInk.onActivate = nil; marginInk.onActivate = nil
                 documentInk.onStroke = nil; marginInk.onStroke = nil
                 documentInk.onDrawingChange = nil; marginInk.onDrawingChange = nil
+                navigation.onColorPick = nil
             }
-            .onChange(of: navigation.color) { _, value in
-                if tool == "text" { draft.state.textColor = value; updateText() }
-                else { inkColor = value; updateInk() }
-            }
+            .onChange(of: session.marginOpen) { _, open in if !open { activeMargin = false } else { session.showingDocument = false } }
+            .onChange(of: notesFocused) { _, focused in if focused { activeMargin = true } }
             .onChange(of: fraction) { _, value in draft.state.split = Double(value) }
-            .onChange(of: navigation.savedText) { _, value in draft.state.text = value; updateText() }
-            .onChange(of: draft.state.textSize) { _, _ in updateText() }
-            .onChange(of: draft.state.textAlignment) { _, _ in updateText() }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: tool)
             .onChange(of: navigation.preset) { _, value in
                 guard value > 0 else { return }
@@ -110,21 +133,21 @@ struct StudioWorkspace: View {
         let railWidth: CGFloat = sidebar && !focus && size.width > 1000 && !typeSize.isAccessibilitySize ? 132 : 0
         let available = size.width - railWidth - 2 * StudioMetrics.spacing - StudioMetrics.spacing
         let needsExpansion = typeSize.isAccessibilitySize || available < StudioMetrics.documentMinimum + StudioMetrics.notesMinimum
-        if session.marginOpen && !focus && (needsExpansion || expandedNotes) {
+        if session.marginOpen && !focus && (needsExpansion || session.notesExpanded) {
             VStack(spacing: StudioMetrics.compact) {
                 HStack {
-                    Button { showingDocument.toggle(); activeMargin = !showingDocument } label: {
-                        Label(showingDocument ? L("عرض الملاحظات", "Show Notes") : L("عرض المستند", "Show document"), systemImage: showingDocument ? "note.text" : "doc")
+                    Button { session.showingDocument.toggle(); activeMargin = !session.showingDocument } label: {
+                        Label(session.showingDocument ? L("عرض الملاحظات", "Show Notes") : L("عرض المستند", "Show document"), systemImage: session.showingDocument ? "note.text" : "doc")
                             .font(.subheadline).padding(.horizontal, StudioMetrics.inset).frame(minHeight: StudioMetrics.touch)
                             .background(StudioTheme.selection, in: Capsule())
-                    }.buttonStyle(.plain).accessibilityIdentifier(showingDocument ? "showNotes" : "showDocument")
+                    }.buttonStyle(.plain).accessibilityIdentifier(session.showingDocument ? "showNotes" : "showDocument")
                     Spacer(minLength: StudioMetrics.compact)
                     if !needsExpansion {
-                        TayyaIconButton(title: L("العودة إلى التقسيم", "Return to split"), symbol: "rectangle.split.2x1") { expandedNotes = false; showingDocument = false }
+                        TayyaIconButton(title: L("العودة إلى التقسيم", "Return to split"), symbol: "rectangle.split.2x1") { session.notesExpanded = false; session.showingDocument = false }
                             .accessibilityIdentifier("notesLayout")
                     }
                 }
-                if showingDocument { documentPanel }
+                if session.showingDocument { documentPanel }
                 else { marginPanel.onAppear { activeMargin = true } }
             }.padding(StudioMetrics.spacing)
         } else {
@@ -167,9 +190,9 @@ struct StudioWorkspace: View {
                     HStack { marginHeading; Spacer(); marginPage; notesPanelActions }
                 }
                 Divider()
-                TextEditor(text: $draft.state.notes).font(tool == "text" ? .system(size: draft.state.textSize) : .body)
-                    .foregroundStyle(tool == "text" ? Color(uiColor: StudioTheme.ui(draft.state.textColor)) : StudioTheme.text)
-                    .multilineTextAlignment(draft.state.textAlignment == 1 ? .center : draft.state.textAlignment == 2 ? .leading : .trailing)
+                TextEditor(text: $draft.state.notes).font(.system(size: CGFloat(draft.state.textSize) * bodyScale / 17))
+                    .foregroundStyle(draft.state.textColor == 0x244C43 ? StudioTheme.primary : Color(uiColor: StudioTheme.ui(draft.state.textColor)))
+                    .multilineTextAlignment(notesAlignment)
                     .focused($notesFocused).scrollContentBackground(.hidden)
                     .frame(height: typeSize.isAccessibilitySize ? 300 : 180).accessibilityIdentifier("marginText")
                     .onChange(of: draft.state.notes) { _, text in session.markWriting(String(text.suffix(50))) }
@@ -218,7 +241,7 @@ struct StudioWorkspace: View {
     }
     private var inkRail: some View {
         TayyaToolbar {
-            if tablet && session.marginOpen && !marginOnly && !typeSize.isAccessibilitySize && !expandedNotes {
+            if tablet && session.marginOpen && !marginOnly && !expandedPresentation {
                 Button { activeMargin.toggle() } label: {
                     Label(activeMargin ? L("الملاحظات", "Notes") : L("المستند", "Document"), systemImage: activeMargin ? "note.text" : "doc")
                         .font(.caption).padding(.horizontal, 8).frame(minHeight: 44).background(StudioTheme.selection, in: RoundedRectangle(cornerRadius: 10))
@@ -260,8 +283,8 @@ struct StudioWorkspace: View {
                 TayyaIconButton(title: L("إخفاء لوحة المفاتيح", "Dismiss keyboard"), symbol: "keyboard.chevron.compact.down") { notesFocused = false }
                     .accessibilityIdentifier("dismissKeyboard")
             }
-            if tablet && !marginOnly && !typeSize.isAccessibilitySize && !expandedNotes {
-                TayyaIconButton(title: L("توسيع الملاحظات", "Expand Notes"), symbol: "arrow.up.left.and.arrow.down.right") { expandedNotes = true; showingDocument = false; activeMargin = true }
+            if tablet && !marginOnly && !expandedPresentation {
+                TayyaIconButton(title: L("توسيع الملاحظات", "Expand Notes"), symbol: "arrow.up.left.and.arrow.down.right") { session.notesExpanded = true; session.showingDocument = false; activeMargin = true }
                     .accessibilityIdentifier("notesLayout")
             }
             TayyaIconButton(title: L("قوالب الورق", "Paper templates"), symbol: "ellipsis") { navigation.sheet = .templates }
@@ -270,18 +293,18 @@ struct StudioWorkspace: View {
     private var textRail: some View {
         TayyaToolbar {
             Menu {
-                ForEach([14.0, 18, 24, 32], id: \.self) { size in Button("\(size.formatted()) pt") { draft.state.textSize = size } }
-            } label: { Text("Aa \(Int(draft.state.textSize))").font(.subheadline).frame(minWidth: StudioMetrics.touch, minHeight: StudioMetrics.touch) }
+                ForEach([14.0, 18, 24, 32], id: \.self) { size in Button("\(size.formatted()) pt") { var style = contextTextStyle; style.size = size; setTextStyle(style) } }
+            } label: { Text("Aa \(Int(contextTextStyle.size))").font(.subheadline).frame(minWidth: StudioMetrics.touch, minHeight: StudioMetrics.touch) }
                 .accessibilityLabel(L("حجم الخط", "Font size"))
             TayyaIconButton(title: L("لون النص", "Text color"), symbol: "paintpalette") { navigation.sheet = .colors }
             Menu {
-                Button(L("يمين", "Right")) { draft.state.textAlignment = 0 }
-                Button(L("وسط", "Center")) { draft.state.textAlignment = 1 }
-                Button(L("يسار", "Left")) { draft.state.textAlignment = 2 }
+                Button(L("يمين", "Right")) { var style = contextTextStyle; style.alignment = 0; setTextStyle(style) }
+                Button(L("وسط", "Center")) { var style = contextTextStyle; style.alignment = 1; setTextStyle(style) }
+                Button(L("يسار", "Left")) { var style = contextTextStyle; style.alignment = 2; setTextStyle(style) }
             } label: { Image(systemName: "text.alignright").frame(width: StudioMetrics.touch, height: StudioMetrics.touch) }
                 .accessibilityLabel(L("محاذاة النص", "Text alignment"))
             Button {
-                if marginOnly || activeMargin { notesFocused = true }
+                if editingNotes { notesFocused = true }
                 else { navigation.sheet = .text }
             } label: {
                 Label(L("تعديل النص", "Edit text"), systemImage: "square.and.pencil").font(.caption)
@@ -292,13 +315,16 @@ struct StudioWorkspace: View {
     private var selectionRail: some View {
         TayyaToolbar {
             Button {
-                if let page = pdf.view.currentPage { pdf.view.currentSelection = page.selection(for: page.bounds(for: .cropBox)); selectionExists = true }
+                if editingNotes { UIPasteboard.general.string = draft.state.notes }
+                else if let page = pdf.view.currentPage { pdf.view.currentSelection = page.selection(for: page.bounds(for: .cropBox)); selectionExists = true }
             } label: {
-                Label(L("تحديد نص الصفحة", "Select page text"), systemImage: "selection.pin.in.out")
+                Label(editingNotes ? L("نسخ نص الملاحظات", "Copy Notes text") : L("تحديد نص الصفحة", "Select page text"), systemImage: "selection.pin.in.out")
                     .font(.caption).fixedSize().frame(minHeight: StudioMetrics.touch)
             }.buttonStyle(.plain).accessibilityIdentifier("selectText")
+            if !editingNotes {
             TayyaIconButton(title: L("نسخ", "Copy"), symbol: "doc.on.doc") { UIPasteboard.general.string = pdf.view.currentSelection?.string }.disabled(!selectionExists)
             TayyaIconButton(title: L("إلغاء التحديد", "Clear selection"), symbol: "xmark") { pdf.view.currentSelection = nil; selectionExists = false }
+            }
         }
     }
     private var toolDock: some View {
@@ -327,16 +353,27 @@ struct StudioWorkspace: View {
                 }.buttonStyle(.plain).accessibilityIdentifier("tool-\(item)").accessibilityLabel(titles[item] ?? item)
             }
     }
-    private var currentCanvas: StudioCanvas { marginOnly || (tablet && session.marginOpen && activeMargin) ? marginInk : documentInk }
+    private var currentCanvas: StudioCanvas { editingNotes ? marginInk : documentInk }
     private func syncInkToolbar() { inkTool = currentCanvas.brush; inkColor = currentCanvas.color; inkWidth = currentCanvas.width }
     private func updateInk() {
         currentCanvas.configure(tool: inkTool, color: inkColor, width: inkWidth)
         draft.state.currentPen = StudioPenPreset(brush: inkTool, color: inkColor, width: Double(inkWidth))
     }
-    private func updateText() {
-        guard !draft.state.text.isEmpty else { return }
-        pdf.updateText(draft.state.text, size: draft.state.textSize, color: draft.state.textColor, alignment: draft.state.textAlignment, page: session.page)
-        draft.state.pdf = pdf.view.document?.dataRepresentation()
+    private func setTextStyle(_ style: StudioTextStyle) {
+        if editingNotes {
+            draft.state.textSize = style.size
+            draft.state.textColor = style.color
+            draft.state.textAlignment = style.alignment
+        } else {
+            var styles = draft.state.documentTextStyles ?? [:]
+            styles[session.page] = style
+            draft.state.documentTextStyles = styles
+            let text = pdf.text(on: session.page)
+            if !text.isEmpty {
+                pdf.updateText(text, size: style.size, color: style.color, alignment: style.alignment, page: session.page)
+                draft.state.pdf = pdf.view.document?.dataRepresentation()
+            }
+        }
     }
     private func chooseTool(_ item: String) {
         switch item {

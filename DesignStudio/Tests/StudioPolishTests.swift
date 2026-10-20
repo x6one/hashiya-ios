@@ -73,10 +73,9 @@ final class StudioPolishTests: XCTestCase {
     @MainActor func testPDFViewportSurvivesChromeAndNotesSizeChanges() throws {
         let controller = StudioPDFController()
         let view = controller.view
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 900, height: 1000))
         let root = UIViewController()
-        window.rootViewController = root
-        window.makeKeyAndVisible()
+        let (window, previous) = try studioTestWindow(root)
+        defer { window.isHidden = true; previous?.makeKeyAndVisible() }
         root.view.addSubview(view)
         view.frame = CGRect(x: 0, y: 0, width: 700, height: 850)
         view.layoutIfNeeded()
@@ -84,14 +83,13 @@ final class StudioPolishTests: XCTestCase {
         view.go(to: PDFDestination(page: page, at: CGPoint(x: 120, y: 600)))
         view.scaleFactor = 1.75
         let scale = view.scaleFactor
-        let point = try XCTUnwrap(view.currentDestination).point
+        let point = view.convert(CGPoint(x: view.bounds.midX, y: 1), to: page)
         view.frame = CGRect(x: 0, y: 0, width: 480, height: 620)
         view.setNeedsLayout()
         view.layoutIfNeeded()
         XCTAssertTrue(view.currentPage === page)
         XCTAssertEqual(view.scaleFactor, scale, accuracy: 0.01)
-        XCTAssertEqual(try XCTUnwrap(view.currentDestination).point.y, point.y, accuracy: 3)
-        window.isHidden = true
+        XCTAssertEqual(view.convert(CGPoint(x: view.bounds.midX, y: 1), to: page).y, point.y, accuracy: 3, "Preserve the visible reading line, not PDFKit currentDestination (the lower viewport edge)")
     }
 
     private func samplePDF(_ colors: [UIColor]) -> PDFDocument {

@@ -20,6 +20,7 @@ final class StudioNavigation: ObservableObject {
     @Published var sheet: StudioSheet?
     @Published var addNotebook = false
     @Published var color = 0x244C43
+    var onColorPick: ((Int) -> Void)?
     @Published var paper = 0
     @Published var preset = 0
     @Published var savedText = ""
@@ -93,7 +94,7 @@ struct StudioRoot: View {
     }
     @ViewBuilder private var content: some View {
         switch navigation.scene {
-        case .library: StudioLibrary(navigation: navigation)
+        case .library: StudioLibrary(session: session, navigation: navigation)
         case .document, .margin: StudioWorkspace(session: session, navigation: navigation, documentInk: documentInk, marginInk: marginInk, pdf: pdf, draft: draft)
         case .audio: StudioAudio(session: session, navigation: navigation)
         case .cards: StudioCards(navigation: navigation, session: session)

@@ -38,7 +38,11 @@ enum StudioPDF {
         paragraph.baseWritingDirection = L("ar", "en") == "ar" ? .rightToLeft : .leftToRight
         paragraph.lineSpacing = 9
         (text as NSString).draw(in: CGRect(x: x, y: y, width: width, height: 110), withAttributes: [
-            .font: UIFont.systemFont(ofSize: size, weight: bold ? .semibold : .regular),
+            // The system Arabic variable face separates dots into glyphs in
+            // generated PDF text maps. The stable guide uses these public
+            // document faces, which retain complete Arabic letter mappings.
+            .font: UIFont(name: bold ? "Arial-BoldMT" : "ArialMT", size: size)
+                ?? UIFont.systemFont(ofSize: size, weight: bold ? .semibold : .regular),
             .foregroundColor: StudioTheme.ui(color), .paragraphStyle: paragraph
         ])
     }

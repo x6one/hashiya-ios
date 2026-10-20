@@ -94,6 +94,20 @@ final class StudioCaptureTests: XCTestCase {
         app.terminate()
     }
 
+    func testUpdatedDocumentTextRendering() {
+        // Only the sample PDF font changed. Re-capture that surface, retaining
+        // prior successful library/margin/audio/card evidence without reruns.
+        for extra in [[], ["--dark"], ["--english"], ["--large-type"]] as [[String]] {
+            let app = launch("document", extra: extra)
+            snapshot("UpdatedPDF-\(extra.first ?? "Light")-Portrait")
+            if UIDevice.current.userInterfaceIdiom == .pad && extra.count < 1 {
+                XCUIDevice.shared.orientation = .landscapeLeft
+                snapshot("UpdatedPDF-Light-Landscape")
+            }
+            app.terminate()
+        }
+    }
+
     private func captureScenes(dark: Bool) {
         for scene in ["library", "document", "margin", "audio", "cards"] {
             let app = launch(scene, extra: dark ? ["--dark"] : [])

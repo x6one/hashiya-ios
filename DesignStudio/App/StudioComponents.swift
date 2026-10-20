@@ -19,10 +19,11 @@ struct TayyaIconButton: View {
 
 struct StudioSaveStatus: View {
     @ObservedObject var draft: StudioDraft
+    var identifier = "saveStatus"
     var body: some View {
         Text(draft.status == "saved" ? L("محفوظ محليًا", "Saved locally") : draft.status == "failed" ? L("تعذّر الحفظ", "Could not save") : draft.status == "saving" ? L("جارٍ الحفظ", "Saving") : L("مسودة المعاينة", "Preview draft"))
             .font(.caption2).foregroundStyle(draft.status == "failed" ? StudioTheme.destructive : StudioTheme.secondary).lineLimit(1)
-            .accessibilityIdentifier("saveStatus").accessibilityValue(draft.status)
+            .accessibilityIdentifier(identifier).accessibilityValue(draft.status)
     }
 }
 

@@ -185,9 +185,10 @@ final class StudioCanvas: NSObject, ObservableObject, PKCanvasViewDelegate {
         view.accessibilityValue = String(previousCount)
         view.delegate = self
     }
-    func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) { onActivate?() }
+    func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) { NSLog("%@", "StudioCanvas begin \(view.accessibilityIdentifier ?? "unknown") count=\(view.drawing.strokes.count)"); onActivate?() }
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
         let count = canvasView.drawing.strokes.count
+        NSLog("%@", "StudioCanvas changed \(view.accessibilityIdentifier ?? "unknown") previous=\(previousCount) count=\(count) callback=\(onStroke != nil)")
         if count > previousCount { onStroke?() }
         previousCount = count
         onDrawingChange?()
@@ -204,5 +205,5 @@ struct StudioInkView: UIViewRepresentable {
     let canvas: StudioCanvas
     var editable = true
     func makeUIView(context: Context) -> PKCanvasView { canvas.view }
-    func updateUIView(_ view: PKCanvasView, context: Context) { view.isUserInteractionEnabled = editable }
+    func updateUIView(_ view: PKCanvasView, context: Context) { if view.isUserInteractionEnabled != editable { view.isUserInteractionEnabled = editable } }
 }

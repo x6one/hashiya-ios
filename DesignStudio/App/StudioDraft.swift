@@ -41,7 +41,7 @@ final class StudioDraft: ObservableObject {
     private(set) var lastSaveError: String?
     private let url: URL
     private var unreadable = false
-    private let writer = DispatchQueue(label: "TayyaStudio.preview-draft", qos: .utility)
+    private let writer = DispatchQueue(label: "TayyaStudio.preview-draft", qos: .userInitiated)
     private var pending: DispatchWorkItem?
     private var revision = 0
 

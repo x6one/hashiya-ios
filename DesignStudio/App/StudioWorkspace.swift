@@ -29,7 +29,7 @@ struct StudioWorkspace: View {
 
     private var activeMargin: Bool {
         get { session.activeNotes }
-        nonmutating set { session.activeNotes = newValue }
+        nonmutating set { if session.activeNotes != newValue { session.activeNotes = newValue } }
     }
     private var expandedPresentation: Bool { session.notesExpanded || typeSize.isAccessibilitySize || narrowPane }
     private var editingNotes: Bool {
@@ -78,8 +78,8 @@ struct StudioWorkspace: View {
                 syncInkToolbar()
                 documentInk.onActivate = { activeMargin = false }
                 marginInk.onActivate = { activeMargin = true }
-                documentInk.onStroke = { session.markWriting(L("خط يد في المستند", "Document handwriting")) }
-                marginInk.onStroke = { session.markWriting(L("خط يد في الملاحظات", "Notes handwriting")) }
+                documentInk.onStroke = { NSLog("%@", "StudioCanvas document mark page=\(session.page) recording=\(session.recording)"); session.markWriting(L("خط يد في المستند", "Document handwriting")) }
+                marginInk.onStroke = { NSLog("%@", "StudioCanvas notes mark page=\(session.page) recording=\(session.recording)"); session.markWriting(L("خط يد في الملاحظات", "Notes handwriting")) }
                 documentInk.onDrawingChange = { draft.state.documentInk = documentInk.view.drawing.dataRepresentation() }
                 marginInk.onDrawingChange = { draft.state.marginInk = marginInk.view.drawing.dataRepresentation() }
                 navigation.onColorPick = { value in

@@ -16,7 +16,7 @@ struct StudioSheetView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     contents
-                    if sheet == .pens || sheet == .text { StudioSaveStatus(draft: draft) }
+                    if sheet == .pens || sheet == .text { StudioSaveStatus(draft: draft, identifier: "sheetSaveStatus") }
                 }
                     .padding(24).frame(maxWidth: 720).frame(maxWidth: .infinity)
             }.background(StudioTheme.background)
@@ -83,8 +83,12 @@ struct StudioSheetView: View {
                 TextField(L("رقم الصفحة", "Page number"), text: $pageNumber)
                     .keyboardType(.numberPad).textFieldStyle(.roundedBorder).frame(minHeight: StudioMetrics.touch)
                     .accessibilityIdentifier("pageNumberInput")
-                Button(L("انتقال", "Go")) { if session.jump(to: pageNumber) { dismiss() } }
-                    .frame(minWidth: StudioMetrics.touch, minHeight: StudioMetrics.touch)
+                Button {
+                    NSLog("%@", "StudioPage jump scalars=\(pageNumber.unicodeScalars.prefix(16).map { $0.value })")
+                    if session.jump(to: pageNumber) { dismiss() }
+                } label: {
+                    Text(L("انتقال", "Go")).frame(minWidth: StudioMetrics.touch, minHeight: StudioMetrics.touch).contentShape(Rectangle())
+                }.buttonStyle(.plain)
                     .accessibilityIdentifier("jumpToPage")
             }
             if let last = session.lastVisitedPage {

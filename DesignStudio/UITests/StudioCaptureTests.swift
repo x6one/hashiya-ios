@@ -39,9 +39,16 @@ final class StudioCaptureTests: XCTestCase {
         }
         let canvas = app.descendants(matching: .any).matching(identifier: tablet ? "marginCanvas" : "documentCanvas").firstMatch
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
+        let originalStrokes = Int(canvas.value as? String ?? "") ?? -1
+        XCTAssertGreaterThanOrEqual(originalStrokes, 0)
         let start = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.42))
         let end = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5))
         start.press(forDuration: 0.05, thenDragTo: end)
+        let committed = XCTNSPredicateExpectation(predicate: NSPredicate { element, _ in
+            guard let canvas = element as? XCUIElement, let count = Int(canvas.value as? String ?? "") else { return false }
+            return count > originalStrokes
+        }, object: canvas)
+        XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed, "The user drag must commit an actual PencilKit stroke before inspecting audio marks")
         if tablet { XCTAssertEqual(app.buttons["inkTarget"].value as? String, "margin") }
         app.buttons["openPageAudio"].tap()
         XCTAssertTrue(app.buttons["manualMarker"].waitForExistence(timeout: 8))
@@ -206,17 +213,19 @@ final class StudioCaptureTests: XCTestCase {
         note.typeText(" محفوظ")
         app.buttons["dismissKeyboard"].tap()
         assertSaved(app)
+        app.buttons["سماكة القلم"].tap()
+        app.buttons["6 pt"].tap()
         app.buttons["favoritePens"].tap()
         XCTAssertTrue(app.buttons["savePen-1"].waitForExistence(timeout: 5))
         for index in 1...3 { assertUsable(app.buttons["savePen-\(index)"]) }
         app.buttons["savePen-1"].tap()
-        assertSaved(app)
+        assertSaved(app, inSheet: true)
         snapshot("Polish-Favorite-Pens")
         app.terminate()
         let reopened = launch("margin", extra: ["--draft-id", "polish-reopen"])
         XCTAssertTrue((reopened.textViews["marginText"].value as? String ?? "").contains("محفوظ"))
         reopened.buttons["favoritePens"].tap()
-        XCTAssertEqual(reopened.buttons["usePen-1"].value as? String, "pen:#244C43:3")
+        XCTAssertEqual(reopened.buttons["usePen-1"].value as? String, "pen:#244C43:6")
         reopened.terminate()
     }
 
@@ -228,6 +237,8 @@ final class StudioCaptureTests: XCTestCase {
         input.tap()
         input.typeText("12")
         app.buttons["jumpToPage"].tap()
+        let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: input)
+        XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed, "Wait for the page sheet to dismiss before reading document accessibility values")
         XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
         app.buttons["pageCount"].tap()
         app.buttons["lastVisitedPage"].tap()
@@ -348,8 +359,8 @@ final class StudioCaptureTests: XCTestCase {
         return app
     }
 
-    private func assertSaved(_ app: XCUIApplication) {
-        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "saved"), object: app.staticTexts["saveStatus"])
+    private func assertSaved(_ app: XCUIApplication, inSheet: Bool = false) {
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "saved"), object: app.staticTexts[inSheet ? "sheetSaveStatus" : "saveStatus"])
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed, "Wait for actual atomic preview save completion")
     }
 

@@ -5,10 +5,10 @@ enum LibraryDestination: String, CaseIterable, Identifiable {
     var id: Self { self }
     var title: String {
         switch self {
-        case .library: return "المكتبة"
-        case .sections: return "الأقسام"
-        case .review: return "المراجعة"
-        case .settings: return "الإعدادات"
+        case .library: return TayyaLocalized("المكتبة")
+        case .sections: return TayyaLocalized("الأقسام")
+        case .review: return TayyaLocalized("المراجعة")
+        case .settings: return TayyaLocalized("الإعدادات")
         }
     }
     var symbol: String {

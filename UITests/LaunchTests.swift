@@ -2,6 +2,25 @@ import XCTest
 import UIKit
 
 final class LaunchTests: XCTestCase {
+    private func revealWorkspaceTools(in app: XCUIApplication) {
+        let focus = app.buttons["focusToggle"]
+        if focus.exists && focus.value as? String == "focused" { focus.tap() }
+    }
+    private func openWorkspaceAction(_ identifier: String, in app: XCUIApplication) {
+        revealWorkspaceTools(in: app)
+        app.buttons["workspaceActions"].tap()
+        let action = app.buttons[identifier]
+        XCTAssertTrue(action.waitForExistence(timeout: 10), "Real document action must be available: " + identifier)
+        XCTAssertTrue(action.isHittable, "Real document action must be tappable: " + identifier)
+        action.tap()
+    }
+    private func openExpandedNotes(in app: XCUIApplication) {
+        revealWorkspaceTools(in: app)
+        app.buttons["openMargin"].tap()
+        if app.descendants(matching: .any)["splitDivider"].firstMatch.exists {
+            app.buttons["expandMargin"].tap()
+        }
+    }
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
         inkPixels(in: XCUIScreen.main.screenshot().image, frame: canvas.frame)
     }
@@ -71,7 +90,7 @@ final class LaunchTests: XCTestCase {
         demo.tap()
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.textFields["Username"].exists)
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         XCTAssertTrue(app.textViews["splitNotes"].waitForExistence(timeout: 10))
         XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("ملاحظة تجريبية") == true)
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "FirstLaunchReviewAccess"; shot.lifetime = .keepAlways; add(shot)
@@ -83,11 +102,10 @@ final class LaunchTests: XCTestCase {
         let title = app.textFields["notebookTitle"]; title.tap(); title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
         app.buttons["إنشاء"].tap()
         let note = visibleLibraryDocument(name, in: app); note.tap()
-        let groups = app.segmentedControls["workspaceToolGroups"]
-        XCTAssertTrue(groups.waitForExistence(timeout: 10)); groups.buttons["صفحات"].tap()
-        app.buttons["addWritingPaper"].tap(); app.buttons["نقاط"].tap()
+        XCTAssertTrue(app.buttons["workspaceActions"].waitForExistence(timeout: 10))
+        openWorkspaceAction("addWritingPaper", in: app); app.buttons["نقاط"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
-        app.buttons["deleteDocumentPage"].tap()
+        openWorkspaceAction("deleteDocumentPage", in: app)
         XCTAssertTrue(app.staticTexts["حذف صفحة المستند 2 وكتابتها؟"].waitForExistence(timeout: 5))
         let confirmation = app.sheets["حذف صفحة المستند 2 وكتابتها؟"]
         let actions = confirmation.buttons.matching(identifier: "confirmDocumentPageDeletion").allElementsBoundByIndex
@@ -101,14 +119,14 @@ final class LaunchTests: XCTestCase {
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (app.textFields["pageNumber"].value as? String) == "1"
                 && !app.buttons["nextDocumentPage"].isEnabled
-                && app.buttons["undoDocumentPageDeletion"].isEnabled
         }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
+        app.buttons["workspaceActions"].tap()
         XCTAssertTrue(app.buttons["undoDocumentPageDeletion"].isEnabled)
         app.buttons["undoDocumentPageDeletion"].tap()
         XCTAssertTrue(app.buttons["nextDocumentPage"].isEnabled)
-        groups.buttons["كتابة"].tap(); app.buttons["openMargin"].tap()
+        openExpandedNotes(in: app)
         app.buttons["addMarginPage"].tap()
         app.segmentedControls["marginMode"].buttons["نص"].tap()
         let text = app.textViews["splitNotes"]; text.tap(); text.typeText("Recover this page")
@@ -133,7 +151,7 @@ final class LaunchTests: XCTestCase {
         if !demo.isHittable { app.swipeDown() }
         demo.tap()
         XCTAssertTrue(app.textFields["pageNumber"].waitForExistence(timeout: 15))
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         XCTAssertTrue(app.segmentedControls["marginMode"].waitForExistence(timeout: 10))
         app.segmentedControls["marginMode"].buttons["نص"].tap()
         XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("ملاحظة تجريبية") == true)
@@ -195,7 +213,7 @@ final class LaunchTests: XCTestCase {
         if previous.isEnabled { previous.tap() }
         let pen = app.buttons["inkTool"]
         for stage in ["document", "split"] {
-            if stage == "split" { app.buttons["splitDocumentNotes"].tap() }
+            if stage == "split" { openWorkspaceAction("splitDocumentNotes", in: app) }
             let initial = page.value as? String
             let margin = stage == "split" ? app.buttons["marginPages"].value as? String : nil
             for _ in 0..<12 {
@@ -233,7 +251,7 @@ final class LaunchTests: XCTestCase {
         }
         print("Margin creation verified title: " + String(describing: title.value))
         app.buttons["saveNotebook"].tap(); visibleLibraryDocument(name, in: app).tap()
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         let text = app.textViews["splitNotes"]
         XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap(); text.typeText("Switch from text to handwriting")
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
@@ -265,7 +283,7 @@ final class LaunchTests: XCTestCase {
         let count = canvas.value as? String
         XCUIDevice.shared.orientation = .portrait
         app.terminate(); app.launch()
-        visibleLibraryDocument(name, in: app).tap(); app.buttons["splitDocumentNotes"].tap()
+        visibleLibraryDocument(name, in: app).tap(); openWorkspaceAction("splitDocumentNotes", in: app)
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
         XCTAssertEqual(canvas.value as? String, count, "All newly drawn strokes must survive reopening")
     }
@@ -572,7 +590,6 @@ final class LaunchTests: XCTestCase {
         visibleLibraryDocument("ملف التجربة", in: app).tap()
         let canvas = app.otherElements["pdfCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
-        app.segmentedControls["workspaceToolGroups"].buttons["دراسة"].tap()
         let initial = canvas.frame
         let record = app.buttons["recordLinkedAudio"]
         XCTAssertTrue(record.isHittable)
@@ -594,11 +611,9 @@ final class LaunchTests: XCTestCase {
         record.tap()
         XCTAssertFalse(app.buttons["marginPages"].exists)
         XCTAssertEqual(canvas.frame, initial)
-        app.segmentedControls["workspaceToolGroups"].buttons["كتابة"].tap()
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         let pages = app.buttons["marginPages"]
         XCTAssertTrue(pages.waitForExistence(timeout: 5))
-        app.segmentedControls["workspaceToolGroups"].buttons["دراسة"].tap()
         let splitFrame = canvas.frame, position = pages.value as? String
         record.tap()
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)], timeout: 10), .completed)
@@ -636,7 +651,7 @@ final class LaunchTests: XCTestCase {
         let library = XCTAttachment(screenshot: app.screenshot()); library.name = "VisibleLibraryNavigation"; library.lifetime = .keepAlways; add(library)
         let demo = visibleLibraryDocument("ملف التجربة", in: app)
         XCTAssertTrue(demo.waitForExistence(timeout: 10)); demo.tap()
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         XCTAssertTrue(app.textViews["splitNotes"].waitForExistence(timeout: 5))
         let split = XCTAttachment(screenshot: app.screenshot()); split.name = "AdaptiveSplitNotes"; split.lifetime = .keepAlways; add(split)
     }
@@ -647,7 +662,7 @@ final class LaunchTests: XCTestCase {
         let title = app.textFields["notebookTitle"]; title.tap(); title.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30) + name)
         app.buttons["إنشاء"].tap()
         let note = visibleLibraryDocument(name, in: app); XCTAssertTrue(note.waitForExistence(timeout: 10)); note.tap()
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         let text = app.textViews["splitNotes"]; XCTAssertTrue(text.waitForExistence(timeout: 5)); text.tap()
         let firstText = "First margin page - keep this text."
         text.typeText(firstText)
@@ -699,17 +714,17 @@ final class LaunchTests: XCTestCase {
         assertMarginInkVisible(canvas, in: app, stage: "full-screen")
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "PagedHandwritingFullScreen"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["expandMargin"].tap()
-        app.buttons["openMargin"].tap()
+        openExpandedNotes(in: app)
         XCTAssertEqual(canvas.value as? String, count, "The Notes menu must reuse the same drawing")
         app.buttons["expandMargin"].tap()
-        app.segmentedControls["workspaceToolGroups"].buttons["صفحات"].tap(); app.buttons["addWritingPaper"].tap(); app.buttons["نقاط"].tap()
+        openWorkspaceAction("addWritingPaper", in: app); app.buttons["نقاط"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/2", "Document navigation must not turn the notes page")
         app.buttons["previousDocumentPage"].tap(); XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
         let split = XCTAttachment(screenshot: app.screenshot()); split.name = "PagedMarginsSplit"; split.lifetime = .keepAlways; add(split)
         app.terminate(); app.launch()
         let reopened = visibleLibraryDocument(name, in: app); XCTAssertTrue(reopened.waitForExistence(timeout: 10)); reopened.tap()
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         XCTAssertEqual(app.buttons["marginPages"].value as? String, "1/2")
         XCTAssertEqual(app.textViews["splitNotes"].value as? String, firstText)
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap(); XCTAssertEqual(canvas.value as? String, count)
@@ -830,7 +845,7 @@ final class LaunchTests: XCTestCase {
         visibleLibraryDocument("ابدأ هنا — دليل طَيّة", in: app).tap()
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 10))
         capturePaperStudio(appearance + "-DocumentToolsPortrait", in: app)
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
         let margin = app.scrollViews["marginInkCanvas"]
         XCTAssertTrue(margin.waitForExistence(timeout: 5))
@@ -885,7 +900,7 @@ final class LaunchTests: XCTestCase {
         demo.tap()
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 15))
         capturePaperStudio("AccessibilityType-DocumentTools", in: app)
-        app.buttons["openMargin"].tap()
+        openExpandedNotes(in: app)
         XCTAssertTrue(app.segmentedControls["marginMode"].waitForExistence(timeout: 5))
         app.segmentedControls["marginMode"].buttons["خط اليد"].tap()
         let margin = app.scrollViews["marginInkCanvas"]
@@ -1004,13 +1019,18 @@ final class LaunchTests: XCTestCase {
         guard toolbar.waitForExistence(timeout: 5), control.waitForExistence(timeout: 5) else {
             XCTFail("Missing individual ink control: " + identifier); return false
         }
-        // The SwiftUI scroll AX frame can extend into the landscape safe area
-        // (x=0 while the native margin begins at x=62). Use the writing surface's
-        // horizontal native bounds before asking XCTest for an activation point.
+        // The full-width native rail can extend outside the Notes pane.
+        // Its real window intersection, not Notes width, defines safe touches.
         func visibleViewport() -> CGRect {
-            let frame = toolbar.frame, surface = writingSurface.frame
-            return frame.intersection(CGRect(x: surface.minX, y: frame.minY,
-                width: surface.width, height: frame.height)).intersection(app.frame)
+            // The shared rail spans both native panes, while their union still
+            // excludes landscape safe areas. Never use only the narrow Notes pane.
+            var paper = writingSurface.frame
+            let pdf = app.otherElements["pdfCanvas"]
+            if pdf.exists { paper = paper.union(pdf.frame) }
+            let frame = toolbar.frame
+            return frame.intersection(CGRect(x: paper.minX, y: frame.minY,
+                width: paper.width, height: frame.height))
+                .intersection(app.windows.firstMatch.frame).intersection(app.frame)
         }
         func containsTarget(_ target: CGRect, in viewport: CGRect) -> Bool {
             !viewport.isNull && !viewport.isEmpty
@@ -1365,6 +1385,8 @@ final class LaunchTests: XCTestCase {
                 viewport.name = "MarginMount-" + name + "-DocumentViewport"
                 viewport.lifetime = .keepAlways; activity.add(viewport)
             }
+            revealWorkspaceTools(in: app)
+            app.buttons["workspaceActions"].tap()
             let split = app.buttons["splitDocumentNotes"]
             guard split.waitForExistence(timeout: 15) else { XCTFail("Native document must expose split"); return }
             split.tap()
@@ -1425,7 +1447,7 @@ final class LaunchTests: XCTestCase {
         app.buttons["inkTool"].tap()
         guard exerciseIndividualInkTargets(in: app, canvas: pdf, count: app.buttons["inkTool"],
             allowsWidthFit: false, name: variant + "-DocumentInk") else { return }
-        app.buttons["splitDocumentNotes"].tap()
+        openWorkspaceAction("splitDocumentNotes", in: app)
         let mode = app.segmentedControls["marginMode"]
         let handwriting = mode.buttons["خط اليد"]
         guard mode.waitForExistence(timeout: 5), handwriting.isHittable else {
@@ -1454,6 +1476,7 @@ final class LaunchTests: XCTestCase {
         let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
         guard margin.waitForExistence(timeout: 5) else { XCTFail("Split must retain its native margin canvas"); return }
+        revealWorkspaceTools(in: app)
         XCTAssertTrue(pdf.exists, "Compact split must retain the PDF beside handwriting")
         let pdfFrame = pdf.frame
         XCTAssertEqual(mode.value as? String, "handwriting", "Rotation must retain the real model mode")

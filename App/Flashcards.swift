@@ -10,11 +10,12 @@ struct Flashcard: Identifiable, Codable {
     @Published private(set) var cards: [Flashcard] = []
     @Published var error: String?
     let url: URL
+    private var loadFailure: Error?
     init(url: URL) {
         self.url = url
         if FileManager.default.fileExists(atPath: url.path) {
             do { cards = try JSONDecoder().decode([Flashcard].self, from: Data(contentsOf: url)) }
-            catch { self.error = error.localizedDescription }
+            catch { loadFailure = error; self.error = error.localizedDescription }
         }
     }
     @discardableResult func save(_ card: Flashcard) -> Bool {
@@ -23,7 +24,10 @@ struct Flashcard: Identifiable, Codable {
     }
     func delete(_ id: UUID) { commit(cards.filter { $0.id != id }) }
     @discardableResult private func commit(_ updated: [Flashcard]) -> Bool {
-        do { try JSONEncoder().encode(updated).write(to: url, options: .atomic); cards = updated; return true }
+        do {
+            if let loadFailure { throw loadFailure }
+            try JSONEncoder().encode(updated).write(to: url, options: .atomic); cards = updated; return true
+        }
         catch { self.error = error.localizedDescription; return false }
     }
 }
@@ -42,7 +46,7 @@ struct CardEditor: View {
                 ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("حفظ") { if save(card) { dismiss() } }.accessibilityIdentifier("saveFlashcard").disabled(card.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || card.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
             }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }
 struct FlashcardsScreen: View {
@@ -78,7 +82,7 @@ struct FlashcardsScreen: View {
                 ToolbarItem(placement: .primaryAction) { Button("إضافة", systemImage: "plus") { editing = Flashcard(question: "", answer: "", page: 1) }.accessibilityIdentifier("addFlashcard") }
             }.sheet(item: $editing) { card in CardEditor(card: card, save: store.save) }
             .alert("تعذر الحفظ", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسنًا") { store.error = nil } } message: { Text(store.error ?? "") }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }
 struct LibraryCardsScreen: View {
@@ -115,6 +119,6 @@ struct LibraryCardsScreen: View {
             .task(id: library.notebooks) { await refreshCounts() }
             .onChange(of: selected) { _, value in if value == nil { Task { await refreshCounts() } } }
             .sheet(item: $selected) { note in FlashcardsScreen(url: library.root.appendingPathComponent(note.id.uuidString + "-cards.json")) }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }

@@ -78,6 +78,8 @@ import AVFoundation
     func start() async {
         guard !recording, !requestingPermission,
               playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
+        do { _ = try readLinks() }
+        catch { self.error = error.localizedDescription; return }
         stopActivity()
         requestingPermission = true
         error = nil
@@ -85,7 +87,7 @@ import AVFoundation
         defer { if token == generation { requestingPermission = false } }
         let allowed = await requestPermission()
         guard token == generation else { return }
-        guard allowed else { error = "اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."; return }
+        guard allowed else { error = TayyaLocalized("اسمح لطَيّة باستخدام الميكروفون من إعدادات الجهاز."); return }
         guard playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
         do {
             stopPlayback(); playbackPeer?.stopPlayback()
@@ -210,9 +212,9 @@ import AVFoundation
         // same folder with different trailing-slash URL metadata. Compare
         // canonical filesystem paths, while still rejecting outside clips.
         guard !recording, !requestingPermission, url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path == folder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
-        let retained = loadLinks().filter { $0.clip != url.lastPathComponent }
         let parked = folder.appendingPathComponent(".deleting-" + UUID().uuidString)
         do {
+            let retained = try readLinks().filter { $0.clip != url.lastPathComponent }
             let data = try JSONEncoder().encode(retained)
             if playing == url { player?.stop(); player = nil; playing = nil; deactivateAudioSession() }
             try FileManager.default.moveItem(at: url, to: parked)
@@ -261,7 +263,7 @@ struct PageAudioScreen: View {
                     Button("إلغاء", role: .cancel) { deletingClip = nil }
                 }
                 .alert("الصوت", isPresented: Binding(get: { audio.error != nil }, set: { if !$0 { audio.error = nil } })) { Button("حسناً") { audio.error = nil } } message: { Text(audio.error ?? "") }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
             .onAppear {
                 if let playbackPeer {
                     audio.coordinatePlayback(with: playbackPeer)

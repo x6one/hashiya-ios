@@ -1,8 +1,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import UIKit
 
 struct LibraryScreen: View {
     var allowsInitialWelcome: Bool = true
+    @ObservedObject var localization = TayyaLocalization.shared
     @EnvironmentObject private var store: LibraryStore
     @State private var importing = false
     @State private var creating = false
@@ -38,7 +40,7 @@ struct LibraryScreen: View {
     }
     var body: some View {
         NavigationStack { libraryPresentation }
-            .tint(TayyaTheme.ink).environment(\.layoutDirection, .rightToLeft)
+            .tint(TayyaTheme.ink)
             // Files owns localization. Its host is outside the forced Arabic
             // content layout, with a single native presentation lifecycle.
             .sheet(isPresented: $importing) {
@@ -46,6 +48,8 @@ struct LibraryScreen: View {
                     importing = false
                     finishPicking(urls)
                 }.ignoresSafeArea()
+                    .environment(\.locale, Locale.current)
+                    .environment(\.layoutDirection, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .rightToLeft : .leftToRight)
             }
     }
     private var libraryPresentation: some View {
@@ -100,7 +104,7 @@ struct LibraryScreen: View {
                 Button("إلغاء", role: .cancel) { deleting = nil }
             }
             .sheet(item: $moving) { note in
-                NavigationStack { List(store.sections, id: \.self) { name in Button(name) { store.change(note.id) { $0.section = name }; moving = nil } }.navigationTitle("نقل إلى قسم").toolbar { Button("إلغاء") { moving = nil } } }.environment(\.layoutDirection, .rightToLeft)
+                NavigationStack { List(store.sections, id: \.self) { name in Button(name) { store.change(note.id) { $0.section = name }; moving = nil } }.navigationTitle("نقل إلى قسم").toolbar { Button("إلغاء") { moving = nil } } }
             }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
     }
@@ -141,7 +145,7 @@ struct LibraryScreen: View {
         }
     }
     private var libraryTitle: String {
-        showTrash ? "المحذوفات" : favorites ? "المفضلة" : section == "مكتبتي" ? "مكتبتك" : section ?? "كل الملفات"
+        showTrash ? TayyaLocalized("المحذوفات") : favorites ? TayyaLocalized("المفضلة") : section == "مكتبتي" ? TayyaLocalized("مكتبتك") : section ?? TayyaLocalized("كل الملفات")
     }
     private var recentNotebook: Notebook? {
         filtered.first { $0.id.uuidString == lastOpenedNotebook }
@@ -157,8 +161,10 @@ struct LibraryScreen: View {
                 Button { selectDestination(item) } label: {
                     VStack(spacing: 4) {
                         Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
-                        Text(item.title).font(.caption.weight(destination == item ? .semibold : .regular))
-                            .fixedSize(horizontal: false, vertical: true)
+                        if !dynamicTypeSize.isAccessibilitySize {
+                            Text(item.title).font(.caption.weight(destination == item ? .semibold : .regular))
+                                .fixedSize(horizontal: true, vertical: true)
+                        }
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .foregroundStyle(destination == item ? TayyaTheme.ink : TayyaTheme.detail)
@@ -166,6 +172,7 @@ struct LibraryScreen: View {
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: destination == item)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
                 .accessibilityIdentifier(item.accessibilityID)
                 .accessibilityAddTraits(destination == item ? .isSelected : [])
             }
@@ -263,10 +270,10 @@ struct LibraryScreen: View {
     private var libraryFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterButton("المكتبة", selected: section == "مكتبتي" && !favorites) { section = "مكتبتي"; favorites = false }
+                filterButton(TayyaLocalized("المكتبة"), selected: section == "مكتبتي" && !favorites) { section = "مكتبتي"; favorites = false }
                     .accessibilityIdentifier("libraryRoot")
-                filterButton("كل الملفات", selected: section == nil && !favorites) { section = nil; favorites = false }
-                filterButton("المفضلة", selected: favorites) { favorites = true; section = nil }
+                filterButton(TayyaLocalized("كل الملفات"), selected: section == nil && !favorites) { section = nil; favorites = false }
+                filterButton(TayyaLocalized("المفضلة"), selected: favorites) { favorites = true; section = nil }
                 ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in
                     filterButton(name, selected: section == name && !favorites) { section = name; favorites = false }
                 }
@@ -357,6 +364,11 @@ struct LibraryScreen: View {
                 }.accessibilityIdentifier("openDemonstration")
                 Button("دليل البداية", systemImage: "questionmark.circle") { welcome = true }
             }
+            Section("اللغة") {
+                Picker("لغة الواجهة", selection: $localization.language) {
+                    ForEach(TayyaAppLanguage.allCases) { language in Text(language.title).tag(language) }
+                }.accessibilityIdentifier("appLanguage")
+            }
             Section("عن طَيّة") {
                 Text("ملفاتك وكتابتك وتسجيلاتك محفوظة على جهازك.").font(.subheadline).foregroundStyle(TayyaTheme.detail)
                 Text("By Ahmad Al-awi").font(.footnote).foregroundStyle(TayyaTheme.detail)
@@ -439,7 +451,7 @@ struct LibraryScreen: View {
                         .accessibilityLabel("المفضلة")
                 }
             }
-            Text(note.section).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+            Text(note.section == "مكتبتي" ? TayyaLocalized("مكتبتي") : note.section).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }.font(.caption).foregroundStyle(TayyaTheme.detail)
     }

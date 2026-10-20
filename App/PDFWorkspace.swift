@@ -21,6 +21,7 @@ struct PageText: Codable, Identifiable {
 }
 @MainActor final class PDFWorkspace: ObservableObject {
     enum Tool { case read, ink, text, lasso }
+    enum SaveState: String { case saved, saving, failed }
     @Published private(set) var document: PDFDocument
     let storage: URL
     let textURL: URL
@@ -37,6 +38,9 @@ struct PageText: Codable, Identifiable {
     @Published var exported: URL?
     @Published var selectedInkCount = 0
     @Published var canUndoPageDeletion = false
+    @Published var saveState: SaveState = .saved
+    private var documentFailure: Error?
+    private var textFailure: Error?
     var inkAction: ((String) -> Void)?
     var onTextSaved: ((PageText) -> Void)?
     var onInkSaved: ((Int, Int) -> Void)?
@@ -48,7 +52,9 @@ struct PageText: Codable, Identifiable {
         originalPDFURL = root.appendingPathComponent(note.id.uuidString + "-source.pdf")
         var recoveryError: Error?
         do { try DocumentPageRemoval.recover(note, root: root) } catch { recoveryError = error }
-        document = recoveryError == nil ? (PDFDocument(url: fileURL) ?? PDFDocument()) : PDFDocument()
+        let loaded = recoveryError == nil ? PDFDocument(url: fileURL) : nil
+        document = loaded ?? PDFDocument()
+        documentFailure = recoveryError ?? (loaded == nil ? CocoaError(.fileReadCorruptFile) : nil)
         storage = root.appendingPathComponent(note.id.uuidString)
         textURL = root.appendingPathComponent(note.id.uuidString + "-text.json")
         do {
@@ -57,8 +63,12 @@ struct PageText: Codable, Identifiable {
             for item in texts { install(item) }
             inkStrokeCount = savedInkCount(on: 0)
             canUndoPageDeletion = DocumentPageRemoval.hasUndo(note, root: root)
-            if let recoveryError { self.error = recoveryError.localizedDescription }
-        } catch { self.error = error.localizedDescription }
+            if let documentFailure { self.error = documentFailure.localizedDescription; saveState = .failed }
+        } catch { textFailure = error; self.error = error.localizedDescription; saveState = .failed }
+    }
+    func requireWritable() throws {
+        if let documentFailure { throw documentFailure }
+        if let textFailure { throw textFailure }
     }
     func savedInkCount(on index: Int) -> Int {
         guard let data = try? Data(contentsOf: storage.appendingPathComponent("\(index).drawing")),
@@ -83,14 +93,16 @@ struct PageText: Codable, Identifiable {
         var updated = texts.filter { $0.id != item.id }
         if !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { updated.append(item) }
         do {
+            try requireWritable()
+            saveState = .saving
             try JSONEncoder().encode(updated).write(to: textURL, options: .atomic)
             if let page = document.page(at: item.page) { for annotation in page.annotations where annotation.userName == item.id.uuidString { page.removeAnnotation(annotation) } }
             texts = updated; canUndoPageDeletion = false
             if updated.contains(where: { $0.id == item.id }) { install(item) }
             view?.setNeedsDisplay()
             onTextSaved?(item)
-            editing = nil
-        } catch { self.error = error.localizedDescription }
+            editing = nil; saveState = .saved
+        } catch { self.error = error.localizedDescription; saveState = .failed }
     }
     func jump(_ number: Int) {
         guard number > 0, number <= document.pageCount, let target = document.page(at: number - 1) else { error = "أدخل رقمًا بين 1 و\(document.pageCount)."; return }
@@ -110,6 +122,8 @@ struct PageText: Codable, Identifiable {
     }
     /// Append keeps the existing page-indexed ink, text, OCR and audio anchors valid.
     func appendPaper(_ template: PaperTemplate) {
+        do { try requireWritable() }
+        catch { self.error = error.localizedDescription; saveState = .failed; return }
         guard let paper = PDFDocument(data: template.render(color: .cream))?.page(at: 0) else { return }
         let index = document.pageCount
         var copiedOriginal = false
@@ -128,11 +142,13 @@ struct PageText: Codable, Identifiable {
         }
     }
     func deletePage(_ number: Int, note: Notebook, root: URL) throws {
+        try requireWritable()
         try DocumentPageRemoval.delete(number, note: note, root: root)
         try reload(page: min(number, document.pageCount - 1))
         canUndoPageDeletion = true
     }
     func undoPageDeletion(note: Notebook, root: URL) throws {
+        try requireWritable()
         try DocumentPageRemoval.undo(note, root: root)
         try reload(page: page)
         canUndoPageDeletion = false
@@ -146,6 +162,8 @@ struct PageText: Codable, Identifiable {
         selectedInkCount = 0; editing = nil
     }
     func export() {
+        do { try requireWritable() }
+        catch { self.error = error.localizedDescription; return }
         guard let first = document.page(at: 0) else { return }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("Tayya-" + UUID().uuidString + ".pdf")
         let renderer = UIGraphicsPDFRenderer(bounds: first.bounds(for: .mediaBox))
@@ -258,7 +276,12 @@ struct DocumentScreen: View {
     @State private var restoredReadingPosition = false
     @FocusState private var pageFocused: Bool
     @ScaledMetric(relativeTo: .body) private var pageFieldWidth: CGFloat = 48
-    @State private var toolGroup: WorkspaceToolGroup = .writing
+    @State private var manualFocus: Bool?
+    @State private var editingTarget: TayyaEditingTarget = .document
+    @StateObject private var notesCanvasControl = MarginCanvasControl()
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.verticalSizeClass) private var verticalClass
     @State private var showPaperPicker = false
     @State private var showDocumentPages = false
     @State private var deletingPage: Int?
@@ -307,38 +330,75 @@ struct DocumentScreen: View {
             .alert("قراءة الصفحات", isPresented: Binding(get: { !ocrMessage.isEmpty }, set: { if !$0 { ocrMessage = "" } })) { Button("حسنًا") { ocrMessage = "" } } message: { Text(ocrMessage) }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { workspace.error != nil }, set: { if !$0 { workspace.error = nil } })) { Button("حسناً") { workspace.error = nil } } message: { Text(workspace.error ?? "") }
     }
+    private var focused: Bool {
+        manualFocus ?? (verticalClass == .compact && typeSize >= .accessibility3)
+    }
     private var documentContent: some View {
         VStack(spacing: 0) {
-            if notesExpanded {
-                RecordingStrip(audio: audio, action: toggleRecording)
-            } else {
-                toolsBar
-                // Wide layouts share one row to retain landscape writing space.
-                workspaceNavigation
-            }
-            if workspace.tool == .ink && !notesExpanded {
-                InkToolbar(brush: $workspace.brush, color: $workspace.inkColor, width: $workspace.inkWidth) { action in
-                    if action == "fit" { workspace.fit() } else { workspace.inkAction?(action) }
+            workspaceNavigation
+                .frame(height: focused ? 0 : nil).clipped()
+                .opacity(focused ? 0 : 1).allowsHitTesting(!focused).accessibilityHidden(focused)
+            documentSurface
+            DocumentChrome(workspace: workspace, margins: margins, editor: margins.editor,
+                           notesControl: notesCanvasControl, target: $editingTarget,
+                           notesVisible: splitNotes || notesExpanded, notesExpanded: notesExpanded,
+                           chooseNotes: openNotes, openPages: { showDocumentPages = true },
+                           dismissPageKeyboard: { pageFocused = false })
+                .frame(height: focused ? 0 : nil).clipped()
+                .opacity(focused ? 0 : 1).allowsHitTesting(!focused).accessibilityHidden(focused)
+        }.background(TayyaTheme.paper)
+    }
+    private var documentSurface: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            let notesMinimum: CGFloat = typeSize >= .accessibility3 ? 440 : TayyaMetrics.notesMinimum
+            let showNotes = splitNotes || notesExpanded
+            let forcedExpansion = splitNotes && sizeClass == .regular && typeSize >= .accessibility3
+                && size.width < notesMinimum + TayyaMetrics.documentMinimum + 16
+            let expanded = notesExpanded || forcedExpansion
+            let split = showNotes && !expanded
+            let horizontal = split && size.width >= notesMinimum + TayyaMetrics.documentMinimum + 16
+            let available = max(1, size.width - 16)
+            let fraction = horizontal ? min(1 - notesMinimum / available,
+                max(TayyaMetrics.documentMinimum / available, CGFloat(boundedFraction))) : CGFloat(boundedFraction)
+            let documentWidth = horizontal ? available * fraction : size.width
+            let documentHeight = split && !horizontal ? max(1, size.height - 16) * fraction : size.height
+            let notesWidth = horizontal ? size.width - documentWidth - 16 : size.width
+            let notesHeight = split && !horizontal ? max(1, size.height - documentHeight - 16) : size.height
+            ZStack(alignment: .topLeading) {
+                // Exactly one retained native host through tools, Focus and Notes.
+                NativePDF(workspace: workspace)
+                    .frame(width: documentWidth, height: documentHeight)
+                    .position(x: documentWidth / 2, y: documentHeight / 2)
+                    .opacity(expanded ? 0 : 1).allowsHitTesting(!expanded).accessibilityHidden(expanded)
+                notesPane(expanded: expanded, forced: forcedExpansion, presented: showNotes)
+                    .frame(width: notesWidth, height: notesHeight)
+                    .position(x: horizontal ? documentWidth + 16 + notesWidth / 2 : size.width / 2,
+                              y: split && !horizontal ? documentHeight + 16 + notesHeight / 2 : size.height / 2)
+                    .opacity(showNotes ? 1 : 0).allowsHitTesting(showNotes).accessibilityHidden(!showNotes)
+                if split {
+                    splitDivider(size: size, horizontal: horizontal)
+                        .position(x: horizontal ? documentWidth + 8 : size.width / 2,
+                                  y: horizontal ? size.height / 2 : documentHeight + 8)
                 }
             }
-            GeometryReader { geometry in
-                if notesExpanded { notesPane }
-                else if splitNotes && geometry.size.width >= 650 {
-                    HStack(spacing: 0) {
-                        NativePDF(workspace: workspace).frame(width: (geometry.size.width - 16) * boundedFraction)
-                        splitDivider(size: geometry.size, horizontal: true)
-                        notesPane.frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                } else if splitNotes {
-                    VStack(spacing: 0) {
-                        NativePDF(workspace: workspace).frame(height: (geometry.size.height - 16) * boundedFraction)
-                        splitDivider(size: geometry.size, horizontal: false)
-                        notesPane.frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                } else { NativePDF(workspace: workspace) }
-            }
-            if workspace.tool == .lasso && !notesExpanded { lassoControls }
         }
+    }
+    private func openNotes() {
+        pageFocused = false
+        if notesExpanded {
+            notesExpanded = false; splitNotes = false; editingTarget = .document
+        } else if splitNotes {
+            notesExpanded = true; editingTarget = .notes
+        } else {
+            splitNotes = true; notesExpanded = sizeClass != .regular; editingTarget = .notes
+        }
+    }
+    private func toggleNotesSplit() {
+        pageFocused = false
+        if notesExpanded { notesExpanded = false; splitNotes = true }
+        else { splitNotes.toggle() }
+        editingTarget = .document
     }
     private var boundedFraction: Double { min(0.7, max(0.3, splitFraction)) }
     private func splitDivider(size: CGSize, horizontal: Bool) -> some View {
@@ -358,7 +418,7 @@ struct DocumentScreen: View {
             .contentShape(Rectangle())
             .gesture(DragGesture().onChanged { value in
                 if dragFraction == nil { dragFraction = boundedFraction }
-                let delta = horizontal ? -value.translation.width / max(1, size.width - 16) : value.translation.height / max(1, size.height - 16)
+                let delta = horizontal ? value.translation.width / max(1, size.width - 16) : value.translation.height / max(1, size.height - 16)
                 splitFraction = min(0.7, max(0.3, (dragFraction ?? boundedFraction) + delta))
             }.onEnded { _ in dragFraction = nil })
             .padding(.horizontal, horizontal ? -14 : 0).padding(.vertical, horizontal ? 0 : -14)
@@ -368,7 +428,17 @@ struct DocumentScreen: View {
     }
     private var documentPresentation: some View {
         documentContent.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
-            .overlay(alignment: .top) { if workspace.tool == .text { Text("المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله.").font(.caption).padding(10).background(.regularMaterial, in: Capsule()).padding(8).allowsHitTesting(false) } }
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    TayyaIconButton(title: focused ? "إظهار الأدوات" : "وضع التركيز",
+                                    symbol: focused ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right") {
+                        pageFocused = false; manualFocus = !focused
+                    }.accessibilityIdentifier("focusToggle").accessibilityValue(focused ? "focused" : "standard")
+                    TayyaIconButton(title: "مشاركة", symbol: "square.and.arrow.up") { workspace.export() }
+                        .accessibilityIdentifier("exportDocument")
+                    workspaceActions
+                }
+            }
             .onChange(of: pageFocused) { _, focused in
                 if focused { pageNumber = "" }
                 else if pageNumber.isEmpty { pageNumber = String(workspace.page) }
@@ -379,76 +449,51 @@ struct DocumentScreen: View {
             }
 
     }
-    private var toolsBar: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 14) {
-                toolGroupPicker.frame(minWidth: 240, idealWidth: 280, maxWidth: 320)
-                toolActions.frame(minWidth: 350)
-            }
-            VStack(spacing: 4) { toolGroupPicker; toolActions }
-        }
-        .padding(.horizontal, 10).padding(.vertical, 4)
-        .background(TayyaTheme.surface)
-    }
-    private var toolGroupPicker: some View {
-        Picker("مجموعة الأدوات", selection: $toolGroup) {
-                ForEach(WorkspaceToolGroup.allCases) { group in Text(group.rawValue).tag(group) }
-            }.pickerStyle(.segmented).tint(TayyaTheme.ink).frame(minHeight: 44)
-            .accessibilityIdentifier("workspaceToolGroups")
-    }
     private var workspaceNavigation: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 0) {
-                pageControls.frame(width: 350)
-                RecordingStrip(audio: audio, action: toggleRecording).frame(minWidth: 300)
+        HStack(spacing: 0) {
+            pageControls.frame(minWidth: 0, maxWidth: .infinity)
+            RecordingStrip(audio: audio, compact: true, details: { showLinkedAudio = true }, action: toggleRecording)
+        }.background(TayyaTheme.surface)
+            .overlay(alignment: .bottom) { TayyaTheme.separator.frame(height: 0.5).allowsHitTesting(false) }
+    }
+    private var workspaceActions: some View {
+        Menu {
+            Section("الملاحظات") {
+                Button("تقسيم المستند والملاحظات", systemImage: "rectangle.split.2x1", action: toggleNotesSplit)
+                    .accessibilityIdentifier("splitDocumentNotes")
+                if splitNotes || notesExpanded {
+                    Button("إغلاق الملاحظات", systemImage: "xmark") {
+                        notesExpanded = false; splitNotes = false; editingTarget = .document
+                    }.accessibilityIdentifier("closeNotes")
+                }
             }
-            stackedNavigation
-        }
-        .background(TayyaTheme.mutedSurface)
-        .overlay(alignment: .bottom) { TayyaTheme.separator.frame(height: 1).allowsHitTesting(false) }
-    }
-    private var stackedNavigation: some View {
-        VStack(spacing: 0) {
-            pageControls
-            RecordingStrip(audio: audio, action: toggleRecording)
-        }
-    }
-    private var toolActions: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    switch toolGroup {
-                    case .writing:
-                        WorkspaceAction(title: "قلم", symbol: "pencil.tip", selected: workspace.tool == .ink) { pageFocused = false; workspace.tool = workspace.tool == .ink ? .read : .ink }.accessibilityIdentifier("inkTool").accessibilityValue(String(workspace.inkStrokeCount))
-                        WorkspaceAction(title: "نص", symbol: "textformat", selected: workspace.tool == .text) { pageFocused = false; workspace.tool = .text }.accessibilityIdentifier("textTool")
-                        WorkspaceAction(title: "تحديد", symbol: "lasso", selected: workspace.tool == .lasso) { workspace.tool = .lasso }
-                        WorkspaceAction(title: "تقسيم", symbol: "rectangle.split.2x1", selected: splitNotes && !notesExpanded) { workspace.tool = .read; notesExpanded = false; splitNotes.toggle() }.accessibilityIdentifier("splitDocumentNotes")
-                        WorkspaceAction(title: "الملاحظات", symbol: "note.text", selected: notesExpanded) { workspace.tool = .read; splitNotes = true; notesExpanded = true }.accessibilityIdentifier("openMargin")
-                    case .pages:
-                        WorkspaceAction(title: "إضافة ورقة", symbol: "doc.badge.plus") { showPaperPicker = true }.accessibilityIdentifier("addWritingPaper")
-                        WorkspaceAction(title: "كل الصفحات", symbol: "square.grid.2x2") { showDocumentPages = true }.accessibilityIdentifier("documentPages")
-                        WorkspaceAction(title: "حذف الصفحة", symbol: "trash") { deletingPage = workspace.page; confirmDocumentDeletion = true }.disabled(workspace.document.pageCount <= 1).accessibilityIdentifier("deleteDocumentPage")
-                        WorkspaceAction(title: "تراجع الحذف", symbol: "arrow.uturn.backward") { changeDocumentPage(undo: true) }.disabled(!workspace.canUndoPageDeletion).accessibilityIdentifier("undoDocumentPageDeletion")
-                        WorkspaceAction(title: "ملاءمة", symbol: "arrow.up.left.and.arrow.down.right") { workspace.fit() }
-                    case .study:
-                        WorkspaceAction(title: "بطاقة جديدة", symbol: "rectangle.badge.plus") { cardDraft = Flashcard(question: "", answer: workspace.view?.currentSelection?.string ?? "", page: workspace.page) }
-                        WorkspaceAction(title: "البطاقات", symbol: "rectangle.stack") { showCards = true }.accessibilityIdentifier("openFlashcards")
-                        WorkspaceAction(title: "التسجيلات", symbol: "waveform") { showLinkedAudio = true }.accessibilityIdentifier("openLinkedAudio")
-                        if !recognitionLanguages.isEmpty {
-                            Menu {
-                                ForEach(recognitionLanguages, id: \.self) { language in
-                                    Button(Locale(identifier: "ar").localizedString(forIdentifier: language) ?? language) { recognize(language) }
-                                }
-                            } label: {
-                                WorkspaceActionLabel(title: "قراءة الصور", symbol: "text.viewfinder")
-                                    .foregroundStyle(TayyaTheme.ink)
-                            }.disabled(ocrBusy).accessibilityIdentifier("recognizeDocumentText")
+            Section("صفحات") {
+                Button("إضافة ورقة", systemImage: "doc.badge.plus") { showPaperPicker = true }
+                    .accessibilityIdentifier("addWritingPaper")
+                Button("حذف الصفحة", systemImage: "trash", role: .destructive) { deletingPage = workspace.page; confirmDocumentDeletion = true }
+                    .disabled(workspace.document.pageCount <= 1).accessibilityIdentifier("deleteDocumentPage")
+                Button("تراجع الحذف", systemImage: "arrow.uturn.backward") { changeDocumentPage(undo: true) }
+                    .disabled(!workspace.canUndoPageDeletion).accessibilityIdentifier("undoDocumentPageDeletion")
+            }
+            Section("دراسة") {
+                Button("بطاقة جديدة", systemImage: "rectangle.badge.plus") { cardDraft = Flashcard(question: "", answer: workspace.view?.currentSelection?.string ?? "", page: workspace.page) }
+                Button("البطاقات", systemImage: "rectangle.stack") { showCards = true }.accessibilityIdentifier("openFlashcards")
+                Button("التسجيلات", systemImage: "waveform") { showLinkedAudio = true }.accessibilityIdentifier("openLinkedAudio")
+                if !recognitionLanguages.isEmpty {
+                    Menu("قراءة الصور", systemImage: "text.viewfinder") {
+                        ForEach(recognitionLanguages, id: \.self) { language in
+                            Button(Locale(identifier: "ar").localizedString(forIdentifier: language) ?? language) { recognize(language) }
                         }
-                    case .files:
-                        WorkspaceAction(title: "تصدير PDF", symbol: "square.and.arrow.up") { workspace.export() }
-                        if note.originalFile != nil { WorkspaceAction(title: "أصل Office", symbol: "doc") { original = true } }
-                    }
-                }.padding(.vertical, 2).disabled(toolGroup == .pages && ocrBusy)
+                    }.disabled(ocrBusy).accessibilityIdentifier("recognizeDocumentText")
+                }
             }
+            if note.originalFile != nil {
+                Button("أصل Office", systemImage: "doc") { original = true }
+            }
+        } label: {
+            Image(systemName: "ellipsis").font(.system(size: TayyaMetrics.icon))
+                .frame(minWidth: TayyaMetrics.touch, minHeight: TayyaMetrics.touch)
+        }.accessibilityLabel("إجراءات المستند").accessibilityIdentifier("workspaceActions")
     }
     private func toggleRecording() {
         if audio.recording { audio.stop() }
@@ -499,10 +544,17 @@ struct DocumentScreen: View {
 
     }
     private var cardsURL: URL { root.appendingPathComponent(note.id.uuidString + "-cards.json") }
-    private var notesPane: some View {
-        MarginPane(store: margins, editor: margins.editor, sourcePage: workspace.page, expanded: notesExpanded,
-                   toggleExpanded: { pageFocused = false; notesExpanded.toggle() },
-                   jump: { page in workspace.jump(page); notesExpanded = false }, inkSaved: recordMarginInk, textSaved: recordMarginText)
+    private func notesPane(expanded: Bool, forced: Bool, presented: Bool) -> some View {
+        MarginPane(store: margins, editor: margins.editor, sourcePage: workspace.page, expanded: expanded,
+                   toggleExpanded: {
+                       pageFocused = false
+                       if forced { splitNotes = false; notesExpanded = false; editingTarget = .document }
+                       else { notesExpanded.toggle() }
+                   },
+                   jump: { page in workspace.jump(page); notesExpanded = false },
+                   inkSaved: recordMarginInk, textSaved: recordMarginText,
+                   externalCanvasControl: notesCanvasControl, showsInkToolbar: false,
+                   presented: presented, activate: { editingTarget = .notes })
     }
     private func recordMarginText(_ text: String, _ id: UUID) {
         workspace.canUndoPageDeletion = false
@@ -515,15 +567,6 @@ struct DocumentScreen: View {
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
         do { try audio.link(page: source, strokeCount: count, label: "خط يد في الملاحظات \(margins.position + 1)") }
         catch { workspace.error = error.localizedDescription }
-    }
-    private var lassoControls: some View {
-        ScrollView(.horizontal) { HStack {
-            Text("حدد بالقلم حول الكتابة (\(workspace.selectedInkCount))").font(.caption)
-            ForEach([("يسار", "left"), ("يمين", "right"), ("أعلى", "up"), ("أسفل", "down"), ("تكبير", "grow"), ("تصغير", "shrink"), ("نسخ", "copy"), ("لصق", "paste")], id: \.1) { title, action in
-                Button(title) { workspace.inkAction?(action) }.buttonStyle(.bordered)
-            }
-            Button("تم") { workspace.tool = .read }
-        }.padding(8) }
     }
     private func recognize(_ language: String) {
         guard !ocrBusy else { return }; ocrBusy = true
@@ -596,7 +639,7 @@ struct TextEditorSheet: View {
                 }.accessibilityIdentifier("saveAnnotation") }
                 ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() } }
             }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
             .onAppear { color = Color(red: item.red, green: item.green, blue: item.blue) }
     }
 }
@@ -1097,9 +1140,12 @@ struct NativePDF: UIViewRepresentable {
         }
         private func persistInk(_ canvas: PKCanvasView) {
             do {
+                try workspace.requireWritable()
                 let data = canvas.drawing.dataRepresentation()
                 guard lastSavedInk[canvas.tag] != data else { return }
+                workspace.saveState = .saving
                 try data.write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic)
+                workspace.saveState = .saved
                 lastSavedInk[canvas.tag] = data
                 if workspace.canUndoPageDeletion { workspace.canUndoPageDeletion = false }
                 let count = canvas.drawing.strokes.count
@@ -1107,7 +1153,7 @@ struct NativePDF: UIViewRepresentable {
                 lastStrokeCounts[canvas.tag] = count
                 if canvas.tag == workspace.page - 1, workspace.inkStrokeCount != count { workspace.inkStrokeCount = count }
             }
-            catch { workspace.error = error.localizedDescription }
+            catch { workspace.error = error.localizedDescription; workspace.saveState = .failed }
         }
     }
 }

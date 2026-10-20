@@ -5,6 +5,7 @@ enum WorkspaceToolGroup: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 struct WorkspaceAction: View {
+    @ObservedObject var localization = TayyaLocalization.shared
     let title: String
     let symbol: String
     var selected = false
@@ -12,19 +13,25 @@ struct WorkspaceAction: View {
     var body: some View {
         Button(action: action) {
             WorkspaceActionLabel(title: title, symbol: symbol)
-                .foregroundStyle(selected ? TayyaTheme.paper : TayyaTheme.ink)
-                .background(selected ? TayyaTheme.ink : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }.buttonStyle(.plain).accessibilityLabel(title).accessibilityAddTraits(selected ? .isSelected : [])
+                .foregroundStyle(selected ? TayyaTheme.ink : TayyaTheme.detail)
+                .background(selected ? TayyaTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: TayyaMetrics.controlRadius, style: .continuous))
+        }.buttonStyle(.plain).accessibilityLabel(TayyaLocalized(title)).accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 struct WorkspaceActionLabel: View {
+    @ObservedObject var localization = TayyaLocalization.shared
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.verticalSizeClass) private var verticalClass
     let title: String
     let symbol: String
     var body: some View {
         VStack(spacing: 4) {
-            Image(systemName: symbol).font(.body.weight(.medium)).symbolRenderingMode(.hierarchical)
-            Text(title).font(.caption2.weight(.medium)).fixedSize(horizontal: true, vertical: true)
-        }.frame(minWidth: 54, minHeight: 44).padding(.horizontal, 6).padding(.vertical, 4)
+            Image(systemName: symbol).font(.system(size: TayyaMetrics.icon)).symbolRenderingMode(.hierarchical)
+            if typeSize < .accessibility3 && verticalClass != .compact {
+                Text(TayyaLocalized(title)).font(.caption2.weight(.medium)).fixedSize(horizontal: true, vertical: true)
+            }
+        }.frame(minWidth: 54, minHeight: TayyaMetrics.touch).padding(.horizontal, 6)
+            .padding(.vertical, typeSize >= .accessibility3 || verticalClass == .compact ? 0 : TayyaMetrics.unit)
             .contentShape(Rectangle())
     }
 }
@@ -40,6 +47,6 @@ struct WritingPaperPicker: View {
             }.navigationTitle("إضافة ورقة للكتابة").toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() } }
             }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }

@@ -198,6 +198,6 @@ struct DocumentPageList: View {
                         .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.document.pageCount <= 1)
                 }
             }.navigationTitle("صفحات المستند").toolbar { ToolbarItem(placement: .cancellationAction) { Button("تم") { dismiss() } } }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }

@@ -1,6 +1,7 @@
 name: Hashiya
 options:
   bundleIdPrefix: com.ahmadalawi
+  developmentLanguage: ar
   deploymentTarget:
     iOS: '17.0'
 settings:

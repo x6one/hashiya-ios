@@ -10,6 +10,10 @@ struct MarginPane: View {
     let jump: (Int) -> Void
     let inkSaved: (Int, UUID) -> Void
     let textSaved: (String, UUID) -> Void
+    var externalCanvasControl: MarginCanvasControl? = nil
+    var showsInkToolbar = true
+    var presented = true
+    var activate: () -> Void = {}
     @StateObject private var canvasControl = MarginCanvasControl()
     @State private var showPages = false
     @State private var exported: URL?
@@ -28,7 +32,8 @@ struct MarginPane: View {
             let compactChrome = verticalSizeClass == .compact || geometry.size.height < 350
             MarginPaneContent(store: store, editor: editor, sourcePage: sourcePage,
                 expanded: expanded, compactChrome: compactChrome, toggleExpanded: toggleExpanded,
-                jump: jump, inkSaved: inkSaved, textSaved: textSaved, canvasControl: canvasControl,
+                jump: jump, inkSaved: inkSaved, textSaved: textSaved, canvasControl: externalCanvasControl ?? canvasControl,
+                showsInkToolbar: showsInkToolbar,
                 showPages: $showPages, exported: $exported, deletingPage: $deletingPage,
                 confirmMarginDeletion: $confirmMarginDeletion, textFocused: $textFocused)
         }
@@ -51,6 +56,8 @@ struct MarginPane: View {
                 textFocused = false
             }
             .onDisappear { _ = store.flush() }
+            .onChange(of: presented) { _, visible in if !visible { textFocused = false; _ = store.flush() } }
+            .onChange(of: textFocused) { _, focused in if focused { activate() } }
             .onChange(of: scenePhase) { _, phase in if phase != .active { _ = store.flush() } }
     }
     private func traceMarginRender(_ event: String) {
@@ -74,6 +81,7 @@ private struct MarginPaneContent: View {
     let inkSaved: (Int, UUID) -> Void
     let textSaved: (String, UUID) -> Void
     let canvasControl: MarginCanvasControl
+    let showsInkToolbar: Bool
     @Binding var showPages: Bool
     @Binding var exported: URL?
     @Binding var deletingPage: UUID?
@@ -91,7 +99,7 @@ private struct MarginPaneContent: View {
                 let _ = traceMarginRender("page branch page=\(page.id) current=\(store.currentID?.uuidString ?? "missing") live=\(editor.handwriting)")
                 #endif
                 modeControls(compactChrome: compactChrome)
-                if editor.handwriting {
+                if editor.handwriting && showsInkToolbar {
                     #if DEBUG
                     let _ = traceMarginRender("toolbar branch live=\(editor.handwriting)")
                     #endif
@@ -308,7 +316,7 @@ private final class TracedMarginModeControl: UISegmentedControl {
 // The accessibility value reads the binding, rather than reporting UI selection.
 private struct MarginModeControl: UIViewRepresentable {
     @Binding var handwriting: Bool
-    private let titles = ["نص", "خط اليد"]
+    private var titles: [String] { [TayyaLocalized("نص"), TayyaLocalized("خط اليد")] }
 
     func makeCoordinator() -> Coordinator { Coordinator(handwriting: $handwriting) }
 
@@ -323,7 +331,7 @@ private struct MarginModeControl: UIViewRepresentable {
         #endif
         control.accessibilityIdentifier = "marginMode"
         control.accessibilityLabel = "طريقة تدوين الملاحظات"
-        control.semanticContentAttribute = .forceRightToLeft
+        control.semanticContentAttribute = TayyaLocalization.shared.language == .ar ? .forceRightToLeft : .forceLeftToRight
         control.apportionsSegmentWidthsByContent = false
         control.selectedSegmentTintColor = UIColor(TayyaTheme.ink)
         control.addTarget(context.coordinator, action: #selector(Coordinator.modeChanged(_:)), for: .valueChanged)
@@ -456,7 +464,7 @@ struct MarginPageList: View {
                 ToolbarItem(placement: .cancellationAction) { Button("تم") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) { Button("صفحة جديدة", systemImage: "plus") { if store.add(linkedTo: sourcePage) { dismiss() } } }
             }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
     @ViewBuilder private func thumbnail(_ page: MarginPage) -> some View {
         if let drawing = try? PKDrawing(data: page.ink), !drawing.strokes.isEmpty {

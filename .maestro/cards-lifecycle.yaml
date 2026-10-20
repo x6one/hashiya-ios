@@ -4,7 +4,8 @@ name: Flashcard create edit persist reveal and delete
 - runFlow: helpers/new-notebook.yaml
 - tapOn:
     id: openNotebook-QA Notebook
-- tapOn: دراسة
+- tapOn:
+    id: workspaceActions
 - tapOn:
     id: openFlashcards
 - tapOn:
@@ -35,7 +36,8 @@ name: Flashcard create edit persist reveal and delete
       maestroTesting: true
 - tapOn:
     id: openNotebook-QA Notebook
-- tapOn: دراسة
+- tapOn:
+    id: workspaceActions
 - tapOn:
     id: openFlashcards
 - assertVisible: QA updated question
@@ -51,7 +53,8 @@ name: Flashcard create edit persist reveal and delete
       maestroTesting: true
 - tapOn:
     id: openNotebook-QA Notebook
-- tapOn: دراسة
+- tapOn:
+    id: workspaceActions
 - tapOn:
     id: openFlashcards
 - assertNotVisible: QA updated question

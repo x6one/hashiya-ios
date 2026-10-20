@@ -69,6 +69,6 @@ struct CreateNotebookScreen: View {
                     if store.error == nil { dismiss() }
                 }.accessibilityIdentifier("saveNotebook").disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
             }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }

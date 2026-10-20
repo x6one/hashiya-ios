@@ -114,11 +114,11 @@ final class MarginCanvas: PKCanvasView {
         }
     }
 }
-enum InkBrush: String, CaseIterable, Identifiable {
-    case pen = "قلم", pencil = "رصاص", marker = "تظليل", eraser = "ممحاة"
+enum InkBrush: String, CaseIterable, Identifiable, Codable {
+    case pen = "قلم", pencil = "رصاص", marker = "تظليل", eraser = "ممحاة", selection = "تحديد"
     var id: String { rawValue }
     var symbol: String {
-        switch self { case .pen: return "pencil.tip"; case .pencil: return "pencil"; case .marker: return "highlighter"; case .eraser: return "eraser" }
+        switch self { case .pen: return "pencil.tip"; case .pencil: return "pencil"; case .marker: return "highlighter"; case .eraser: return "eraser"; case .selection: return "lasso" }
     }
     func tool(color: UIColor, width: CGFloat) -> PKTool {
         switch self {
@@ -126,24 +126,30 @@ enum InkBrush: String, CaseIterable, Identifiable {
         case .pencil: return PKInkingTool(.pencil, color: color, width: width)
         case .marker: return PKInkingTool(.marker, color: color.withAlphaComponent(0.4), width: width * 4)
         case .eraser: return PKEraserTool(.vector)
+        case .selection: return PKLassoTool()
         }
     }
 }
 struct InkToolbar: View {
+    @ObservedObject var localization = TayyaLocalization.shared
     @Binding var brush: InkBrush
     @Binding var color: Color
     @Binding var width: Double
     @State private var showingColorPicker = false
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.dynamicTypeSize) private var typeSize
     var allowsWidthFit = false
+    var compact = false
     let action: (String) -> Void
     var body: some View {
         InkToolbarScrollView {
             HStack(spacing: 6) {
-                Menu { ForEach(InkBrush.allCases) { item in Button(item.rawValue, systemImage: item.symbol) { brush = item } } }
+                Menu { ForEach(InkBrush.allCases.filter { $0 != .selection }) { item in Button(TayyaLocalized(item.rawValue), systemImage: item.symbol) { brush = item } } }
                 label: {
-                    Label(brush.rawValue, systemImage: brush.symbol)
-                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    Group {
+                        if compact { Label(TayyaLocalized(brush.rawValue), systemImage: brush.symbol).labelStyle(.iconOnly) }
+                        else { Label(TayyaLocalized(brush.rawValue), systemImage: brush.symbol) }
+                    }.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                 }.accessibilityIdentifier("inkBrush")
                 Button { showingColorPicker = true } label: {
                     Circle().fill(color)
@@ -153,8 +159,10 @@ struct InkToolbar: View {
                 }.accessibilityLabel("لون الحبر").accessibilityValue(currentColorValue).accessibilityIdentifier("inkColor")
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
                 label: {
-                    Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle())
-                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                    Group {
+                        if compact && typeSize >= .accessibility3 { Image(systemName: "lineweight") }
+                        else { Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle()) }
+                    }.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                 }.accessibilityLabel("سماكة القلم").accessibilityValue("\(Int(width))").accessibilityIdentifier("inkWidth")
                 Button { action("undo") } label: { inkTarget("تراجع", symbol: "arrow.uturn.backward") }
                     .accessibilityIdentifier("inkUndo")
@@ -167,7 +175,7 @@ struct InkToolbar: View {
                         .accessibilityIdentifier("fitMarginWidth")
                 }
             }.buttonStyle(.plain).padding(.horizontal, 4)
-                .padding(.vertical, verticalSizeClass == .compact ? 2 : 8)
+                .padding(.vertical, compact ? 0 : verticalSizeClass == .compact ? 2 : 8)
         }
         // This is a spatial tool rail, not prose. Keep its scroll axis and
         // bounds left-to-right even inside the Arabic/right-to-left workspace:

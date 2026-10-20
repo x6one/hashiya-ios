@@ -16,11 +16,12 @@ enum TayyaMetrics {
 }
 
 struct TayyaBrand: View {
+    @ObservedObject var localization = TayyaLocalization.shared
     var body: some View {
         HStack(spacing: TayyaMetrics.compact) {
             TayyaFold().fill(TayyaTheme.ink).frame(width: 29, height: 32)
                 .accessibilityHidden(true)
-            Text("طَيّة").font(.title2.bold())
+            Text(TayyaLocalized("طَيّة")).font(.title2.bold())
             Text("STUDIO").font(.system(size: 9, weight: .semibold))
                 .tracking(2).foregroundStyle(TayyaTheme.detail)
         }.accessibilityElement(children: .combine)
@@ -40,6 +41,7 @@ struct TayyaPrimaryButtonStyle: ButtonStyle {
 }
 
 struct TayyaIconButton: View {
+    @ObservedObject var localization = TayyaLocalization.shared
     let title: String
     let symbol: String
     var selected = false
@@ -56,9 +58,9 @@ struct TayyaIconButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(title)
+        .accessibilityLabel(TayyaLocalized(title))
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .help(title)
+        .help(TayyaLocalized(title))
     }
 }
 

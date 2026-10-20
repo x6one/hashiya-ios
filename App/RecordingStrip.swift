@@ -3,11 +3,40 @@ import SwiftUI
 /// This row has the same layout before, during and after recording.
 /// Only RecordingReadout subscribes to the frequently changing activity.
 struct RecordingStrip: View {
+    @ObservedObject var localization = TayyaLocalization.shared
     @ObservedObject var audio: PageAudio
+    var compact = false
+    var details: (() -> Void)? = nil
     let action: () -> Void
     @ScaledMetric(relativeTo: .caption2) private var actionWidth: CGFloat = 72
 
     var body: some View {
+        Group {
+            if compact { compactContent }
+            else { fullContent }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("recordingStrip")
+    }
+    private var compactContent: some View {
+        HStack(spacing: TayyaMetrics.unit) {
+            Button(action: action) {
+                Image(systemName: audio.recording ? "stop.circle.fill" : "mic")
+                    .font(.system(size: TayyaMetrics.icon))
+                    .frame(width: TayyaMetrics.touch, height: TayyaMetrics.touch)
+                    .foregroundStyle(audio.recording ? TayyaTheme.destructive : TayyaTheme.ink)
+            }.buttonStyle(.plain).disabled(audio.requestingPermission)
+                .accessibilityLabel(TayyaLocalized(audio.recording ? "إيقاف" : "تسجيل"))
+                .accessibilityIdentifier("recordLinkedAudio")
+                .accessibilityValue(TayyaLocalized(audio.recording ? "جارٍ التسجيل" : audio.requestingPermission ? "انتظار إذن الميكروفون" : "متوقف"))
+            CompactRecordingReadout(activity: audio.activity)
+            if let details {
+                TayyaIconButton(title: "تفاصيل التسجيل والعلامات", symbol: "chevron.up", action: details)
+                    .accessibilityIdentifier("recordingDetails")
+            }
+        }.padding(.horizontal, TayyaMetrics.unit).background(TayyaTheme.surface)
+    }
+    private var fullContent: some View {
         HStack(spacing: 12) {
             WorkspaceAction(title: audio.recording ? "إيقاف" : "تسجيل",
                             symbol: audio.recording ? "stop.circle" : "mic",
@@ -15,14 +44,38 @@ struct RecordingStrip: View {
                 .disabled(audio.requestingPermission)
                 .frame(width: actionWidth)
                 .accessibilityIdentifier("recordLinkedAudio")
-                .accessibilityValue(audio.recording ? "جارٍ التسجيل" : audio.requestingPermission ? "انتظار إذن الميكروفون" : "متوقف")
+                .accessibilityValue(TayyaLocalized(audio.recording ? "جارٍ التسجيل" : audio.requestingPermission ? "انتظار إذن الميكروفون" : "متوقف"))
             RecordingReadout(activity: audio.activity, recording: audio.recording, waiting: audio.requestingPermission)
         }
         .padding(.horizontal, 12).padding(.vertical, 3)
         .background(TayyaTheme.mutedSurface)
         .overlay(alignment: .bottom) { TayyaTheme.separator.frame(height: 1).allowsHitTesting(false) }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("recordingStrip")
+    }
+}
+
+private struct CompactRecordingReadout: View {
+    @ObservedObject var activity: RecordingActivity
+    private var duration: String {
+        let value = Int(activity.elapsed)
+        if value >= 3600 { return String(format: "%d:%02d:%02d", value / 3600, value / 60 % 60, value % 60) }
+        return String(format: "%d:%02d", value / 60, value % 60)
+    }
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(duration).font(.caption.monospacedDigit()).fixedSize()
+                .accessibilityLabel("مدة التسجيل").accessibilityValue(duration)
+                .accessibilityIdentifier("recordingElapsed")
+            ZStack(alignment: .leading) {
+                Capsule().fill(TayyaTheme.separator)
+                Capsule().fill(TayyaTheme.ink).frame(width: 44 * activity.level)
+            }
+            .frame(width: 44, height: 3)
+            .accessibilityElement().accessibilityLabel("مستوى الميكروفون")
+            .accessibilityValue("\(Int(activity.level * 100))")
+            .accessibilityIdentifier("recordingLevel")
+        }
+        .frame(minWidth: TayyaMetrics.touch, minHeight: TayyaMetrics.touch)
+        .foregroundStyle(TayyaTheme.detail)
     }
 }
 

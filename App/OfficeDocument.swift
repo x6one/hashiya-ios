@@ -168,7 +168,7 @@ struct OfficeMediaScreen: View {
                 else { List(items) { item in Button(item.name, systemImage: "play.circle") { selected = item } } }
             }.navigationTitle("وسائط الملف").toolbar { Button("تم") { dismiss() } }
                 .sheet(item: $selected) { MediaPlayerScreen(item: $0) }
-        }.environment(\.layoutDirection, .rightToLeft)
+        }
             .task {
                 let folder = session.folder
                 do {

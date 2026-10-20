@@ -6,6 +6,7 @@ import ZIPFoundation
     @Published var error: String?
     @Published var sections: [String] = ["مكتبتي"]
     let root: URL
+    private var loadFailure: Error?
     init(root directory: URL? = nil, seedDemo: Bool = true) {
         root = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         do {
@@ -17,7 +18,7 @@ import ZIPFoundation
             else if seedDemo, let demo = Bundle.main.url(forResource: "english", withExtension: "pdf") { try importPDF(demo, title: "ملف التجربة") }
             for note in notebooks where note.file.lowercased().hasSuffix(".pdf") { try DocumentPageRemoval.recover(note, root: root) }
             try removeBundledOfficeDemo()
-        } catch { self.error = error.localizedDescription }
+        } catch { loadFailure = error; self.error = error.localizedDescription }
     }
     /// Remove only the obsolete bundled demo, never a user's similarly named file.
     private func removeBundledOfficeDemo() throws {
@@ -68,17 +69,22 @@ import ZIPFoundation
         notebooks.filter { $0.trashed == trash && (trash || section == nil || $0.section == section) && (!favorites || $0.favorite) }
     }
     func persist(_ items: [Notebook]) throws {
+        try requireWritable()
         try JSONEncoder().encode(items).write(to: root.appendingPathComponent("library.json"), options: .atomic)
+    }
+    func requireWritable() throws {
+        if let loadFailure { throw loadFailure }
     }
     func addSection(_ raw: String) {
         let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, !sections.contains(name) else { return }
-        do { let updated = sections + [name]; try JSONEncoder().encode(updated).write(to: root.appendingPathComponent("sections.json"), options: .atomic); sections = updated }
+        do { try requireWritable(); let updated = sections + [name]; try JSONEncoder().encode(updated).write(to: root.appendingPathComponent("sections.json"), options: .atomic); sections = updated }
         catch { self.error = error.localizedDescription }
     }
     func deleteSection(_ name: String) {
         guard name != "مكتبتي" else { return }
         do {
+            try requireWritable()
             var updated = notebooks
             for i in updated.indices where updated[i].section == name { updated[i].section = "مكتبتي" }
             try persist(updated); notebooks = updated
@@ -150,6 +156,7 @@ import ZIPFoundation
     }
     func create(_ title: String, section: String? = nil, template: PaperTemplate = .ruled, color: PaperColor = .cream) {
         do {
+            try requireWritable()
             let name = UUID().uuidString + ".pdf"
             let url = root.appendingPathComponent(name)
             try template.render(color: color).write(to: url, options: .atomic)

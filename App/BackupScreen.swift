@@ -40,6 +40,6 @@ struct BackupScreen: View {
                 }
             }
             .sheet(isPresented: Binding(get: { share != nil }, set: { if !$0 { if let share { try? FileManager.default.removeItem(at: share) }; share = nil } })) { if let share { ShareDocument(url: share) } }
-        }.environment(\.layoutDirection, .rightToLeft).interactiveDismissDisabled(busy)
+        }.interactiveDismissDisabled(busy)
     }
 }

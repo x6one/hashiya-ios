@@ -64,8 +64,8 @@ jobs:
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
               'foundation': ['HashiyaTests/StudioIntegrationThemeTests'],
-              'library': ['HashiyaTests/DocumentTests', 'HashiyaTests/DocumentImportTests', 'HashiyaTests/ReadingPositionTests', 'HashiyaUITests/StudioIntegrationTests'],
-              'workspace': ['HashiyaTests/DocumentViewportTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests', 'HashiyaUITests/StudioIntegrationTests'],
+              'library': ['HashiyaTests/DocumentTests', 'HashiyaTests/DocumentImportTests', 'HashiyaTests/OfficeReplacementTests', 'HashiyaTests/ReadingPositionTests', 'HashiyaUITests/StudioIntegrationTests'],
+              'workspace': ['HashiyaTests/DocumentViewportTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests', 'HashiyaTests/StudioLocalizationTests', 'HashiyaUITests/StudioIntegrationTests'],
               'audio': ['HashiyaTests/WorkspaceAudioTests', 'HashiyaTests/AudioPlaybackTests', 'HashiyaTests/AudioDeletionTests', 'HashiyaTests/StudioAudioIntegrationTests'],
               'compatibility': ['HashiyaTests/PageRemovalTests', 'HashiyaTests/StudioDataCompatibilityTests'],
               'language': ['HashiyaUITests/StudioIntegrationTests/testEnglishCoreToolsUseEnglishNamesAndKeepRealNotesData'],

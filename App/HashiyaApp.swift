@@ -6,6 +6,7 @@ import UIKit
 import ZIPFoundation
 
 @main struct HashiyaApp: App {
+    @StateObject private var localization = TayyaLocalization.shared
     @StateObject private var library: LibraryStore
     init() {
         #if DEBUG
@@ -44,9 +45,13 @@ import ZIPFoundation
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") {
                 DebugFilesFixtures()
-            } else { AppEntrance().environmentObject(library).modifier(DebugVisualEnvironment()) }
+            } else {
+                AppEntrance().environmentObject(library).modifier(DebugVisualEnvironment())
+                    .environment(\.locale, localization.locale).environment(\.layoutDirection, localization.direction)
+            }
             #else
             AppEntrance().environmentObject(library)
+                .environment(\.locale, localization.locale).environment(\.layoutDirection, localization.direction)
             #endif
         }
     }

@@ -69,7 +69,7 @@ struct WelcomeScreen: View {
             }
             .background(TayyaTheme.paper)
         }
-        .environment(\.layoutDirection, .rightToLeft)
+
         .interactiveDismissDisabled()
     }
 

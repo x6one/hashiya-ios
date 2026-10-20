@@ -86,11 +86,13 @@ enum LibraryBackup {
 }
 extension LibraryStore {
     func exportBackup() async throws -> URL {
+        try requireWritable()
         let manifest = BackupManifest(notebooks: notebooks, sections: sections)
         let directory = root
         return try await Task.detached(priority: .userInitiated) { try LibraryBackup.export(root: directory, manifest: manifest) }.value
     }
     @discardableResult func restoreBackup(_ source: URL, policy: RestorePolicy) async throws -> Int {
+        try requireWritable()
         let fm = FileManager.default
         let staging = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? fm.removeItem(at: staging) }

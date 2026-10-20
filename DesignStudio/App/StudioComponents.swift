@@ -20,10 +20,14 @@ struct TayyaIconButton: View {
 struct StudioSaveStatus: View {
     @ObservedObject var draft: StudioDraft
     var identifier = "saveStatus"
+    var compact = false
+    private var statusLabel: String {
+        draft.status == "saved" ? L("محفوظ محليًا", "Saved locally") : draft.status == "failed" ? L("تعذّر الحفظ", "Could not save") : draft.status == "saving" ? L("جارٍ الحفظ", "Saving") : L("مسودة المعاينة", "Preview draft")
+    }
     var body: some View {
-        Text(draft.status == "saved" ? L("محفوظ محليًا", "Saved locally") : draft.status == "failed" ? L("تعذّر الحفظ", "Could not save") : draft.status == "saving" ? L("جارٍ الحفظ", "Saving") : L("مسودة المعاينة", "Preview draft"))
+        Text(compact && draft.status == "saved" ? L("محفوظ", "Saved") : compact && draft.status == "unsaved" ? L("معاينة", "Preview") : statusLabel)
             .font(.caption2).foregroundStyle(draft.status == "failed" ? StudioTheme.destructive : StudioTheme.secondary).lineLimit(1)
-            .accessibilityIdentifier(identifier).accessibilityValue(draft.status)
+            .accessibilityIdentifier(identifier).accessibilityValue(draft.status).accessibilityLabel(statusLabel)
     }
 }
 
@@ -47,7 +51,7 @@ struct TayyaToolbar<Content: View>: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4, content: content).padding(.horizontal, 12)
-        }.frame(minHeight: StudioMetrics.touch).background(StudioTheme.surface)
+        }.frame(height: StudioMetrics.touch).background(StudioTheme.surface)
     }
 }
 

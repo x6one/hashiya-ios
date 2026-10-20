@@ -3,6 +3,10 @@ import SwiftUI
 struct StudioRecordingStrip: View {
     @ObservedObject var session: StudioSession
     @ObservedObject var navigation: StudioNavigation
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var statusLabel: String {
+        session.recording ? L("جارٍ التسجيل", "Recording") : session.playing ? L("جارٍ التشغيل", "Playing") : L("تسجيلات الصفحة", "Page recordings")
+    }
     var body: some View {
         HStack(spacing: StudioMetrics.compact) {
             Button {
@@ -19,14 +23,17 @@ struct StudioRecordingStrip: View {
                 .accessibilityIdentifier("recordAction").accessibilityValue(session.recording ? "recording" : "idle")
             Button { navigation.scene = .audio } label: {
                 HStack(spacing: StudioMetrics.compact) {
-                    Text(session.recording ? L("جارٍ التسجيل", "Recording") : session.playing ? L("جارٍ التشغيل", "Playing") : L("تسجيلات الصفحة", "Page recordings"))
-                        .font(.caption.weight(.semibold)).lineLimit(1)
+                    if typeSize >= .accessibility3 {
+                        Image(systemName: session.recording ? "record.circle" : session.playing ? "waveform" : "waveform.circle")
+                            .font(.system(size: StudioMetrics.icon))
+                    } else { Text(statusLabel).font(.caption.weight(.semibold)).lineLimit(1) }
                     Spacer(minLength: 0)
                     Text(studioTime(session.recording ? session.elapsed : session.playhead))
-                        .font(.caption.monospacedDigit()).environment(\.layoutDirection, .leftToRight)
-                    Image(systemName: "chevron.up").font(.caption)
+                        .font(.caption2.monospacedDigit()).environment(\.layoutDirection, .leftToRight)
+                    Image(systemName: "chevron.up").font(.system(size: 14))
                 }.frame(height: StudioMetrics.touch).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("openPageAudio")
+                .accessibilityLabel(statusLabel + " · " + studioTime(session.recording ? session.elapsed : session.playhead))
                 .accessibilityHint(L("توسيع تفاصيل التسجيل والعلامات", "Expand recording details and markers"))
         }.padding(.horizontal, StudioMetrics.inset).background(StudioTheme.surface)
             .overlay(alignment: .top) { StudioTheme.divider.frame(height: 0.5) }

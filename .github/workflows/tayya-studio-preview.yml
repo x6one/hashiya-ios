@@ -70,12 +70,22 @@ jobs:
           POLISH_RED: ${{ contains(github.event.head_commit.message, '[studio:polish-red]') }}
           ACCESSIBLE_LAYOUT_ONLY: ${{ contains(github.event.head_commit.message, '[studio:layout]') }}
           APPROVAL_ONLY: ${{ contains(github.event.head_commit.message, '[studio:approval') }}
+          APPROVAL_GREEN: ${{ contains(github.event.head_commit.message, '[studio:approval]') }}
         run: |
           set -o pipefail
           options=()
           if [ "$APPROVAL_ONLY" = true ]; then
             options+=('-only-testing:StudioTests/StudioApprovalTests')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testApprovalExtremeTypeCoreToolsFitWithoutOverlappingLabels')
+          fi
+          if [ "$APPROVAL_GREEN" = true ]; then
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testApprovalContextChangesKeepPDFFrameAndInkSettings')
+            options+=('-only-testing:StudioTests/StudioPolishTests/testPDFViewportSurvivesChromeAndNotesSizeChanges')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishContextToolsAndCompactAudio')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishPickerUsesRealPageThumbnails')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishExtremeTypeAndLandscapeCaptures')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testCompactAccessibleDocumentUsesReversibleFocus')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testAccessibleEditorLabelsStayWhole')
           fi
           if [ "$CAPTURE_ONLY" = true ]; then
             # Re-capture after an XCTest screenshot-only repair, reusing the39/39 gate

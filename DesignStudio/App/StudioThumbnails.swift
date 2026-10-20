@@ -10,37 +10,69 @@ final class StudioThumbnailStore: ObservableObject {
     private let worker = DispatchQueue(label: "TayyaStudio.preview-thumbnails", qos: .userInitiated)
     private var workerRevision = -1
     private var workerDocument: PDFDocument?
+    private var pages = [PDFPage]()
+    private var generations = [ObjectIdentifier: Int]()
+    private var inFlight = [String: Task<UIImage?, Never>]()
 
     init(document: PDFDocument) {
         cache.countLimit = 80
         cache.totalCostLimit = 24 * 1024 * 1024
         data = document.dataRepresentation()
         pageCount = document.pageCount
+        pages = (0..<document.pageCount).compactMap { document.page(at: $0) }
     }
-    func replaceDocument(_ document: PDFDocument) {
+    func replaceDocument(_ document: PDFDocument, changedPages: Set<Int>? = nil) {
+        let replacement = (0..<document.pageCount).compactMap { document.page(at: $0) }
+        let oldIDs = pages.map(ObjectIdentifier.init)
+        let newIDs = replacement.map(ObjectIdentifier.init)
+        let changed = changedPages ?? (oldIDs == newIDs ? Set(1...max(1, document.pageCount)) : [])
+        for number in changed where number > 0 && number <= replacement.count {
+            let id = ObjectIdentifier(replacement[number - 1])
+            let key = "\(id)-\(generations[id, default: 0])" as NSString
+            cache.removeObject(forKey: key)
+            generations[id, default: 0] += 1
+        }
+        let retained = Set(newIDs)
+        for page in pages where !retained.contains(ObjectIdentifier(page)) {
+            let id = ObjectIdentifier(page)
+            cache.removeObject(forKey: "\(id)-\(generations[id, default: 0])" as NSString)
+        }
+        generations = generations.filter { retained.contains($0.key) }
+        pages = replacement
         data = document.dataRepresentation()
         pageCount = document.pageCount
-        cache.removeAllObjects()
         revision += 1
+    }
+    func imageKey(page: Int) -> String {
+        guard page > 0, page <= pages.count else { return "missing-\(page)" }
+        let id = ObjectIdentifier(pages[page - 1])
+        return "\(id)-\(generations[id, default: 0])"
     }
     @MainActor func image(page: Int) async -> UIImage? {
         guard page >= 1, page <= pageCount, let snapshot = data else { return nil }
         let version = revision
-        let key = "\(version)-\(page)" as NSString
-        if let cached = cache.object(forKey: key) { return cached }
-        let rendered: UIImage? = await withCheckedContinuation { continuation in
-            worker.async {
-                if self.workerRevision != version {
-                    self.workerDocument = PDFDocument(data: snapshot)
-                    self.workerRevision = version
+        let key = imageKey(page: page)
+        let requestedPage = pages[page - 1]
+        if let cached = cache.object(forKey: key as NSString) { return cached }
+        if let task = inFlight[key] { return await task.value }
+        let task = Task { @MainActor () -> UIImage? in
+            let rendered: UIImage? = await withCheckedContinuation { continuation in
+                worker.async {
+                    if self.workerRevision != version {
+                        self.workerDocument = PDFDocument(data: snapshot)
+                        self.workerRevision = version
+                    }
+                    let image = self.workerDocument?.page(at: page - 1)?.thumbnail(of: CGSize(width: 240, height: 340), for: .cropBox)
+                    continuation.resume(returning: image)
                 }
-                let image = self.workerDocument?.page(at: page - 1)?.thumbnail(of: CGSize(width: 240, height: 340), for: .cropBox)
-                continuation.resume(returning: image)
             }
+            inFlight.removeValue(forKey: key)
+            guard let index = pages.firstIndex(where: { $0 === requestedPage }), imageKey(page: index + 1) == key, let rendered else { return nil }
+            cache.setObject(rendered, forKey: key as NSString, cost: (rendered.cgImage?.bytesPerRow ?? 960) * (rendered.cgImage?.height ?? 340))
+            return rendered
         }
-        guard version == revision, let rendered else { return nil }
-        cache.setObject(rendered, forKey: key, cost: (rendered.cgImage?.bytesPerRow ?? 960) * (rendered.cgImage?.height ?? 340))
-        return rendered
+        inFlight[key] = task
+        return await task.value
     }
 }
 
@@ -64,7 +96,7 @@ struct StudioPageThumbnail: View {
                 .clipShape(RoundedRectangle(cornerRadius: StudioMetrics.compact))
                 .overlay { RoundedRectangle(cornerRadius: StudioMetrics.compact).stroke(selected ? StudioTheme.primary : StudioTheme.divider, lineWidth: selected ? 2 : 0.5) }
             Text("\(page)").font(.caption.monospacedDigit()).foregroundStyle(selected ? StudioTheme.primary : StudioTheme.secondary)
-        }.task(id: "\(store.revision)-\(page)") {
+        }.task(id: store.imageKey(page: page)) {
             image = nil
             let loaded = await store.image(page: page)
             if !Task.isCancelled { image = loaded }

@@ -26,7 +26,8 @@ enum StudioTheme {
                           "arrow.up.left.and.arrow.down.right", "arrow.down.right.and.arrow.up.left",
                           "ellipsis", "checkmark", "star", "star.fill", "xmark", "waveform",
                           "doc", "doc.badge.plus", "trash", "externaldrive", "slider.horizontal.3", "rectangle.split.2x1", "keyboard.chevron.compact.down",
-                          "paintpalette", "text.alignright", "square.and.pencil", "selection.pin.in.out", "doc.on.doc", "chevron.up"]
+                          "paintpalette", "text.alignright", "square.and.pencil", "selection.pin.in.out", "doc.on.doc", "chevron.up",
+                          "lineweight", "textformat.size", "record.circle", "waveform.circle"]
 
     static func ui(_ value: Int) -> UIColor {
         UIColor(red: CGFloat((value >> 16) & 255) / 255,

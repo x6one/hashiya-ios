@@ -2,6 +2,30 @@ import XCTest
 import UIKit
 
 final class StudioCaptureTests: XCTestCase {
+    private var captureArguments = [String]()
+
+    func testApprovalContextChangesKeepPDFFrameAndInkSettings() {
+        for extra in [[], ["--extra-large-type"]] as [[String]] {
+            let app = launch("document", extra: extra)
+            if app.buttons["showDocument"].exists { app.buttons["showDocument"].tap() }
+            let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
+            let original = pdf.frame
+            let inkValue = app.buttons["inkColor"].value as? String
+            XCTAssertNotNil(inkValue, "Read actual brush/color/width state through the pen's accessibility value")
+            for tool in ["text", "select", "pen"] {
+                app.buttons["tool-\(tool)"].tap()
+                let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    abs(pdf.frame.height - original.height) <= 1 && abs(pdf.frame.minY - original.minY) <= 1
+                }, object: nil)
+                XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed, "Tool selection must retain the PDF viewport")
+                XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
+            }
+            XCTAssertEqual(app.buttons["inkColor"].value as? String, inkValue)
+            snapshot("Approval-Context-\(extra.isEmpty ? "Default" : "ExtremeType")-Portrait")
+            app.terminate()
+        }
+    }
+
     func testApprovalExtremeTypeCoreToolsFitWithoutOverlappingLabels() {
         for extra in [["--extra-large-type"], ["--extra-large-type", "--english", "--dark"]] {
             let app = launch("document", extra: extra)
@@ -9,6 +33,7 @@ final class StudioCaptureTests: XCTestCase {
             for id in ["pen", "text", "select", "margin", "pages"] {
                 let button = app.buttons["tool-\(id)"]
                 assertUsable(button)
+                XCTAssertLessThanOrEqual(button.frame.height, 52, "Core tools stay compact at AX5 so the document retains reading space")
                 XCTAssertFalse(button.label.isEmpty, "Every core tool retains its full VoiceOver name")
                 if let caption = button.staticTexts.allElementsBoundByIndex.first {
                     XCTAssertTrue(button.frame.insetBy(dx: -1, dy: -1).contains(caption.frame), "Visible tool words must fit inside their own touch target")
@@ -459,6 +484,7 @@ final class StudioCaptureTests: XCTestCase {
     }
 
     private func launch(_ scene: String, extra: [String] = []) -> XCUIApplication {
+        captureArguments = extra
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         app.launchArguments = ["--scene", scene, "--capture"] + (extra.contains("--dark") ? [] : ["--light"]) + extra
@@ -514,7 +540,22 @@ final class StudioCaptureTests: XCTestCase {
         }
         // Capture the full display: app.screenshot() can apply landscape crop coordinates
         // before the display's EXIF orientation, leaving clipped content and black pixels.
-        let screenshot = XCUIScreen.main.screenshot()
+        // Window geometry settles before the compositor finishes rotation. Require
+        // consecutive identical native pixel buffers, not a delay or post-processing.
+        var previousPixels: Data?
+        var stableScreenshot: XCUIScreenshot?
+        let stable = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard oriented.evaluate(with: nil) else { previousPixels = nil; return false }
+            let candidate = XCUIScreen.main.screenshot()
+            guard let data = candidate.image.cgImage?.dataProvider?.data else { return false }
+            let bytes = data as Data
+            let unchanged = previousPixels == bytes
+            previousPixels = bytes
+            if unchanged { stableScreenshot = candidate }
+            return unchanged
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [stable], timeout: 5), .completed, "Capture requires settled native display pixels, including rotation")
+        guard let screenshot = stableScreenshot else { return }
         let image = screenshot.image
         guard let pixels = image.cgImage else { XCTFail("Native screenshot must contain pixels"); return }
         let swapped = [UIImage.Orientation.left, .right, .leftMirrored, .rightMirrored].contains(image.imageOrientation)
@@ -527,5 +568,20 @@ final class StudioCaptureTests: XCTestCase {
         attachment.name = "Studio-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
+        let metadata: [String: Any] = [
+            "screen": name, "orientation": landscape ? "landscape" : "portrait",
+            "font_size": captureArguments.contains("--extra-large-type") ? "AX5" : captureArguments.contains("--large-type") ? "AX2" : "default",
+            "language": captureArguments.contains("--english") ? "en" : "ar",
+            "color_mode": captureArguments.contains("--dark") ? "dark" : "light",
+            "metadata_origin": "native capture and actual test launch arguments",
+            "window_width": window.width, "window_height": window.height,
+            "pixel_width": pixels.width, "pixel_height": pixels.height, "uiimage_orientation": image.imageOrientation.rawValue
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys]) {
+            let details = XCTAttachment(data: data, uniformTypeIdentifier: "public.json")
+            details.name = "Studio-Metadata-\(name)"
+            details.lifetime = .keepAlways
+            add(details)
+        }
     }
 }

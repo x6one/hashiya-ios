@@ -10,6 +10,10 @@ enum StudioPDF {
                 context.beginPage()
                 UIColor.white.setFill()
                 context.cgContext.fill(CGRect(x: 0, y: 0, width: 595, height: 842))
+                if (2...5).contains(page) {
+                    drawReviewPage(page, context: context.cgContext)
+                    continue
+                }
                 draw(L("مساحة المعرفة · المحاسبة المالية", "STUDY NOTES · FINANCIAL ACCOUNTING"), x: 48, y: 40, width: 499, size: 10, color: 0x69756B)
                 draw(L("مبادئ المحاسبة", "Accounting principles"), x: 48, y: 88, width: 499, size: 27, bold: true)
                 draw(L("الفصل الثالث · فهم المعادلة المحاسبية", "CHAPTER THREE · THE ACCOUNTING EQUATION"), x: 48, y: 137, width: 499, size: 12, color: 0x69756B)
@@ -29,7 +33,54 @@ enum StudioPDF {
                 draw("\(page)", x: 485, y: 790, width: 60, size: 10, color: 0x69756B)
             }
         }
-        return PDFDocument(data: data) ?? PDFDocument()
+        let document = PDFDocument(data: data) ?? PDFDocument()
+        if let page = document.page(at: 3) {
+            let annotation = PDFAnnotation(bounds: CGRect(x: 48, y: 270, width: 499, height: 240), forType: .ink, withProperties: nil)
+            annotation.color = StudioTheme.ui(0x244C43)
+            annotation.border = PDFBorder()
+            annotation.border?.lineWidth = 4
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: 30, y: 80))
+            path.addCurve(to: CGPoint(x: 440, y: 140), controlPoint1: CGPoint(x: 160, y: 240), controlPoint2: CGPoint(x: 280, y: 10))
+            annotation.add(path)
+            page.addAnnotation(annotation)
+        }
+        return document
+    }
+
+    private static func drawReviewPage(_ page: Int, context: CGContext) {
+        if page == 2 {
+            draw(L("ميزان المراجعة", "Trial balance"), x: 48, y: 60, width: 499, size: 27, bold: true)
+            let rows = [L("الحساب         مدين         دائن", "Account             Debit             Credit"),
+                        L("النقدية         ١٢٠٠٠         —", "Cash                 12,000               —"),
+                        L("المعدات         ٨٠٠٠         —", "Equipment        8,000               —"),
+                        L("رأس المال         —         ٢٠٠٠٠", "Capital                   —           20,000")]
+            for (index, row) in rows.enumerated() {
+                let y = CGFloat(160 + index * 82)
+                StudioTheme.ui(index == 0 ? 0xE9EFEA : 0xF8F7F3).setFill()
+                context.fill(CGRect(x: 48, y: y, width: 499, height: 80))
+                draw(row, x: 60, y: y + 20, width: 475, size: 18, bold: index == 0)
+                StudioTheme.ui(0xC48F68).setStroke()
+                context.stroke(CGRect(x: 48, y: y, width: 499, height: 80))
+            }
+        } else if page == 3 {
+            draw(L("صورة توضيحية", "Illustration"), x: 48, y: 60, width: 499, size: 27, bold: true)
+            // An actual embedded raster image, not a thumbnail placeholder.
+            let illustration = UIGraphicsImageRenderer(size: CGSize(width: 480, height: 340)).image { image in
+                StudioTheme.ui(0xE9EFEA).setFill(); image.fill(CGRect(x: 0, y: 0, width: 480, height: 340))
+                StudioTheme.ui(0xC48F68).setFill(); UIBezierPath(ovalIn: CGRect(x: 320, y: 30, width: 88, height: 88)).fill()
+                StudioTheme.ui(0x416B5D).setFill()
+                let mountain = UIBezierPath()
+                mountain.move(to: CGPoint(x: 0, y: 340)); mountain.addLine(to: CGPoint(x: 150, y: 80))
+                mountain.addLine(to: CGPoint(x: 300, y: 250)); mountain.addLine(to: CGPoint(x: 390, y: 140))
+                mountain.addLine(to: CGPoint(x: 480, y: 340)); mountain.close(); mountain.fill()
+            }
+            illustration.draw(in: CGRect(x: 48, y: 180, width: 499, height: 354))
+        } else if page == 4 {
+            draw(L("مراجعة بالقلم", "Handwritten review"), x: 48, y: 60, width: 499, size: 27, bold: true)
+            draw(L("تعليق حبر أصلي داخل PDF", "A native PDF ink annotation"), x: 48, y: 130, width: 499, size: 18)
+        }
+        draw("\(page)", x: 485, y: 790, width: 60, size: 10, color: 0x69756B)
     }
 
     private static func draw(_ text: String, x: CGFloat, y: CGFloat, width: CGFloat, size: CGFloat, color: Int = 0x282C2B, bold: Bool = false) {
@@ -52,8 +103,8 @@ final class StudioPDFController: ObservableObject {
     var onPageChange: ((Int) -> Void)?
     private var pageObserver: NSObjectProtocol?
     lazy var thumbnails = StudioThumbnailStore(document: view.document ?? PDFDocument())
-    func contentChanged() {
-        if let document = view.document { thumbnails.replaceDocument(document) }
+    func contentChanged(page: Int? = nil) {
+        if let document = view.document { thumbnails.replaceDocument(document, changedPages: page.map { Set([$0]) }) }
     }
     func text(on number: Int) -> String {
         view.document?.page(at: number - 1)?.annotations.first { $0.type == "FreeText" }?.contents ?? ""
@@ -79,7 +130,7 @@ final class StudioPDFController: ObservableObject {
         annotation.color = .clear
         annotation.alignment = alignment == 1 ? .center : alignment == 2 ? .left : .right
         if !page.annotations.contains(where: { $0 === annotation }) { page.addAnnotation(annotation) }
-        contentChanged()
+        contentChanged(page: number)
     }
     lazy var view: PDFView = {
         let view = StudioReadingPDFView()

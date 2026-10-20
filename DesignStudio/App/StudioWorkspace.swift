@@ -40,7 +40,6 @@ struct StudioWorkspace: View {
         }
     }
 
-
     private var activeMargin: Bool {
         get { session.activeNotes }
         nonmutating set { if session.activeNotes != newValue { session.activeNotes = newValue } }

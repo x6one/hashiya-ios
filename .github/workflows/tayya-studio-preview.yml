@@ -71,10 +71,15 @@ jobs:
           ACCESSIBLE_LAYOUT_ONLY: ${{ contains(github.event.head_commit.message, '[studio:layout]') }}
           APPROVAL_ONLY: ${{ contains(github.event.head_commit.message, '[studio:approval') }}
           APPROVAL_GREEN: ${{ contains(github.event.head_commit.message, '[studio:approval]') }}
+          VIEWPORT_PROBE: ${{ contains(github.event.head_commit.message, '[studio:viewport-probe]') }}
           INCARNATION_RED: ${{ contains(github.event.head_commit.message, '[studio:incarnation-red]') }}
         run: |
           set -o pipefail
           options=()
+          if [ "$VIEWPORT_PROBE" = true ]; then
+            options+=('-only-testing:StudioTests/StudioReviewRegressionTests/testNotesFormattingNeverMutatesOtherPDFPagesOrSavedAnnotations')
+            options+=('-only-testing:StudioUITests/StudioCaptureTests/testApprovalContextChangesKeepPDFFrameAndInkSettings')
+          fi
           if [ "$INCARNATION_RED" = true ]; then
             options+=('-only-testing:StudioTests/StudioApprovalTests/testReinsertedEditedPageNeverReusesAnEarlierRenderKey')
             options+=('-only-testing:StudioTests/StudioApprovalTests/testReviewPDFContainsDistinctTextTableImageInkAndBlankPages')

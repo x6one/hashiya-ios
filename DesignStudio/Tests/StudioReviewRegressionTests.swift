@@ -15,7 +15,7 @@ final class StudioReviewRegressionTests: XCTestCase {
         let workspace = StudioWorkspace(session: session, navigation: navigation, documentInk: StudioCanvas(), marginInk: StudioCanvas(margin: true), pdf: pdf, draft: draft)
         let (window, previous) = try studioTestWindow(UIHostingController(rootView: workspace))
         defer { window.isHidden = true; previous?.makeKeyAndVisible() }
-        waitUntil { pdf.view.window != nil }
+        waitUntil("PDF attached to window") { pdf.view.window != nil }
         pdf.updateText("PAGE-7", size: 18, color: 0x244C43, alignment: 0, page: 7)
         pdf.updateText("PAGE-8", size: 18, color: 0x244C43, alignment: 0, page: 8)
         draft.state.text = "PAGE-8"
@@ -25,7 +25,10 @@ final class StudioReviewRegressionTests: XCTestCase {
         navigation.scene = .margin
         draft.state.textSize = 32
         draft.state.textAlignment = 1
-        waitUntil { draft.status == "saved" }
+        waitUntil("draft saved") {
+            print("StudioSaveProbe status=\(draft.status) error=\(draft.lastSaveError ?? "none")")
+            return draft.status == "saved"
+        }
         XCTAssertEqual(pdf.view.document?.page(at: 6)?.annotations.first?.contents, "PAGE-7")
         XCTAssertEqual(pdf.view.document?.page(at: 7)?.annotations.first?.contents, "PAGE-8")
         XCTAssertEqual(pdf.view.document?.page(at: 7)?.annotations.first?.font?.pointSize, originalSize)
@@ -51,15 +54,18 @@ final class StudioReviewRegressionTests: XCTestCase {
             if let text = view as? UITextView, text.text == draft.state.notes { return text }
             return view.subviews.lazy.compactMap { editor(in: $0) }.first
         }
-        waitUntil { editor(in: window) != nil }
+        waitUntil("Notes editor attached") { editor(in: window) != nil }
         let text = try XCTUnwrap(editor(in: window))
         let size = text.font?.pointSize ?? (text.typingAttributes[.font] as? UIFont)?.pointSize
         XCTAssertGreaterThanOrEqual(try XCTUnwrap(size), 30, "Saved Notes formatting must stay visible while Pen is selected")
-        waitUntil { draft.status == "saved" }
+        waitUntil("draft saved") {
+            print("StudioSaveProbe status=\(draft.status) error=\(draft.lastSaveError ?? "none")")
+            return draft.status == "saved"
+        }
     }
 
-    @MainActor private func waitUntil(_ condition: @escaping () -> Bool) {
+    @MainActor private func waitUntil(_ reason: String, _ condition: @escaping () -> Bool) {
         let done = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in condition() }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [done], timeout: 5), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [done], timeout: 5), .completed, reason)
     }
 }

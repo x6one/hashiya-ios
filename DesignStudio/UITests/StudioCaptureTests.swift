@@ -18,13 +18,16 @@ final class StudioCaptureTests: XCTestCase {
             app.buttons["#68458A"].tap()
             let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
             let original = pdf.frame
+            print("StudioViewport baseline config=\(extra) frame=\(original) colorSheet=\(app.buttons["#68458A"].exists)")
             let inkValue = app.buttons["inkColor"].value as? String
             XCTAssertNotNil(inkValue, "Read actual brush/color/width state through the pen's accessibility value")
             XCTAssertEqual(inkValue, "pencil:#68458A:6")
             for tool in ["text", "select", "pen"] {
                 app.buttons["tool-\(tool)"].tap()
                 let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                    abs(pdf.frame.height - original.height) <= 1 && abs(pdf.frame.minY - original.minY) <= 1
+                    let measured = pdf.frame
+                    print("StudioViewport tool=\(tool) config=\(extra) baseline=\(original) measured=\(measured)")
+                    return abs(measured.height - original.height) <= 1 && abs(measured.minY - original.minY) <= 1
                 }, object: nil)
                 XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed, "Tool selection must retain the PDF viewport")
                 XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")

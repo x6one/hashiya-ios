@@ -9,7 +9,7 @@ on:
         default: none
         required: true
   push:
-    branches: [main, 'work/**']
+    branches: [main, 'work/**', 'integration/**']
   pull_request:
 permissions:
   contents: read
@@ -29,12 +29,12 @@ jobs:
           python3 -m compileall -q Tools
           curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
           tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
-          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml .github/workflows/tayya-integration.yml
   regression:
     needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.
     # Forks and other internal branches still require PR verification.
-    if: (github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'none') && !contains(github.event.head_commit.message, '[diagnostic:maestro]') && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/')))
+    if: (!startsWith(github.ref, 'refs/heads/integration/') || contains(github.event.head_commit.message, '[integration:release]') || github.event_name == 'workflow_dispatch') && (github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'none') && !contains(github.event.head_commit.message, '[diagnostic:maestro]') && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/')))
     runs-on: macos-15
     timeout-minutes: 60
     strategy:

@@ -1,0 +1,95 @@
+name: Tayya production integration
+on:
+  push:
+    branches: ['integration/**']
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Focused production integration suite
+        type: choice
+        options: [foundation, library, workspace, audio, compatibility, all]
+        default: foundation
+permissions:
+  contents: read
+concurrency:
+  group: tayya-integration-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  focused:
+    if: github.event_name == 'workflow_dispatch' || (contains(github.event.head_commit.message, '[integration:') && !contains(github.event.head_commit.message, '[integration:release]'))
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [iPhone, iPad]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select existing app toolchain and generate production project
+        run: |
+          python3 Tools/select_app_xcode.py
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+      - name: Select available simulator and focused suite
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+          REQUESTED_SUITE: ${{ inputs.suite }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          family = os.environ['DEVICE_FAMILY']
+          matching = [(tuple(map(int, re.findall(r'\d+', runtime))), d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(family)]
+          matching.sort(key=lambda row: (row[0], 'Pro Max' in row[1]['name'] if family == 'iPhone' else ('Pro' in row[1]['name'] and '13' in row[1]['name'])), reverse=True)
+          if not matching:
+              raise SystemExit('Required simulator family unavailable')
+          match = re.search(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
+          suite = os.environ.get('REQUESTED_SUITE') or (match[1] if match else '')
+          suite = suite.removesuffix('-red')
+          selections = {
+              'foundation': ['HashiyaTests/StudioIntegrationThemeTests'],
+              'library': ['HashiyaTests/DocumentTests', 'HashiyaTests/DocumentImportTests', 'HashiyaTests/ReadingPositionTests', 'HashiyaUITests/StudioIntegrationTests'],
+              'workspace': ['HashiyaTests/DocumentViewportTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests', 'HashiyaUITests/StudioIntegrationTests'],
+              'audio': ['HashiyaTests/WorkspaceAudioTests', 'HashiyaTests/AudioPlaybackTests', 'HashiyaTests/AudioDeletionTests', 'HashiyaTests/StudioAudioIntegrationTests'],
+              'compatibility': ['HashiyaTests/PageRemovalTests', 'HashiyaTests/StudioDataCompatibilityTests'],
+              'all': ['HashiyaTests', 'HashiyaUITests/StudioIntegrationTests']
+          }
+          if suite not in selections:
+              raise SystemExit('Unknown focused suite: ' + suite)
+          with open('integration-selection.json', 'w') as out:
+              json.dump({'sha': os.environ['GITHUB_SHA'], 'family': family, 'device': matching[0][1], 'suite': suite, 'onlyTesting': selections[suite]}, out, indent=2)
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('SIMULATOR_ID=' + matching[0][1]['udid'] + '\n')
+          PY
+      - name: Run selected production tests
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          python3 Tools/seed_files_fixtures.py
+          python3 - <<'PY'
+          import json, os, subprocess
+          selection = json.load(open('integration-selection.json'))
+          args = ['xcodebuild', 'test', '-project', 'Hashiya.xcodeproj', '-scheme', 'Hashiya', '-destination', 'platform=iOS Simulator,id=' + os.environ['SIMULATOR_ID'], '-derivedDataPath', 'IntegrationBuild', '-resultBundlePath', 'IntegrationResults.xcresult', '-test-timeouts-enabled', 'YES', '-default-test-execution-time-allowance', '240', '-maximum-test-execution-time-allowance', '360', 'CODE_SIGNING_ALLOWED=NO']
+          args += ['-only-testing:' + name for name in selection['onlyTesting']]
+          raise SystemExit(subprocess.call(args))
+          PY
+      - name: Retain native summary and unmodified attachments
+        if: always()
+        run: |
+          if [ -d IntegrationResults.xcresult ]; then
+            mkdir -p IntegrationEvidence
+            xcrun xcresulttool get test-results summary --path IntegrationResults.xcresult > IntegrationEvidence/summary.json
+            xcrun xcresulttool export attachments --path IntegrationResults.xcresult --output-path IntegrationEvidence/Screenshots
+            ditto -c -k --keepParent IntegrationResults.xcresult IntegrationEvidence/IntegrationResults.xcresult.zip
+          fi
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-${{ matrix.family }}
+          path: |
+            integration-selection.json
+            IntegrationEvidence/
+          retention-days: 14

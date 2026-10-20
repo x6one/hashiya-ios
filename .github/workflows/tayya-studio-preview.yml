@@ -49,10 +49,10 @@ jobs:
           picked = choices[0][1]
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write('SIMULATOR_ID='+picked['udid']+'\n')
           print(picked['name'],picked['udid'])
+          subprocess.run(['xcrun','simctl','boot',picked['udid']],check=False)
+          subprocess.run(['xcrun','simctl','bootstatus',picked['udid'],'-b'],check=True)
+          subprocess.run(['xcrun','simctl','status_bar',picked['udid'],'override','--time','9:41','--batteryState','charged','--batteryLevel','100'],check=True)
           PY
-          xcrun simctl boot "$SIMULATOR_ID" || true
-          xcrun simctl bootstatus "$SIMULATOR_ID" -b
-          xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --batteryState charged --batteryLevel 100
       - name: Test prototype contracts and capture real SwiftUI
         env:
           RED_PROBE: ${{ contains(github.event.head_commit.message, '[studio:red]') }}

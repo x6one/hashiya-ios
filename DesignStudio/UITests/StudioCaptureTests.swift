@@ -108,6 +108,25 @@ final class StudioCaptureTests: XCTestCase {
         }
     }
 
+    func testAccessibleEditorLabelsStayWhole() {
+        let traits = UITraitCollection(preferredContentSizeCategory: .accessibilityLarge)
+        for scene in ["document", "margin"] {
+            let app = launch(scene, extra: ["--large-type"])
+            let pages = app.buttons["tool-pages"]
+            assertUsable(pages)
+            let caption = pages.staticTexts.firstMatch
+            XCTAssertTrue(caption.exists)
+            XCTAssertLessThanOrEqual(caption.frame.height, UIFont.preferredFont(forTextStyle: .caption2, compatibleWith: traits).lineHeight + 3, "Tool words must remain on one line")
+            let heading = app.descendants(matching: .any).matching(identifier: "marginHeading").firstMatch
+            if scene == "margin" || UIDevice.current.userInterfaceIdiom == .pad {
+                XCTAssertTrue(heading.exists)
+                XCTAssertLessThanOrEqual(heading.frame.height, UIFont.preferredFont(forTextStyle: .headline, compatibleWith: traits).lineHeight + 3, "Margin title must remain on one line")
+            }
+            snapshot("Accessible-WholeLabels-\(scene)")
+            app.terminate()
+        }
+    }
+
     private func captureScenes(dark: Bool) {
         for scene in ["library", "document", "margin", "audio", "cards"] {
             let app = launch(scene, extra: dark ? ["--dark"] : [])

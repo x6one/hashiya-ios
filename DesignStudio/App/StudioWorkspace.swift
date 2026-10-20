@@ -18,6 +18,7 @@ struct StudioWorkspace: View {
     @State private var activeMargin = false
     @State private var noteText = L("ملاحظات مهمة\n\n• التركيز على طرفي المعادلة.\n• مراجعة المثال قبل المحاضرة القادمة.", "Key ideas\n\n• Watch both sides of the equation.\n• Review the example before the next lecture.")
     @Environment(\.layoutDirection) private var direction
+    @Environment(\.dynamicTypeSize) private var typeSize
     private var tablet: Bool { UIDevice.current.userInterfaceIdiom == .pad }
     private var marginOnly: Bool { navigation.scene == .margin }
 
@@ -123,11 +124,13 @@ struct StudioWorkspace: View {
     private var marginPanel: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label(L("الحاشية", "Margin"), systemImage: "note.text").font(.headline)
-                    Spacer()
-                    Text(L("صفحة \(session.page)", "Page \(session.page)")).font(.caption).foregroundStyle(StudioTheme.secondary)
-                    TayyaIconButton(title: L("قوالب الورق", "Paper templates"), symbol: "ellipsis") { navigation.sheet = .templates }
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) {
+                        marginHeading
+                        HStack { marginPage; Spacer(); templateButton }
+                    }
+                } else {
+                    HStack { marginHeading; Spacer(); marginPage; templateButton }
                 }
                 Divider()
                 TextEditor(text: $noteText).font(.body).scrollContentBackground(.hidden)
@@ -207,22 +210,37 @@ struct StudioWorkspace: View {
             TayyaIconButton(title: L("أقلامي المفضلة", "Favorite pens"), symbol: "star") { navigation.sheet = .pens }
         }
     }
+    private var marginHeading: some View {
+        Label(L("الحاشية", "Margin"), systemImage: "note.text").font(.headline)
+            .fixedSize(horizontal: true, vertical: true).accessibilityIdentifier("marginHeading")
+    }
+    private var marginPage: some View {
+        Text(L("صفحة \(session.page)", "Page \(session.page)")).font(.caption).foregroundStyle(StudioTheme.secondary)
+    }
+    private var templateButton: some View {
+        TayyaIconButton(title: L("قوالب الورق", "Paper templates"), symbol: "ellipsis") { navigation.sheet = .templates }
+    }
     private var toolDock: some View {
-        HStack(spacing: 0) {
+        Group {
+            if typeSize.isAccessibilitySize {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: tablet ? 5 : 3), spacing: 8) { toolButtons }
+            } else { HStack(spacing: 0) { toolButtons } }
+        }.padding(.horizontal, 12).padding(.vertical, 8).background(StudioTheme.surface)
+    }
+    private var toolButtons: some View {
             ForEach(["pen", "text", "select", "margin", "pages"], id: \.self) { item in
                 let titles = ["pen": L("قلم", "Pen"), "text": L("نص", "Text"), "select": L("تحديد", "Select"), "margin": L("حاشية", "Margin"), "pages": L("صفحات", "Pages")]
                 let symbols = ["pen": "pencil.tip", "text": "textformat", "select": "lasso", "margin": "note.text", "pages": "square.grid.2x2"]
                 Button { chooseTool(item) } label: {
                     VStack(spacing: 4) {
                         Image(systemName: symbols[item] ?? "pencil").font(.system(size: 19))
-                        Text(titles[item] ?? item).font(.caption2).fixedSize(horizontal: false, vertical: true)
+                        Text(titles[item] ?? item).font(.caption2).fixedSize(horizontal: true, vertical: true)
                     }.padding(.horizontal, 4).frame(maxWidth: .infinity, minHeight: 52)
                         .foregroundStyle((marginOnly && item == "margin") || tool == item ? StudioTheme.primary : StudioTheme.secondary)
                         .background((marginOnly && item == "margin") || tool == item ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12))
                         .contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityIdentifier("tool-\(item)")
             }
-        }.padding(.horizontal, 12).padding(.vertical, 8).background(StudioTheme.surface)
     }
     private var currentCanvas: StudioCanvas { marginOnly || (tablet && session.marginOpen && activeMargin) ? marginInk : documentInk }
     private func syncInkToolbar() { inkTool = currentCanvas.brush; inkColor = currentCanvas.color; inkWidth = currentCanvas.width }

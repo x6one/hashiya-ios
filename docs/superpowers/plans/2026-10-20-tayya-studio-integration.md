@@ -80,3 +80,9 @@ Candidate changes: fail-closed load flags protect actual library/cards/text/PDF 
 English/Arabic uses display resources and a persistent app-language preference; user titles, reserved section storage keys, Notes/audio files and ink colors stay unchanged. Native Files picker explicitly retains system locale/direction. Recording remains AVFoundation-based; the compact strip retains actual elapsed time and microphone level accessibility contracts. Data compatibility source fixture already passed before these changes and is selected again because persistence guards changed.
 
 Next: focused workspace/audio/compatibility/library native verification on both devices. No full release gate or integrated IPA yet. Pending later work: real recording management/continuous-page markers, stable page identity, pen presets, bounded native thumbnails/sidebar, final production captures and final same-SHA release/Office/IPA gate.
+
+### 2026-10-20 real frontend/data integration GREEN
+
+Commit 6e8bcd6b2960124df928ee27d7ec6ffd2212e589, [run 39516649133](https://github.com/x6one/hashiya-ios/actions/runs/39516649133): both iPhone job 118950295343 and iPad job 118950295734 passed all 56 selected logic tests plus 4 real-production UI tests, zero failures/skips. This verifies the observed corrupt-store regressions, legacy fixture, original page/ink/audio/import/Office replacement suites and new real tools/Focus/Notes/English/accessibility rotation behavior. Full release gate has not been run.
+
+Next independent RED is two production AVFoundation UI contracts: one clip continues across page changes and keeps both page timestamps; manual markers/rename/playback management. The current code has no initial/page-visit markers or manual-marker controls. Run only these new tests on iPhone to establish exact gaps before implementation; qualify both devices after the fix. This tests simulator audio, not a physical microphone.

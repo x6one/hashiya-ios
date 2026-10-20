@@ -19,7 +19,7 @@ struct StudioRecordingStrip: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.recording ? L("جارٍ التسجيل", "Recording") : L("تسجيلات الصفحة", "Page recordings")).font(.caption.weight(.semibold))
                     Text(L("الصفحة \(session.page)", "Page \(session.page)")).font(.caption2).foregroundStyle(StudioTheme.secondary)
-                }.frame(minHeight: 44)
+                }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("openPageAudio")
             StudioWaveform(active: session.recording).frame(height: 24)
             Text(studioTime(session.recording ? session.elapsed : session.playhead)).font(.caption.monospacedDigit())
@@ -122,7 +122,7 @@ struct StudioAudio: View {
                         .font(.caption).foregroundStyle(StudioTheme.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(24).frame(maxWidth: 720).frame(maxWidth: .infinity)
             }
-        }.background(StudioTheme.background).accessibilityIdentifier("audioScene")
+        }.background(StudioTheme.background)
     }
 }
 
@@ -168,7 +168,7 @@ struct StudioCards: View {
                     }
                 }.padding(24).frame(maxWidth: 620).frame(maxWidth: .infinity)
             }
-        }.background(StudioTheme.background).accessibilityIdentifier("cardsScene")
+        }.background(StudioTheme.background)
     }
     private func assessment(_ title: String, symbol: String) -> some View {
         Button { index = index % max(1, cards.count) + 1; revealed = false } label: {

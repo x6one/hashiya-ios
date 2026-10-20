@@ -11,7 +11,17 @@ final class StudioVisualContractTests: XCTestCase {
     func testPreviewPDFContainsRealSelectableContentAndAllPages() {
         let pdf = StudioPDF.make()
         XCTAssertEqual(pdf.pageCount, 24)
-        XCTAssertTrue(pdf.page(at: 6)?.string?.contains("مبادئ المحاسبة") == true)
+        let extracted = pdf.page(at: 6)?.string ?? ""
+        let text = XCTAttachment(string: extracted)
+        text.name = "Actual-PDFKit-Arabic-extraction"; text.lifetime = .keepAlways; add(text)
+        let data = XCTAttachment(data: pdf.dataRepresentation() ?? Data(), uniformTypeIdentifier: "com.adobe.pdf")
+        data.name = "Actual-Studio-study-PDF"; data.lifetime = .keepAlways; add(data)
+        // PDFKit may expose RTL glyph order, compatibility forms or omit spaces.
+        // Keep the full required title letters; do not accept arbitrary Arabic text.
+        let actual = extracted.precomposedStringWithCompatibilityMapping.filter { $0.isLetter }
+        let expected = "مبادئ المحاسبة".precomposedStringWithCompatibilityMapping.filter { $0.isLetter }
+        print("StudioActualPDFKitText=\(extracted.debugDescription)")
+        XCTAssertTrue(actual.contains(expected) || String(actual.reversed()).contains(expected), "Full title must remain extractable: \(extracted.debugDescription)")
         XCTAssertGreaterThan(pdf.dataRepresentation()?.count ?? 0, 1000)
     }
 

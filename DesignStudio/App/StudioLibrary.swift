@@ -72,8 +72,7 @@ struct StudioLibrary: View {
                     if !tablet { bottomTabs }
                 }
             }.background(StudioTheme.background)
-        }.accessibilityIdentifier("libraryScene")
-            .sheet(isPresented: $navigation.addNotebook) { addSheet }
+        }.sheet(isPresented: $navigation.addNotebook) { addSheet }
     }
     private var header: some View {
         HStack {
@@ -93,12 +92,8 @@ struct StudioLibrary: View {
             VStack(alignment: .leading, spacing: 24) {
                 HStack {
                     Image(systemName: "magnifyingglass").foregroundStyle(StudioTheme.secondary)
-                    TextField(L("ابحث في مكتبتك", "Search your library"), text: $query).accessibilityIdentifier("librarySearch")
+                    TextField(L("ابحث في مكتبتك", "Search your library"), text: $query, prompt: Text(L("ابحث في مكتبتك", "Search your library")).foregroundStyle(StudioTheme.secondary)).accessibilityIdentifier("librarySearch")
                 }.padding(12).frame(minHeight: 48).background(StudioTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L("مساحتك للدراسة", "Your space to study")).font(.largeTitle.bold())
-                    Text(L("كل فكرة، في مكانها.", "A place for every idea.")).font(.subheadline).foregroundStyle(StudioTheme.secondary)
-                }
                 Button { navigation.scene = .document } label: {
                     HStack(spacing: 16) {
                         Image(systemName: "book.closed").font(.title2).frame(width: 48, height: 56)
@@ -163,6 +158,7 @@ struct StudioLibrary: View {
             }.frame(maxWidth: .infinity, minHeight: 48)
                 .foregroundStyle(destination == index ? StudioTheme.primary : StudioTheme.secondary)
                 .background(destination == index ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
         }.buttonStyle(.plain)
     }
     private var sidebar: some View {

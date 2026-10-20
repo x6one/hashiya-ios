@@ -39,7 +39,7 @@ struct StudioWorkspace: View {
                 if tool == "pen" || marginOnly { inkRail }
                 toolDock
             }
-        }.background(StudioTheme.background).accessibilityIdentifier("workspaceScene")
+        }.background(StudioTheme.background)
             .onAppear {
                 activeMargin = marginOnly
                 syncInkToolbar()
@@ -158,7 +158,7 @@ struct StudioWorkspace: View {
                 Label(L("مرتبط بالمستند · صفحة \(session.page)", "Linked to document · Page \(session.page)"), systemImage: "link")
                     .font(.caption2).foregroundStyle(StudioTheme.secondary)
             }
-        }.studioCard().accessibilityIdentifier("marginPanel")
+        }.studioCard()
     }
     private var thumbnails: some View {
         ScrollView {
@@ -197,10 +197,10 @@ struct StudioWorkspace: View {
             }
             Divider().frame(height: 24)
             Button { navigation.sheet = .colors } label: {
-                Circle().fill(Color(uiColor: StudioTheme.ui(inkColor))).frame(width: 22, height: 22).padding(11)
+                Circle().fill(Color(uiColor: StudioTheme.ui(inkColor))).frame(width: 22, height: 22).padding(11).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(L("لون القلم", "Ink color")).accessibilityIdentifier("inkColor")
             Button { inkWidth = inkWidth == 3 ? 6 : inkWidth == 6 ? 1.5 : 3; updateInk() } label: {
-                Text("\(inkWidth, specifier: "%g")").font(.subheadline).frame(width: 44, height: 44)
+                Text("\(inkWidth, specifier: "%g")").font(.subheadline).frame(width: 44, height: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(L("سماكة القلم", "Pen width"))
             TayyaIconButton(title: L("تراجع", "Undo"), symbol: "arrow.uturn.backward") { currentCanvas.view.undoManager?.undo() }
             TayyaIconButton(title: L("إعادة", "Redo"), symbol: "arrow.uturn.forward") { currentCanvas.view.undoManager?.redo() }
@@ -219,6 +219,7 @@ struct StudioWorkspace: View {
                     }.padding(.horizontal, 4).frame(maxWidth: .infinity, minHeight: 52)
                         .foregroundStyle((marginOnly && item == "margin") || tool == item ? StudioTheme.primary : StudioTheme.secondary)
                         .background((marginOnly && item == "margin") || tool == item ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12))
+                        .contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityIdentifier("tool-\(item)")
             }
         }.padding(.horizontal, 12).padding(.vertical, 8).background(StudioTheme.surface)

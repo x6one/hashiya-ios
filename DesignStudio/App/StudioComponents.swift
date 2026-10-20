@@ -12,6 +12,7 @@ struct TayyaIconButton: View {
                 .frame(minWidth: 44, minHeight: 44)
                 .foregroundStyle(selected ? StudioTheme.primary : StudioTheme.secondary)
                 .background(selected ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityLabel(title).help(title)
     }
 }

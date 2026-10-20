@@ -231,7 +231,7 @@ final class StudioCaptureTests: XCTestCase {
 
     func testPolishDirectPageJumpAndLastVisitedPage() {
         let app = launch("document")
-        app.buttons["pageCount"].tap()
+        openPagePicker(app)
         let input = app.textFields["pageNumberInput"]
         XCTAssertTrue(input.waitForExistence(timeout: 5))
         input.tap()
@@ -240,7 +240,7 @@ final class StudioCaptureTests: XCTestCase {
         let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: input)
         XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed, "Wait for the page sheet to dismiss before reading document accessibility values")
         XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
-        app.buttons["pageCount"].tap()
+        openPagePicker(app)
         app.buttons["lastVisitedPage"].tap()
         XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
         app.terminate()
@@ -357,6 +357,13 @@ final class StudioCaptureTests: XCTestCase {
         let ready = ["library": "libraryAdd", "document": "focusToggle", "margin": "focusToggle", "audio": "audioStop", "cards": "revealAnswer"][scene] ?? "focusToggle"
         XCTAssertTrue(app.buttons[ready].waitForExistence(timeout: 12), "Ready control for \(scene)")
         return app
+    }
+
+    private func openPagePicker(_ app: XCUIApplication) {
+        let button = app.buttons["pageCount"]
+        assertUsable(button)
+        print("StudioPageHit counter=\(button.frame)")
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     private func tapPageJump(_ app: XCUIApplication) {

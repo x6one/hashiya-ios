@@ -90,7 +90,7 @@ struct TayyaPageNavigator: View {
                     Text("\(session.page)").font(.subheadline.bold())
                         .padding(.horizontal, 12).padding(.vertical, 6).background(StudioTheme.selection, in: RoundedRectangle(cornerRadius: 8))
                     Text(L("من \(session.totalPages)", "of \(session.totalPages)")).font(.caption).foregroundStyle(StudioTheme.secondary)
-                }.frame(minHeight: 44)
+                }.frame(minHeight: StudioMetrics.touch).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(L("الصفحة \(session.page) من \(session.totalPages)", "Page \(session.page) of \(session.totalPages)"))
                 .accessibilityIdentifier("pageCount").accessibilityValue(String(session.page))
             Spacer(minLength: 0)

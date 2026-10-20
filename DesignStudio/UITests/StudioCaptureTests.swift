@@ -2,6 +2,25 @@ import XCTest
 import UIKit
 
 final class StudioCaptureTests: XCTestCase {
+    func testApprovalExtremeTypeCoreToolsFitWithoutOverlappingLabels() {
+        for extra in [["--extra-large-type"], ["--extra-large-type", "--english", "--dark"]] {
+            let app = launch("document", extra: extra)
+            var previous: CGRect?
+            for id in ["pen", "text", "select", "margin", "pages"] {
+                let button = app.buttons["tool-\(id)"]
+                assertUsable(button)
+                XCTAssertFalse(button.label.isEmpty, "Every core tool retains its full VoiceOver name")
+                if let caption = button.staticTexts.allElementsBoundByIndex.first {
+                    XCTAssertTrue(button.frame.insetBy(dx: -1, dy: -1).contains(caption.frame), "Visible tool words must fit inside their own touch target")
+                }
+                if let previous { XCTAssertFalse(previous.intersects(button.frame.insetBy(dx: 1, dy: 1)), "Core touch targets must not overlap") }
+                previous = button.frame
+            }
+            snapshot("Approval-ExtremeType-\(extra.contains("--english") ? "English-Dark" : "Arabic-Light")-Portrait")
+            app.terminate()
+        }
+    }
+
     override func setUpWithError() throws { continueAfterFailure = false }
 
     func testCapturePrimaryScenesLight() { captureScenes(dark: false) }

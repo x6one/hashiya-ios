@@ -48,6 +48,20 @@ struct StudioRoot: View {
     private var args: [String] { ProcessInfo.processInfo.arguments }
     private var english: Bool { args.contains("--english") }
     private var appearance: ColorScheme? { args.contains("--dark") ? .dark : args.contains("--light") ? .light : nil }
+    private var pageCover: Binding<Bool> {
+        Binding(get: { UIDevice.current.userInterfaceIdiom == .pad && navigation.sheet == .pages },
+                set: { if !$0 && navigation.sheet == .pages { navigation.sheet = nil } })
+    }
+    private var ordinarySheet: Binding<StudioSheet?> {
+        Binding(get: { pageCover.wrappedValue ? nil : navigation.sheet },
+                set: { if !pageCover.wrappedValue { navigation.sheet = $0 } })
+    }
+    private func sheetContent(_ sheet: StudioSheet) -> some View {
+        StudioSheetView(sheet: sheet, session: session, navigation: navigation, pdf: pdf, draft: draft)
+            .environment(\.layoutDirection, english ? .leftToRight : .rightToLeft)
+            .preferredColorScheme(appearance)
+            .transformEnvironment(\.dynamicTypeSize) { if args.contains("--extra-large-type") { $0 = .accessibility5 } else if args.contains("--large-type") { $0 = .accessibility2 } }
+    }
     var body: some View {
         content
             .foregroundStyle(StudioTheme.text).tint(StudioTheme.primary)
@@ -55,12 +69,10 @@ struct StudioRoot: View {
             .environment(\.locale, Locale(identifier: english ? "en" : "ar"))
             .transformEnvironment(\.dynamicTypeSize) { if args.contains("--extra-large-type") { $0 = .accessibility5 } else if args.contains("--large-type") { $0 = .accessibility2 } }
             .preferredColorScheme(appearance)
-            .sheet(item: $navigation.sheet) { sheet in
-                StudioSheetView(sheet: sheet, session: session, navigation: navigation, pdf: pdf, draft: draft)
-                    .environment(\.layoutDirection, english ? .leftToRight : .rightToLeft)
-                    .preferredColorScheme(appearance)
-                    .transformEnvironment(\.dynamicTypeSize) { if args.contains("--extra-large-type") { $0 = .accessibility5 } else if args.contains("--large-type") { $0 = .accessibility2 } }
-            }
+            .sheet(item: ordinarySheet) { sheetContent($0) }
+            // A fixed page-picker canvas avoids the iPad form sheet's keyboard-driven
+            // coordinate transition and gives large page collections more room.
+            .fullScreenCover(isPresented: pageCover) { sheetContent(.pages) }
             .onAppear {
                 guard !prepared else { return }
                 prepared = true

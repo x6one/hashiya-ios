@@ -234,6 +234,9 @@ final class StudioCaptureTests: XCTestCase {
         openPagePicker(app)
         let input = app.textFields["pageNumberInput"]
         XCTAssertTrue(input.waitForExistence(timeout: 5))
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCTAssertLessThan(app.navigationBars["الصفحات"].frame.minY, app.windows.firstMatch.frame.height * 0.1, "Tablet page picker uses a stable full-screen presentation")
+        }
         input.tap()
         input.typeText("12")
         tapPageJump(app)

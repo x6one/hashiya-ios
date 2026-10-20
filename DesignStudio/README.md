@@ -2,8 +2,8 @@
 
 **Phase B only. Visual approval pending.** Native SwiftUI prototype, with a separate
 bundle/container. `App/`, `Tests/`, `UITests/`, production `project.yml` and stable
-branch are unchanged. No microphone, M4A file, disk storage or Office conversion is
-used by this preview. Recording/playback progress and waveform are a **simulation**;
+branch are unchanged. No microphone, M4A file, production data storage or Office conversion is
+used by this preview. Preview drafts use this separate bundle’s sandbox only. Recording/playback progress and waveform are a **simulation**;
 the rendered PDF and editable PencilKit/TextEditor surfaces are real native views.
 
 ## Review
@@ -33,9 +33,9 @@ visual inspection, without adding sleeps or changing readiness assertions.
 
 ## Explicit proposal limits
 
-File import/export/backup/trash integration, persisted pen presets and card storage,
-live microphone/audio playback and per-document split
-persistence are production C tasks. Their existing stable implementations are
+File import/export/backup/trash integration, production pen-preference adapters and card storage,
+live microphone/audio playback and production per-document split
+persistence are production C tasks. The isolated preview supports its own saved drafts and pen presets. Their existing stable implementations are
 retained. No prototype interaction proves old M4A compatibility, background audio,
 physical Office conversion or end-to-end production quality. New cards work in
 preview memory, including page/file filters, and are not persisted.
@@ -79,3 +79,35 @@ source revisions; no single-SHA full production qualification is claimed.
 See the [design specification](../docs/superpowers/specs/2026-10-20-tayya-studio-2-design.md),
 [staged plan](../docs/superpowers/plans/2026-10-20-tayya-studio-2.md) and
 [action map](../docs/design/tayya-studio-2-actions.md).
+
+## Verified final polish (visual approval pending)
+
+Visible terminology uses Notes / الملاحظات without renaming margin IDs. Native
+PDFKit thumbnails share a bounded cache and serial rendering worker. Notes expands
+at accessibility sizes; idle audio reserves one 44pt row and tools follow the
+selected mode. Preview-only drafts, PDF text annotations and three editable pens
+are saved atomically in this bundle's own sandbox; test captures normally use a
+fresh temporary draft. A named `--draft-id` fixture supports actual reopen checks.
+No production file or M4A is read or changed. Audio remains simulated.
+
+Full behavior and targeted capture verification are complete. The production
+integration approval gate remains.
+
+Full DESIGN behavior source: `6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8`.
+Run39398450073 passed17 unit +22 UI cases per family,39/39 with zero failures/skips.
+Both archives and every native PNG were independently SHA256/CRC checked. Visual
+inspection then found an XCTest app.screenshot landscape crop/EXIF defect. Those
+clipped captures are not the review deliverable.
+
+Corrected capture source: `e15ffdf30577e48360e749a6e7e532d2a982b4e2`.
+Run39401061917 re-captures12 relevant UI cases per family using the full native
+display after actual window readiness and verifies oriented pixel/window aspect.
+The workflow pins exact App/Tests/project hashes to the full39 gate; no app change,
+unit replay or unrelated UI replay. Both families passed12/12 with zero failures/skips. All47 phone and48 tablet PNGs
+passed independent SHA256/ZIP-CRC/source-hash and displayed-orientation checks;
+representative original images were visually reviewed.
+The full gate and capture source are intentionally recorded separately, without
+claiming a full39 run at the capture-only SHA. Production qualification remains
+separate. Gallery `compare.html` preserves all65 historical original PNGs and the
+six exact user review references. The review contains160 original images:65 historical
+and95 new. Open index.html or compare.html after downloading/extracting the artifact. [Polish evidence](../docs/design/tayya-studio-2-polish-review.md).

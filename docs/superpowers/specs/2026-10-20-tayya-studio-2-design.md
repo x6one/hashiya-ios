@@ -21,6 +21,18 @@ The preview has a separate XcodeGen project and bundle identifier
 no disk writes, microphone, network, signing, or Office integration. The production
 bundle remains `com.ahmadalawi.hashiya`; iOS minimum remains 17.
 
+## Authorized polish round — 2026-10-20
+
+The user's final-polish brief authorizes refining this same preview before visual
+approval. Display terminology is now **Notes / الملاحظات**; internal margin
+identifiers and production storage paths remain unchanged. This round supersedes
+the earlier no-disk-write / in-memory-preference limit ONLY for atomic drafts,
+three pen presets and sample PDF annotations inside the isolated preview sandbox.
+Production files, real M4A audio, microphone permissions, and integration stay
+outside the prototype. Audio remains an interactive simulation. The new polish
+plan records adaptive Notes, contextual tools, PDFKit thumbnails and actual
+old/new screenshot comparisons; no dependency was added.
+
 ## A — findings from current source
 
 | Area | Existing behavior | Design response / later integration |
@@ -72,14 +84,14 @@ No second always-visible New/Import row. Add menu owns both actions.
 ### Phone study
 
 Back/title/bookmark/share; Previous/page/total/Next/thumbnails; PDF occupies the
-remaining area. Bottom dock: Pen/Text/Select/Margin/Pages. Pen shows scrollable
+remaining area. Bottom dock: Pen/Text/Select/Notes/Pages. Pen shows scrollable
 ink/pencil/highlighter/eraser/color/width/Undo/Redo controls. Audio is an independent
-compact strip; tapping its card opens recordings without opening margin. Margin
+compact strip; tapping its card opens recordings without opening Notes. Notes
 can expand and return to PDF. Sharing/templates/page operations open sheets.
 
 ### iPad study
 
-Optional thumbnail sidebar; PDF in the center; independent margin panel; draggable
+Optional thumbnail sidebar; PDF in the center; independent Notes panel; draggable
 divider. Compact shared toolbar and independent bottom audio strip. Focus hides
 secondary chrome and offers a visible exit. Portrait collapses thumbnails before
 crowding writing panes. Previews include portrait and landscape.
@@ -94,7 +106,8 @@ integration tests in C, not claims made by this in-memory demonstration.
 Waveform in the preview is illustrative; no microphone or audio file is used.
 Document review shows page/file filters, reveal and assessment without leaving
 study. Favorite pens, focus, paper templates and quick navigation are demonstrated
-with local state; persistence belongs to approved C tasks.
+with local state. Isolated preview drafts and three pen settings persist in the
+preview sandbox; production persistence adapters belong to approved C tasks.
 
 ## Shared preview components
 
@@ -122,3 +135,20 @@ and accessibility-size samples; state-interaction and capture results; action ma
 file plan. Identify them as SwiftUI prototype captures, not redesigned production.
 STOP for the user's visual approval before touching App/, Tests/, UITests/ or the
 canonical project.yml. No stable branch writes, PR merge, Apple upload or IPA in B.
+
+### Large-type navigation and page-picker polish
+
+Phone library tabs use two columns at accessibility sizes to preserve whole names
+and touch bounds; ordinary type keeps the established single row. Filters remain
+an intrinsic-width horizontal list. Notes expand rather than shrinking below a
+readable width. iPad Pages passed focused and full-design verification as a full-screen picker;
+this keeps the number-input geometry stable and gives real thumbnails more room.
+
+### Compact-height accessibility reading
+
+On the phone, accessibility-size text at compact height defaults to focus so the
+PDF retains usable space. The header always offers a 44pt Show tools control;
+restoring tools is reversible. Returning to regular height removes only the
+automatic compact focus. A manually selected focus survives rotation. No document,
+page, zoom, recording or draft is recreated by that presentation choice. Native
+geometry and reading-position regressions must pass before visual acceptance.

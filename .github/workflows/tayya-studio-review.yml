@@ -39,11 +39,22 @@ jobs:
           run-id: ${{ steps.evidence.outputs.layout }}
           pattern: Tayya-Studio-2-*
           path: source-evidence/layout
+      - uses: actions/download-artifact@v4
+        if: steps.evidence.outputs.polish != ''
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.evidence.outputs.polish }}
+          pattern: Tayya-Studio-2-*
+          path: source-evidence/polish
       - name: Assemble verified original screenshots and design documents
         run: |
           python3 DesignStudio/Tools/build_review_gallery.py source-evidence Tayya-Studio-2-Review docs/design/tayya-studio-2-evidence.json
           cp docs/superpowers/specs/2026-10-20-tayya-studio-2-design.md Tayya-Studio-2-Review/Design-System.md
           cp docs/superpowers/plans/2026-10-20-tayya-studio-2.md Tayya-Studio-2-Review/Implementation-Plan.md
+          python3 -B -m unittest discover -s DesignStudio/Tools -p test_review_gallery.py -v
+          cp docs/superpowers/plans/2026-10-20-tayya-studio-polish.md Tayya-Studio-2-Review/Polish-Plan.md
+          cp docs/design/tayya-studio-2-review.md Tayya-Studio-2-Review/Review.md
+          cp docs/design/tayya-studio-2-polish-review.md Tayya-Studio-2-Review/Polish-Review.md
           cp docs/design/tayya-studio-2-actions.md Tayya-Studio-2-Review/Actions.md
           find Tayya-Studio-2-Review -type f -print0 | sort -z | xargs -0 sha256sum > Tayya-Studio-2-Review.sha256
       - uses: actions/upload-artifact@v4

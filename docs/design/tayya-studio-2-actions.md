@@ -6,19 +6,19 @@ All locations below are proposed. Production behavior is retained until approval
 |---|---|---|---|
 | Library header | Add | New notebook / native import | Local notebook form works; native import is existing production integration |
 | Library | Search / sections / favorite | Filter books; open notebook | Local sample state |
-| Library | Continue reading | Open document at page7 | Sample; reuse existing per-document position in C |
+| Library | Continue reading | Open document at its preview-saved page | Isolated draft; reuse existing per-document position in C |
 | Library bottom / tablet sidebar | Library / Sections / Review / Settings | Four clear destinations | Local navigation |
 | Settings | Trash / Backups | Restore/delete and backup/restore panels | Empty proposal states; preserve existing stores in C |
 | Document header | Back / Bookmark / Share | Library / toggle / export panel | Back/toggle and share-text work; PDF/audio export adapter in C |
 | Document navigator | Previous / page count / Next / grid | Change page / open thumbnail sheet | Local page state, actual PDFKit page updates |
-| Phone dock | Pen / Text / Select / Margin / Pages | Contextual tools / text / native PDF selection / independent notes / thumbnails | Local/native views; existing tool integration in C |
+| Phone dock | Pen / Text / Select / Notes / Pages | Contextual tools / text / native PDF selection / independent notes / thumbnails | Local/native views; existing tool integration in C |
 | Pen rail | Ink / Pencil / Highlight / Eraser | Change native PencilKit tool | Works in preview canvas |
 | Pen rail | Color / Width / Undo / Redo | Color sheet / cycle width / native canvas history | Works in preview canvas |
-| Pen rail | Favorite pens | Choose three study presets | Sample presets; editable persistence is C |
+| Pen rail | Favorite pens | Save/use three editable study presets | Atomic preview-only preferences; production adapter remains C |
 | Tablet | Thumbnails / drag divider | Hide/show sidebar / change pane size | Local split; preserve production ink+reading position in C |
 | Header | Focus / Show tools | Hide secondary chrome / restore | Local reversible state |
-| Margin | Text / ink / templates | Edit note/draw/change ruled-grid-dot-blank background | Native text/PencilKit, local template choice |
-| Audio strip | Record / Stop and save / card title | Demo session / stop / open audio | Explicit simulation, never opens margin |
+| Notes | Text / ink / templates | Edit note/draw/change ruled-grid-dot-blank background | Native text/PencilKit, local template choice |
+| Audio strip | Record / Stop and save / card title | Demo session / stop / open audio | Explicit simulation, never opens Notes |
 | Audio card | Rename / Manual marker | Demo display title / current page/time mark | Local; metadata/file compatibility tested in C |
 | Audio playback | Play/pause / +/-10 / speed / slider | Demo state at bounded position | Simulation; real PageAudio adapter in C |
 | Audio markers | Tap | Page + playback timestamp | Local page+seek contract, then return to document |
@@ -46,3 +46,15 @@ denial/interruption according to tested existing policy, preserving files.
 
 **Approval gate:** review native captures and choose design revisions/approval.
 No production implementation, stable merge, Apple upload or new IPA before that.
+
+## Final polish proposal
+
+Visible names are Notes / الملاحظات. Internal `margin` IDs, fixture names and
+production `Margin*` filenames are preserved. At accessibility text sizes the
+phone library tabs use two rows; normal sizes retain one row. Library filters
+scroll horizontally at their intrinsic label widths. The iPad Pages picker
+passed native targeted and full-design tests as a full-screen presentation,
+keeping keyboard/accessibility geometry stable; other panels retain their existing presentation.
+
+See [the polish evidence and limitations](tayya-studio-2-polish-review.md) before
+interpreting this map as production or microphone verification.

@@ -1,5 +1,5 @@
 {
-  "phase": "B — native visual proposal; production approval pending",
+  "phase": "B — polish complete;39/39 behavior +12/12 corrected-capture cases passed each family; user visual approval pending",
   "stable_source": "dbdb264bf86a6606be095aad22cd303ad01e2071",
   "sources": [
     {
@@ -43,6 +43,20 @@
         "iPhone": "6c38ef2220b624d42f8f163bb5fb3b6f0d02537ce7c4f0b1244809de96956969",
         "iPad": "07b83a9380356ced3d9c7999f5f8298c8d0df593b20aedf52507cdd17c6ff677"
       }
+    },
+    {
+      "folder": "polish",
+      "sha": "e15ffdf30577e48360e749a6e7e532d2a982b4e2",
+      "run": 39401061917,
+      "result": "12/12 UI capture cases passed EACH family,0 failures/skips;47 phone+48 tablet original PNGs verified. App/unit/project hashes match full39/39 gate6d513cf; this capture-only SHA does not claim17unit+22UI execution.",
+      "artifact_ids": {
+        "iPhone": 12256676375,
+        "iPad": 12255571034
+      },
+      "verified_archive_sha256": {
+        "iPhone": "a48791bd7b95c4cadd68031a8122da6f11fad7ca78390661ee2d78bfc3b92e3b",
+        "iPad": "5b2e12f686067be6f964493968f0d891b7ffe61fb96dc333a317b132332d0966"
+      }
     }
   ],
   "not_a_single_sha_full_production_gate": true,
@@ -50,6 +64,86 @@
   "audio_preview": "In-memory simulation; no microphone, M4A persistence or device recording proof. Native PencilKit stroke callback creates a demo timestamp marker.",
   "production_changes": false,
   "approval": "User must approve visual design before phase C.",
-  "download_verification": "All six source archives independently downloaded: metadata SHA256 and all ZIP CRC verified. Gallery retains original image bytes and validates hashes against each source.json.",
-  "visual_review": "Actual light/dark library, document, margin, audio, review; English, large type, iPad portrait/landscape; fixed accessible labels reviewed. New PencilKit mark and marker seek02:18/page8 pass targeted UI tests. This is proposal evidence, not full production qualification."
+  "download_verification": "Six historical archives, bothfee, both6d full-gate archives, compact target and bothe15 final capture archives independently SHA256/ZIP-CRC checked; all PNG hashes verified. All95 final PNG display orientations checked read-only. No image bytes edited.",
+  "visual_review": "Representative final original PNGs inspected: phone Arabic/light and English/dark compact focus, large-type library2-row tabs, pen rail, active audio marker and dark standalone Notes; tablet AX5 landscape Notes, dark restored split, expanded Notes and actual thumbnails. All95 final original orientation checks passed. Vertical Notes scrolling remains available at short landscape height. User visual approval pending; no production/microphone qualification.",
+  "reference_images": [
+    "019-iPad.png",
+    "038-iPhone.png",
+    "034-iPhone.png",
+    "045-iPhone.png",
+    "042-iPhone.png",
+    "037-iPhone.png"
+  ],
+  "visual_follow_up": {
+    "problem": "Phone accessibility text in compact landscape leaves PDF35.33pt of402pt height",
+    "before_sha": "fee2194141c1949d852827f9f1b6a4628e7b17b1",
+    "before_run": 39392309880,
+    "before_artifact_id": 12251660170,
+    "red_sha": "0faee7c49f1f575707ecdf643d1141018da8f613",
+    "red_run": 39395079922,
+    "fix_sha": "872b0867b3b6c03f727eaab849d0a2284effb4de",
+    "fix_run": 39396364348,
+    "status": "Compact focus fixed and full39 regression passed each family at6d; screenshot-method repair tracked separately",
+    "verification_sha": "7326e0cdb459bd92a0f607cccc3fff6066d56e4e",
+    "verification_run": 39397149322,
+    "fix_run_result": "Formatting failed before tests; one extra blank line removed without behavior changes",
+    "verification_result": "3/3 passed,0 failures/skips; original native focused PDF captures inspected",
+    "verification_artifact_id": 12253955234,
+    "verification_archive_sha256": "50a75efcad75b5183bae6d6ec0eee862c925f03391ac11921d22c6d0f345f7d9",
+    "final_capture_sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
+    "final_capture_run": 39398450073
+  },
+  "full_design_gate": {
+    "sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
+    "run": 39398450073,
+    "result": "17 unit +22 UI passed EACH family,0 failures/skips. Capture export defect discovered by actual PNG review; behavior gate remains valid.",
+    "artifact_ids": {
+      "iPhone": 12254888039,
+      "iPad": 12254267142
+    },
+    "verified_archive_sha256": {
+      "iPhone": "c8d02cbb8939ac37cdf0189c2dfd769f4b672e7720dcac61405adbf11e06d3f9",
+      "iPad": "c9a8967613eee2fbaa8e0d7e2e59e5237a07801b10fbecc632323713be6a37fa"
+    },
+    "app_tree": "4c6b0f69fcbf4bc081b5cf0599fb451c5dcce25d",
+    "unit_tests_tree": "182ffdd4cbe8edcd51dc6c230f13ba67b38d1da8",
+    "project_blob": "7f2e93b86769d1e086f8c562c63e3c32d606f357",
+    "devices": {
+      "iPhone": {
+        "deviceName": "iPhone 17 Pro",
+        "osVersion": "26.2",
+        "architecture": "arm64"
+      },
+      "iPad": {
+        "deviceName": "iPad Pro 11-inch (M5)",
+        "osVersion": "26.2",
+        "architecture": "arm64"
+      }
+    }
+  },
+  "capture_protocol_follow_up": {
+    "before_sha": "6d513cfcf0e7fa966dabfdb522fbe8c9e03369a8",
+    "before_run": 39398450073,
+    "evidence": "Actual iPad app.screenshot landscape PNG raw2420x1668 EXIF8 displays1668x2420 with black/clipped content; portrait correct. Older full-screen capture raw1668x2420 EXIF8 displays2420x1668 without clipping. Offline actual-image landscape contract RED on new file, PASS on older full-screen file.",
+    "fix": "Retain window orientation readiness, restore XCUIScreen full-display capture; assert orientation-aware CGImage aspect equals window aspect. No app change.",
+    "sha": "e15ffdf30577e48360e749a6e7e532d2a982b4e2",
+    "run": 39401061917,
+    "scope": "12 capture UI cases EACH family; exact app/unit/project hash gates reuse full39 evidence without replaying17 units or10 unrelated UI cases.",
+    "status": "Resolved:12/12 each,0 failures/skips; all95 original PNG hashes and displayed orientation verified, representative native pixels inspected",
+    "png_counts": {
+      "iPhone": 47,
+      "iPad": 48
+    }
+  },
+  "gallery": {
+    "historical_original_pngs": 65,
+    "new_original_pngs": 95,
+    "new_phone_pngs": 47,
+    "new_tablet_pngs": 48,
+    "total_original_pngs": 160,
+    "comparison": "compare.html",
+    "index": "index.html",
+    "image_bytes_modified": false,
+    "offline_builder_tests": "4/4 passed"
+  }
 }

@@ -114,7 +114,7 @@ struct StudioAudio: View {
                                     Text(studioTime(marker.time)).font(.caption.monospacedDigit()).foregroundStyle(StudioTheme.secondary)
                                     Image(systemName: "play.fill").font(.caption)
                                 }.padding(16).frame(minHeight: 56)
-                            }.buttonStyle(.plain).disabled(session.recording).accessibilityIdentifier("marker-\(marker.page)-\(Int(marker.time))")
+                            }.buttonStyle(.plain).disabled(session.recording).accessibilityIdentifier("marker-\(marker.kind)-\(marker.page)-\(Int(marker.time))")
                             if marker.id != session.markers.last?.id { Divider().padding(.leading, 64) }
                         }
                     }.background(StudioTheme.surface, in: RoundedRectangle(cornerRadius: 16))

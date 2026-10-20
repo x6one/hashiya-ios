@@ -3,8 +3,9 @@ import SwiftUI
 struct StudioWorkspace: View {
     @ObservedObject var session: StudioSession
     @ObservedObject var navigation: StudioNavigation
-    @StateObject private var documentInk = StudioCanvas()
-    @StateObject private var marginInk = StudioCanvas(margin: true)
+    @ObservedObject var documentInk: StudioCanvas
+    @ObservedObject var marginInk: StudioCanvas
+    let pdf: StudioPDFController
     @State private var tool = "pen"
     @State private var inkTool = "pen"
     @State private var inkColor = 0x244C43
@@ -14,6 +15,7 @@ struct StudioWorkspace: View {
     @State private var bookmark = false
     @State private var fraction: CGFloat = 0.64
     @State private var dragOrigin: CGFloat?
+    @State private var activeMargin = false
     @State private var noteText = L("ملاحظات مهمة\n\n• التركيز على طرفي المعادلة.\n• مراجعة المثال قبل المحاضرة القادمة.", "Key ideas\n\n• Watch both sides of the equation.\n• Review the example before the next lecture.")
     @Environment(\.layoutDirection) private var direction
     private var tablet: Bool { UIDevice.current.userInterfaceIdiom == .pad }
@@ -38,6 +40,20 @@ struct StudioWorkspace: View {
                 toolDock
             }
         }.background(StudioTheme.background).accessibilityIdentifier("workspaceScene")
+            .onAppear {
+                activeMargin = marginOnly
+                syncInkToolbar()
+                documentInk.onActivate = { activeMargin = false }
+                marginInk.onActivate = { activeMargin = true }
+                documentInk.onStroke = { session.markWriting(L("خط يد في المستند", "Document handwriting")) }
+                marginInk.onStroke = { session.markWriting(L("خط يد في الحاشية", "Margin handwriting")) }
+            }
+            .onChange(of: activeMargin) { _, _ in syncInkToolbar() }
+            .onChange(of: navigation.scene) { _, _ in activeMargin = marginOnly; syncInkToolbar() }
+            .onDisappear {
+                documentInk.onActivate = nil; marginInk.onActivate = nil
+                documentInk.onStroke = nil; marginInk.onStroke = nil
+            }
             .onChange(of: navigation.color) { _, value in inkColor = value; updateInk() }
             .onChange(of: navigation.preset) { _, value in
                 let index = max(0, min(2, value - 1))
@@ -89,7 +105,7 @@ struct StudioWorkspace: View {
     }
     private var documentPanel: some View {
         ZStack {
-            StudioPDFView(page: session.page)
+            StudioPDFView(page: session.page, controller: pdf)
             if tool == "pen" { StudioInkView(canvas: documentInk) }
             if !navigation.savedText.isEmpty {
                 VStack { Spacer(); Text(navigation.savedText).font(.body).foregroundStyle(.black).padding(12).background(.white.opacity(0.9)); Spacer() }
@@ -105,41 +121,43 @@ struct StudioWorkspace: View {
             }
     }
     private var marginPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label(L("الحاشية", "Margin"), systemImage: "note.text").font(.headline)
-                Spacer()
-                Text(L("صفحة \(session.page)", "Page \(session.page)")).font(.caption).foregroundStyle(StudioTheme.secondary)
-                TayyaIconButton(title: L("قوالب الورق", "Paper templates"), symbol: "ellipsis") { navigation.sheet = .templates }
-            }
-            Divider()
-            TextEditor(text: $noteText).font(.body).scrollContentBackground(.hidden)
-                .frame(minHeight: 140, maxHeight: 200).accessibilityIdentifier("marginText")
-                .onChange(of: noteText) { _, text in session.markWriting(String(text.suffix(50))) }
-            Text(L("الأصول = الالتزامات + حقوق الملكية", "Assets = Liabilities + Equity"))
-                .font(.callout.weight(.medium)).padding(12).frame(maxWidth: .infinity)
-                .background(StudioTheme.selection, in: RoundedRectangle(cornerRadius: 8))
-            ZStack {
-                Canvas { context, size in
-                    for y in stride(from: CGFloat(24), to: navigation.paper == 3 ? 0 : size.height, by: 32) {
-                        var line = Path(); line.move(to: CGPoint(x: 0, y: y)); line.addLine(to: CGPoint(x: size.width, y: y))
-                        if navigation.paper == 2 {
-                            for x in stride(from: CGFloat(16), to: size.width, by: 24) {
-                                context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 2, height: 2)), with: .color(StudioTheme.divider))
-                            }
-                        } else { context.stroke(line, with: .color(StudioTheme.divider.opacity(0.55)), lineWidth: 0.5) }
-                    }
-                    if navigation.paper == 1 {
-                        for x in stride(from: CGFloat(16), to: size.width, by: 32) {
-                            var line = Path(); line.move(to: CGPoint(x: x, y: 0)); line.addLine(to: CGPoint(x: x, y: size.height))
-                            context.stroke(line, with: .color(StudioTheme.divider.opacity(0.55)), lineWidth: 0.5)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label(L("الحاشية", "Margin"), systemImage: "note.text").font(.headline)
+                    Spacer()
+                    Text(L("صفحة \(session.page)", "Page \(session.page)")).font(.caption).foregroundStyle(StudioTheme.secondary)
+                    TayyaIconButton(title: L("قوالب الورق", "Paper templates"), symbol: "ellipsis") { navigation.sheet = .templates }
+                }
+                Divider()
+                TextEditor(text: $noteText).font(.body).scrollContentBackground(.hidden)
+                    .frame(minHeight: 140, maxHeight: 200).accessibilityIdentifier("marginText")
+                    .onChange(of: noteText) { _, text in session.markWriting(String(text.suffix(50))) }
+                Text(L("الأصول = الالتزامات + حقوق الملكية", "Assets = Liabilities + Equity"))
+                    .font(.callout.weight(.medium)).padding(12).frame(maxWidth: .infinity)
+                    .background(StudioTheme.selection, in: RoundedRectangle(cornerRadius: 8))
+                ZStack {
+                    Canvas { context, size in
+                        for y in stride(from: CGFloat(24), to: navigation.paper == 3 ? 0 : size.height, by: 32) {
+                            var line = Path(); line.move(to: CGPoint(x: 0, y: y)); line.addLine(to: CGPoint(x: size.width, y: y))
+                            if navigation.paper == 2 {
+                                for x in stride(from: CGFloat(16), to: size.width, by: 24) {
+                                    context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 2, height: 2)), with: .color(StudioTheme.divider))
+                                }
+                            } else { context.stroke(line, with: .color(StudioTheme.divider.opacity(0.55)), lineWidth: 0.5) }
                         }
-                    }
-                }.accessibilityHidden(true)
-                StudioInkView(canvas: marginInk)
-            }.frame(minHeight: 90, maxHeight: .infinity)
-            Label(L("مرتبط بالمستند · صفحة \(session.page)", "Linked to document · Page \(session.page)"), systemImage: "link")
-                .font(.caption2).foregroundStyle(StudioTheme.secondary)
+                        if navigation.paper == 1 {
+                            for x in stride(from: CGFloat(16), to: size.width, by: 32) {
+                                var line = Path(); line.move(to: CGPoint(x: x, y: 0)); line.addLine(to: CGPoint(x: x, y: size.height))
+                                context.stroke(line, with: .color(StudioTheme.divider.opacity(0.55)), lineWidth: 0.5)
+                            }
+                        }
+                    }.accessibilityHidden(true)
+                    StudioInkView(canvas: marginInk)
+                }.frame(height: tablet ? 220 : 180)
+                Label(L("مرتبط بالمستند · صفحة \(session.page)", "Linked to document · Page \(session.page)"), systemImage: "link")
+                    .font(.caption2).foregroundStyle(StudioTheme.secondary)
+            }
         }.studioCard().accessibilityIdentifier("marginPanel")
     }
     private var thumbnails: some View {
@@ -166,6 +184,12 @@ struct StudioWorkspace: View {
     }
     private var inkRail: some View {
         TayyaToolbar {
+            if tablet && session.marginOpen && !marginOnly {
+                Button { activeMargin.toggle() } label: {
+                    Label(activeMargin ? L("الحاشية", "Margin") : L("المستند", "Document"), systemImage: activeMargin ? "note.text" : "doc")
+                        .font(.caption).padding(.horizontal, 8).frame(minHeight: 44).background(StudioTheme.selection, in: RoundedRectangle(cornerRadius: 10))
+                }.buttonStyle(.plain).accessibilityIdentifier("inkTarget").accessibilityValue(activeMargin ? "margin" : "document")
+            }
             ForEach(["pen", "pencil", "highlighter", "eraser"], id: \.self) { ink in
                 let symbols = ["pen": "pencil.tip", "pencil": "pencil", "highlighter": "highlighter", "eraser": "eraser"]
                 let titles = ["pen": L("حبر", "Ink"), "pencil": L("رصاص", "Pencil"), "highlighter": L("تظليل", "Highlight"), "eraser": L("ممحاة", "Eraser")]
@@ -199,7 +223,8 @@ struct StudioWorkspace: View {
             }
         }.padding(.horizontal, 12).padding(.vertical, 8).background(StudioTheme.surface)
     }
-    private var currentCanvas: StudioCanvas { marginOnly ? marginInk : documentInk }
+    private var currentCanvas: StudioCanvas { marginOnly || (tablet && session.marginOpen && activeMargin) ? marginInk : documentInk }
+    private func syncInkToolbar() { inkTool = currentCanvas.brush; inkColor = currentCanvas.color; inkWidth = currentCanvas.width }
     private func updateInk() { currentCanvas.configure(tool: inkTool, color: inkColor, width: inkWidth) }
     private func chooseTool(_ item: String) {
         switch item {

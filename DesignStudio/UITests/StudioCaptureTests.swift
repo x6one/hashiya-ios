@@ -8,7 +8,7 @@ final class StudioCaptureTests: XCTestCase {
     func testCapturePrimaryScenesDark() { captureScenes(dark: true) }
 
     func testEnglishAndAccessibilityLayouts() {
-        for scene in ["library", "document"] {
+        for scene in ["library", "document", "margin", "audio"] {
             let english = launch(scene, extra: ["--english"])
             snapshot("English-\(scene)")
             english.terminate()
@@ -32,12 +32,26 @@ final class StudioCaptureTests: XCTestCase {
         app.buttons["nextPage"].tap()
         XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
         XCTAssertEqual(app.buttons["recordAction"].value as? String, "recording")
+        let tablet = UIDevice.current.userInterfaceIdiom == .pad
+        if tablet {
+            app.buttons["inkTarget"].tap()
+            XCTAssertEqual(app.buttons["inkTarget"].value as? String, "margin")
+        }
+        let canvas = app.descendants(matching: .any).matching(identifier: tablet ? "marginCanvas" : "documentCanvas").firstMatch
+        XCTAssertTrue(canvas.waitForExistence(timeout: 5))
+        let start = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.42))
+        let end = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        if tablet { XCTAssertEqual(app.buttons["inkTarget"].value as? String, "margin") }
         app.buttons["openPageAudio"].tap()
         XCTAssertTrue(app.buttons["manualMarker"].waitForExistence(timeout: 8))
         app.buttons["manualMarker"].tap()
         app.buttons["audioStop"].tap()
         snapshot("Audio-SavedPlaybackAndMarkers")
-        let marker = app.buttons.matching(identifier: "marker-8-0").firstMatch
+        let writing = app.buttons.matching(identifier: "marker-writing-8-0").firstMatch
+        if !writing.isHittable { app.swipeUp() }
+        XCTAssertTrue(writing.waitForExistence(timeout: 5), "A real PencilKit stroke must create a recording mark")
+        let marker = app.buttons.matching(identifier: "marker-manual-8-0").firstMatch
         if !marker.isHittable { app.swipeUp() }
         XCTAssertTrue(marker.waitForExistence(timeout: 5))
         marker.tap()
@@ -62,6 +76,22 @@ final class StudioCaptureTests: XCTestCase {
         XCTAssertTrue(cards.staticTexts["الأصول = الالتزامات + حقوق الملكية"].waitForExistence(timeout: 5))
         snapshot("Review-AnswerRevealed")
         cards.terminate()
+    }
+
+    func testNonzeroMarkerSeeksAndReturnsToItsPage() {
+        let app = launch("audio")
+        app.buttons["audioStop"].tap()
+        let marker = app.buttons["marker-manual-8-138"]
+        if !marker.isHittable { app.swipeUp() }
+        XCTAssertTrue(marker.waitForExistence(timeout: 5))
+        marker.tap()
+        XCTAssertTrue(app.buttons["pageCount"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["pageCount"].value as? String, "8")
+        app.buttons["openPageAudio"].tap()
+        XCTAssertTrue(app.staticTexts["audioTime"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["audioTime"].label, "02:18")
+        snapshot("Audio-MarkerSeek-02m18s-Page8")
+        app.terminate()
     }
 
     private func captureScenes(dark: Bool) {

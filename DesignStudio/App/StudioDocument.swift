@@ -44,9 +44,8 @@ enum StudioPDF {
     }
 }
 
-struct StudioPDFView: UIViewRepresentable {
-    let page: Int
-    func makeUIView(context: Context) -> PDFView {
+final class StudioPDFController: ObservableObject {
+    lazy var view: PDFView = {
         let view = PDFView()
         view.document = StudioPDF.make()
         view.autoScales = true
@@ -56,28 +55,55 @@ struct StudioPDFView: UIViewRepresentable {
         view.pageShadowsEnabled = false
         view.accessibilityIdentifier = "nativeStudyPDF"
         return view
-    }
+    }()
+}
+
+struct StudioPDFView: UIViewRepresentable {
+    let page: Int
+    let controller: StudioPDFController
+    func makeUIView(context: Context) -> PDFView { controller.view }
     func updateUIView(_ view: PDFView, context: Context) {
         guard let document = view.document, let target = document.page(at: page - 1), view.currentPage !== target else { return }
         view.go(to: target)
     }
 }
 
-final class StudioCanvas: ObservableObject {
+final class StudioCanvas: NSObject, ObservableObject, PKCanvasViewDelegate {
     let view = PKCanvasView()
+    var onActivate: (() -> Void)?
+    var onStroke: (() -> Void)?
+    private(set) var brush = "pen"
+    private(set) var color = 0x244C43
+    private(set) var width: CGFloat = 3
+    private var previousCount = 0
     init(margin: Bool = false) {
+        super.init()
         view.backgroundColor = .clear
         view.isOpaque = false
         view.drawingPolicy = .anyInput
         view.tool = PKInkingTool(.pen, color: StudioTheme.ui(0x244C43), width: 3)
+        view.accessibilityIdentifier = margin ? "marginCanvas" : "documentCanvas"
+        view.isAccessibilityElement = true
+        view.accessibilityLabel = margin ? L("سطح رسم الحاشية", "Margin drawing canvas") : L("سطح رسم المستند", "Document drawing canvas")
         if margin {
             let points = (0...28).map { index in
                 PKStrokePoint(location: CGPoint(x: 28 + Double(index) * 8, y: 65 + sin(Double(index) / 5) * 9), timeOffset: Double(index) / 20, size: CGSize(width: 2.5, height: 2.5), opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2)
             }
             view.drawing = PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: StudioTheme.ui(0x416B5D)), path: PKStrokePath(controlPoints: points, creationDate: Date(timeIntervalSince1970: 0)))])
         }
+        previousCount = view.drawing.strokes.count
+        view.accessibilityValue = String(previousCount)
+        view.delegate = self
+    }
+    func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) { onActivate?() }
+    func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        let count = canvasView.drawing.strokes.count
+        if count > previousCount { onStroke?() }
+        previousCount = count
+        view.accessibilityValue = String(count)
     }
     func configure(tool: String, color: Int, width: CGFloat) {
+        brush = tool; self.color = color; self.width = width
         if tool == "eraser" { view.tool = PKEraserTool(.vector) }
         else { view.tool = PKInkingTool(tool == "pencil" ? .pencil : tool == "highlighter" ? .marker : .pen, color: StudioTheme.ui(color), width: width) }
     }

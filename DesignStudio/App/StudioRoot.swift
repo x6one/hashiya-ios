@@ -36,6 +36,9 @@ final class StudioNavigation: ObservableObject {
 struct StudioRoot: View {
     @StateObject private var session = StudioSession()
     @StateObject private var navigation = StudioNavigation()
+    @StateObject private var documentInk = StudioCanvas()
+    @StateObject private var marginInk = StudioCanvas(margin: true)
+    @StateObject private var pdf = StudioPDFController()
     @State private var prepared = false
     @Environment(\.scenePhase) private var phase
     private var args: [String] { ProcessInfo.processInfo.arguments }
@@ -46,7 +49,7 @@ struct StudioRoot: View {
             .foregroundStyle(StudioTheme.text).tint(StudioTheme.primary)
             .environment(\.layoutDirection, english ? .leftToRight : .rightToLeft)
             .environment(\.locale, Locale(identifier: english ? "en" : "ar"))
-            .environment(\.dynamicTypeSize, args.contains("--large-type") ? .accessibility2 : .large)
+            .transformEnvironment(\.dynamicTypeSize) { if args.contains("--large-type") { $0 = .accessibility2 } }
             .preferredColorScheme(appearance)
             .sheet(item: $navigation.sheet) { sheet in
                 StudioSheetView(sheet: sheet, session: session, navigation: navigation)
@@ -76,7 +79,7 @@ struct StudioRoot: View {
     @ViewBuilder private var content: some View {
         switch navigation.scene {
         case .library: StudioLibrary(navigation: navigation)
-        case .document, .margin: StudioWorkspace(session: session, navigation: navigation)
+        case .document, .margin: StudioWorkspace(session: session, navigation: navigation, documentInk: documentInk, marginInk: marginInk, pdf: pdf)
         case .audio: StudioAudio(session: session, navigation: navigation)
         case .cards: StudioCards(navigation: navigation, session: session)
         }

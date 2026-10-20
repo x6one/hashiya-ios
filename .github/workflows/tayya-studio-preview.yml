@@ -2,7 +2,7 @@ name: Tayya Studio design previews
 on:
   push:
     branches: [design/tayya-studio-2]
-    paths: ['DesignStudio/**', '.github/workflows/tayya-studio-preview.yml']
+    paths: ['DesignStudio/App/**', 'DesignStudio/Tests/**', 'DesignStudio/UITests/**', 'DesignStudio/project.yml', 'DesignStudio/.swiftlint.yml', 'DesignStudio/.swiftformat', '.github/workflows/tayya-studio-preview.yml']
   workflow_dispatch:
 permissions:
   contents: read

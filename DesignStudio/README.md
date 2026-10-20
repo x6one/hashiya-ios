@@ -34,7 +34,7 @@ visual inspection, without adding sleeps or changing readiness assertions.
 ## Explicit proposal limits
 
 File import/export/backup/trash integration, persisted pen presets and card storage,
-live microphone/audio playback, stroke-to-audio callbacks and per-document split
+live microphone/audio playback and per-document split
 persistence are production C tasks. Their existing stable implementations are
 retained. No prototype interaction proves old M4A compatibility, background audio,
 physical Office conversion or end-to-end production quality. New cards work in

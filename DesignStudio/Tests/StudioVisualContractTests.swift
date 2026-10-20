@@ -27,8 +27,14 @@ final class StudioVisualContractTests: XCTestCase {
     }
 
     private func luminance(_ hex: Int) -> Double {
-        let channels = [16, 8, 0].map { Double((hex >> $0) & 255) / 255 }
-            .map { $0 <= 0.04045 ? $0 / 12.92 : pow(($0 + 0.055) / 1.055, 2.4) }
-        return zip(channels, [0.2126, 0.7152, 0.0722]).reduce(0) { $0 + $1.0 * $1.1 }
+        let shifts: [Int] = [16, 8, 0]
+        let weights: [Double] = [0.2126, 0.7152, 0.0722]
+        var result: Double = 0
+        for index in 0..<3 {
+            let channel = Double((hex >> shifts[index]) & 255) / 255.0
+            let linear: Double = channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            result += linear * weights[index]
+        }
+        return result
     }
 }

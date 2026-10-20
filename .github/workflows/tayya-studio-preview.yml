@@ -61,6 +61,7 @@ jobs:
           TARGET_FAMILY: ${{ matrix.family }}
           COMPACT_ONLY: ${{ contains(github.event.head_commit.message, '[studio:compact-') }}
           COMPACT_GREEN: ${{ contains(github.event.head_commit.message, '[studio:compact-fix]') }}
+          CAPTURE_ONLY: ${{ contains(github.event.head_commit.message, '[studio:capture]') }}
           PAGE_JUMP_ONLY: ${{ contains(github.event.head_commit.message, '[studio:page-jump]') }}
           FINISH_FIXES: ${{ contains(github.event.head_commit.message, '[studio:finish-fixes]') }}
           SAVE_PROBE: ${{ contains(github.event.head_commit.message, '[studio:save-probe]') }}
@@ -71,6 +72,14 @@ jobs:
         run: |
           set -o pipefail
           options=()
+          if [ "$CAPTURE_ONLY" = true ]; then
+            # Re-capture after an XCTest screenshot-only repair, reusing the39/39 gate
+            # at6d513cfc. Fail if app, unit tests or project differ from that evidence.
+            test "$(git rev-parse HEAD:DesignStudio/App)" = 4c6b0f69fcbf4bc081b5cf0599fb451c5dcce25d
+            test "$(git rev-parse HEAD:DesignStudio/Tests)" = 182ffdd4cbe8edcd51dc6c230f13ba67b38d1da8
+            test "$(git rev-parse HEAD:DesignStudio/project.yml)" = 7f2e93b86769d1e086f8c562c63e3c32d606f357
+            for test in testCapturePrimaryScenesLight testCapturePrimaryScenesDark testEnglishAndAccessibilityLayouts testFinalPolishExpandedNotesAndFocusCaptures testPolishExtremeTypeAndLandscapeCaptures testCompactAccessibleDocumentUsesReversibleFocus testPolishContextToolsAndCompactAudio testPolishAccessibleNotesHaveReadableWidth testPolishPickerUsesRealPageThumbnails testPolishMarkerKeepsClosedNotesClosed testPolishDraftAndThreePenPresetsSurviveRelaunch testPolishLargeLibraryFiltersStayWhole; do options+=("-only-testing:StudioUITests/StudioCaptureTests/$test"); done
+          fi
           if [ "$POLISH_RED" = true ] || [ "$POLISH_ONLY" = true ]; then
             for test in testPolishNotesDisplayCopy testPolishContextToolsAndCompactAudio testPolishAccessibleNotesHaveReadableWidth testPolishPickerUsesRealPageThumbnails testPolishLargeLibraryFiltersStayWhole testPolishDraftAndThreePenPresetsSurviveRelaunch testPolishDirectPageJumpAndLastVisitedPage; do options+=("-only-testing:StudioUITests/StudioCaptureTests/$test"); done
           fi

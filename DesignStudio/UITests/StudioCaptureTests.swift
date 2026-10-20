@@ -493,7 +493,18 @@ final class StudioCaptureTests: XCTestCase {
             let ready = XCTNSPredicateExpectation(predicate: oriented, object: nil)
             XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed, "Capture waits for actual window orientation")
         }
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // Capture the full display: app.screenshot() can apply landscape crop coordinates
+        // before the display's EXIF orientation, leaving clipped content and black pixels.
+        let screenshot = XCUIScreen.main.screenshot()
+        let image = screenshot.image
+        guard let pixels = image.cgImage else { XCTFail("Native screenshot must contain pixels"); return }
+        let swapped = [UIImage.Orientation.left, .right, .leftMirrored, .rightMirrored].contains(image.imageOrientation)
+        let width = CGFloat(swapped ? pixels.height : pixels.width)
+        let height = CGFloat(swapped ? pixels.width : pixels.height)
+        let window = app.windows.firstMatch.frame
+        print("StudioCapture \(name) raw=\(pixels.width)x\(pixels.height) orientation=\(image.imageOrientation.rawValue) window=\(window)")
+        XCTAssertEqual(width / height, window.width / window.height, accuracy: 0.02, "Native screenshot orientation and extent must match the ready window")
+        let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = "Studio-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)

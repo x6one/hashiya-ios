@@ -13,6 +13,7 @@ jobs:
   preview:
     runs-on: macos-15
     # Full approval gate:22 unit +24 UI cases on EACH family; per-test limits stay180/240s.
+    # Keep every original Studio case after event-driven save and settled-viewport readiness repairs.
     timeout-minutes: ${{ contains(github.event.head_commit.message, '[studio:') && 25 || 35 }}
     strategy:
       fail-fast: false

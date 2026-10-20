@@ -152,7 +152,6 @@ final class StudioPDFController: ObservableObject {
 
 /// Preserve the reading destination and scale as chrome or Notes changes the viewport.
 final class StudioReadingPDFView: PDFView {
-    private var tracedFrame = CGRect.zero
     private var previousSize = CGSize.zero
     private var pending: (page: PDFPage, point: CGPoint, scale: CGFloat)?
     private var restoring = false
@@ -181,13 +180,6 @@ final class StudioReadingPDFView: PDFView {
         restoring = true
         defer { restoring = false }
         super.layoutSubviews()
-        if ProcessInfo.processInfo.arguments.contains("--capture"), let window {
-            let visible = convert(bounds, to: window)
-            if visible != tracedFrame {
-                tracedFrame = visible
-                NSLog("%@", "StudioPageViewport native=\(visible) window=\(window.bounds)")
-            }
-        }
         guard resized, bounds.width > 0, bounds.height > 0, let anchor, anchor.scale > 0,
               let document, document.index(for: anchor.page) < document.pageCount else { return }
         autoScales = false

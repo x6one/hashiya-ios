@@ -17,6 +17,18 @@ final class StudioCaptureTests: XCTestCase {
             app.buttons["inkColor"].tap()
             app.buttons["#68458A"].tap()
             let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
+            // Establish the baseline after the color sheet has left and geometry settles.
+            let colorClosed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                !app.buttons["#68458A"].exists && app.buttons["tool-pen"].isHittable
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [colorClosed], timeout: 5), .completed)
+            var previous: CGRect?
+            let baselineReady = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                let frame = pdf.frame
+                defer { previous = frame }
+                return frame.width > 0 && frame.height > 0 && frame == previous
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [baselineReady], timeout: 5), .completed, "A stable visible PDF is required before measuring a tool change")
             let original = pdf.frame
             print("StudioViewport baseline config=\(extra) frame=\(original) colorSheet=\(app.buttons["#68458A"].exists)")
             let inkValue = app.buttons["inkColor"].value as? String
@@ -28,8 +40,9 @@ final class StudioCaptureTests: XCTestCase {
                     let measured = pdf.frame
                     print("StudioViewport tool=\(tool) config=\(extra) baseline=\(original) measured=\(measured)")
                     return abs(measured.height - original.height) <= 1 && abs(measured.minY - original.minY) <= 1
+                        && abs(measured.width - original.width) <= 1 && abs(measured.minX - original.minX) <= 1
                 }, object: nil)
-                XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed, "Tool selection must retain the PDF viewport")
+                XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed, "Tool selection must retain the PDF viewport: baseline=\(original), actual=\(pdf.frame), tool=\(tool), config=\(extra)")
                 XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
                 if tool == "text" && !extra.isEmpty {
                     snapshot("Approval-Text-Context-\(english ? "English-Dark" : "Arabic-Light")-ExtremeType-Portrait")

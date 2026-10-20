@@ -1,10 +1,11 @@
+import Combine
 import PDFKit
 import SwiftUI
 import XCTest
 @testable import TayyaStudio
 
 final class StudioReviewRegressionTests: XCTestCase {
-    @MainActor func testNotesFormattingNeverMutatesOtherPDFPagesOrSavedAnnotations() throws {
+    @MainActor func testNotesFormattingNeverMutatesOtherPDFPagesOrSavedAnnotations() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         let draft = StudioDraft(url: folder.appendingPathComponent("preview.json"))
@@ -25,10 +26,7 @@ final class StudioReviewRegressionTests: XCTestCase {
         navigation.scene = .margin
         draft.state.textSize = 32
         draft.state.textAlignment = 1
-        waitUntil("draft saved") {
-            print("StudioSaveProbe status=\(draft.status) error=\(draft.lastSaveError ?? "none")")
-            return draft.status == "saved"
-        }
+        await waitForSave(draft)
         XCTAssertEqual(pdf.view.document?.page(at: 6)?.annotations.first?.contents, "PAGE-7")
         XCTAssertEqual(pdf.view.document?.page(at: 7)?.annotations.first?.contents, "PAGE-8")
         XCTAssertEqual(pdf.view.document?.page(at: 7)?.annotations.first?.font?.pointSize, originalSize)
@@ -40,7 +38,7 @@ final class StudioReviewRegressionTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(savedPDF?.page(at: 8)).annotations.isEmpty)
     }
 
-    @MainActor func testNotesFormattingRemainsVisibleOutsideTextMode() throws {
+    @MainActor func testNotesFormattingRemainsVisibleOutsideTextMode() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         let draft = StudioDraft(url: folder.appendingPathComponent("preview.json"))
@@ -58,10 +56,14 @@ final class StudioReviewRegressionTests: XCTestCase {
         let text = try XCTUnwrap(editor(in: window))
         let size = text.font?.pointSize ?? (text.typingAttributes[.font] as? UIFont)?.pointSize
         XCTAssertGreaterThanOrEqual(try XCTUnwrap(size), 30, "Saved Notes formatting must stay visible while Pen is selected")
-        waitUntil("draft saved") {
-            print("StudioSaveProbe status=\(draft.status) error=\(draft.lastSaveError ?? "none")")
-            return draft.status == "saved"
-        }
+        await waitForSave(draft)
+    }
+
+    @MainActor private func waitForSave(_ draft: StudioDraft) async {
+        let saved = expectation(description: "Actual atomic draft write publishes saved")
+        let observation = draft.$status.first { $0 == "saved" }.sink { _ in saved.fulfill() }
+        defer { observation.cancel() }
+        await fulfillment(of: [saved], timeout: 5)
     }
 
     @MainActor private func waitUntil(_ reason: String, _ condition: @escaping () -> Bool) {

@@ -5,6 +5,63 @@ import PencilKit
 @testable import Hashiya
 
 final class StudioDataCompatibilityTests: XCTestCase {
+    @MainActor func testUnreadableTextCannotBeReplacedBySavingNewAnnotation() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = LibraryStore(root: root, seedDemo: false)
+        library.create("Protected annotation")
+        let note = try XCTUnwrap(library.notebooks.first)
+        let url = root.appendingPathComponent(note.id.uuidString + "-text.json")
+        let bytes = Data("[{interrupted old text".utf8)
+        try bytes.write(to: url)
+        let workspace = PDFWorkspace(note: note, root: root)
+        XCTAssertNotNil(workspace.error)
+        workspace.saveText(PageText(page: 0, text: "New text", x: 40, y: 40))
+        XCTAssertEqual(try Data(contentsOf: url), bytes, "Unreadable existing annotations must not become an empty writable store")
+    }
+
+    @MainActor func testUnreadableCardsCannotBeReplacedBySavingNewCard() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let url = root.appendingPathComponent("legacy-cards.json")
+        let bytes = Data("[{interrupted old cards".utf8)
+        try bytes.write(to: url)
+        let cards = FlashcardStore(url: url)
+        XCTAssertNotNil(cards.error)
+        XCTAssertFalse(cards.save(Flashcard(question: "New question", answer: "New answer", page: 1)))
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+    }
+
+    @MainActor func testUnreadableLibraryCannotBeReplacedByCreatingNotebook() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let url = root.appendingPathComponent("library.json")
+        let bytes = Data("[{interrupted old library".utf8)
+        try bytes.write(to: url)
+        let library = LibraryStore(root: root, seedDemo: false)
+        XCTAssertNotNil(library.error)
+        library.create("Must not overwrite")
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+        XCTAssertTrue(library.notebooks.isEmpty)
+    }
+
+    @MainActor func testUnreadablePDFCannotBeReplacedByAppendingPaper() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = LibraryStore(root: root, seedDemo: false)
+        library.create("Protected PDF")
+        let note = try XCTUnwrap(library.notebooks.first)
+        let url = root.appendingPathComponent(note.file)
+        let bytes = Data("Interrupted PDF contents".utf8)
+        try bytes.write(to: url)
+        let workspace = PDFWorkspace(note: note, root: root)
+        XCTAssertNotNil(workspace.error)
+        workspace.appendPaper(.ruled)
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+    }
+
     @MainActor func testPreviousVersionStudyFolderSurvivesOpenSaveReloadAndBackupRestore() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let restoredRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

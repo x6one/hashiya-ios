@@ -387,4 +387,3 @@ struct MarginNotebook: UIViewRepresentable {
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }
 }
-

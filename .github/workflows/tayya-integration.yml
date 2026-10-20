@@ -7,7 +7,7 @@ on:
       suite:
         description: Focused production integration suite
         type: choice
-        options: [foundation, library, workspace, audio, compatibility, all]
+        options: [foundation, library, workspace, audio, compatibility, language, all]
         default: foundation
 permissions:
   contents: read
@@ -22,7 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: [iPhone, iPad]
+        # Language/storage RED contracts are platform-independent; qualify both at GREEN.
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[integration:language-red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select existing app toolchain and generate production project
@@ -67,6 +68,8 @@ jobs:
               'workspace': ['HashiyaTests/DocumentViewportTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests', 'HashiyaUITests/StudioIntegrationTests'],
               'audio': ['HashiyaTests/WorkspaceAudioTests', 'HashiyaTests/AudioPlaybackTests', 'HashiyaTests/AudioDeletionTests', 'HashiyaTests/StudioAudioIntegrationTests'],
               'compatibility': ['HashiyaTests/PageRemovalTests', 'HashiyaTests/StudioDataCompatibilityTests'],
+              'language': ['HashiyaUITests/StudioIntegrationTests/testEnglishCoreToolsUseEnglishNamesAndKeepRealNotesData'],
+              'data-safety': ['HashiyaTests/StudioDataCompatibilityTests/testUnreadableTextCannotBeReplacedBySavingNewAnnotation', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadableCardsCannotBeReplacedBySavingNewCard', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadableLibraryCannotBeReplacedByCreatingNotebook', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadablePDFCannotBeReplacedByAppendingPaper'],
               'all': ['HashiyaTests', 'HashiyaUITests/StudioIntegrationTests']
           }
           selected = []

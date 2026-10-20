@@ -312,7 +312,6 @@ final class LaunchTests: XCTestCase {
 
     }
 
-
     // Exercise new edits after reopening; prior-session undo history is not asserted.
     private func assertFreshInkUndoRedo(in app: XCUIApplication, canvas: XCUIElement, count: XCUIElement,
                                        strokeStart: CGVector = CGVector(dx: 0.3, dy: 0.35),

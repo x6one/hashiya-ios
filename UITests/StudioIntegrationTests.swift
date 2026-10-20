@@ -79,6 +79,19 @@ final class StudioIntegrationTests: XCTestCase {
         }
     }
 
+    func testEnglishCoreToolsUseEnglishNamesAndKeepRealNotesData() {
+        let app = openRealDocument(arguments: ["--test-english"])
+        for (identifier, label) in [("inkTool", "Pen"), ("textTool", "Text"), ("selectTool", "Select"), ("openMargin", "Notes"), ("documentPages", "Pages")] {
+            XCTAssertEqual(app.buttons[identifier].label, label, "English must translate display copy without changing action identifiers")
+        }
+        app.buttons["openMargin"].tap()
+        let notes = app.textViews["splitNotes"]
+        XCTAssertTrue(notes.waitForExistence(timeout: 10))
+        XCTAssertTrue((notes.value as? String)?.contains("ملاحظة تجريبية") == true,
+                      "Changing interface language must never translate or replace stored user content")
+        keepScreenshot("Integrated-Editor-English")
+    }
+
     private func keepScreenshot(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name

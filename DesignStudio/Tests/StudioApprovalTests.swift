@@ -29,9 +29,9 @@ final class StudioApprovalTests: XCTestCase {
         for index in 0..<5 {
             print("StudioReviewPDFPage\(index + 1)=\((document.page(at: index)?.string ?? "").debugDescription)")
         }
-        XCTAssertTrue(document.page(at: 0)?.string?.contains("مبادئ المحاسبة") == true)
-        XCTAssertTrue(document.page(at: 1)?.string?.contains("ميزان المراجعة") == true)
-        XCTAssertTrue(document.page(at: 2)?.string?.contains("صورة توضيحية") == true)
+        assertPDFTitle("مبادئ المحاسبة", in: document.page(at: 0)?.string ?? "")
+        assertPDFTitle("ميزان المراجعة", in: document.page(at: 1)?.string ?? "")
+        assertPDFTitle("صورة توضيحية", in: document.page(at: 2)?.string ?? "")
         XCTAssertTrue(document.page(at: 3)?.annotations.contains(where: { $0.type == "Ink" }) == true)
         XCTAssertLessThan(document.page(at: 4)?.string?.trimmingCharacters(in: .whitespacesAndNewlines).count ?? 100, 10)
         let store = StudioThumbnailStore(document: document)
@@ -97,5 +97,17 @@ final class StudioApprovalTests: XCTestCase {
         XCTAssertNotNil(last)
         let beyond = await store.image(page: 241)
         XCTAssertNil(beyond)
+    }
+
+    private func assertPDFTitle(_ title: String, in extracted: String, file: StaticString = #filePath, line: UInt = #line) {
+        // Native RED diagnostics show Arabic presentation forms and U+06CC for
+        // the shared medial Yeh glyph in Arial's PDF CMap. Retain every required
+        // title letter; normalize only those proven extraction equivalents.
+        func letters(_ text: String) -> String {
+            text.precomposedStringWithCompatibilityMapping.replacingOccurrences(of: "\u{06CC}", with: "ي").filter { $0.isLetter }
+        }
+        let actual = letters(extracted)
+        let expected = letters(title)
+        XCTAssertTrue(actual.contains(expected) || String(actual.reversed()).contains(expected), "PDF must retain the full title: \(title)", file: file, line: line)
     }
 }

@@ -11,7 +11,7 @@ final class StudioThumbnailStore: ObservableObject {
     private var workerRevision = -1
     private var workerDocument: PDFDocument?
     private var pages = [PDFPage]()
-    private var generations = [ObjectIdentifier: Int]()
+    private var incarnations = [ObjectIdentifier: UUID]()
     private var inFlight = [String: Task<UIImage?, Never>]()
 
     init(document: PDFDocument) {
@@ -20,24 +20,25 @@ final class StudioThumbnailStore: ObservableObject {
         data = document.dataRepresentation()
         pageCount = document.pageCount
         pages = (0..<document.pageCount).compactMap { document.page(at: $0) }
+        incarnations = Dictionary(uniqueKeysWithValues: pages.map { (ObjectIdentifier($0), UUID()) })
     }
     func replaceDocument(_ document: PDFDocument, changedPages: Set<Int>? = nil) {
         let replacement = (0..<document.pageCount).compactMap { document.page(at: $0) }
         let oldIDs = pages.map(ObjectIdentifier.init)
         let newIDs = replacement.map(ObjectIdentifier.init)
+        for id in newIDs where incarnations[id] == nil { incarnations[id] = UUID() }
         let changed = changedPages ?? (oldIDs == newIDs ? Set(1...max(1, document.pageCount)) : [])
         for number in changed where number > 0 && number <= replacement.count {
             let id = ObjectIdentifier(replacement[number - 1])
-            let key = "\(id)-\(generations[id, default: 0])" as NSString
-            cache.removeObject(forKey: key)
-            generations[id, default: 0] += 1
+            if let key = incarnations[id]?.uuidString { cache.removeObject(forKey: key as NSString) }
+            incarnations[id] = UUID()
         }
         let retained = Set(newIDs)
         for page in pages where !retained.contains(ObjectIdentifier(page)) {
             let id = ObjectIdentifier(page)
-            cache.removeObject(forKey: "\(id)-\(generations[id, default: 0])" as NSString)
+            if let key = incarnations[id]?.uuidString { cache.removeObject(forKey: key as NSString) }
         }
-        generations = generations.filter { retained.contains($0.key) }
+        incarnations = incarnations.filter { retained.contains($0.key) }
         pages = replacement
         data = document.dataRepresentation()
         pageCount = document.pageCount
@@ -46,7 +47,7 @@ final class StudioThumbnailStore: ObservableObject {
     func imageKey(page: Int) -> String {
         guard page > 0, page <= pages.count else { return "missing-\(page)" }
         let id = ObjectIdentifier(pages[page - 1])
-        return "\(id)-\(generations[id, default: 0])"
+        return incarnations[id]?.uuidString ?? "missing-\(page)"
     }
     @MainActor func image(page: Int) async -> UIImage? {
         guard page >= 1, page <= pageCount, let snapshot = data else { return nil }

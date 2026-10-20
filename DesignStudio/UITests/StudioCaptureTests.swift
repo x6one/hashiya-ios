@@ -5,7 +5,7 @@ final class StudioCaptureTests: XCTestCase {
     private var captureArguments = [String]()
 
     func testApprovalContextChangesKeepPDFFrameAndInkSettings() {
-        for extra in [[], ["--extra-large-type"]] as [[String]] {
+        for extra in [[], ["--extra-large-type"], ["--extra-large-type", "--english", "--dark"]] as [[String]] {
             let app = launch("document", extra: extra)
             if app.buttons["showDocument"].exists { app.buttons["showDocument"].tap() }
             let pdf = app.descendants(matching: .any).matching(identifier: "nativeStudyPDF").firstMatch
@@ -21,7 +21,7 @@ final class StudioCaptureTests: XCTestCase {
                 XCTAssertEqual(app.buttons["pageCount"].value as? String, "7")
             }
             XCTAssertEqual(app.buttons["inkColor"].value as? String, inkValue)
-            snapshot("Approval-Context-\(extra.isEmpty ? "Default" : "ExtremeType")-Portrait")
+            snapshot("Approval-Context-\(extra.contains("--english") ? "English-Dark-ExtremeType" : extra.isEmpty ? "Default" : "ExtremeType")-Portrait")
             app.terminate()
         }
     }
@@ -574,14 +574,15 @@ final class StudioCaptureTests: XCTestCase {
             "language": captureArguments.contains("--english") ? "en" : "ar",
             "color_mode": captureArguments.contains("--dark") ? "dark" : "light",
             "metadata_origin": "native capture and actual test launch arguments",
-            "window_width": window.width, "window_height": window.height,
+            "window_width": Double(window.width), "window_height": Double(window.height),
             "pixel_width": pixels.width, "pixel_height": pixels.height, "uiimage_orientation": image.imageOrientation.rawValue
         ]
-        if let data = try? JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys]) {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys])
             let details = XCTAttachment(data: data, uniformTypeIdentifier: "public.json")
             details.name = "Studio-Metadata-\(name)"
             details.lifetime = .keepAlways
             add(details)
-        }
+        } catch { XCTFail("Native screenshot metadata must be serializable: \(error)") }
     }
 }

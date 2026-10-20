@@ -64,11 +64,16 @@ struct StudioLibrary: View {
     var body: some View {
         GeometryReader { geo in
             let tablet = UIDevice.current.userInterfaceIdiom == .pad
+            let accessibleSidebar = type >= .accessibility3
+            let sidebarWidth: CGFloat = tablet ? (accessibleSidebar ? min(340, max(280, geo.size.width * 0.38)) : 208) : 0
             HStack(spacing: 0) {
-                if tablet { sidebar.frame(width: 208) }
+                if tablet {
+                    if accessibleSidebar { ScrollView { sidebar }.frame(width: sidebarWidth) }
+                    else { sidebar.frame(width: sidebarWidth) }
+                }
                 VStack(spacing: 0) {
                     header
-                    if destination == 0 { libraryContent(width: geo.size.width - (tablet ? 208 : 0)) }
+                    if destination == 0 { libraryContent(width: geo.size.width - sidebarWidth) }
                     else { destinationContent }
                     if !tablet { bottomTabs }
                 }

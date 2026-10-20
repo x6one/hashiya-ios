@@ -84,6 +84,8 @@ jobs:
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testApprovalExtremeTypeCoreToolsFitWithoutOverlappingLabels')
           fi
           if [ "$APPROVAL_GREEN" = true ]; then
+            options+=('-only-testing:StudioTests/StudioVisualContractTests/testSFSymbolsResolveInActualRuntime')
+            options+=('-only-testing:StudioTests/StudioVisualContractTests/testPreviewPDFContainsRealSelectableContentAndAllPages')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testApprovalContextChangesKeepPDFFrameAndInkSettings')
             options+=('-only-testing:StudioTests/StudioPolishTests/testPDFViewportSurvivesChromeAndNotesSizeChanges')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishContextToolsAndCompactAudio')

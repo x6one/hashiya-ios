@@ -10,7 +10,12 @@ final class StudioPolishTests: XCTestCase {
         let url = folder.appendingPathComponent("preview.json")
         let draft = StudioDraft(url: url)
         draft.state.notes = "ملاحظات محفوظة — Notes"
-        draft.state.documentInk = PKDrawing().dataRepresentation()
+        let points = (0...3).map { index in
+            PKStrokePoint(location: CGPoint(x: 12 + Double(index) * 10, y: 16 + Double(index) * 4), timeOffset: Double(index) / 10,
+                          size: CGSize(width: 3, height: 3), opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2)
+        }
+        let drawing = PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: .blue), path: PKStrokePath(controlPoints: points, creationDate: Date(timeIntervalSince1970: 0)))])
+        draft.state.documentInk = drawing.dataRepresentation()
         draft.state.page = 12
         draft.savePen(at: 0, pen: StudioPenPreset(brush: "pencil", color: 0x68458A, width: 6))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in draft.status == "saved" }, object: nil)
@@ -19,6 +24,9 @@ final class StudioPolishTests: XCTestCase {
         XCTAssertEqual(restored.state.notes, "ملاحظات محفوظة — Notes")
         XCTAssertEqual(restored.state.page, 12)
         XCTAssertEqual(restored.state.documentInk, draft.state.documentInk)
+        let restoredDrawing = try PKDrawing(data: restored.state.documentInk)
+        XCTAssertEqual(restoredDrawing.strokes.count, 1, "Reopen must retain a nonempty native drawing")
+        XCTAssertEqual(restoredDrawing.bounds, drawing.bounds)
         XCTAssertEqual(restored.state.pens.count, 3)
         XCTAssertEqual(restored.state.pens[0], StudioPenPreset(brush: "pencil", color: 0x68458A, width: 6))
         XCTAssertEqual(restored.state.pens[1], StudioDraftState().pens[1])

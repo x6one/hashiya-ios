@@ -156,8 +156,15 @@ struct StudioLibrary: View {
         }.buttonStyle(.plain).accessibilityAddTraits(favorites ? .isSelected : [])
     }
     private var bottomTabs: some View {
-        HStack(spacing: 4) { ForEach(0..<4) { tab($0) } }
-            .padding(.horizontal, 12).padding(.vertical, 8).background(StudioTheme.surface)
+        Group {
+            if type.isAccessibilitySize {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: StudioMetrics.compact) {
+                    ForEach(0..<4) { tab($0) }
+                }
+            } else {
+                HStack(spacing: StudioMetrics.compact) { ForEach(0..<4) { tab($0) } }
+            }
+        }.padding(.horizontal, StudioMetrics.inset).padding(.vertical, StudioMetrics.compact).background(StudioTheme.surface)
     }
     private func tab(_ index: Int) -> some View {
         let titles = [L("المكتبة", "Library"), L("الأقسام", "Sections"), L("المراجعة", "Review"), L("الإعدادات", "Settings")]
@@ -170,7 +177,8 @@ struct StudioLibrary: View {
                 .foregroundStyle(destination == index ? StudioTheme.primary : StudioTheme.secondary)
                 .background(destination == index ? StudioTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 12))
                 .contentShape(Rectangle())
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier("studioTab-\(index)")
+            .accessibilityAddTraits(destination == index ? .isSelected : [])
     }
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 16) {

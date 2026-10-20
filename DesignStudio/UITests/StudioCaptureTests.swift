@@ -201,6 +201,18 @@ final class StudioCaptureTests: XCTestCase {
         let label = filter.staticTexts.firstMatch
         let traits = UITraitCollection(preferredContentSizeCategory: .accessibilityLarge)
         XCTAssertLessThanOrEqual(label.frame.height, UIFont.preferredFont(forTextStyle: .caption1, compatibleWith: traits).lineHeight + 3)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            let tabs = (0..<4).map { app.buttons["studioTab-\($0)"] }
+            for tab in tabs {
+                assertUsable(tab)
+                XCTAssertTrue(tab.frame.insetBy(dx: -1, dy: -1).contains(tab.staticTexts.firstMatch.frame), "Tab labels must stay inside their touch targets")
+            }
+            for index in 0..<tabs.count {
+                for other in (index + 1)..<tabs.count {
+                    XCTAssertFalse(tabs[index].frame.intersects(tabs[other].frame), "Large tab labels must not overlap adjacent targets")
+                }
+            }
+        }
         snapshot("Polish-Accessibility-Library")
         app.terminate()
     }
@@ -331,6 +343,45 @@ final class StudioCaptureTests: XCTestCase {
             let app = launch("document", extra: ["--large-type"])
             XCTAssertFalse(app.textViews["marginText"].exists)
             assertUsable(app.buttons["tool-margin"])
+            app.terminate()
+        }
+    }
+
+    func testFinalPolishExpandedNotesAndFocusCaptures() {
+        for extra in [[], ["--dark"]] as [[String]] {
+            let app = launch("document", extra: extra)
+            let theme = extra.isEmpty ? "Light" : "Dark"
+            openPagePicker(app)
+            let input = app.textFields["pageNumberInput"]
+            XCTAssertTrue(input.waitForExistence(timeout: 5))
+            input.tap(); input.typeText("12")
+            tapPageJump(app)
+            let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: input)
+            XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed)
+            app.buttons["focusToggle"].tap()
+            XCTAssertFalse(app.buttons["nextPage"].exists)
+            snapshot("Final-\(theme)-Focus-Portrait")
+            XCUIDevice.shared.orientation = .landscapeLeft
+            snapshot("Final-\(theme)-Focus-Landscape")
+            app.buttons["focusToggle"].tap()
+            XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                app.buttons["notesLayout"].tap()
+                XCTAssertTrue(app.buttons["showDocument"].waitForExistence(timeout: 5))
+                snapshot("Final-\(theme)-ExpandedNotes-Landscape")
+                app.buttons["showDocument"].tap()
+                XCTAssertFalse(app.textViews["marginText"].exists)
+                app.buttons["notesLayout"].tap()
+                XCTAssertTrue(app.textViews["marginText"].exists)
+                XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
+                snapshot("Final-\(theme)-RestoredSplit-Landscape")
+            } else {
+                app.buttons["tool-margin"].tap()
+                XCTAssertTrue(app.textViews["marginText"].waitForExistence(timeout: 5))
+                snapshot("Final-\(theme)-StandaloneNotes-Landscape")
+                app.buttons["tool-margin"].tap()
+                XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
+            }
             app.terminate()
         }
     }

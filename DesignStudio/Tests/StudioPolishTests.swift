@@ -14,7 +14,7 @@ final class StudioPolishTests: XCTestCase {
         draft.state.page = 12
         draft.savePen(at: 0, pen: StudioPenPreset(brush: "pencil", color: 0x68458A, width: 6))
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in draft.status == "saved" }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed, "status=\(draft.status) error=\(draft.lastSaveError ?? "none") fileExists=\(FileManager.default.fileExists(atPath: url.path)) main=\(Thread.isMainThread)")
         let restored = StudioDraft(url: url)
         XCTAssertEqual(restored.state.notes, "ملاحظات محفوظة — Notes")
         XCTAssertEqual(restored.state.page, 12)

@@ -99,7 +99,7 @@ struct StudioSheetView: View {
                     Button { session.changePage(to: page); dismiss() } label: {
                         StudioPageThumbnail(page: page, selected: page == session.page, store: pdf.thumbnails)
                             .padding(StudioMetrics.compact).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityElement(children: .contain)
+                    }.buttonStyle(.plain).accessibilityElement(children: .contain).accessibilityAddTraits(.isButton)
                         .accessibilityIdentifier("pickPage-\(page)")
                         .accessibilityLabel(L("الصفحة \(page)", "Page \(page)"))
                         .accessibilityAddTraits(page == session.page ? .isSelected : [])

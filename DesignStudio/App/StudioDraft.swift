@@ -38,6 +38,7 @@ struct StudioDraftState: Codable {
 final class StudioDraft: ObservableObject {
     @Published var state: StudioDraftState { didSet { persist() } }
     @Published private(set) var status = "unsaved"
+    private(set) var lastSaveError: String?
     private let url: URL
     private var unreadable = false
     private let writer = DispatchQueue(label: "TayyaStudio.preview-draft", qos: .utility)
@@ -64,7 +65,7 @@ final class StudioDraft: ObservableObject {
                 }
                 state = decoded
                 status = "saved"
-            } catch { unreadable = true; status = "failed" }
+            } catch { unreadable = true; lastSaveError = error.localizedDescription; status = "failed" }
         }
     }
     func savePen(at index: Int, pen: StudioPenPreset) {
@@ -76,16 +77,25 @@ final class StudioDraft: ObservableObject {
         status = "saving"
         revision += 1
         let version = revision, snapshot = state, destination = url
+        let trace = version <= 12 || version.isMultiple(of: 100)
+        if trace { NSLog("%@", "StudioDraft enqueue file=\(destination.lastPathComponent) revision=\(version) main=\(Thread.isMainThread) notes=\(snapshot.notes.count) marginHash=\(snapshot.marginInk.hashValue)") }
         pending?.cancel()
         let task = DispatchWorkItem { [weak self] in
             let result: String
+            let failure: String?
+            if trace { NSLog("%@", "StudioDraft begin file=\(destination.lastPathComponent) revision=\(version)") }
             do {
                 try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try JSONEncoder().encode(snapshot).write(to: destination, options: .atomic)
                 result = "saved"
-            } catch { result = "failed" }
+                failure = nil
+            } catch { result = "failed"; failure = error.localizedDescription }
+            if trace { NSLog("%@", "StudioDraft completed file=\(destination.lastPathComponent) revision=\(version) result=\(result) error=\(failure ?? "none")") }
             DispatchQueue.main.async {
-                guard let self, self.revision == version else { return }
+                guard let self else { return }
+                if trace { NSLog("%@", "StudioDraft publish file=\(destination.lastPathComponent) revision=\(version) current=\(self.revision)") }
+                guard self.revision == version else { return }
+                self.lastSaveError = failure
                 self.status = result
             }
         }

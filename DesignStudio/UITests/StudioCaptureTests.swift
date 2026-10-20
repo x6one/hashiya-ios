@@ -236,7 +236,7 @@ final class StudioCaptureTests: XCTestCase {
         XCTAssertTrue(input.waitForExistence(timeout: 5))
         input.tap()
         input.typeText("12")
-        app.buttons["jumpToPage"].tap()
+        tapPageJump(app)
         let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: input)
         XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed, "Wait for the page sheet to dismiss before reading document accessibility values")
         XCTAssertEqual(app.buttons["pageCount"].value as? String, "12")
@@ -357,6 +357,19 @@ final class StudioCaptureTests: XCTestCase {
         let ready = ["library": "libraryAdd", "document": "focusToggle", "margin": "focusToggle", "audio": "audioStop", "cards": "revealAnswer"][scene] ?? "focusToggle"
         XCTAssertTrue(app.buttons[ready].waitForExistence(timeout: 12), "Ready control for \(scene)")
         return app
+    }
+
+    private func tapPageJump(_ app: XCUIApplication) {
+        let button = app.buttons["jumpToPage"]
+        assertUsable(button)
+        let field = app.textFields["pageNumberInput"]
+        XCTAssertEqual(field.value as? String, "12")
+        let frame = button.frame
+        XCTAssertEqual(frame.midY, field.frame.midY, accuracy: 2, "Go must align with the currently displayed input row")
+        print("StudioPageHit button=\(frame) field=\(field.frame)")
+        // iPad's cached AX activation point can precede the sheet's keyboard relayout.
+        // Tap the actual current button center, preserving a real touch and all navigation assertions.
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     private func assertSaved(_ app: XCUIApplication, inSheet: Bool = false) {

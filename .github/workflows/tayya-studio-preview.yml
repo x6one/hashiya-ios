@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:save-probe]') && '["iPhone"]' || contains(github.event.head_commit.message, '[studio:review-red]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[studio:save-probe]') && '["iPhone"]' || contains(github.event.head_commit.message, '[studio:page-jump]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:review-red]') && '["iPad"]' || contains(github.event.head_commit.message, '[studio:red]') && '["iPhone"]' || '["iPhone","iPad"]') }}
     defaults:
       run:
         working-directory: DesignStudio
@@ -59,6 +59,7 @@ jobs:
           RED_PROBE: ${{ contains(github.event.head_commit.message, '[studio:red]') }}
           REMAINING_ONLY: ${{ contains(github.event.head_commit.message, '[studio:remaining]') }}
           TARGET_FAMILY: ${{ matrix.family }}
+          PAGE_JUMP_ONLY: ${{ contains(github.event.head_commit.message, '[studio:page-jump]') }}
           FINISH_FIXES: ${{ contains(github.event.head_commit.message, '[studio:finish-fixes]') }}
           SAVE_PROBE: ${{ contains(github.event.head_commit.message, '[studio:save-probe]') }}
           REVIEW_RED: ${{ contains(github.event.head_commit.message, '[studio:review-red]') }}
@@ -94,6 +95,7 @@ jobs:
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishDraftAndThreePenPresetsSurviveRelaunch')
             options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishPickerUsesRealPageThumbnails')
           fi
+          if [ "$PAGE_JUMP_ONLY" = true ]; then options+=('-only-testing:StudioUITests/StudioCaptureTests/testPolishDirectPageJumpAndLastVisitedPage'); fi
           if [ "$FINISH_FIXES" = true ]; then
             options+=('-only-testing:StudioTests/StudioPolishTests/testPDFViewportSurvivesChromeAndNotesSizeChanges')
             options+=('-only-testing:StudioTests/StudioPolishTests/testPreviewDraftRoundTripsNotesDrawingAndThreeEditablePens')

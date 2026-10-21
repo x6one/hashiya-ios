@@ -20,6 +20,17 @@ class ProductionReviewTests(unittest.TestCase):
         self.assertEqual(result[0]['font_size'], 'default')
         self.assertEqual(result[0]['source'], source)
 
+    def test_final_approval_extreme_type_editor_is_used_without_substituting_text_context(self):
+        common = dict(source='e94c2cbb6f6914e0ebb21ded090beaa54013e4df', family='iPhone',
+                      orientation='portrait', font_size='AX5', color_mode='dark', language='en')
+        rows = [dict(common, logical_name='Approval-ExtremeType-English-Dark-Portrait'),
+                dict(common, logical_name='Approval-Text-Context-English-Dark-ExtremeType-Portrait')]
+        result = approved_scenes(rows)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['scene'], 'Editor')
+        self.assertEqual(result[0]['font_size'], 'AX5')
+        self.assertEqual(result[0]['language'], 'en')
+
     def test_real_test_job_and_staged_source_must_match_before_indexing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -152,7 +152,14 @@ struct InkToolbar: View {
         InkToolbarScrollView {
             HStack(spacing: 6) {
                 FavoritePenMenu(brush: $brush, color: $color, width: $width)
-                Menu { ForEach(InkBrush.allCases.filter { $0 != .selection }) { item in Button(TayyaLocalized(item.rawValue), systemImage: item.symbol) { brush = item } } }
+                Menu {
+                    ForEach(InkBrush.allCases.filter { $0 != .selection }) { item in
+                        Button(TayyaLocalized(item.rawValue), systemImage: item.symbol) {
+                            brush = item
+                            NativeToolActionTrace.record("brush=\(brush.rawValue); width=\(width)")
+                        }.accessibilityIdentifier("inkBrushOption-\(item.symbol)")
+                    }
+                }
                 label: {
                     Group {
                         if compact { Label(TayyaLocalized(brush.rawValue), systemImage: brush.symbol).labelStyle(.iconOnly).font(.system(size: TayyaMetrics.icon)) }
@@ -165,7 +172,14 @@ struct InkToolbar: View {
                         .frame(width: 28, height: 28)
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                 }.accessibilityLabel("لون الحبر").accessibilityValue(currentColorValue).accessibilityIdentifier("inkColor")
-                Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
+                Menu {
+                    ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in
+                        Button("سماكة \(value)") {
+                            width = Double(value)
+                            NativeToolActionTrace.record("width=\(width); brush=\(brush.rawValue)")
+                        }.accessibilityIdentifier("inkWidthOption-\(value)")
+                    }
+                }
                 label: {
                     Group {
                         if compact && typeSize >= .accessibility3 { Image(systemName: "slider.horizontal.3").font(.system(size: TayyaMetrics.icon)) }

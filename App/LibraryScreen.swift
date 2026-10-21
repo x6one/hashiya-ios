@@ -171,6 +171,7 @@ struct LibraryScreen: View {
                         }
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
+                    .contentShape(Rectangle())
                     .foregroundStyle(destination == item ? TayyaTheme.ink : TayyaTheme.detail)
                     .background(destination == item ? TayyaTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 10))
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: destination == item)

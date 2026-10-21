@@ -33,6 +33,16 @@ class IntegrationReviewTests(unittest.TestCase):
             result = build(root, [capture], root, [different], root / "different")
             self.assertIsNone(result[0]["before"], "Arabic is not an English before/after comparison")
 
+    def testDifferentModelsWithinOneFamilyAreExplicitlyDisclosed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            before = self.capture(root)
+            after = dict(before, device="larger production test device")
+            result = build(root, [before], root, [after], root / "review")
+            self.assertFalse(result[0]["same_device_model"])
+            self.assertNotEqual(result[0]["comparison"], "exact capture context")
+            self.assertIn("الطراز وحجم الشاشة مختلفان", (root / "review/index.html").read_text())
+
     def testHashMismatchAndIncompleteMetadataCannotBecomeReviewEvidence(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

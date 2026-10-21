@@ -21,6 +21,8 @@ def approved_scenes(rows):
         'Audio-MarkerSeek-02m18s-Page8': 'Recording-Playback',
         'Polish-Audio-ActiveMarker': 'Recording-Active',
         'Document-Focus': 'Focus',
+        'Approval-ExtremeType-English-Dark-Portrait': 'Editor',
+        'Approval-ExtremeType-Arabic-Light-Portrait': 'Editor',
     }
     result = []
     for original in rows:
@@ -53,6 +55,8 @@ def approved_scenes(rows):
             rank = 2
         if row['scene'] == 'Focus' and row['logical_name'].startswith('Final-'):
             rank = 2
+        if row['logical_name'].startswith('Approval-ExtremeType-'):
+            rank = 3
         groups.setdefault(tuple(row[field] for field in FIELDS), []).append((rank, row))
     return [row for candidates in groups.values() for rank, row in candidates
             if rank == max(item[0] for item in candidates)]

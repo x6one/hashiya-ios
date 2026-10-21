@@ -43,15 +43,14 @@ final class StudioProductionCaptureTests: XCTestCase {
         XCTAssertEqual(app.buttons["focusToggle"].value as? String, "focused")
     }
     private func draw(_ app: XCUIApplication, page: Int) {
-        let canvas = app.descendants(matching: .any)["inkCanvas-\(page - 1)"].firstMatch
+        // PDFKit deliberately omits overlay canvases from its AX tree. Use the
+        // same real viewport gesture as the original ink persistence regression.
+        let canvas = app.otherElements["pdfCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
-        let visible = canvas.frame.intersection(app.otherElements["pdfCanvas"].frame).insetBy(dx: 20, dy: 20)
-        XCTAssertGreaterThan(visible.width, 80); XCTAssertGreaterThan(visible.height, 80)
-        let origin = canvas.coordinate(withNormalizedOffset: .zero)
-        let start = origin.withOffset(CGVector(dx: visible.minX - canvas.frame.minX + visible.width * 0.2,
-                                              dy: visible.minY - canvas.frame.minY + visible.height * 0.35))
-        let end = origin.withOffset(CGVector(dx: visible.minX - canvas.frame.minX + visible.width * 0.7,
-                                            dy: visible.minY - canvas.frame.minY + visible.height * 0.45))
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, String(page))
+        XCTAssertGreaterThan(canvas.frame.width, 80); XCTAssertGreaterThan(canvas.frame.height, 80)
+        let start = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.35))
+        let end = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.45))
         let before = Int(app.buttons["inkTool"].value as? String ?? "") ?? 0
         start.press(forDuration: 0.1, thenDragTo: end)
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -78,8 +77,8 @@ final class StudioProductionCaptureTests: XCTestCase {
     private func handwriting(_ app: XCUIApplication) {
         let control = app.segmentedControls["marginMode"]
         XCTAssertTrue(control.waitForExistence(timeout: 5))
-        control.buttons.element(boundBy: 1).tap()
-        XCTAssertTrue(app.scrollViews["marginHandwriting"].waitForExistence(timeout: 10))
+        control.buttons[arguments.contains("--test-english") ? "Handwriting" : "خط اليد"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["marginInkCanvas"].firstMatch.waitForExistence(timeout: 10))
     }
     private func closeNotes(_ app: XCUIApplication) { action("closeNotes", in: app) }
     private func thumbnails(_ app: XCUIApplication) {

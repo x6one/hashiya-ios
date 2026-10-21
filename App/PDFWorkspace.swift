@@ -770,6 +770,16 @@ final class ResizingPDFView: PDFView {
     // Weak, read-only AX transport for the dedicated native regression. It does
     // not subscribe to changes, retain the coordinator, or update the canvas.
     fileprivate weak var diagnosticInkCoordinator: NativePDF.Coordinator?
+    override var accessibilityValue: String? {
+        get {
+            guard ProcessInfo.processInfo.arguments.contains("--test-native-menu"),
+                  let coordinator = diagnosticInkCoordinator else { return super.accessibilityValue }
+            let workspace = coordinator.workspace
+            let canvas = coordinator.canvases[workspace.page - 1]
+            return "model=\(workspace.brush.rawValue)/\(workspace.inkWidth); native=\(String(describing: canvas?.tool)); events=\(NativeToolActionTrace.events.joined(separator: " | "))"
+        }
+        set { super.accessibilityValue = newValue }
+    }
     override var accessibilityLabel: String? {
         get {
             let label = super.accessibilityLabel ?? ""
@@ -1054,7 +1064,7 @@ struct NativePDF: UIViewRepresentable {
     func makeUIView(context: Context) -> PDFView {
         let view = ResizingPDFView()
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") {
+        if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") || ProcessInfo.processInfo.arguments.contains("--test-native-menu") {
             view.diagnosticInkCoordinator = context.coordinator
         }
         #endif

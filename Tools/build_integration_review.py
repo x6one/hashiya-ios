@@ -1,7 +1,8 @@
 """Build a local, unmodified-PNG review of approved Studio vs real production.
 
 Inputs are capture indexes, not generated mockups. Missing exact before matches
-are shown explicitly; a different language/device/appearance is never substituted.
+are shown explicitly; a different language/device family/appearance is never substituted.
+Different hardware models within the same family are disclosed explicitly.
 """
 import argparse
 import hashlib
@@ -73,8 +74,12 @@ def build(before_root, before, after_root, after, output):
                 raise ValueError("Explicit approved comparison does not match capture configuration")
         if len(matches) == 1:
             approved = copy(matches[0], before, before_paths, "approved-design")
+        same_model = approved["device"] == row["device"] if approved else None
+        comparison = "no unique approved screenshot in the same context"
+        if approved:
+            comparison = "exact capture context" if same_model else "matching family/settings; hardware model and screen size differ"
         pairs.append({"before": approved, "after": copy(index, after, after_paths, "real-production"),
-                      "comparison": "exact capture context" if approved else "no unique approved screenshot in the same context"})
+                      "same_device_model": same_model, "comparison": comparison})
 
     def card(row, title):
         if row is None:
@@ -91,13 +96,14 @@ def build(before_root, before, after_root, after, output):
     for pair in pairs:
         row = pair["after"]
         search = html.escape(" ".join(str(row[field]) for field in FIELDS), quote=True)
+        model_note = '<p>الطراز وحجم الشاشة مختلفان؛ المقارنة ضمن فئة الجهاز والإعدادات نفسها، وليست مقارنة بكسلات متطابقة.</p>' if pair["same_device_model"] is False else ''
         sections.append('<section data-search="' + search + '"><h2>' + html.escape(row["scene"]) +
-                        '</h2><div class="pair">' + card(pair["before"], "التصميم المعتمد") +
+                        '</h2>' + model_note + '<div class="pair">' + card(pair["before"], "التصميم المعتمد") +
                         card(row, "التطبيق الحقيقي") + '</div></section>')
     document = '''<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Tayya Studio — Production Review</title>
 <style>body{font-family:system-ui;background:#F8F7F3;color:#282C2B;margin:0;padding:16px}header{max-width:1200px;margin:auto}input{font:inherit;padding:12px;border:1px solid #244C43;border-radius:12px;width:min(90%,600px)}section{max-width:1200px;margin:24px auto}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}article{background:white;border-radius:16px;padding:16px;min-width:0}img{display:block;width:100%;height:auto;max-height:85vh;object-fit:contain}code,pre{direction:ltr;text-align:left;display:block;overflow-wrap:anywhere;white-space:pre-wrap}a{color:#244C43}p{line-height:1.6}@media(max-width:700px){.pair{grid-template-columns:1fr}}[hidden]{display:none!important}</style>
-<header><h1>طَيّة — مقارنة الدمج الحقيقي</h1><p>صور PNG الأصلية دون قص أو تدوير أو تعديل. الصور تفتح بحجمها الأصلي واتجاه EXIF المسجّل فيها. تتطابق المقارنة في الجهاز والاتجاه واللغة وحجم الخط والألوان؛ قد يختلف محتوى ملفات النموذج المعتمد عن الملفات الحقيقية. شاشة الصوت هنا من التطبيق الحقيقي؛ لا تثبت لقطات الشاشة التقاط ميكروفون جهاز فعلي.</p><label>تصفية حسب الشاشة أو الجهاز أو اللغة <input id="search" type="search" placeholder="iPhone · dark · en · notes"></label></header>'''
+<header><h1>طَيّة — مقارنة الدمج الحقيقي</h1><p>صور PNG الأصلية دون قص أو تدوير أو تعديل. الصور تفتح بحجمها الأصلي واتجاه EXIF المسجّل فيها. تتطابق المقارنة في فئة الجهاز والاتجاه واللغة وحجم الخط والألوان؛ قد يختلف محتوى ملفات النموذج المعتمد عن الملفات الحقيقية. شاشة الصوت هنا من التطبيق الحقيقي؛ لا تثبت لقطات الشاشة التقاط ميكروفون جهاز فعلي.</p><label>تصفية حسب الشاشة أو الجهاز أو اللغة <input id="search" type="search" placeholder="iPhone · dark · en · notes"></label></header>'''
     document += "".join(sections)
     document += '''<script>document.getElementById('search').addEventListener('input',function(){const q=this.value.toLowerCase().split(/\\s+/).filter(Boolean);document.querySelectorAll('section').forEach(s=>{s.hidden=!q.every(v=>s.dataset.search.toLowerCase().includes(v))})})</script></html>'''
     (output / "index.html").write_text(document, encoding="utf-8")

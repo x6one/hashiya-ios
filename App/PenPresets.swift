@@ -1,5 +1,20 @@
 import SwiftUI
 
+/// Dedicated DEBUG probe: no publication, UI refresh, persistence or audio data.
+/// Release calls compile to no-ops; native snapshots read actual model bindings.
+@MainActor enum NativeToolActionTrace {
+    #if DEBUG
+    private(set) static var events: [String] = []
+    #endif
+    static func record(_ event: String) {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("--test-native-menu") else { return }
+        events.append(event)
+        if events.count > 12 { events.removeFirst() }
+        #endif
+    }
+}
+
 struct PenPreset: Codable {
     var brush: InkBrush
     var red: Double
@@ -63,6 +78,7 @@ struct FavoritePenMenu: View {
                 Button {
                     let preset = store.presets[slot]
                     brush = preset.brush; color = preset.color; width = preset.width
+                    NativeToolActionTrace.record("apply=\(slot); brush=\(brush.rawValue); width=\(width)")
                 } label: {
                     Label(String(format: TayyaLocalized("قلم %d — %@، %.1f نقطة"), slot + 1,
                         TayyaLocalized(store.presets[slot].brush.rawValue), store.presets[slot].width),
@@ -73,6 +89,7 @@ struct FavoritePenMenu: View {
                 ForEach(0..<3, id: \.self) { slot in
                     Button(String(format: TayyaLocalized("حفظ في القلم %d"), slot + 1)) {
                         failed = !store.save(slot: slot, brush: brush, color: color, width: width)
+                        NativeToolActionTrace.record("save=\(slot); failed=\(failed); brush=\(brush.rawValue); width=\(width)")
                     }.accessibilityIdentifier("savePenPreset-\(slot)")
                         .disabled(![InkBrush.pen, .pencil, .marker].contains(brush))
                 }

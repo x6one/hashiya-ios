@@ -3,19 +3,29 @@ import UIKit
 
 final class StudioEditorToolsTests: XCTestCase {
     override func setUp() { super.setUp(); continueAfterFailure = false }
+    override func tearDown() {
+        let app = XCUIApplication()
+        if app.state == .runningForeground {
+            print("NativeToolFinal trace=\(app.otherElements["pdfCanvas"].value as? String ?? "missing")")
+        }
+        super.tearDown()
+    }
     private func openDocument(arguments: [String] = []) -> XCUIApplication {
-        let app = XCUIApplication(); app.launchArguments = ["--test-review-entry"] + arguments
+        let app = XCUIApplication(); app.launchArguments = ["--test-review-entry", "--test-native-menu"] + arguments
         app.launch()
         openProductionDemonstration(in: app)
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 15))
         return app
     }
-    private func chooseBrush(_ name: String, in app: XCUIApplication) {
+    private func chooseBrush(_ symbol: String, in app: XCUIApplication) {
         app.buttons["inkBrush"].tap()
-        tapReadyMenuItem(app.buttons[name])
+        tapReadyMenuItem(app.buttons["inkBrushOption-" + symbol])
     }
     private func tapReadyMenuItem(_ item: XCUIElement) {
+        let app = XCUIApplication()
+        print("NativeToolBefore item=\(item.identifier) trace=\(app.otherElements["pdfCanvas"].value as? String ?? "missing")")
         tapCompletedNativeMenuItem(item)
+        print("NativeToolAfter trace=\(app.otherElements["pdfCanvas"].value as? String ?? "missing")")
     }
     private func waitForNativePenState(_ app: XCUIApplication, brush: String, width: String, color: String? = nil) {
         let started = ProcessInfo.processInfo.systemUptime
@@ -55,13 +65,13 @@ final class StudioEditorToolsTests: XCTestCase {
     func testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch() {
         let app = openDocument()
         app.buttons["inkTool"].tap()
-        chooseBrush("رصاص", in: app)
-        app.buttons["inkWidth"].tap(); tapReadyMenuItem(app.buttons["سماكة 5"])
+        chooseBrush("pencil", in: app)
+        app.buttons["inkWidth"].tap(); tapReadyMenuItem(app.buttons["inkWidthOption-5"])
         waitForNativePenState(app, brush: "رصاص", width: "5")
         let color = app.buttons["inkColor"].value as? String
         XCTAssertNotNil(color)
         app.buttons["favoritePens"].tap(); tapReadyMenuItem(app.buttons["savePenPreset-1"])
-        chooseBrush("تظليل", in: app)
+        chooseBrush("highlighter", in: app)
         app.buttons["favoritePens"].tap()
         let preset = app.buttons["usePenPreset-1"]
         XCTAssertTrue(preset.waitForExistence(timeout: 5))

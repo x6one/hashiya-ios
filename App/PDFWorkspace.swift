@@ -436,11 +436,14 @@ struct DocumentScreen: View {
                     .frame(width: notesWidth, height: notesHeight)
                     .position(x: horizontal ? documentWidth + 16 + notesWidth / 2 : size.width / 2,
                               y: split && !horizontal ? documentHeight + 16 + notesHeight / 2 : size.height / 2)
-                    .opacity(showNotes ? 1 : 0).allowsHitTesting(showNotes).accessibilityHidden(!showNotes)
+                    // Retain PencilKit without an opacity composition surface.
+                    // Closed Notes stay behind the opaque native PDF instead.
+                    .zIndex(showNotes ? 1 : -1).allowsHitTesting(showNotes).accessibilityHidden(!showNotes)
                 if split {
                     splitDivider(size: size, horizontal: horizontal)
                         .position(x: horizontal ? documentWidth + 8 : size.width / 2,
                                   y: horizontal ? size.height / 2 : documentHeight + 8)
+                        .zIndex(2)
                 }
             }
         }

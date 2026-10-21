@@ -67,7 +67,15 @@ final class StudioThumbnailTests: XCTestCase {
         XCTAssertNotNil(added)
         let broken = Data("damaged user ink".utf8)
         try broken.write(to: root.appendingPathComponent("4.drawing"))
+        for data in [broken, Data("interrupted PencilKit drawing".utf8), PKDrawing().dataRepresentation()] {
+            do {
+                let decoded = try PKDrawing(data: data)
+                print("NativeInkDecode bytes=\(data.count) strokes=\(decoded.strokes.count) serialized=\(decoded.dataRepresentation().count)")
+            } catch { print("NativeInkDecode bytes=\(data.count) throws=\(error)") }
+        }
+        let beforeKey = store.imageKey(page: 5)
         store.invalidate(page: 5)
+        print("NativeThumbnailInvalidation keyChanged=\(beforeKey != store.imageKey(page: 5)) inkExists=\(FileManager.default.fileExists(atPath: root.appendingPathComponent("4.drawing").path))")
         let failed = await store.image(page: 5)
         XCTAssertNil(failed, "Unreadable ink must show a retry/error, not a falsely clean page")
         XCTAssertNotNil(store.error)

@@ -15,7 +15,7 @@
 - [x] Inspect both current heads, local changes, actual baseline jobs and approved design evidence; establish isolated integration branch.
 - [x] Add a focused integration workflow using existing toolchain/simulator selection and retained xcresult evidence; exclude ordinary integration commits from expensive release jobs.
 - [x] Add failing native appearance contracts for approved semantic colors and a display-copy regression using existing Notes identifiers. Run that subset before changing production behavior.
-- [ ] Update TayyaTheme semantic colors, add shared metrics/styles, change only displayed Notes copy and affected text tests; run the focused tests and relevant Python checks. Commit actual evidence.
+- [x] Update TayyaTheme semantic colors, add shared metrics/styles, change only displayed Notes copy and affected text tests; run the focused tests and relevant Python checks. Commit actual evidence.
 
 ## 2. Real library and language/accessibility
 
@@ -30,7 +30,7 @@
 
 ## 4. Real recording and data safety
 
-- [ ] First add failing tests for corrupt marker preservation, same-recording page markers, display-name metadata, pause/rate/seek, manual markers and old-data reload.
+- [x] First add failing tests for corrupt marker preservation, same-recording page markers, display-name metadata, pause/rate/seek, manual markers and old-data reload.
 - [ ] Extend real PageAudio and linked cards with rename, duration/date/page, pause/resume/rate/10-second seek, confirmation/delete/share and explicit recording/error state. Keep original M4A basenames and links; use no simulated waveforms as proof.
 - [ ] Add optional stable source-page identity with safe legacy resolution and transactional page-deletion/undo handling; preserve unknown/corrupt bytes and original compatibility.
 - [ ] Protect snapshots/page edits from active recording changes; verify permission denial/background/interruption and writing-marker routing. Preserve all existing audio suites.
@@ -43,7 +43,7 @@
 
 ## 6. Legacy compatibility and integrated validation
 
-- [ ] Build a synthetic previous-version fixture with multipage PDF, PencilKit ink, text, independent Notes, decodable M4A/markers, cards, sections/favorites/trash and backup. Compare identities/content/bytes after opening, saving, relaunch and restore. Never use user account data.
+- [x] Build a synthetic previous-version fixture with multipage PDF, PencilKit ink, text, independent Notes, decodable M4A/markers, cards, sections/favorites/trash and backup. Compare identities/content/bytes after opening, saving, relaunch and restore. Never use user account data.
 - [ ] Run focused integration/compatibility suites on both devices; inspect xcresult and screenshots against the approved gallery. Diagnose failures before rerunning.
 - [ ] Capture actual integrated library/editor/tools/Notes/split/audio/markers/thumbnails/Focus, light/dark, Arabic/English, large text and both orientations with source/test metadata. Produce a raw-image comparison HTML and ZIP.
 
@@ -55,7 +55,7 @@
 
 ## Resume record
 
-Baseline already verified: run 39342393075 at dbdb264. Do not repeat. Current task: step 1 GREEN verification plus isolated workspace/audio RED contracts and the complete old-data fixture. Record new runs, hypotheses, modified files and exact results here after meaningful milestones; a running command must be identified before restarting it. No implementation changes existed at branch creation.
+Baseline already verified: run 39342393075 at dbdb264. Do not repeat. Current source: 8bd9a5fa40db3a493deb77dc38df9e2d23a6acb5, directed native qualification run39545360907. Foundation/library/core chrome/localization, real audio management and legacy fixture were qualified at earlier sources below; latest presets/cache/sidebar/alignment and native endpoint repair await this run. Capture/gallery/ZIP-integrity work is prepared locally but uncommitted. Do not rerun the baseline, replace these implementations, or publish while this run is active. Record new runs, hypotheses, modified files and exact results here after meaningful milestones; a running command must be identified before restarting it. No implementation changes existed at branch creation.
 
 ### 2026-10-20 foundation RED evidence
 
@@ -138,3 +138,17 @@ Actual help button bounds are19x19, confirming a real small target after correct
 Study-tool candidate: three native presets in one versioned UserDefaults key with damaged-byte protection; shared native rail/SF metrics; per-page copied PDF snapshots and separate PencilKit overlays rendered on a serial worker; bounded80/24MiB cache with coalesced requests and per-page invalidation; actual preview grid plus collapsible retained iPad sidebar. Native PDF/Notes/audio engines and the proven scroll implementation are retained. Text alignment is an optional additive PageText field and real PDFKit annotation setting, tested with legacy text and visible red pixels in actual PDF export. Legacy numeric-folder audio reuses the same real recording cards/rename/share/playback controls without renaming M4A files. Semantic text contrast is checked in both appearances; copper remains decorative rather than low-contrast small search text.
 
 Next source gate is focused foundation/audio/workspace/compatibility/import/study-tool coverage plus the three original ink/navigation UI regressions on BOTH devices. Final capture fixtures/helpers remain uncommitted and are excluded from this gate. Three local raw-capture collector tests pass; workflow/string/diff checks pass; original test names and InkToolbarScrollView bytes are unchanged. Native candidate success is pending.
+
+
+### 2026-10-21 native build repair and production review preparation
+
+At3a81e6b18eaf40bf0cf9dbfb3da797f2faf6820e, run39528302626 stopped before test execution on BOTH devices: StudioTextFormattingTests:36 exceeded Swift type-checking complexity. The application compiled; this is not evidence of runtime failure. At8bd9a5fa40db3a493deb77dc38df9e2d23a6acb5 the test's identical red-pixel predicate is an explicit integer loop; all original assertions remain. Current run39545360907 repeats only the previously unexecuted component selection, not the full production gate.
+
+Prepared next: DEBUG-only real5-page PDF/Notes fixture inside a temporary review root; six native capture journeys using actual production PencilKit/text/AVFoundation, raw XCUIScreen PNG bytes and matching window/dimension metadata. The collector fails on mismatched pixel/window provenance. A reusable Ubuntu gallery job downloads the approved artifact once, checks exact source/context and native job IDs, preserves PNG hashes and publishes HTML/ZIP. Final native packaging additionally validates ZIP CRC, the actual arm64 app's executable bytes/plist and Office resources. Local29Tools tests, workflow actionlint and diff checks pass. This is tooling verification, not native capture or final IPA evidence. No new dependency, simulated audio, production data, Apple upload or stable-branch change.
+
+
+### 2026-10-21 actual native results at8bd9a5f
+
+Run39545360907 completed both: phone73/75unit +11/14UI, pad73/75unit +9/14UI, no skips. All9audio-management (real10s native offset/media-end replay included), old audio/permission/interruption, data safety/import, old-data fixture, text-alignment/actual red export, large-PDF lazy cache/coalescing and pen preset unit tests passed. One thumbnail case returned a clean preview for the17-byte damaged-ink fixture on both; current root is unknown until native decode/cache-key tracing. Both phone original edge-target cases and favorite-preset UI fail on invisible pencil menu actions. The original phone video and AX tree prove a QWERTY keyboard appears after Pen and covers the menu placed at its previous bottom anchor. A5second readiness predicate did not fix this; do not add delay. Next diagnostic isolates actual keyboard state before/after Pen/menu and native responder protocols, plus the existing failing thumbnail with native PKDrawing decode/key traces. No production workaround yet.
+
+Additional iPad evidence retained locally: native Notes stroke count1to2 but actual red pixels0, screenshot shows only old green Notes ink (the pink PDF stroke belongs to the preceding document stage); keep that pixel assertion. Page sidebar and modal preview use duplicate image IDs and broad audio marker label resolves the underlying sidebar. A separate largest-type helper stayed on Welcome after its tap. Inspect existing raw artifacts before changing those test interactions or presentation. Phone ZIP45ce634bfc1187e4fdd3d3d772adae6ec104814fe55c020d87d072c19f5e7b1a and pad ZIPf7c7c8e6080f05ef7b57f2ea1c193b2d090827371a18e5fe50be5a0607f3337c downloaded once to /workspace/integration-qualified-{phone,pad}-8bd.zip.

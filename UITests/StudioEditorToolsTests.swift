@@ -20,6 +20,28 @@ final class StudioEditorToolsTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed, "Wait for the native menu to finish presenting before a real tap")
         item.tap()
     }
+    func testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions() {
+        let app = openDocument(arguments: ["--test-ink-responder"])
+        func evidence(_ stage: String) {
+            print("NativePenMenu stage=\(stage) keyboards=\(app.keyboards.count) viewport=\(app.otherElements["pdfCanvas"].frame)")
+            let image = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            image.name = "NativePenMenu-" + stage; image.lifetime = .keepAlways; add(image)
+        }
+        evidence("BeforePen")
+        app.buttons["inkTool"].tap()
+        XCTAssertTrue(app.buttons["inkBrush"].waitForExistence(timeout: 5))
+        let afterPenKeyboard = app.keyboards.firstMatch.exists
+        evidence("AfterPen")
+        app.buttons["inkBrush"].tap()
+        let pencil = app.buttons["رصاص"]
+        XCTAssertTrue(pencil.waitForExistence(timeout: 5))
+        evidence("AfterMenu")
+        XCTAssertFalse(afterPenKeyboard, "Choosing a drawing tool must not raise a text keyboard")
+        XCTAssertFalse(app.keyboards.firstMatch.exists, "The native brush menu must remain visible above the drawing surface")
+        XCTAssertTrue(pencil.isHittable, "Actual native brush actions must remain reachable")
+        pencil.tap()
+        XCTAssertEqual(app.buttons["inkBrush"].value as? String, "رصاص")
+    }
     func testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch() {
         let app = openDocument()
         app.buttons["inkTool"].tap()

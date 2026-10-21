@@ -1175,7 +1175,12 @@ struct NativePDF: UIViewRepresentable {
         private func activateCurrentCanvas() {
             guard let view = workspace.view, let page = (view as? ResizingPDFView)?.readingPage ?? view.currentPage,
                   let canvas = canvases[workspace.document.index(for: page)], canvas.window != nil else { return }
-            canvas.becomeFirstResponder()
+            let became = canvas.becomeFirstResponder()
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-ink-responder") {
+                print("NativePenResponder type=\(type(of: canvas)) became=\(became) keyInput=\(canvas is UIKeyInput) textInput=\(canvas is UITextInput) inputView=\(String(describing: canvas.inputView))")
+            }
+            #endif
         }
         func pdfView(_ view: PDFView, overlayViewFor page: PDFPage) -> UIView? {
             let index = workspace.document.index(for: page)

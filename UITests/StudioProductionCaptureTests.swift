@@ -47,11 +47,27 @@ final class StudioProductionCaptureTests: XCTestCase {
                                      "Navigation must occupy its own area above the PDF")
             if target.isEnabled { XCTAssertTrue(target.isHittable) }
         }
+        let total = app.staticTexts["documentPageCount"]
+        XCTAssertTrue(total.exists)
+        XCTAssertGreaterThanOrEqual(total.frame.minX, window.minX)
+        XCTAssertLessThanOrEqual(total.frame.maxX, window.maxX)
         let readout = app.staticTexts["recordingElapsed"]
         XCTAssertTrue(readout.exists)
         XCTAssertGreaterThanOrEqual(readout.frame.minX, window.minX)
         XCTAssertLessThanOrEqual(readout.frame.maxX, window.maxX)
         XCTAssertGreaterThan(app.otherElements["pdfCanvas"].frame.height, window.height > window.width ? window.height / 3 : 60)
+    }
+    private func exerciseAccessiblePageNavigation(_ app: XCUIApplication) {
+        assertAccessibleNavigation(app)
+        let number = app.textFields["pageNumber"]
+        number.tap(); number.typeText("3"); app.buttons["goToPage"].tap()
+        XCTAssertEqual(number.value as? String, "3", "The fully visible field must perform actual direct navigation")
+        app.buttons["previousDocumentPage"].tap()
+        XCTAssertEqual(number.value as? String, "2")
+        app.buttons["nextDocumentPage"].tap()
+        XCTAssertEqual(number.value as? String, "3")
+        number.tap(); number.typeText("1"); app.buttons["goToPage"].tap()
+        XCTAssertEqual(number.value as? String, "1", "Return to the same reading page for the actual comparison capture")
     }
     private func action(_ name: String, in app: XCUIApplication) {
         app.buttons["workspaceActions"].tap()
@@ -152,7 +168,7 @@ final class StudioProductionCaptureTests: XCTestCase {
     }
     func testLargestArabicProductionTextInBothOrientations() {
         let app = library(large: true)
-        snapshot("Library"); openDocument(app); snapshot("Editor")
+        snapshot("Library"); openDocument(app); exerciseAccessiblePageNavigation(app); snapshot("Editor")
         app.buttons["workspaceToolHelp"].tap(); snapshot("Tool-Help")
         app.buttons["تم"].firstMatch.tap()
         notes(app, split: false); snapshot("Notes-Expanded")
@@ -164,7 +180,7 @@ final class StudioProductionCaptureTests: XCTestCase {
     }
     func testLargestEnglishDarkProductionTextInBothOrientations() {
         let app = library(english: true, dark: true, large: true)
-        snapshot("Library"); openDocument(app); snapshot("Editor")
+        snapshot("Library"); openDocument(app); exerciseAccessiblePageNavigation(app); snapshot("Editor")
         notes(app, split: false); snapshot("Notes-Expanded")
         closeNotes(app)
         rotate(.landscapeLeft, in: app)

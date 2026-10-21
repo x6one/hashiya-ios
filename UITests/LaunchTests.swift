@@ -1137,7 +1137,8 @@ final class LaunchTests: XCTestCase {
     }
 
     private func exerciseIndividualInkTargets(in app: XCUIApplication, canvas: XCUIElement,
-                                             count: XCUIElement, allowsWidthFit: Bool, name: String) -> Bool {
+                                             count: XCUIElement, allowsWidthFit: Bool, name: String,
+                                             paletteTransitions: Int = 1) -> Bool {
         func tapTarget(_ identifier: String) -> Bool {
             tapInkTarget(identifier, in: app, writingSurface: canvas)
         }
@@ -1231,6 +1232,24 @@ final class LaunchTests: XCTestCase {
         guard XCTWaiter.wait(for: [changedColor], timeout: 5) == .completed else {
             XCTFail("Native swatch must change the actual bound ink color; before=\(initialColor), after=\(colorControl.value as? String ?? "missing")"); return false
         }
+        let selectedColor = colorControl.value as? String
+        for transition in 1..<paletteTransitions {
+            guard tapTarget("inkColor"), picker.waitForExistence(timeout: 5),
+                  waitForNativeInkColorService(name: name + "-Transition\(transition)"),
+                  picker.segmentedControls.firstMatch.waitForExistence(timeout: 5), close.isHittable else {
+                XCTFail("A subsequent native palette must remain usable"); return false
+            }
+            close.tap()
+            let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                pickerElements.count == 0
+            }, object: app)
+            guard XCTWaiter.wait(for: [closed], timeout: 5) == .completed else {
+                XCTFail("Each palette must actually dismiss before the next real interaction"); return false
+            }
+            XCTAssertEqual(colorControl.value as? String, selectedColor,
+                           "Opening and closing the palette must retain the selected ink")
+            recordState("PaletteTransition\(transition)")
+        }
         let strokeFrame = canvas.frame
         let applicationFrame = app.frame
         let pixelFrame = strokeFrame.intersection(applicationFrame)
@@ -1281,6 +1300,10 @@ final class LaunchTests: XCTestCase {
                 // distinguish a stale first-stroke render from lost ink data.
                 let native = XCTAttachment(string: app.segmentedControls["marginMode"].label)
                 native.name = name + "-FailedRenderNativeHierarchy"; native.lifetime = .keepAlways; add(native)
+                let late = XCUIScreen.main.screenshot()
+                let lateImage = XCTAttachment(screenshot: late)
+                lateImage.name = name + "-FailedRender-BeforeRecovery"; lateImage.lifetime = .keepAlways; add(lateImage)
+                print("NativeInkRenderProbe beforeRecovery red=\(redInkPixels(in: late.image, frame: pixelFrame)); count=\(count.value as? String ?? "missing")")
                 for action in ["inkUndo", "inkRedo"] {
                     guard tapTarget(action) else { return false }
                     let screenshot = XCUIScreen.main.screenshot()
@@ -1288,6 +1311,7 @@ final class LaunchTests: XCTestCase {
                     image.name = name + "-FailedRender-" + action; image.lifetime = .keepAlways; add(image)
                     let state = XCTAttachment(string: "action=\(action); red=\(redInkPixels(in: screenshot.image, frame: pixelFrame)); count=\(count.value as? String ?? "missing"); label=\(canvas.label)")
                     state.name = name + "-FailedRender-" + action + "-NativeState"; state.lifetime = .keepAlways; add(state)
+                    print("NativeInkRenderProbe action=\(action); red=\(redInkPixels(in: screenshot.image, frame: pixelFrame)); count=\(count.value as? String ?? "missing"); native=\(canvas.label.prefix(1800))")
                 }
             }
             return false
@@ -1456,7 +1480,7 @@ final class LaunchTests: XCTestCase {
         }
     }
 
-    private func verifyIndividualInkTargets(accessibilityType: Bool) {
+    private func verifyIndividualInkTargets(accessibilityType: Bool, paletteTransitions: Int = 1) {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         defer {
@@ -1517,7 +1541,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(mode.value as? String, "handwriting", "Rotation must retain the real model mode")
         XCTAssertFalse(app.textViews["splitNotes"].exists)
         guard exerciseIndividualInkTargets(in: app, canvas: margin, count: margin,
-            allowsWidthFit: true, name: variant + "-CompactSplitInk") else { return }
+            allowsWidthFit: true, name: variant + "-CompactSplitInk", paletteTransitions: paletteTransitions) else { return }
         XCTAssertTrue(pdf.exists)
         XCTAssertEqual(pdf.frame, pdfFrame, "Ink toolbar taps must preserve the split PDF viewport")
         XCTAssertGreaterThan(margin.frame.height, 44)
@@ -1531,6 +1555,11 @@ final class LaunchTests: XCTestCase {
     func testIndividualInkTargetsAtAccessibilityTextSize() {
         executionTimeAllowance = 360
         verifyIndividualInkTargets(accessibilityType: true)
+    }
+
+    func testNotesPencilRemainsVisibleAfterRepeatedNativePaletteDismissals() {
+        executionTimeAllowance = 360
+        verifyIndividualInkTargets(accessibilityType: true, paletteTransitions: 3)
     }
 
     func testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening() {

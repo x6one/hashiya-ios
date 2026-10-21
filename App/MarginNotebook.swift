@@ -19,7 +19,16 @@ final class MarginCanvas: PKCanvasView {
             }
             let nativeTool = tool as? PKInkingTool
             let lastInk = drawing.strokes.last?.ink
-            return label + "; responder=\(isFirstResponder) keyWindow=\(window?.isKeyWindow ?? false) usingTool=\(usingTool); nativeTool=\(nativeTool?.inkType.rawValue ?? "none") color=\(String(describing: nativeTool?.color)) lastStrokeColor=\(String(describing: lastInk?.color)); zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 3) }.joined(separator: " | ")
+            let strokeDetails = drawing.strokes.last.map { stroke -> String in
+                let path = stroke.path
+                let indices = path.count == 0 ? [] : Array(Set([0, path.count / 2, path.count - 1])).sorted()
+                let points = indices.map { index -> String in
+                    let point = path[index]
+                    return "point\(index) location=\(point.location) size=\(point.size) opacity=\(point.opacity) force=\(point.force)"
+                }.joined(separator: "; ")
+                return "renderBounds=\(stroke.renderBounds) transform=\(stroke.transform) points=\(path.count) \(points)"
+            } ?? "none"
+            return label + "; responder=\(isFirstResponder) keyWindow=\(window?.isKeyWindow ?? false) usingTool=\(usingTool); nativeTool=\(nativeTool?.inkType.rawValue ?? "none") color=\(String(describing: nativeTool?.color)) lastStrokeColor=\(String(describing: lastInk?.color)); lastStroke=[\(strokeDetails)]; zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 3) }.joined(separator: " | ")
         }
         set { super.accessibilityLabel = newValue }
     }

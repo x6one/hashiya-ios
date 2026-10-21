@@ -39,10 +39,16 @@ final class StudioTextFormattingTests: XCTestCase {
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue))
             context.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(image.width), height: CGFloat(image.height)))
             let bytes = buffer.bindMemory(to: UInt8.self)
-            return stride(from: 0, to: bytes.count, by: 4).filter { index in
-                Int(bytes[index]) > 60 && Int(bytes[index]) > Int(bytes[index + 1]) * 2
-                    && Int(bytes[index]) > Int(bytes[index + 2]) * 2
-            }.count
+            var count = 0
+            for index in stride(from: 0, to: bytes.count, by: 4) {
+                let pixelRed = Int(bytes[index])
+                let pixelGreen = Int(bytes[index + 1])
+                let pixelBlue = Int(bytes[index + 2])
+                if pixelRed > 60 && pixelRed > pixelGreen * 2 && pixelRed > pixelBlue * 2 {
+                    count += 1
+                }
+            }
+            return count
         }
         XCTAssertGreaterThan(redPixels, 25, "Real exported PDF must visibly contain the newly formatted red text")
         XCTAssertEqual(reopened.texts.last?.alignment, NSTextAlignment.right.rawValue)

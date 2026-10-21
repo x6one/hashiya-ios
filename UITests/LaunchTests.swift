@@ -1232,23 +1232,25 @@ final class LaunchTests: XCTestCase {
         guard XCTWaiter.wait(for: [changedColor], timeout: 5) == .completed else {
             XCTFail("Native swatch must change the actual bound ink color; before=\(initialColor), after=\(colorControl.value as? String ?? "missing")"); return false
         }
-        let selectedColor = colorControl.value as? String
-        for transition in 1..<paletteTransitions {
-            guard tapTarget("inkColor"), picker.waitForExistence(timeout: 5),
-                  waitForNativeInkColorService(name: name + "-Transition\(transition)"),
-                  picker.segmentedControls.firstMatch.waitForExistence(timeout: 5), close.isHittable else {
-                XCTFail("A subsequent native palette must remain usable"); return false
+        if paletteTransitions > 1 {
+            let selectedColor = colorControl.value as? String
+            for transition in 1..<paletteTransitions {
+                guard tapTarget("inkColor"), picker.waitForExistence(timeout: 5),
+                      waitForNativeInkColorService(name: name + "-Transition\(transition)"),
+                      picker.segmentedControls.firstMatch.waitForExistence(timeout: 5), close.isHittable else {
+                    XCTFail("A subsequent native palette must remain usable"); return false
+                }
+                close.tap()
+                let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    pickerElements.count == 0
+                }, object: app)
+                guard XCTWaiter.wait(for: [closed], timeout: 5) == .completed else {
+                    XCTFail("Each palette must actually dismiss before the next real interaction"); return false
+                }
+                XCTAssertEqual(colorControl.value as? String, selectedColor,
+                               "Opening and closing the palette must retain the selected ink")
+                recordState("PaletteTransition\(transition)")
             }
-            close.tap()
-            let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                pickerElements.count == 0
-            }, object: app)
-            guard XCTWaiter.wait(for: [closed], timeout: 5) == .completed else {
-                XCTFail("Each palette must actually dismiss before the next real interaction"); return false
-            }
-            XCTAssertEqual(colorControl.value as? String, selectedColor,
-                           "Opening and closing the palette must retain the selected ink")
-            recordState("PaletteTransition\(transition)")
         }
         let strokeFrame = canvas.frame
         let applicationFrame = app.frame

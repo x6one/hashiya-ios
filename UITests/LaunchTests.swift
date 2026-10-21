@@ -760,6 +760,24 @@ final class LaunchTests: XCTestCase {
         return components.reduce(0) { $0 * 60 + $1 }
     }
 
+    private func assertExpandedNotesHideRetainedPDF(_ document: XCUIElement, in app: XCUIApplication) {
+        // Retention is required to preserve PDF/ink state. "exists" alone also
+        // includes XCTest's hidden identified nodes (proved in39610168480).
+        XCTAssertEqual(app.buttons["expandMargin"].label, "العودة إلى المستند")
+        XCTAssertFalse(app.descendants(matching: .any)["splitDivider"].firstMatch.exists,
+                       "This must be expanded Notes, not an accidental lost PDF in a split")
+        let canvas = app.scrollViews["marginInkCanvas"]
+        XCTAssertTrue(canvas.exists)
+        XCTAssertGreaterThan(canvas.frame.height, 44)
+        if document.exists {
+            XCTAssertFalse(document.isHittable, "The hidden retained PDF must never accept input through full-screen Notes")
+            let trace = document.value as? String ?? ""
+            XCTAssertTrue(trace.contains("hidden=true; axHidden=true;"), "Verify the actual native UIKit visibility and accessibility flags: " + trace)
+            XCTAssertTrue(trace.contains("pdfCenterReceives=") && trace.contains("MarginCanvas"),
+                          "The Notes canvas must receive the actual UIKit hit test at the retained PDF's center: " + trace)
+        }
+    }
+
     private func captureAdvancingRecording(in app: XCUIApplication, name: String, requiresDocument: Bool, margin: XCUIElement? = nil) {
         let strip = app.descendants(matching: .any)["recordingStrip"].firstMatch
         let record = app.buttons["recordLinkedAudio"]
@@ -774,10 +792,7 @@ final class LaunchTests: XCTestCase {
                 XCTFail("Split recording must retain the PDF canvas"); return
             }
         } else {
-            if document.exists {
-                print("ExpandedNativePDF hittable=\(document.isHittable); value=\(document.value as? String ?? "missing"); tree=\(document.debugDescription)")
-            }
-            XCTAssertFalse(document.exists, "Only a deliberately expanded margin may hide the PDF")
+            assertExpandedNotesHideRetainedPDF(document, in: app)
         }
         let stripFrame = strip.frame, documentFrame = requiresDocument ? document.frame : nil
         let marginFrame = margin?.frame
@@ -808,6 +823,7 @@ final class LaunchTests: XCTestCase {
             XCTAssertTrue(document.exists, "PDF must remain present during split recording")
             XCTAssertEqual(document.frame, documentFrame, "Recording must preserve the document viewport")
         }
+        if !requiresDocument { assertExpandedNotesHideRetainedPDF(document, in: app) }
         if let marginFrame, let margin { XCTAssertEqual(margin.frame, marginFrame, "Recording must preserve the handwriting viewport") }
         XCTAssertEqual(app.buttons["marginPages"].value as? String, marginPosition)
         let level = app.descendants(matching: .any)["recordingLevel"].firstMatch
@@ -823,6 +839,7 @@ final class LaunchTests: XCTestCase {
             XCTAssertTrue(document.exists, "PDF must remain present after split recording")
             XCTAssertEqual(document.frame, documentFrame)
         }
+        if !requiresDocument { assertExpandedNotesHideRetainedPDF(document, in: app) }
         if let marginFrame, let margin { XCTAssertEqual(margin.frame, marginFrame) }
     }
 

@@ -48,11 +48,9 @@ final class StudioProductionCaptureTests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxY, pdfFrame.minY + 0.5,
                                      "Navigation must occupy its own area above the PDF")
             if target.isEnabled {
-                let reportedHit = target.isHittable
-                if target.identifier == "nextDocumentPage", !reportedHit {
-                    diagnoseNextPageTouch(target, in: app)
-                }
-                XCTAssertTrue(reportedHit, "Retain the original hit-test assertion while testing actual physical input")
+                if target.identifier == "nextDocumentPage" {
+                    assertNextPageTouch(target, in: app)
+                } else { XCTAssertTrue(target.isHittable) }
             }
         }
         let total = app.staticTexts["documentPageCount"]
@@ -67,15 +65,16 @@ final class StudioProductionCaptureTests: XCTestCase {
         XCTAssertLessThanOrEqual(readoutFrame.maxX, window.maxX)
         XCTAssertGreaterThan(pdfFrame.height, window.height > window.width ? window.height / 3 : 60)
     }
-    private func diagnoseNextPageTouch(_ target: XCUIElement, in app: XCUIApplication) {
+    private func assertNextPageTouch(_ target: XCUIElement, in app: XCUIApplication) {
         let number = app.textFields["pageNumber"]
-        guard let initial = Int(number.value as? String ?? "") else { XCTFail("Read the real page before the touch probe"); return }
+        guard let initial = Int(number.value as? String ?? "") else { XCTFail("Read the real page before checking native navigation"); return }
         func evidence(_ stage: String) {
             print("NativeNextTouch stage=\(stage) page=\(number.value as? String ?? "missing") hittable=\(target.isHittable) matches=\(app.buttons.matching(identifier: "nextDocumentPage").count) native=\(app.otherElements["pdfCanvas"].value as? String ?? "missing")")
             let shot = XCTAttachment(data: XCUIScreen.main.screenshot().pngRepresentation, uniformTypeIdentifier: "public.png")
             shot.name = "NativeNextTouch-" + stage; shot.lifetime = .keepAlways; add(shot)
         }
-        evidence("Before")
+        let reportedBefore = target.isHittable
+        if !reportedBefore { evidence("Before") }
         // A physical center touch inside the already-verified44pt rectangle is
         // a valid user interaction even when AX reports no preferred hit point.
         target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
@@ -84,7 +83,7 @@ final class StudioProductionCaptureTests: XCTestCase {
         }, object: nil)
         let result = XCTWaiter.wait(for: [changed], timeout: 5)
         print("NativeNextTouch changed=\(result.rawValue) expected=\(initial + 1)")
-        evidence("After")
+        if !reportedBefore || result != .completed { evidence("After") }
         if result == .completed {
             app.buttons["previousDocumentPage"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -253,10 +252,7 @@ final class StudioProductionCaptureTests: XCTestCase {
         snapshot("Recording-Playback", movingContent: true)
     }
 
-    private func snapshot(_ name: String, movingContent: Bool = false) {
-        let app = XCUIApplication()
-        if name == "Editor" && arguments.contains("UICTContentSizeCategoryAccessibilityXXXL") { assertAccessibleNavigation(app) }
-        let landscape = XCUIDevice.shared.orientation.isLandscape
+    private func settledScreenshot(_ app: XCUIApplication, landscape: Bool, movingContent: Bool) -> XCUIScreenshot? {
         let oriented = NSPredicate { _, _ in
             let frame = app.windows.firstMatch.frame
             return landscape ? frame.width > frame.height : frame.height > frame.width
@@ -279,6 +275,18 @@ final class StudioProductionCaptureTests: XCTestCase {
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed,
                        "Capture waits for native orientation and compositor readiness")
+        return settled
+    }
+    private func snapshot(_ name: String, movingContent: Bool = false) {
+        let app = XCUIApplication()
+        let landscape = XCUIDevice.shared.orientation.isLandscape
+        var settled = settledScreenshot(app, landscape: landscape, movingContent: movingContent)
+        if name == "Editor" && arguments.contains("UICTContentSizeCategoryAccessibilityXXXL") {
+            assertAccessibleNavigation(app)
+            // The actual Next/Previous assertions return to the same page.
+            // Capture its settled pixels after those real interactions too.
+            settled = settledScreenshot(app, landscape: landscape, movingContent: movingContent)
+        }
         guard let screenshot = settled,
               let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],

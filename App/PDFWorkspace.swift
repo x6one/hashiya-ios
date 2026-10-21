@@ -1140,31 +1140,12 @@ final class ResizingPDFView: PDFView {
         }
     }
 }
-/// SwiftUI owns the representable root's AX wrapper. Keep the identified native
-/// PDF as a retained child so hidden Notes presentations also hide its AX node.
-final class NativePDFHost: UIView {
-    let pdfView = ResizingPDFView()
-    override init(frame: CGRect) { super.init(frame: frame); installPDF() }
-    required init?(coder: NSCoder) { super.init(coder: coder); installPDF() }
-    private func installPDF() {
-        isAccessibilityElement = false
-        pdfView.frame = bounds
-        pdfView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        addSubview(pdfView)
-    }
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        if pdfView.frame != bounds { pdfView.frame = bounds }
-    }
-}
-
 struct NativePDF: UIViewRepresentable {
     @ObservedObject var workspace: PDFWorkspace
     var presented = true
     func makeCoordinator() -> Coordinator { Coordinator(workspace: workspace) }
-    func makeUIView(context: Context) -> NativePDFHost {
-        let host = NativePDFHost(frame: .zero)
-        let view = host.pdfView
+    func makeUIView(context: Context) -> PDFView {
+        let view = ResizingPDFView()
         view.isHidden = !presented
         view.accessibilityElementsHidden = !presented
         #if DEBUG
@@ -1192,12 +1173,11 @@ struct NativePDF: UIViewRepresentable {
         if let target = workspace.document.page(at: workspace.page - 1) { view.navigate(to: target) }
         view.accessibilityIdentifier = "pdfCanvas"
         workspace.inkAction = { [weak coordinator = context.coordinator] action in coordinator?.applyInkAction(action) }
-        return host
+        return view
     }
-    func updateUIView(_ host: NativePDFHost, context: Context) {
-        let view = host.pdfView
-        // Hide only the native child, whose visibility is independent of the
-        // SwiftUI root's AX proxy. Retain its document, coordinator and ink.
+    func updateUIView(_ view: PDFView, context: Context) {
+        // Retain the document and ink while hiding full-screen Notes' PDF.
+        // XCTest can retain its identified AX node despite these actual flags.
         let hidden = !presented
         if view.isHidden != hidden { view.isHidden = hidden }
         view.accessibilityElementsHidden = hidden
@@ -1207,13 +1187,12 @@ struct NativePDF: UIViewRepresentable {
             context.coordinator.resetInkTracking()
             view.document = workspace.document
             if let page = workspace.document.page(at: workspace.page - 1) {
-                view.navigate(to: page)
+                if let view = view as? ResizingPDFView { view.navigate(to: page) } else { view.go(to: page) }
             }
         }
         context.coordinator.setDrawing(workspace.tool == .ink || workspace.tool == .lasso)
     }
-    static func dismantleUIView(_ host: NativePDFHost, coordinator: Coordinator) {
-        let view = host.pdfView
+    static func dismantleUIView(_ view: PDFView, coordinator: Coordinator) {
         coordinator.flushPendingInk()
         for canvas in coordinator.canvases.values { canvas.delegate = nil }
         view.pageOverlayViewProvider = nil

@@ -7,7 +7,7 @@ on:
       suite:
         description: Focused production integration suite
         type: choice
-        options: [foundation, library, workspace, audio, audio-controls, compatibility, language, study-tools, regressions, all]
+        options: [foundation, library, workspace, audio, audio-controls, compatibility, language, study-tools, regressions, captures, all]
         default: foundation
 permissions:
   contents: read
@@ -63,8 +63,10 @@ jobs:
           requested = os.environ.get('REQUESTED_SUITE')
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
+              'captures': ['HashiyaUITests/StudioProductionCaptureTests'],
               'study-diagnosis': ['HashiyaTests/StudioThumbnailTests/testInsertionRemovalAndDamagedInkNeverReturnWrongPageOrBlankSuccess', 'HashiyaUITests/StudioEditorToolsTests/testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions'],
               'preset-diagnosis': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch'],
+              'preset': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch'],
               'foundation': ['HashiyaTests/StudioIntegrationThemeTests'],
               'library': ['HashiyaTests/DocumentTests', 'HashiyaTests/DocumentImportTests', 'HashiyaTests/OfficeReplacementTests', 'HashiyaTests/ReadingPositionTests', 'HashiyaUITests/StudioIntegrationTests'],
               'workspace': ['HashiyaTests/DocumentViewportTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests', 'HashiyaTests/StudioLocalizationTests', 'HashiyaTests/StudioTextFormattingTests', 'HashiyaUITests/StudioIntegrationTests'],
@@ -123,6 +125,17 @@ jobs:
             xcrun xcresulttool export attachments --path IntegrationResults.xcresult --output-path IntegrationEvidence/Screenshots
             ditto -c -k --keepParent IntegrationResults.xcresult IntegrationEvidence/IntegrationResults.xcresult.zip
           fi
+      - name: Stage unmodified native production captures
+        if: success() && (inputs.suite == 'captures' || contains(github.event.head_commit.message, '[integration:captures]'))
+        run: |
+          python3 -m Tools.stage_integration_captures --summary IntegrationEvidence/summary.json --attachments IntegrationEvidence/Screenshots --output ProductionCaptures --source "$GITHUB_SHA" --family "${{ matrix.family }}" --run "$GITHUB_RUN_ID"
+      - name: Upload small native capture evidence
+        if: success() && (inputs.suite == 'captures' || contains(github.event.head_commit.message, '[integration:captures]'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-captures-${{ matrix.family }}
+          path: ProductionCaptures/
+          retention-days: 14
       - name: Require executed tests without failures or skips
         run: |
           python3 - <<'PY'
@@ -142,3 +155,12 @@ jobs:
             integration-selection.json
             IntegrationEvidence/
           retention-days: 14
+  production-review:
+    needs: focused
+    if: inputs.suite == 'captures' || contains(github.event.head_commit.message, '[integration:captures]')
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/tayya-production-review.yml
+    with:
+      job-prefix: focused

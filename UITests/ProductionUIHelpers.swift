@@ -25,3 +25,20 @@ func openProductionDemonstration(in app: XCUIApplication, file: StaticString = #
     }
     button.tap()
 }
+
+func waitForNativeDismissal(of element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+    let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in !element.exists }, object: nil)
+    XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed,
+                   "The native presentation must leave the hierarchy before interacting with controls behind it", file: file, line: line)
+}
+
+func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+    let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in item.exists && item.isHittable }, object: nil)
+    guard XCTWaiter.wait(for: [ready], timeout: 5) == .completed else {
+        XCTFail("The real native menu item must be visible and hittable before tapping", file: file, line: line); return
+    }
+    item.tap()
+    // UIKit can report app idle while its context menu is still dismissing.
+    // A following tap would hit that menu's backdrop instead of the next tool.
+    waitForNativeDismissal(of: item, file: file, line: line)
+}

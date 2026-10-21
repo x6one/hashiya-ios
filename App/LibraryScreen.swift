@@ -113,9 +113,13 @@ struct LibraryScreen: View {
               !importing, !importingFile else { return }
         welcome = true
     }
+    // At the largest accessibility sizes the narrow sidebar breaks Arabic
+    // labels into isolated letters. Keep the same real destinations reachable
+    // through the existing full-width navigation bar instead.
+    private var usesLibrarySidebar: Bool { sizeClass == .regular && dynamicTypeSize < .accessibility3 }
     private var libraryNavigation: some View {
         HStack(spacing: 0) {
-            if sizeClass == .regular {
+            if usesLibrarySidebar {
                 librarySidebar.frame(width: dynamicTypeSize.isAccessibilitySize ? 280 : 220)
                 Rectangle().fill(TayyaTheme.separator).frame(width: 1)
             }
@@ -134,7 +138,7 @@ struct LibraryScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(TayyaTheme.paper, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if sizeClass != .regular { destinationBar }
+            if !usesLibrarySidebar { destinationBar }
         }
         .toolbar {
             if destination == .sections {

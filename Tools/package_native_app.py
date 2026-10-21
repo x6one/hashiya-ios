@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 
 from distribute_native_app import BUNDLE, validate_release_version
+from verify_native_ipa import verify_archive
 
 
 def package(app: Path, output: Path) -> None:
@@ -42,6 +43,7 @@ def package(app: Path, output: Path) -> None:
     shutil.copytree(app, payload / "Hashiya.app")
     name = "Tayya-native-office-unsigned.ipa"
     subprocess.run(["zip", "-qry", name, "Payload"], cwd=output, check=True)
+    archive_verification = verify_archive(output / name, info, executable.read_bytes())
     with (output / name).open("rb") as file:
         sha = hashlib.file_digest(file, "sha256").hexdigest()
     (output / "Tayya-native-office.sha256").write_text(sha + "  " + name + "\n")
@@ -57,7 +59,7 @@ def package(app: Path, output: Path) -> None:
         "native_office": "Experimental local Office to PDF conversion; device runtime not yet tested.",
         "engine_source": json.loads((app / "OfficeEngineNotices/engine-manifest.json").read_text())["source"],
         "installation": "Requires external signing with a valid certificate and provisioning profile. Not directly installable.",
-        "sha256": sha}
+        "archive_verification": archive_verification, "sha256": sha}
     (output / "Tayya-native-office-signing.json").write_text(json.dumps(report, indent=2) + "\n")
     shutil.rmtree(payload)
 

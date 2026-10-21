@@ -15,9 +15,7 @@ final class StudioEditorToolsTests: XCTestCase {
         tapReadyMenuItem(app.buttons[name])
     }
     private func tapReadyMenuItem(_ item: XCUIElement) {
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND hittable == true"), object: item)
-        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed, "Wait for the native menu to finish presenting before a real tap")
-        item.tap()
+        tapCompletedNativeMenuItem(item)
     }
     private func waitForNativePenState(_ app: XCUIApplication, brush: String, width: String, color: String? = nil) {
         let started = ProcessInfo.processInfo.systemUptime

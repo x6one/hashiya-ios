@@ -29,7 +29,7 @@ jobs:
           python3 -m compileall -q Tools
           curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
           tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
-          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml .github/workflows/tayya-integration.yml
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml .github/workflows/tayya-integration.yml .github/workflows/tayya-production-review.yml
   regression:
     needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.
@@ -298,6 +298,30 @@ jobs:
             fi
           done
           exit "$status"
+      - name: Require complete native verification without failures or skips
+        run: |
+          python3 - <<'PY_SUMMARY'
+          import json, re
+          from pathlib import Path
+          summary = json.load(open('NativeResults/TestResults-summary.json'))
+          expected = sum(len(re.findall(r'\bfunc\s+test\w+\s*\(', path.read_text())) for folder in ['Tests', 'UITests'] for path in Path(folder).glob('*.swift'))
+          assert expected >= 100, 'Retain all original68unit and32UI cases plus integration tests'
+          assert summary['result'] == 'Passed', summary
+          assert summary['passedTests'] == expected, ('Every current XCTest/XCUITest case must execute', expected, summary)
+          assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
+          print('Complete native verification passed:', summary['passedTests'])
+          PY_SUMMARY
+      - name: Stage unmodified native production captures
+        if: success() && startsWith(github.ref, 'refs/heads/integration/')
+        run: |
+          python3 -m Tools.stage_integration_captures --summary NativeResults/TestResults-summary.json --attachments Screenshots --output ProductionCaptures --source "$GITHUB_SHA" --family "${{ matrix.family }}" --run "$GITHUB_RUN_ID"
+      - name: Upload small native capture evidence
+        if: success() && startsWith(github.ref, 'refs/heads/integration/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-captures-${{ matrix.family }}
+          path: ProductionCaptures/
+          retention-days: 14
       - name: Retain simulator document provider diagnostics
         if: failure()
         run: |
@@ -359,11 +383,21 @@ jobs:
             EntranceCaptures/
           retention-days: 7
 
+  production-review:
+    needs: test
+    if: startsWith(github.ref, 'refs/heads/integration/')
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/tayya-production-review.yml
+    with:
+      job-prefix: test
+
   device-package:
     # Only the exact-head push can satisfy the native Office preflight guard.
     # This reusable job starts after XCTest, XCUITest, Maestro and exports pass.
-    if: github.event_name != 'pull_request'
-    needs: [regression, test]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.regression.result == 'success' && needs.test.result == 'success' && (needs.production-review.result == 'success' || !startsWith(github.ref, 'refs/heads/integration/')) }}
+    needs: [regression, test, production-review]
     permissions:
       contents: read
       actions: read

@@ -1,0 +1,45 @@
+name: Native Tayya production review
+on:
+  workflow_call:
+    inputs:
+      job-prefix:
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download original native captures from this verification
+        uses: actions/download-artifact@v4
+        with:
+          pattern: production-captures-*
+          path: NativeCaptures
+      - name: Download the approved design once
+        uses: actions/download-artifact@v4
+        with:
+          name: Tayya-Studio-2-Final-Visual-Approval
+          run-id: '39495383721'
+          github-token: ${{ github.token }}
+          path: ApprovedDesign
+      - name: Resolve actual native test jobs and build the byte-exact comparison
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_PREFIX: ${{ inputs.job-prefix }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" > native-jobs.json
+          python3 -m Tools.assemble_production_review --captures NativeCaptures --approved ApprovedDesign/Tayya-Studio-2-Review --jobs native-jobs.json --source "$GITHUB_SHA" --run "$GITHUB_RUN_ID" --job-prefix "$JOB_PREFIX" --output Tayya-Production-Review
+          sha256sum Tayya-Production-Review.zip > Tayya-Production-Review.zip.sha256
+      - name: Upload browsable HTML and original PNG ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Production-Review
+          path: |
+            Tayya-Production-Review/
+            Tayya-Production-Review.zip
+            Tayya-Production-Review.zip.sha256
+          retention-days: 14

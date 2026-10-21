@@ -19,6 +19,10 @@ import ZIPFoundation
         if ProcessInfo.processInfo.arguments.contains("--test-reset-entrance") { UserDefaults.standard.removeObject(forKey: "tayya.openingSeen") }
         let reviewRoot = ProcessInfo.processInfo.arguments.contains("--test-review-entry") ? FileManager.default.temporaryDirectory.appendingPathComponent("ReviewEntry-" + UUID().uuidString) : nil
         let store = LibraryStore(root: reviewRoot, seedDemo: !maestroTesting && !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
+        if reviewRoot != nil, ProcessInfo.processInfo.arguments.contains("--test-production-content") {
+            do { try ProductionReviewFixtures.install(in: store) }
+            catch { store.error = error.localizedDescription }
+        }
         if ProcessInfo.processInfo.arguments.contains("--test-office-preview"),
            !store.notebooks.contains(where: { $0.title == "ملف Office للاختبار" }),
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {

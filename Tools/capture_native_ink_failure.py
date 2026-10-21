@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import time
 import uuid
+from collect_review_drawings import collect
 
 device = os.environ["SIMULATOR_ID"]
 output = Path("IntegrationEvidence/NativeInkFailure")
@@ -39,9 +40,12 @@ try:
     before = {root.name: hashes(root) for root in roots}
     status["original_files"] = before
     for root in roots:
-        shutil.copytree(root, output / "OriginalReviewRoots" / root.name)
+        shutil.copytree(root, output / "OriginalReviewRoots" / "tmp" / root.name)
     if not roots:
         raise RuntimeError("No synthetic review root exists; no user library will be inspected")
+    # Reuse the existing bounded drawing extractor on the preserved synthetic
+    # container. Its Documents search cannot reach the actual app library.
+    status["saved_drawing_manifest"] = collect(output / "OriginalReviewRoots", output / "SavedDrawings")
     subprocess.run(["xcrun", "simctl", "launch", "--terminate-running-process", device,
                     "com.ahmadalawi.hashiya", "--test-review-entry", "--test-inspect-review-ink"],
                    check=True, timeout=30)

@@ -466,6 +466,12 @@ jobs:
             xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
             xcrun simctl install "$SIMULATOR_ID" NativeBuild/Build/Products/Debug-iphonesimulator/Hashiya.app
           fi
+      - name: Preserve original synthetic ink after focused color failure
+        if: failure() && (inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]'))
+        run: |
+          python3 Tools/capture_native_ink_failure.py
+          mkdir -p FocusedEvidence
+          mv IntegrationEvidence/NativeInkFailure FocusedEvidence/NativeInkFailure
       - name: Set up Java for Maestro
         if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
         uses: actions/setup-java@v4

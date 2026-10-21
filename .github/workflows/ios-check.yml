@@ -103,7 +103,9 @@ jobs:
     # Forks and other internal branches still require PR verification.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
     runs-on: macos-15
-    timeout-minutes: 60
+    # Baseline100cases took29min plus11min Maestro. The required18new UI
+    # cases add real capture/interaction work; per-case240/360s limits remain.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:

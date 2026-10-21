@@ -27,6 +27,7 @@ struct PageText: Codable, Identifiable {
     let textURL: URL
     let fileURL: URL
     let originalPDFURL: URL
+    let audioFolder: URL
     @Published var tool: Tool = .read
     @Published var brush: InkBrush = .pen
     @Published var inkColor = TayyaTheme.brandInk
@@ -50,6 +51,7 @@ struct PageText: Codable, Identifiable {
     init(note: Notebook, root: URL) {
         fileURL = root.appendingPathComponent(note.file)
         originalPDFURL = root.appendingPathComponent(note.id.uuidString + "-source.pdf")
+        audioFolder = root.appendingPathComponent(note.id.uuidString + "-audio/linked")
         var recoveryError: Error?
         do { try DocumentPageRemoval.recover(note, root: root) } catch { recoveryError = error }
         let loaded = recoveryError == nil ? PDFDocument(url: fileURL) : nil
@@ -133,6 +135,7 @@ struct PageText: Codable, Identifiable {
             }
             document.insert(paper, at: index)
             guard let data = document.dataRepresentation() else { throw DocumentImportError.damaged }
+            try AudioPageIdentityStore(folder: audioFolder).prepareAppend(pageCount: index)
             try data.write(to: fileURL, options: .atomic)
             canUndoPageDeletion = false; jump(index + 1)
         } catch {
@@ -320,8 +323,12 @@ struct DocumentScreen: View {
                         workspace.jump(target)
                     }
                 }
-                workspace.onTextSaved = { item in do { try audio.link(page: item.page + 1, textID: item.id, label: String(item.text.prefix(70))) } catch { workspace.error = error.localizedDescription } }
-                workspace.onInkSaved = { page, count in do { try audio.link(page: page + 1, strokeCount: count, label: "كتابة بخط اليد — صفحة \(page + 1)") } catch { workspace.error = error.localizedDescription } }
+                workspace.onTextSaved = { item in
+                    recordAudioMarker(page: item.page + 1, textID: item.id, label: String(item.text.prefix(70)))
+                }
+                workspace.onInkSaved = { page, count in
+                    recordAudioMarker(page: page + 1, strokeCount: count, label: String(format: TayyaLocalized("كتابة بخط اليد — صفحة %d"), page + 1))
+                }
                 workspace.onTextTapped = { id in if !audio.recording, let marker = audio.markers.last(where: { $0.textID == id }) { audio.seek(marker) } }
             }
             .onDisappear { audio.stop(); _ = margins.flush() }
@@ -446,6 +453,7 @@ struct DocumentScreen: View {
             .onChange(of: workspace.page) { _, page in
                 pageNumber = String(page)
                 LibraryReadingPosition.save(page: page, for: note.id, root: root)
+                recordAudioMarker(page: page, kind: "pageVisit", label: TayyaLocalized("انتقال إلى الصفحة"))
             }
 
     }
@@ -497,7 +505,45 @@ struct DocumentScreen: View {
     }
     private func toggleRecording() {
         if audio.recording { audio.stop() }
-        else { Task { await audio.start(); if let error = audio.error { workspace.error = error } } }
+        else {
+            Task {
+                do {
+                    let page = workspace.page
+                    let id = try AudioPageIdentityStore(folder: audio.folder).pageID(number: page, pageCount: workspace.document.pageCount)
+                    await audio.start(page: page, pageID: id)
+                    if workspace.page != page {
+                        recordAudioMarker(page: workspace.page, kind: "pageVisit", label: TayyaLocalized("انتقال إلى الصفحة"))
+                    }
+                    if let error = audio.error { workspace.error = error }
+                } catch { workspace.error = error.localizedDescription }
+            }
+        }
+    }
+    private func recordAudioMarker(page: Int, notePageID: UUID? = nil, kind: String? = nil,
+                                   textID: UUID? = nil, strokeCount: Int? = nil, label: String) {
+        guard audio.recording else { return }
+        do {
+            let id = try AudioPageIdentityStore(folder: audio.folder).pageID(number: page, pageCount: workspace.document.pageCount)
+            try audio.link(page: page, pageID: id, notePageID: notePageID, kind: kind, textID: textID, strokeCount: strokeCount, label: label)
+        } catch { workspace.error = error.localizedDescription }
+    }
+    private func openAudioMarker(_ marker: AudioLink) -> Bool {
+        do {
+            let number: Int
+            if let pageID = marker.pageID {
+                guard let ids = try AudioPageIdentityStore(folder: audio.folder).identities(pageCount: workspace.document.pageCount),
+                      let index = ids.firstIndex(of: pageID) else { throw PageRemovalError.invalid }
+                number = index + 1
+            } else { number = marker.page }
+            guard number > 0, number <= workspace.document.pageCount else { throw PageRemovalError.invalid }
+            if let notesID = marker.notePageID, margins.pages.contains(where: { $0.id == notesID }), !margins.select(notesID) {
+                audio.error = margins.error ?? TayyaLocalized("تعذّر فتح صفحة الملاحظات.")
+                return false
+            }
+            workspace.jump(number)
+            // Source Notes identity is retained without opening Notes for playback.
+            return true
+        } catch { audio.error = error.localizedDescription; return false }
     }
     private func changeDocumentPage(number: Int? = nil, undo: Bool = false) {
         audio.stop(); workspace.tool = .read
@@ -537,7 +583,10 @@ struct DocumentScreen: View {
                 }.sheet(isPresented: $showMedia) { OfficeMediaScreen(source: root.appendingPathComponent(file)) } }
             } }
             .sheet(item: $workspace.editing) { item in TextEditorSheet(item: item, save: workspace.saveText) }
-            .sheet(isPresented: $showLinkedAudio) { LinkedAudioScreen(audio: audio, jump: workspace.jump) }
+            .sheet(isPresented: $showLinkedAudio) {
+                LinkedAudioScreen(audio: audio, currentPage: workspace.page, jump: openAudioMarker,
+                    manualMarker: { recordAudioMarker(page: workspace.page, kind: "manual", label: TayyaLocalized("علامة يدوية")) })
+            }
             .sheet(isPresented: Binding(get: { workspace.exported != nil }, set: { if !$0 { workspace.exported = nil } })) {
                 if let url = workspace.exported { ShareDocument(url: url) }
             }
@@ -559,14 +608,14 @@ struct DocumentScreen: View {
     private func recordMarginText(_ text: String, _ id: UUID) {
         workspace.canUndoPageDeletion = false
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
-        do { try audio.link(page: source, label: "ملاحظة \(margins.position + 1): " + String(text.suffix(70))) }
-        catch { workspace.error = error.localizedDescription }
+        recordAudioMarker(page: source, notePageID: id, kind: "notesText",
+                          label: String(format: TayyaLocalized("ملاحظة %d: %@"), margins.position + 1, String(text.suffix(70))))
     }
     private func recordMarginInk(_ count: Int, _ id: UUID) {
         workspace.canUndoPageDeletion = false
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
-        do { try audio.link(page: source, strokeCount: count, label: "خط يد في الملاحظات \(margins.position + 1)") }
-        catch { workspace.error = error.localizedDescription }
+        recordAudioMarker(page: source, notePageID: id, kind: "notesInk", strokeCount: count,
+                          label: String(format: TayyaLocalized("خط يد في الملاحظات %d"), margins.position + 1))
     }
     private func recognize(_ language: String) {
         guard !ocrBusy else { return }; ocrBusy = true

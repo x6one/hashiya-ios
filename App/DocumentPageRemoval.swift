@@ -142,6 +142,16 @@ enum DocumentPageRemoval {
         }
         if existing.contains("audio") {
             let destination = after.appendingPathComponent("audio")
+            try AudioPageIdentityStore(folder: destination.appendingPathComponent("linked"))
+                .remove(number: number, originalCount: document.pageCount + 1)
+            // Keep recordings belonging to a deleted legacy page available in
+            // the audio browser, independently of the one-step page undo.
+            let deletedSource = before.appendingPathComponent("audio/\(number)")
+            if fm.fileExists(atPath: deletedSource.path) {
+                let archive = destination.appendingPathComponent("deleted-pages")
+                try fm.createDirectory(at: archive, withIntermediateDirectories: true)
+                try fm.copyItem(at: deletedSource, to: archive.appendingPathComponent("\(number)-" + UUID().uuidString))
+            }
             for source in try fm.contentsOfDirectory(at: before.appendingPathComponent("audio"), includingPropertiesForKeys: nil) where Int(source.lastPathComponent) != nil {
                 try fm.removeItem(at: destination.appendingPathComponent(source.lastPathComponent))
             }
@@ -149,12 +159,41 @@ enum DocumentPageRemoval {
                 if let index = Int(source.lastPathComponent), let page = remap(index, base: 1) { try fm.copyItem(at: source, to: destination.appendingPathComponent(String(page))) }
             }
             let links = destination.appendingPathComponent("linked/links.json")
+            let metadata = destination.appendingPathComponent("linked/recordings.json")
+            if fm.fileExists(atPath: metadata.path) {
+                var values = try JSONDecoder().decode([String: AudioClipMetadata].self, from: Data(contentsOf: metadata))
+                for name in Array(values.keys) {
+                    guard var value = values[name], let page = value.startPage else { continue }
+                    value.startPage = remap(page, base: 1)
+                    if page == number { value.sourceDeleted = true }
+                    values[name] = value
+                }
+                try JSONEncoder().encode(values).write(to: metadata, options: .atomic)
+            }
             if fm.fileExists(atPath: links.path) {
                 let original = try JSONDecoder().decode([AudioLink].self, from: Data(contentsOf: links))
+                let removedMarkers = original.filter { $0.page == number }
+                if !removedMarkers.isEmpty {
+                    let archive = destination.appendingPathComponent("linked/deleted-links.json")
+                    let previous = fm.fileExists(atPath: archive.path) ? try JSONDecoder().decode([AudioLink].self, from: Data(contentsOf: archive)) : []
+                    try JSONEncoder().encode(previous + removedMarkers).write(to: archive, options: .atomic)
+                }
                 let updated: [AudioLink] = original.compactMap { item in
                     guard let page = remap(item.page, base: 1) else { return nil }; var value = item; value.page = page; return value
                 }
                 try JSONEncoder().encode(updated).write(to: links, options: .atomic)
+            }
+            // Older numeric page folders can also contain links.json. Remap
+            // their contents together with the folder, never just its name.
+            for entry in try fm.contentsOfDirectory(at: destination, includingPropertiesForKeys: nil) where Int(entry.lastPathComponent) != nil {
+                let index = entry.appendingPathComponent("links.json")
+                guard fm.fileExists(atPath: index.path) else { continue }
+                let original = try JSONDecoder().decode([AudioLink].self, from: Data(contentsOf: index))
+                let updated: [AudioLink] = original.compactMap { item in
+                    guard let page = remap(item.page, base: 1) else { return nil }
+                    var value = item; value.page = page; return value
+                }
+                try JSONEncoder().encode(updated).write(to: index, options: .atomic)
             }
         }
         let afterLocations = Dictionary(uniqueKeysWithValues: existing.map { ($0, after.appendingPathComponent($0)) })

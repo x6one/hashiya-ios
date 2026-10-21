@@ -21,6 +21,14 @@ import AVFoundation
     }
 }
 
+@MainActor final class PlaybackActivity: ObservableObject {
+    @Published private(set) var time: TimeInterval = 0
+    @Published private(set) var duration: TimeInterval = 0
+    func update(time: TimeInterval, duration: TimeInterval) {
+        self.time = max(0, time); self.duration = max(0, duration)
+    }
+}
+
 @MainActor final class PageAudio: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     @Published var clips: [URL] = []
     @Published var recording = false
@@ -28,13 +36,20 @@ import AVFoundation
     @Published var playing: URL?
     @Published var error: String?
     @Published var markers: [AudioLink] = []
+    @Published var metadata: [String: AudioClipMetadata] = [:]
+    @Published private(set) var paused = false
+    @Published private(set) var playbackRate: Float = 1
     let activity = RecordingActivity()
+    let playbackActivity = PlaybackActivity()
     let folder: URL
     var recorder: AVAudioRecorder?
     private var generation = 0
     private var player: AVAudioPlayer?
     private weak var playbackPeer: PageAudio?
     private var activityTimer: Timer?
+    private var playbackTimer: Timer?
+    private var recordingPage: Int?
+    private var recordingPageID: UUID?
     private var interruptionObserver: NSObjectProtocol?
     private let requestPermission: () async -> Bool
     init(folder: URL, requestPermission: @escaping () async -> Bool = {
@@ -53,6 +68,7 @@ import AVFoundation
     }
     deinit {
         activityTimer?.invalidate()
+        playbackTimer?.invalidate()
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
         recorder?.stop(); player?.stop()
     }
@@ -66,6 +82,7 @@ import AVFoundation
     func stopPlayback() {
         guard player != nil || playing != nil else { return }
         player?.stop(); player = nil; playing = nil
+        resetPlaybackActivity()
         deactivateAudioSession()
     }
     func reload() {
@@ -73,12 +90,13 @@ import AVFoundation
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             clips = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey]).filter { $0.pathExtension == "m4a" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
             markers = loadLinks().filter { marker in clips.contains { $0.lastPathComponent == marker.clip } }
+            metadata = try readMetadata()
         } catch { self.error = error.localizedDescription }
     }
-    func start() async {
+    func start(page: Int? = nil, pageID: UUID? = nil) async {
         guard !recording, !requestingPermission,
               playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
-        do { _ = try readLinks() }
+        do { _ = try readLinks(); _ = try readMetadata() }
         catch { self.error = error.localizedDescription; return }
         stopActivity()
         requestingPermission = true
@@ -99,8 +117,14 @@ import AVFoundation
             recorder.isMeteringEnabled = true
             guard recorder.record() else { throw CocoaError(.fileWriteUnknown) }
             self.recorder = recorder; recording = true
+            recordingPage = page; recordingPageID = pageID
+            if let page {
+                try saveRecordingMetadata(url, duration: 0, startPage: page, pageID: pageID)
+                try link(page: page, pageID: pageID, kind: "recordingStart", label: TayyaLocalized("بداية التسجيل"))
+            }
             startActivity()
         } catch {
+            recorder?.stop(); recorder = nil; recording = false
             stopActivity()
             self.error = error.localizedDescription
             deactivateAudioSession()
@@ -137,8 +161,9 @@ import AVFoundation
         generation += 1
         requestingPermission = false
         stopActivity()
-        recorder?.stop(); recorder = nil; recording = false
+        finishRecording()
         player?.stop(); player = nil; playing = nil
+        resetPlaybackActivity()
         // An idle legacy destination must not deactivate its peer's new playback.
         if wasUsingAudioSession { deactivateAudioSession() }
         reload()
@@ -147,11 +172,11 @@ import AVFoundation
         guard !recording, !requestingPermission,
               playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
         if playing == url && time == 0 {
-            player?.stop(); player = nil; playing = nil
-            deactivateAudioSession()
+            stopPlayback()
             return
         }
         player?.stop(); player = nil; playing = nil
+        resetPlaybackActivity()
         playbackPeer?.stopPlayback()
         error = nil
         do {
@@ -159,14 +184,56 @@ import AVFoundation
             try AVAudioSession.sharedInstance().setActive(true)
             let next = try AVAudioPlayer(contentsOf: url)
             next.delegate = self
-            next.currentTime = max(0, time)
+            next.enableRate = true; next.rate = playbackRate
+            next.currentTime = min(max(0, next.duration - 0.01), max(0, time))
             guard next.play() else { throw CocoaError(.fileReadUnknown) }
             player = next
             playing = url
+            startPlaybackActivity()
         } catch {
             self.error = error.localizedDescription
             deactivateAudioSession()
         }
+    }
+    /// Separate from the legacy play toggle, whose stop/replay contract remains.
+    func togglePlayback(_ url: URL) {
+        guard playing == url, let player else { play(url); return }
+        if paused {
+            guard player.play() else { error = TayyaLocalized("تعذّر إكمال تشغيل التسجيل."); return }
+            paused = false
+        } else { player.pause(); paused = true }
+        samplePlayback()
+    }
+    func setPlaybackRate(_ rate: Float) {
+        guard rate.isFinite, (0.5...2).contains(rate) else { return }
+        playbackRate = rate; player?.rate = rate
+    }
+    func skipPlayback(by seconds: TimeInterval) {
+        guard seconds.isFinite, let player else { return }
+        player.currentTime = min(max(0, player.duration - 0.01), max(0, player.currentTime + seconds))
+        samplePlayback()
+    }
+    private func startPlaybackActivity() {
+        playbackTimer?.invalidate(); samplePlayback()
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.samplePlayback() }
+        }
+        playbackTimer = timer; RunLoop.main.add(timer, forMode: .common)
+    }
+    private func samplePlayback() {
+        guard let player else { return }
+        playbackActivity.update(time: player.currentTime, duration: player.duration)
+    }
+    private func resetPlaybackActivity() {
+        playbackTimer?.invalidate(); playbackTimer = nil; paused = false
+        playbackActivity.update(time: 0, duration: 0)
+    }
+    private func finishRecording() {
+        guard let recorder else { recording = false; return }
+        let duration = recorder.currentTime, clip = recorder.url
+        recorder.stop(); self.recorder = nil; recording = false
+        do { try saveRecordingMetadata(clip, duration: duration, startPage: recordingPage, pageID: recordingPageID) }
+        catch { self.error = error.localizedDescription }
     }
     private func deactivateAudioSession() {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -175,6 +242,7 @@ import AVFoundation
         Task { @MainActor [weak self] in
             guard let self, self.player === player else { return }
             self.player = nil; self.playing = nil
+            self.resetPlaybackActivity()
             if !flag { self.error = "تعذّر إكمال تشغيل التسجيل." }
             self.deactivateAudioSession()
         }
@@ -183,6 +251,7 @@ import AVFoundation
         Task { @MainActor [weak self] in
             guard let self, self.player === player else { return }
             self.player?.stop(); self.player = nil; self.playing = nil
+            self.resetPlaybackActivity()
             self.error = error?.localizedDescription ?? "تعذّر قراءة التسجيل."
             self.deactivateAudioSession()
         }
@@ -191,7 +260,7 @@ import AVFoundation
         Task { @MainActor [weak self] in
             guard let self, self.recorder === recorder else { return }
             self.stopActivity()
-            self.recorder = nil; self.recording = false
+            self.finishRecording()
             if !flag { self.error = "تعذّر إكمال التسجيل. تحقق من التسجيلات المحفوظة." }
             self.reload()
             self.deactivateAudioSession()
@@ -201,7 +270,7 @@ import AVFoundation
         Task { @MainActor [weak self] in
             guard let self, self.recorder === recorder else { return }
             self.stopActivity()
-            self.recorder?.stop(); self.recorder = nil; self.recording = false
+            self.finishRecording()
             self.error = error?.localizedDescription ?? "تعذّر حفظ التسجيل."
             self.reload()
             self.deactivateAudioSession()
@@ -211,12 +280,13 @@ import AVFoundation
         // Directory enumeration and appendingPathComponent can represent the
         // same folder with different trailing-slash URL metadata. Compare
         // canonical filesystem paths, while still rejecting outside clips.
-        guard !recording, !requestingPermission, url.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL.path == folder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
+        guard !recording, !requestingPermission, owns(url) else { return }
         let parked = folder.appendingPathComponent(".deleting-" + UUID().uuidString)
         do {
             let retained = try readLinks().filter { $0.clip != url.lastPathComponent }
+            _ = try readMetadata()
             let data = try JSONEncoder().encode(retained)
-            if playing == url { player?.stop(); player = nil; playing = nil; deactivateAudioSession() }
+            if playing == url { stopPlayback() }
             try FileManager.default.moveItem(at: url, to: parked)
             do { try data.write(to: linksURL, options: .atomic) }
             catch { try? FileManager.default.moveItem(at: parked, to: url); throw error }

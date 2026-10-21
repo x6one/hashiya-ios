@@ -30,6 +30,11 @@ struct RecordingStrip: View {
                 .accessibilityIdentifier("recordLinkedAudio")
                 .accessibilityValue(TayyaLocalized(audio.recording ? "جارٍ التسجيل" : audio.requestingPermission ? "انتظار إذن الميكروفون" : "متوقف"))
             CompactRecordingReadout(activity: audio.activity)
+            if let clip = audio.playing {
+                TayyaIconButton(title: audio.paused ? "متابعة التشغيل" : "إيقاف مؤقت", symbol: audio.paused ? "play.fill" : "pause.fill") {
+                    audio.togglePlayback(clip)
+                }.accessibilityIdentifier("pauseLinkedRecording")
+            }
             if let details {
                 TayyaIconButton(title: "تفاصيل التسجيل والعلامات", symbol: "chevron.up", action: details)
                     .accessibilityIdentifier("recordingDetails")

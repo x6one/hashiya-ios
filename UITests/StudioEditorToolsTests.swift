@@ -19,6 +19,19 @@ final class StudioEditorToolsTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed, "Wait for the native menu to finish presenting before a real tap")
         item.tap()
     }
+    private func waitForNativePenState(_ app: XCUIApplication, brush: String, width: String, color: String? = nil) {
+        let started = ProcessInfo.processInfo.systemUptime
+        let committed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.buttons["inkBrush"].value as? String == brush
+                && app.buttons["inkWidth"].value as? String == width
+                && (color == nil || app.buttons["inkColor"].value as? String == color)
+        }, object: nil)
+        let result = XCTWaiter.wait(for: [committed], timeout: 5)
+        print("NativePresetCommit expected=\(brush)/\(width) result=\(result.rawValue) elapsed=\(ProcessInfo.processInfo.systemUptime - started) actual=\(app.buttons["inkBrush"].value as? String ?? "missing")/\(app.buttons["inkWidth"].value as? String ?? "missing")")
+        let evidence = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        evidence.name = "NativePresetCommit-" + brush; evidence.lifetime = .keepAlways; add(evidence)
+        XCTAssertEqual(result, .completed, "Wait for the exact native tool, width and color after menu selection; never assume a highlighted row has committed")
+    }
     func testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions() {
         let app = openDocument(arguments: ["--test-ink-responder"])
         func evidence(_ stage: String) {
@@ -46,11 +59,17 @@ final class StudioEditorToolsTests: XCTestCase {
         app.buttons["inkTool"].tap()
         chooseBrush("رصاص", in: app)
         app.buttons["inkWidth"].tap(); tapReadyMenuItem(app.buttons["سماكة 5"])
+        waitForNativePenState(app, brush: "رصاص", width: "5")
         let color = app.buttons["inkColor"].value as? String
         XCTAssertNotNil(color)
         app.buttons["favoritePens"].tap(); tapReadyMenuItem(app.buttons["savePenPreset-1"])
         chooseBrush("تظليل", in: app)
-        app.buttons["favoritePens"].tap(); tapReadyMenuItem(app.buttons["usePenPreset-1"])
+        app.buttons["favoritePens"].tap()
+        let preset = app.buttons["usePenPreset-1"]
+        XCTAssertTrue(preset.waitForExistence(timeout: 5))
+        XCTAssertTrue(preset.label.contains("رصاص"), "The actual saved menu entry must still describe the pencil before selection")
+        tapReadyMenuItem(preset)
+        waitForNativePenState(app, brush: "رصاص", width: "5", color: color)
         XCTAssertEqual(app.buttons["inkBrush"].value as? String, "رصاص")
         XCTAssertEqual(app.buttons["inkWidth"].value as? String, "5")
         XCTAssertEqual(app.buttons["inkColor"].value as? String, color)
@@ -60,6 +79,7 @@ final class StudioEditorToolsTests: XCTestCase {
         let reopened = openDocument()
         reopened.buttons["inkTool"].tap()
         reopened.buttons["favoritePens"].tap(); tapReadyMenuItem(reopened.buttons["usePenPreset-1"])
+        waitForNativePenState(reopened, brush: "رصاص", width: "5", color: color)
         XCTAssertEqual(reopened.buttons["inkBrush"].value as? String, "رصاص")
         XCTAssertEqual(reopened.buttons["inkWidth"].value as? String, "5")
         XCTAssertEqual(reopened.buttons["inkColor"].value as? String, color)

@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         # Language/storage RED contracts are platform-independent; qualify both at GREEN.
-        family: ${{ fromJSON((contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]') || contains(github.event.head_commit.message, '[integration:study-diagnosis]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[integration:preset-diagnosis]') && '["iPad"]' || (contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]') || contains(github.event.head_commit.message, '[integration:study-diagnosis]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select existing app toolchain and generate production project
@@ -64,6 +64,7 @@ jobs:
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
               'study-diagnosis': ['HashiyaTests/StudioThumbnailTests/testInsertionRemovalAndDamagedInkNeverReturnWrongPageOrBlankSuccess', 'HashiyaUITests/StudioEditorToolsTests/testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions'],
+              'preset-diagnosis': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch'],
               'foundation': ['HashiyaTests/StudioIntegrationThemeTests'],
               'library': ['HashiyaTests/DocumentTests', 'HashiyaTests/DocumentImportTests', 'HashiyaTests/OfficeReplacementTests', 'HashiyaTests/ReadingPositionTests', 'HashiyaUITests/StudioIntegrationTests'],
               'workspace': ['HashiyaTests/DocumentViewportTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests', 'HashiyaTests/StudioLocalizationTests', 'HashiyaTests/StudioTextFormattingTests', 'HashiyaUITests/StudioIntegrationTests'],

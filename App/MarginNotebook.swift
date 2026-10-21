@@ -14,12 +14,12 @@ final class MarginCanvas: PKCanvasView {
             let label = super.accessibilityLabel ?? ""
             guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return label }
             func describe(_ view: UIView, depth: Int) -> String {
-                let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden)"
+                let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden) alpha=\(view.alpha) layerHidden=\(view.layer.isHidden) opacity=\(view.layer.opacity) contents=\(view.layer.contents != nil) children=\(view.subviews.count)"
                 return own + (depth > 0 ? view.subviews.map { describe($0, depth: depth - 1) }.joined(separator: " | ") : "")
             }
             let nativeTool = tool as? PKInkingTool
             let lastInk = drawing.strokes.last?.ink
-            return label + "; nativeTool=\(nativeTool?.inkType.rawValue ?? "none") color=\(String(describing: nativeTool?.color)) lastStrokeColor=\(String(describing: lastInk?.color)); zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
+            return label + "; responder=\(isFirstResponder) keyWindow=\(window?.isKeyWindow ?? false) usingTool=\(usingTool); nativeTool=\(nativeTool?.inkType.rawValue ?? "none") color=\(String(describing: nativeTool?.color)) lastStrokeColor=\(String(describing: lastInk?.color)); zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 3) }.joined(separator: " | ")
         }
         set { super.accessibilityLabel = newValue }
     }

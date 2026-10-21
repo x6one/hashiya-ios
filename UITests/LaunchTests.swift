@@ -1275,7 +1275,22 @@ final class LaunchTests: XCTestCase {
             recordState("StrokeNotVisible", expected: String(before))
             let elementEvidence = XCTAttachment(screenshot: canvas.screenshot())
             elementEvidence.name = name + "-RedPixelFailureElement"; elementEvidence.lifetime = .keepAlways; add(elementEvidence)
-            XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke"); return false
+            XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke")
+            if app.launchArguments.contains("--test-margin-viewport"), canvas.identifier == "marginInkCanvas" {
+                // Preserve the original failure. Subsequent real user actions
+                // distinguish a stale first-stroke render from lost ink data.
+                let native = XCTAttachment(string: app.segmentedControls["marginMode"].label)
+                native.name = name + "-FailedRenderNativeHierarchy"; native.lifetime = .keepAlways; add(native)
+                for action in ["inkUndo", "inkRedo"] {
+                    guard tapTarget(action) else { return false }
+                    let screenshot = XCUIScreen.main.screenshot()
+                    let image = XCTAttachment(screenshot: screenshot)
+                    image.name = name + "-FailedRender-" + action; image.lifetime = .keepAlways; add(image)
+                    let state = XCTAttachment(string: "action=\(action); red=\(redInkPixels(in: screenshot.image, frame: pixelFrame)); count=\(count.value as? String ?? "missing"); label=\(canvas.label)")
+                    state.name = image.name + "-NativeState"; state.lifetime = .keepAlways; add(state)
+                }
+            }
+            return false
         }
         let savedCount = count.value as? String
         recordState("StrokeSaved", expected: savedCount)

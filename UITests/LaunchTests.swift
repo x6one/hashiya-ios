@@ -1287,7 +1287,7 @@ final class LaunchTests: XCTestCase {
                     let image = XCTAttachment(screenshot: screenshot)
                     image.name = name + "-FailedRender-" + action; image.lifetime = .keepAlways; add(image)
                     let state = XCTAttachment(string: "action=\(action); red=\(redInkPixels(in: screenshot.image, frame: pixelFrame)); count=\(count.value as? String ?? "missing"); label=\(canvas.label)")
-                    state.name = image.name + "-NativeState"; state.lifetime = .keepAlways; add(state)
+                    state.name = name + "-FailedRender-" + action + "-NativeState"; state.lifetime = .keepAlways; add(state)
                 }
             }
             return false

@@ -49,8 +49,8 @@ import CryptoKit
                         }
                         return ["type": stroke.ink.inkType.rawValue,
                             "color": String(describing: stroke.ink.color),
-                            "bounds": NSStringFromCGRect(stroke.renderBounds),
-                            "transform": NSStringFromCGAffineTransform(stroke.transform), "points": points]
+                            "bounds": String(describing: stroke.renderBounds),
+                            "transform": String(describing: stroke.transform), "points": points]
                     }
                     let image = raster(drawing)
                     let png = try pngData(image)

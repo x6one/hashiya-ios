@@ -144,13 +144,14 @@ struct InkToolbar: View {
     var body: some View {
         InkToolbarScrollView {
             HStack(spacing: 6) {
+                FavoritePenMenu(brush: $brush, color: $color, width: $width)
                 Menu { ForEach(InkBrush.allCases.filter { $0 != .selection }) { item in Button(TayyaLocalized(item.rawValue), systemImage: item.symbol) { brush = item } } }
                 label: {
                     Group {
-                        if compact { Label(TayyaLocalized(brush.rawValue), systemImage: brush.symbol).labelStyle(.iconOnly) }
+                        if compact { Label(TayyaLocalized(brush.rawValue), systemImage: brush.symbol).labelStyle(.iconOnly).font(.system(size: TayyaMetrics.icon)) }
                         else { Label(TayyaLocalized(brush.rawValue), systemImage: brush.symbol) }
                     }.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                }.accessibilityIdentifier("inkBrush")
+                }.accessibilityIdentifier("inkBrush").accessibilityValue(TayyaLocalized(brush.rawValue))
                 Button { showingColorPicker = true } label: {
                     Circle().fill(color)
                         .overlay(Circle().strokeBorder(TayyaTheme.detail, lineWidth: 1))
@@ -160,7 +161,7 @@ struct InkToolbar: View {
                 Menu { ForEach([1, 2, 3, 5, 8, 12], id: \.self) { value in Button("سماكة \(value)") { width = Double(value) } } }
                 label: {
                     Group {
-                        if compact && typeSize >= .accessibility3 { Image(systemName: "lineweight") }
+                        if compact && typeSize >= .accessibility3 { Image(systemName: "slider.horizontal.3").font(.system(size: TayyaMetrics.icon)) }
                         else { Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle()) }
                     }.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                 }.accessibilityLabel("سماكة القلم").accessibilityValue("\(Int(width))").accessibilityIdentifier("inkWidth")
@@ -195,7 +196,7 @@ struct InkToolbar: View {
         return String(format: "rgba:%.4f,%.4f,%.4f,%.4f", Double(red), Double(green), Double(blue), Double(alpha))
     }
     private func inkTarget(_ title: String, symbol: String) -> some View {
-        Label(title, systemImage: symbol).labelStyle(.iconOnly)
+        Label(TayyaLocalized(title), systemImage: symbol).labelStyle(.iconOnly).font(.system(size: TayyaMetrics.icon))
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
 }

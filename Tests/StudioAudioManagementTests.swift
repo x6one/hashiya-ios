@@ -64,7 +64,10 @@ final class StudioAudioManagementTests: XCTestCase {
         await fulfillment(of: [seeked], timeout: 2)
         observation.cancel()
         XCTAssertGreaterThan(audio.playbackActivity.time, 3)
+        XCTAssertTrue(audio.atEnd, "Forward past the file's final AAC packet is an explicit media-end position")
+        XCTAssertEqual(audio.playbackActivity.time, audio.playbackActivity.duration, accuracy: 0.001)
         audio.skipPlayback(by: -10)
+        XCTAssertFalse(audio.atEnd)
         XCTAssertEqual(audio.playbackActivity.time, 0, accuracy: 0.05)
         audio.setPlaybackRate(1.5)
         XCTAssertEqual(audio.playbackRate, 1.5)
@@ -92,6 +95,33 @@ final class StudioAudioManagementTests: XCTestCase {
         XCTAssertEqual(audio.playing, clip, "A timestamp at zero is a seek, independently of the whole-clip stop toggle")
         audio.play(clip)
         XCTAssertNil(audio.playing, "The existing whole-clip play toggle still stops playback")
+    }
+    @MainActor func testInRangeTenSecondSeekUsesRealPlayerAndMediaEndReplaysFromStart() async throws {
+        let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
+        let clip = root.appendingPathComponent("fourteen-seconds.m4a")
+        try m4a(at: clip, seconds: 14)
+        let audio = PageAudio(folder: root)
+        defer { audio.stop() }
+        audio.togglePlayback(clip); audio.togglePlayback(clip)
+        XCTAssertTrue(audio.paused)
+        audio.skipPlayback(by: 10)
+        XCTAssertFalse(audio.atEnd)
+        XCTAssertEqual(audio.playbackActivity.time, 10, accuracy: 0.1)
+        audio.togglePlayback(clip)
+        let returnedAt = ProcessInfo.processInfo.systemUptime
+        let seeked = expectation(description: "native player resumes at ten-second offset")
+        let observation = audio.playbackActivity.$time.filter { $0 > 0.05 }.prefix(1).sink { _ in seeked.fulfill() }
+        await fulfillment(of: [seeked], timeout: 2)
+        observation.cancel()
+        let offset = audio.playbackActivity.time - (ProcessInfo.processInfo.systemUptime - returnedAt)
+        XCTAssertEqual(offset, 10, accuracy: 0.35)
+        audio.togglePlayback(clip); audio.skipPlayback(by: 10)
+        XCTAssertTrue(audio.paused); XCTAssertTrue(audio.atEnd)
+        XCTAssertEqual(audio.playbackActivity.time, 14, accuracy: 0.1)
+        audio.togglePlayback(clip)
+        XCTAssertFalse(audio.paused); XCTAssertFalse(audio.atEnd)
+        XCTAssertEqual(audio.playing, clip)
+        XCTAssertLessThan(audio.playbackActivity.time, 0.35, "Play at media end explicitly replays from the start")
     }
     @MainActor func testRealMarkerPlaybackStartsAtItsStoredNativeTime() async throws {
         let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
@@ -204,10 +234,11 @@ final class StudioAudioManagementTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: reloaded.audioFolder.appendingPathComponent(clip.lastPathComponent)), media)
     }
     /// Encoded AAC media exercises playback and sharing bytes, not a microphone.
-    private func m4a(at url: URL) throws {
+    private func m4a(at url: URL, seconds: Int = 4) throws {
         let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100 * 4))
-        buffer.frameLength = 44100 * 4
+        let frames = AVAudioFrameCount(44100 * seconds)
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
+        buffer.frameLength = frames
         let samples = try XCTUnwrap(buffer.floatChannelData?.pointee)
         for index in 0..<Int(buffer.frameLength) { samples[index] = sin(Float(index) * 2 * .pi * 440 / 44100) * 0.05 }
         let file = try AVAudioFile(forWriting: url, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1])

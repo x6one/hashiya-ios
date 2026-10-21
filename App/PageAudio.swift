@@ -38,6 +38,7 @@ import AVFoundation
     @Published var markers: [AudioLink] = []
     @Published var metadata: [String: AudioClipMetadata] = [:]
     @Published private(set) var paused = false
+    @Published private(set) var atEnd = false
     @Published private(set) var playbackRate: Float = 1
     let activity = RecordingActivity()
     let playbackActivity = PlaybackActivity()
@@ -50,6 +51,7 @@ import AVFoundation
     private var playbackTimer: Timer?
     private var recordingPage: Int?
     private var recordingPageID: UUID?
+    private var seekPacketDuration: TimeInterval = 0
     private var interruptionObserver: NSObjectProtocol?
     private let requestPermission: () async -> Bool
     init(folder: URL, requestPermission: @escaping () async -> Bool = {
@@ -88,7 +90,7 @@ import AVFoundation
     func reload() {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            clips = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey]).filter { $0.pathExtension == "m4a" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+            clips = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey]).filter { $0.pathExtension.lowercased() == "m4a" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
             markers = loadLinks().filter { marker in clips.contains { $0.lastPathComponent == marker.clip } }
             metadata = try readMetadata()
         } catch { self.error = error.localizedDescription }
@@ -186,7 +188,13 @@ import AVFoundation
             next.delegate = self
             next.enableRate = true; next.rate = playbackRate
             guard next.prepareToPlay() else { throw CocoaError(.fileReadUnknown) }
-            next.currentTime = min(max(0, next.duration - 0.01), max(0, time))
+            seekPacketDuration = packetDuration(url)
+            if time > 0 && time >= max(0, next.duration - seekPacketDuration) {
+                player = next; playing = url; paused = true; atEnd = true
+                startPlaybackActivity()
+                return
+            }
+            next.currentTime = max(0, time)
             guard next.play() else { throw CocoaError(.fileReadUnknown) }
             player = next
             playing = url
@@ -199,6 +207,7 @@ import AVFoundation
     /// Separate from the legacy play toggle, whose stop/replay contract remains.
     func togglePlayback(_ url: URL) {
         guard playing == url, let player else { play(url); return }
+        if atEnd { play(url, restart: true); return }
         if paused {
             guard player.play() else { error = TayyaLocalized("تعذّر إكمال تشغيل التسجيل."); return }
             paused = false
@@ -211,20 +220,16 @@ import AVFoundation
     }
     func skipPlayback(by seconds: TimeInterval) {
         guard seconds.isFinite, let player else { return }
-        let before = player.currentTime
-        let target = min(max(0, player.duration - 0.01), max(0, before + seconds))
-        if paused, let clip = playing {
-            // A paused AAC decoder can ignore currentTime assignments (native
-            // regression: target3.99, actual0 even after2s). Prepare a new real
-            // decoder without starting sound; preserve pause, URL and speed.
-            do {
-                let next = try AVAudioPlayer(contentsOf: clip)
-                next.delegate = self; next.enableRate = true; next.rate = playbackRate
-                guard next.prepareToPlay() else { throw CocoaError(.fileReadUnknown) }
-                next.currentTime = target
-                player.stop(); self.player = next
-            } catch { self.error = error.localizedDescription; return }
-        } else { player.currentTime = target }
+        let before = atEnd ? player.duration : player.currentTime
+        let target = max(0, before + seconds)
+        if target >= max(0, player.duration - seekPacketDuration) {
+            // AAC seeks in its final encoded packet can wrap to0 (isolated
+            // native probe). Represent the known media end explicitly, without
+            // starting sound at the wrong offset or inventing a time margin.
+            player.pause(); paused = true; atEnd = true
+        } else {
+            atEnd = false; player.currentTime = target
+        }
         #if DEBUG
         print("AudioSeek before=\(before) target=\(target) actual=\(self.player?.currentTime ?? -1) duration=\(player.duration) paused=\(paused) isPlaying=\(self.player?.isPlaying ?? false)")
         #endif
@@ -239,10 +244,16 @@ import AVFoundation
     }
     private func samplePlayback() {
         guard let player else { return }
-        playbackActivity.update(time: player.currentTime, duration: player.duration)
+        playbackActivity.update(time: atEnd ? player.duration : player.currentTime, duration: player.duration)
+    }
+    private func packetDuration(_ url: URL) -> TimeInterval {
+        guard let format = try? AVAudioFile(forReading: url).fileFormat else { return 0 }
+        let description = format.streamDescription.pointee
+        guard description.mSampleRate.isFinite, description.mSampleRate > 0 else { return 0 }
+        return Double(max(1, description.mFramesPerPacket)) / description.mSampleRate
     }
     private func resetPlaybackActivity() {
-        playbackTimer?.invalidate(); playbackTimer = nil; paused = false
+        playbackTimer?.invalidate(); playbackTimer = nil; paused = false; atEnd = false; seekPacketDuration = 0
         playbackActivity.update(time: 0, duration: 0)
     }
     private func finishRecording() {
@@ -260,7 +271,7 @@ import AVFoundation
     }
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor [weak self] in
-            guard let self, self.player === player else { return }
+            guard let self, self.player === player, !self.atEnd else { return }
             self.player = nil; self.playing = nil
             self.resetPlaybackActivity()
             if !flag { self.error = "تعذّر إكمال تشغيل التسجيل." }
@@ -321,6 +332,8 @@ struct PageAudioScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var audio: PageAudio
     @State private var deletingClip: URL?
+    @State private var renamingClip: URL?
+    @State private var sharingClip: URL?
     let allowRecording: Bool
     private let playbackPeer: PageAudio?
     init(folder: URL, allowRecording: Bool = true, playbackPeer: PageAudio? = nil) {
@@ -340,11 +353,17 @@ struct PageAudioScreen: View {
                     Text("التسجيلات محفوظة على جهازك ومرتبطة بهذه الصفحة.").font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(audio.clips, id: \.self) { url in
-                    Button(audio.playing == url ? "إيقاف التشغيل" : url.deletingPathExtension().lastPathComponent, systemImage: audio.playing == url ? "stop.fill" : "play.fill") { audio.play(url) }
-                        .disabled(audio.recording || audio.requestingPermission)
-                        .swipeActions { Button("حذف", role: .destructive) { deletingClip = url } }
+                    LinkedAudioCard(audio: audio, clip: url, rename: { renamingClip = url },
+                                    share: { sharingClip = url }, delete: { deletingClip = url })
                 }
-            }.navigationTitle("تسجيلات الصفحة").toolbar { Button("تم") { audio.stop(); dismiss() } }
+            }.scrollContentBackground(.hidden).background(TayyaTheme.paper)
+                .navigationTitle("تسجيلات الصفحة").toolbar { Button("تم") { audio.stop(); dismiss() } }
+                .sheet(isPresented: Binding(get: { renamingClip != nil }, set: { if !$0 { renamingClip = nil } })) {
+                    if let clip = renamingClip { RecordingNameEditor(audio: audio, clip: clip) }
+                }
+                .sheet(isPresented: Binding(get: { sharingClip != nil }, set: { if !$0 { sharingClip = nil } })) {
+                    if let clip = sharingClip { ShareDocument(url: clip) }
+                }
                 .confirmationDialog("حذف التسجيل نهائيًا؟", isPresented: Binding(get: { deletingClip != nil }, set: { if !$0 { deletingClip = nil } }), titleVisibility: .visible) {
                     Button("حذف التسجيل", role: .destructive) {
                         if let deletingClip { audio.delete(deletingClip) }

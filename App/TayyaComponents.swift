@@ -13,6 +13,7 @@ enum TayyaMetrics {
     static let cardRadius: CGFloat = 16
     static let notesMinimum: CGFloat = 340
     static let documentMinimum: CGFloat = 300
+    static let pageSidebar: CGFloat = 116
 }
 
 struct TayyaBrand: View {

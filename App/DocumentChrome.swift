@@ -169,7 +169,8 @@ private struct WorkspaceToolHint: View {
                     Text(TayyaLocalized(text)).font(.caption).lineLimit(1)
                 }
                 Spacer(minLength: 0)
-            }.foregroundStyle(TayyaTheme.detail)
+            }.frame(minWidth: TayyaMetrics.touch, minHeight: TayyaMetrics.touch)
+                .contentShape(Rectangle()).foregroundStyle(TayyaTheme.detail)
         }.buttonStyle(.plain).frame(minWidth: TayyaMetrics.touch, minHeight: TayyaMetrics.touch)
             .accessibilityLabel(TayyaLocalized(text)).accessibilityIdentifier("workspaceToolHelp")
             .sheet(isPresented: $showing) {

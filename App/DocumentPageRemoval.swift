@@ -219,24 +219,28 @@ struct DocumentPageList: View {
     @ObservedObject var workspace: PDFWorkspace
     let deleting: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         NavigationStack {
-            List(1...max(1, workspace.document.pageCount), id: \.self) { number in
-                HStack(spacing: 16) {
-                    Button { workspace.jump(number); dismiss() } label: {
-                        HStack(spacing: 16) {
-                            if let page = workspace.document.page(at: number - 1) {
-                                Image(uiImage: page.thumbnail(of: CGSize(width: 100, height: 140), for: .mediaBox)).resizable().scaledToFit().frame(width: 54, height: 72)
-                            }
-                            Text("صفحة \(number)").font(.headline)
-                            Spacer()
-                            if number == workspace.page { Image(systemName: "checkmark.circle.fill") }
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: typeSize.isAccessibilitySize ? 180 : 110), spacing: TayyaMetrics.spacing)], spacing: TayyaMetrics.spacing) {
+                    ForEach(1...max(1, workspace.document.pageCount), id: \.self) { number in
+                        VStack(spacing: TayyaMetrics.unit) {
+                            Button { workspace.jump(number); dismiss() } label: {
+                                DocumentPageThumbnail(number: number, selected: workspace.page == number, store: workspace.thumbnails)
+                            }.buttonStyle(.plain)
+                                .accessibilityLabel(String(format: TayyaLocalized("صفحة %d"), number))
+                                .accessibilityIdentifier("openDocumentPage-\(number)")
+                                .accessibilityAddTraits(workspace.page == number ? .isSelected : [])
+                            TayyaIconButton(title: String(format: TayyaLocalized("حذف صفحة %d"), number), symbol: "trash") {
+                                dismiss(); deleting(number)
+                            }.disabled(workspace.document.pageCount <= 1)
+                                .accessibilityIdentifier("deletePagePreview-\(number)")
                         }
-                    }.buttonStyle(.plain)
-                    Button("حذف صفحة \(number)", systemImage: "trash", role: .destructive) { dismiss(); deleting(number) }
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44).disabled(workspace.document.pageCount <= 1)
-                }
-            }.navigationTitle("صفحات المستند").toolbar { ToolbarItem(placement: .cancellationAction) { Button("تم") { dismiss() } } }
+                    }
+                }.padding(TayyaMetrics.spacing)
+            }.background(TayyaTheme.paper).navigationTitle(TayyaLocalized("صفحات المستند"))
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(TayyaLocalized("تم")) { dismiss() } } }
         }
     }
 }

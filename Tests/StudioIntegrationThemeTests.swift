@@ -33,4 +33,24 @@ final class StudioIntegrationThemeTests: XCTestCase {
                        ink.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)),
                        "A chrome theme change must never change persisted drawing colors")
     }
+    @MainActor func testSemanticReadingColorsMeetNormalTextContrastInBothAppearances() {
+        func luminance(_ color: Color, _ traits: UITraitCollection) -> Double {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            XCTAssertTrue(UIColor(color).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a))
+            let rgb = [r, g, b].map { value -> Double in
+                let component = Double(value)
+                return component <= 0.04045 ? component / 12.92 : pow((component + 0.055) / 1.055, 2.4)
+            }
+            return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722
+        }
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let traits = UITraitCollection(userInterfaceStyle: style)
+            for (foreground, background) in [(TayyaTheme.text, TayyaTheme.paper), (TayyaTheme.detail, TayyaTheme.surface),
+                                            (TayyaTheme.detail, TayyaTheme.paper), (TayyaTheme.onInk, TayyaTheme.ink),
+                                            (TayyaTheme.ink, TayyaTheme.selection)] {
+                let a = luminance(foreground, traits), b = luminance(background, traits)
+                XCTAssertGreaterThanOrEqual((max(a, b) + 0.05) / (min(a, b) + 0.05), 4.5)
+            }
+        }
+    }
 }

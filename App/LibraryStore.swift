@@ -121,7 +121,7 @@ import ZIPFoundation
         }
     }
     func save() {
-        do { try JSONEncoder().encode(notebooks).write(to: root.appendingPathComponent("library.json"), options: .atomic) }
+        do { try persist(notebooks) }
         catch { self.error = error.localizedDescription }
     }
     func importPDF(_ source: URL, title: String? = nil) throws { try importDocument(source, title: title) }
@@ -141,6 +141,7 @@ import ZIPFoundation
     }
     @discardableResult
     private func acceptImport(_ snapshot: ImportedDocument, title: String?, section: String?) throws -> Notebook {
+        try requireWritable()
         let name = UUID().uuidString + "." + snapshot.url.pathExtension
         let target = root.appendingPathComponent(name)
         try FileManager.default.moveItem(at: snapshot.url, to: target)
@@ -149,7 +150,7 @@ import ZIPFoundation
         note.section = section.flatMap { sections.contains($0) ? $0 : nil } ?? "مكتبتي"
         updated.insert(note, at: 0)
         do {
-            try JSONEncoder().encode(updated).write(to: root.appendingPathComponent("library.json"), options: .atomic)
+            try persist(updated)
             notebooks = updated
         } catch { try? FileManager.default.removeItem(at: target); throw error }
         return note

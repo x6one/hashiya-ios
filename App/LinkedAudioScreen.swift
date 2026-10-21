@@ -26,7 +26,7 @@ struct LinkedAudioScreen: View {
                 if audio.recording {
                     Section {
                         RecordingStrip(audio: audio, compact: true, action: audio.stop)
-                        Button(TayyaLocalized("إضافة علامة يدوية"), systemImage: "bookmark.badge.plus", action: manualMarker)
+                        Button(TayyaLocalized("إضافة علامة يدوية"), systemImage: "bookmark", action: manualMarker)
                             .frame(minHeight: TayyaMetrics.touch).accessibilityIdentifier("addAudioMarker")
                         Button(TayyaLocalized("إيقاف وحفظ التسجيل"), systemImage: "stop.circle", action: audio.stop)
                             .frame(minHeight: TayyaMetrics.touch).accessibilityIdentifier("stopLinkedRecording")
@@ -113,7 +113,7 @@ struct LinkedAudioScreen: View {
     }
 }
 
-private struct LinkedAudioCard: View {
+struct LinkedAudioCard: View {
     @ObservedObject var audio: PageAudio
     let clip: URL
     let rename: () -> Void
@@ -132,7 +132,7 @@ private struct LinkedAudioCard: View {
             }.font(.caption).foregroundStyle(TayyaTheme.detail)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: TayyaMetrics.compact) {
-                    TayyaIconButton(title: audio.playing == clip && !audio.paused ? "إيقاف مؤقت" : "تشغيل", symbol: audio.playing == clip && !audio.paused ? "pause.fill" : "play.fill") {
+                    TayyaIconButton(title: audio.playing == clip && audio.atEnd ? "إعادة التشغيل" : audio.playing == clip && !audio.paused ? "إيقاف مؤقت" : "تشغيل", symbol: audio.playing == clip && !audio.paused ? "pause.fill" : "play.fill") {
                         audio.togglePlayback(clip)
                     }.accessibilityIdentifier("playLinkedRecording")
                         .accessibilityValue(audio.playing == clip ? audio.paused ? "paused" : "playing" : "stopped")
@@ -154,12 +154,13 @@ struct AudioPlaybackControls: View {
     @ObservedObject var audio: PageAudio
     var body: some View {
         VStack(spacing: TayyaMetrics.unit) {
+            if audio.atEnd { Text(TayyaLocalized("انتهى التسجيل")).font(.caption).foregroundStyle(TayyaTheme.detail) }
             PlaybackTimeReadout(activity: audio.playbackActivity)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: TayyaMetrics.compact) {
                     TayyaIconButton(title: "تأخير 10 ثوانٍ", symbol: "gobackward.10") { audio.skipPlayback(by: -10) }
                         .accessibilityIdentifier("rewindLinkedRecording")
-                    TayyaIconButton(title: audio.paused ? "متابعة التشغيل" : "إيقاف مؤقت", symbol: audio.paused ? "play.fill" : "pause.fill") {
+                    TayyaIconButton(title: audio.atEnd ? "إعادة التشغيل" : audio.paused ? "متابعة التشغيل" : "إيقاف مؤقت", symbol: audio.paused ? "play.fill" : "pause.fill") {
                         if let clip = audio.playing { audio.togglePlayback(clip) }
                     }.accessibilityIdentifier("pauseLinkedRecording")
                     TayyaIconButton(title: "تقديم 10 ثوانٍ", symbol: "goforward.10") { audio.skipPlayback(by: 10) }
@@ -187,14 +188,17 @@ private struct PlaybackTimeReadout: View {
     }
 }
 
-private struct RecordingNameEditor: View {
+struct RecordingNameEditor: View {
     @ObservedObject var audio: PageAudio
     let clip: URL
     @State private var title = ""
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            Form { TextField(TayyaLocalized("اسم التسجيل"), text: $title).accessibilityIdentifier("recordingTitle") }
+            Form {
+                TextField(TayyaLocalized("اسم التسجيل"), text: $title).accessibilityIdentifier("recordingTitle")
+                if let error = audio.error { Text(error).foregroundStyle(TayyaTheme.destructive).accessibilityIdentifier("recordingNameError") }
+            }
                 .navigationTitle(TayyaLocalized("إعادة تسمية التسجيل"))
                 .toolbar {
                     Button(TayyaLocalized("حفظ")) {

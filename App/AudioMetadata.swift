@@ -29,7 +29,7 @@ extension PageAudio {
         let duration = (try? AVAudioPlayer(contentsOf: clip).duration) ?? 0
         return AudioClipMetadata(title: clip.deletingPathExtension().lastPathComponent,
                                  created: date, duration: duration,
-                                 startPage: markers.first { $0.clip == clip.lastPathComponent }?.page)
+                                 startPage: markers.first { $0.clip == clip.lastPathComponent }?.page ?? Int(folder.lastPathComponent))
     }
     func rename(_ clip: URL, title: String) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)

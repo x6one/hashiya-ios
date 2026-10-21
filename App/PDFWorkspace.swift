@@ -18,6 +18,7 @@ struct PageText: Codable, Identifiable {
     var red: Double = 0.16
     var green: Double = 0.22
     var blue: Double = 0.28
+    var alignment: Int?
 }
 @MainActor final class PDFWorkspace: ObservableObject {
     enum Tool { case read, ink, text, lasso }
@@ -49,6 +50,14 @@ struct PageText: Codable, Identifiable {
     var onInkSaved: ((Int, Int) -> Void)?
     var onTextTapped: ((UUID) -> Void)?
     private(set) var texts: [PageText] = []
+    private var loadedThumbnails: DocumentThumbnailStore?
+    var thumbnails: DocumentThumbnailStore {
+        if let loadedThumbnails { return loadedThumbnails }
+        let store = DocumentThumbnailStore(document: document, inkFolder: storage)
+        loadedThumbnails = store
+        return store
+    }
+    func invalidateThumbnail(page: Int) { loadedThumbnails?.invalidate(page: page) }
     weak var view: PDFView?
     init(note: Notebook, root: URL) {
         fileURL = root.appendingPathComponent(note.file)
@@ -102,7 +111,7 @@ struct PageText: Codable, Identifiable {
         annotation.font = UIFont(name: item.font, size: item.size) ?? .systemFont(ofSize: item.size)
         annotation.fontColor = UIColor(red: item.red, green: item.green, blue: item.blue, alpha: 1)
         annotation.color = .clear
-        annotation.alignment = .natural
+        annotation.alignment = NSTextAlignment(rawValue: item.alignment ?? NSTextAlignment.natural.rawValue) ?? .natural
         annotation.userName = item.id.uuidString
         let border = PDFBorder(); border.lineWidth = 0; annotation.border = border
         page.addAnnotation(annotation)
@@ -119,6 +128,7 @@ struct PageText: Codable, Identifiable {
             texts = updated; canUndoPageDeletion = false
             if updated.contains(where: { $0.id == item.id }) { install(item) }
             view?.setNeedsDisplay()
+            invalidateThumbnail(page: item.page + 1)
             onTextSaved?(item)
             editing = nil; saveState = .saved
         } catch { self.error = error.localizedDescription; saveState = .failed }
@@ -154,6 +164,7 @@ struct PageText: Codable, Identifiable {
             guard let data = document.dataRepresentation() else { throw DocumentImportError.damaged }
             try AudioPageIdentityStore(folder: audioFolder).prepareAppend(pageCount: index)
             try data.write(to: fileURL, options: .atomic)
+            loadedThumbnails?.synchronize(document)
             canUndoPageDeletion = false; jump(index + 1)
         } catch {
             if document.pageCount > index { document.removePage(at: index) }
@@ -178,6 +189,7 @@ struct PageText: Codable, Identifiable {
         let newTexts = FileManager.default.fileExists(atPath: textURL.path) ? try JSONDecoder().decode([PageText].self, from: Data(contentsOf: textURL)) : []
         document = updated; texts = newTexts
         for item in texts { install(item) }
+        loadedThumbnails?.synchronize(document)
         inkFailures.removeAll(); readableInk.removeAll()
         page = max(1, min(requested, document.pageCount)); inkStrokeCount = savedInkCount(on: page - 1)
         selectedInkCount = 0; editing = nil
@@ -310,6 +322,7 @@ struct DocumentScreen: View {
     @Environment(\.verticalSizeClass) private var verticalClass
     @State private var showPaperPicker = false
     @State private var showDocumentPages = false
+    @AppStorage("tayya.pageSidebarVisible") private var pageSidebarVisible = true
     @State private var deletingPage: Int?
     @State private var confirmDocumentDeletion = false
     @State private var pendingPageDeletion: Int?
@@ -356,6 +369,7 @@ struct DocumentScreen: View {
             }
             .onDisappear {
                 audio.stop(); _ = margins.flush()
+                // Release callbacks capturing this document's retained owners.
                 workspace.onTextSaved = nil; workspace.onInkSaved = nil; workspace.onTextTapped = nil
             }
             .onChange(of: scenePhase) { _, phase in audio.handleScenePhase(phase) }
@@ -377,11 +391,25 @@ struct DocumentScreen: View {
                            notesVisible: splitNotes || notesExpanded, notesExpanded: notesExpanded,
                            chooseNotes: openNotes, openPages: { showDocumentPages = true },
                            dismissPageKeyboard: { pageFocused = false })
+                .padding(.leading, UIDevice.current.userInterfaceIdiom == .pad && showsSidebar ? TayyaMetrics.pageSidebar : 0)
                 .frame(height: focused ? 0 : nil).clipped()
                 .opacity(focused ? 0 : 1).allowsHitTesting(!focused).accessibilityHidden(focused)
         }.background(TayyaTheme.paper)
     }
     private var documentSurface: some View {
+        HStack(spacing: 0) {
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                DocumentPageSidebar(workspace: workspace, thumbnails: workspace.thumbnails)
+                    .frame(width: showsSidebar ? TayyaMetrics.pageSidebar : 0).clipped()
+                    .opacity(showsSidebar ? 1 : 0).allowsHitTesting(showsSidebar).accessibilityHidden(!showsSidebar)
+            }
+            retainedDocumentSurface
+        }
+    }
+    private var showsSidebar: Bool {
+        pageSidebarVisible && !focused && !notesExpanded && typeSize < .accessibility3
+    }
+    private var retainedDocumentSurface: some View {
         GeometryReader { geometry in
             let size = geometry.size
             let notesMinimum: CGFloat = typeSize >= .accessibility3 ? 440 : TayyaMetrics.notesMinimum
@@ -463,6 +491,11 @@ struct DocumentScreen: View {
         documentContent.navigationTitle(note.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        TayyaIconButton(title: "مصغرات الصفحات", symbol: "sidebar.leading") { pageSidebarVisible.toggle() }
+                            .accessibilityIdentifier("togglePageSidebar")
+                            .accessibilityValue(pageSidebarVisible ? "shown" : "hidden")
+                    }
                     TayyaIconButton(title: focused ? "إظهار الأدوات" : "وضع التركيز",
                                     symbol: focused ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right") {
                         pageFocused = false; manualFocus = !focused
@@ -700,6 +733,12 @@ struct TextEditorSheet: View {
                     Picker("الخط", selection: $item.font) { ForEach(["Arial", "GeezaPro", "TimesNewRomanPSMT", "HelveticaNeue", "CourierNewPSMT"], id: \.self) { Text($0).tag($0) } }
                     Stepper("الحجم: \(Int(item.size))", value: $item.size, in: 8...96)
                     ColorPicker("اللون", selection: $color, supportsOpacity: false)
+                    Picker("المحاذاة", selection: Binding(get: { item.alignment ?? NSTextAlignment.natural.rawValue }, set: { item.alignment = $0 })) {
+                        Text("تلقائية").tag(NSTextAlignment.natural.rawValue)
+                        Text("يمين").tag(NSTextAlignment.right.rawValue)
+                        Text("توسيط").tag(NSTextAlignment.center.rawValue)
+                        Text("يسار").tag(NSTextAlignment.left.rawValue)
+                    }.accessibilityIdentifier("annotationAlignment")
                     Stepper("عرض النص: \(Int(item.width))", value: $item.width, in: 60...1000, step: 20)
                     Stepper("ارتفاع النص: \(Int(item.height))", value: $item.height, in: 30...1000, step: 20)
                 }
@@ -1224,6 +1263,7 @@ struct NativePDF: UIViewRepresentable {
                 guard lastSavedInk[canvas.tag] != data else { return }
                 workspace.saveState = .saving
                 try data.write(to: workspace.storage.appendingPathComponent("\(canvas.tag).drawing"), options: .atomic)
+                workspace.invalidateThumbnail(page: canvas.tag + 1)
                 workspace.saveState = .saved
                 lastSavedInk[canvas.tag] = data
                 if workspace.canUndoPageDeletion { workspace.canUndoPageDeletion = false }

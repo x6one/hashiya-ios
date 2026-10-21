@@ -222,7 +222,7 @@ struct LibraryScreen: View {
                         Button { route = hit; lastOpenedNotebook = hit.notebook.uuidString } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(hit.title).font(.headline).foregroundStyle(TayyaTheme.text)
-                                if let page = hit.page { Text("صفحة \(page)").font(.caption).foregroundStyle(TayyaTheme.copper) }
+                                if let page = hit.page { Text("صفحة \(page)").font(.caption).foregroundStyle(TayyaTheme.ink) }
                                 Text(hit.snippet).font(.subheadline).foregroundStyle(TayyaTheme.detail)
                                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                             }.frame(maxWidth: .infinity, alignment: .leading).padding().background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))

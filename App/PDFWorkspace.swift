@@ -847,7 +847,18 @@ final class ResizingPDFView: PDFView {
                   let coordinator = diagnosticInkCoordinator else { return super.accessibilityValue }
             let workspace = coordinator.workspace
             let canvas = coordinator.canvases[workspace.page - 1]
-            return "hidden=\(isHidden); axHidden=\(accessibilityElementsHidden); element=\(isAccessibilityElement); alpha=\(alpha); frame=\(frame); owner=\(String(describing: superview.map { type(of: $0) })); model=\(workspace.brush.rawValue)/\(workspace.inkWidth); native=\(String(describing: canvas?.tool)); events=\(NativeToolActionTrace.events.joined(separator: " | "))"
+            var touchTrace = ""
+            if ProcessInfo.processInfo.arguments.contains("--test-native-visibility"), let window {
+                let rectangle = convert(bounds, to: window)
+                var hit = window.hitTest(CGPoint(x: rectangle.midX, y: rectangle.midY), with: nil)
+                var owners: [String] = []
+                while let current = hit, owners.count < 7 {
+                    owners.append(String(describing: type(of: current)))
+                    hit = current.superview
+                }
+                touchTrace = "screen=\(rectangle); pdfCenterReceives=\(owners.joined(separator: ">")); "
+            }
+            return "\(touchTrace)page=\(workspace.page)/\(workspace.document.pageCount); hidden=\(isHidden); axHidden=\(accessibilityElementsHidden); element=\(isAccessibilityElement); alpha=\(alpha); frame=\(frame); owner=\(String(describing: superview.map { type(of: $0) })); model=\(workspace.brush.rawValue)/\(workspace.inkWidth); native=\(String(describing: canvas?.tool)); events=\(NativeToolActionTrace.events.joined(separator: " | "))"
         }
         set { super.accessibilityValue = newValue }
     }

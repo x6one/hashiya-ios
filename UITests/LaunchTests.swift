@@ -775,7 +775,7 @@ final class LaunchTests: XCTestCase {
             }
         } else {
             if document.exists {
-                print("ExpandedNativePDF value=\(document.value as? String ?? "missing"); tree=\(document.debugDescription)")
+                print("ExpandedNativePDF hittable=\(document.isHittable); value=\(document.value as? String ?? "missing"); tree=\(document.debugDescription)")
             }
             XCTAssertFalse(document.exists, "Only a deliberately expanded margin may hide the PDF")
         }
@@ -892,7 +892,7 @@ final class LaunchTests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         defer { app.terminate() }
-        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-light", "--test-accessibility-type", "--test-reduce-motion", "--test-native-menu"]
+        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-light", "--test-accessibility-type", "--test-reduce-motion", "--test-native-menu", "--test-native-visibility"]
         app.launch()
         let demo = app.buttons["welcomeDemonstration"]
         XCTAssertTrue(demo.waitForExistence(timeout: 15))

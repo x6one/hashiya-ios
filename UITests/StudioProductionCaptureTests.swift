@@ -11,7 +11,7 @@ final class StudioProductionCaptureTests: XCTestCase {
 
     private func library(english: Bool = false, dark: Bool = false, large: Bool = false) -> XCUIApplication {
         XCUIDevice.shared.orientation = .portrait
-        arguments = ["--test-review-entry", "--test-production-content", "--test-reduce-motion",
+        arguments = ["--test-review-entry", "--test-production-content", "--test-reduce-motion", "--test-native-menu", "--test-native-visibility",
                      dark ? "--test-appearance-dark" : "--test-appearance-light"]
         if english { arguments.append("--test-english") }
         if large { arguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
@@ -47,7 +47,13 @@ final class StudioProductionCaptureTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(frame.minY, window.minY)
             XCTAssertLessThanOrEqual(frame.maxY, pdfFrame.minY + 0.5,
                                      "Navigation must occupy its own area above the PDF")
-            if target.isEnabled { XCTAssertTrue(target.isHittable) }
+            if target.isEnabled {
+                let reportedHit = target.isHittable
+                if target.identifier == "nextDocumentPage", !reportedHit {
+                    diagnoseNextPageTouch(target, in: app)
+                }
+                XCTAssertTrue(reportedHit, "Retain the original hit-test assertion while testing actual physical input")
+            }
         }
         let total = app.staticTexts["documentPageCount"]
         XCTAssertTrue(total.exists)
@@ -60,6 +66,33 @@ final class StudioProductionCaptureTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(readoutFrame.minX, window.minX)
         XCTAssertLessThanOrEqual(readoutFrame.maxX, window.maxX)
         XCTAssertGreaterThan(pdfFrame.height, window.height > window.width ? window.height / 3 : 60)
+    }
+    private func diagnoseNextPageTouch(_ target: XCUIElement, in app: XCUIApplication) {
+        let number = app.textFields["pageNumber"]
+        guard let initial = Int(number.value as? String ?? "") else { XCTFail("Read the real page before the touch probe"); return }
+        func evidence(_ stage: String) {
+            print("NativeNextTouch stage=\(stage) page=\(number.value as? String ?? "missing") hittable=\(target.isHittable) matches=\(app.buttons.matching(identifier: "nextDocumentPage").count) native=\(app.otherElements["pdfCanvas"].value as? String ?? "missing")")
+            let shot = XCTAttachment(data: XCUIScreen.main.screenshot().pngRepresentation, uniformTypeIdentifier: "public.png")
+            shot.name = "NativeNextTouch-" + stage; shot.lifetime = .keepAlways; add(shot)
+        }
+        evidence("Before")
+        // A physical center touch inside the already-verified44pt rectangle is
+        // a valid user interaction even when AX reports no preferred hit point.
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            Int(number.value as? String ?? "") == initial + 1
+        }, object: nil)
+        let result = XCTWaiter.wait(for: [changed], timeout: 5)
+        print("NativeNextTouch changed=\(result.rawValue) expected=\(initial + 1)")
+        evidence("After")
+        if result == .completed {
+            app.buttons["previousDocumentPage"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                Int(number.value as? String ?? "") == initial
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed)
+        }
+        XCTAssertEqual(result, .completed, "Prove the actual Next-page touch independently of the AX boolean")
     }
     private func exerciseAccessiblePageNavigation(_ app: XCUIApplication) {
         assertAccessibleNavigation(app)

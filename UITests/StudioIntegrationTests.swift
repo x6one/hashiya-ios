@@ -96,15 +96,20 @@ final class StudioIntegrationTests: XCTestCase {
         let app = openRealDocument(arguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         let rail = app.otherElements["studioContextRail"]
         XCTAssertTrue(rail.waitForExistence(timeout: 5))
-        XCTAssertEqual(rail.frame.height, 44, accuracy: 1)
+        let help = app.buttons["workspaceToolHelp"]
+        XCTAssertTrue(help.waitForExistence(timeout: 5))
+        print("AccessibleChrome group=\(rail.frame) help=\(help.frame) pdf=\(app.otherElements["pdfCanvas"].frame)")
+        XCTAssertGreaterThanOrEqual(help.frame.width, 44, "Measure the actual interactive target, not the semantic container's drawable union")
+        XCTAssertGreaterThanOrEqual(help.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(help.frame.minY, app.otherElements["pdfCanvas"].frame.maxY - 1,
+                                   "The real help target must remain below the PDF reading area")
         for label in rail.staticTexts.allElementsBoundByIndex where label.exists {
-            XCTAssertGreaterThanOrEqual(label.frame.minY, rail.frame.minY - 1, "Secondary instructions must not overlap the PDF")
-            XCTAssertLessThanOrEqual(label.frame.maxY, rail.frame.maxY + 1)
+            XCTAssertGreaterThanOrEqual(label.frame.minY, help.frame.minY - 1, "Secondary instructions must not overlap the PDF")
+            XCTAssertLessThanOrEqual(label.frame.maxY, help.frame.maxY + 1)
         }
         for name in ["nextDocumentPage", "previousDocumentPage", "fitDocumentPage"] {
             XCTAssertLessThanOrEqual(app.buttons[name].frame.height, 64, "SF glyphs keep their visual size; full VoiceOver labels remain")
         }
-        let help = app.buttons["workspaceToolHelp"]
         XCTAssertTrue(help.isHittable, "Full instructions remain reachable in a clear panel at accessibility sizes")
         help.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "اختر أداة")).firstMatch.exists)

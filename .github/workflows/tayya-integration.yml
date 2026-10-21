@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         # Language/storage RED contracts are platform-independent; qualify both at GREEN.
-        family: ${{ fromJSON((contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON((contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select existing app toolchain and generate production project
@@ -74,6 +74,9 @@ jobs:
               'audio-seek': ['HashiyaTests/StudioAudioManagementTests/testRealPlaybackPauseSeekRateAndPeerHandoffPreserveMedia', 'HashiyaTests/StudioAudioManagementTests/testMarkerAtZeroRestartsAnAlreadyPlayingRecording'],
               'chrome': ['HashiyaUITests/StudioIntegrationTests/testAccessibilitySecondaryChromeStaysInsideItsReservedArea'],
               'ink-safety': ['HashiyaTests/StudioInkSafetyTests'],
+              'audio-probe': ['HashiyaTests/StudioAudioNativeProbeTests'],
+              'library-safety': ['HashiyaTests/StudioLibraryWriteSafetyTests'],
+              'study-ui': ['HashiyaUITests/StudioEditorToolsTests'],
               'all': ['HashiyaTests', 'HashiyaUITests/StudioIntegrationTests']
           }
           selected = []

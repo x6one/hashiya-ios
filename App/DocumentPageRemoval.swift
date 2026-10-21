@@ -239,7 +239,8 @@ struct DocumentPageList: View {
                         }
                     }
                 }.padding(TayyaMetrics.spacing)
-            }.background(TayyaTheme.paper).navigationTitle(TayyaLocalized("صفحات المستند"))
+            }.accessibilityIdentifier("documentPageList")
+                .background(TayyaTheme.paper).navigationTitle(TayyaLocalized("صفحات المستند"))
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button(TayyaLocalized("تم")) { dismiss() } } }
         }
     }

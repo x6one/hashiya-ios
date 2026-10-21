@@ -63,7 +63,8 @@ struct MarginPane: View {
     private func traceMarginRender(_ event: String) {
         #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return }
-        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(canvasControl)); focus=\(textFocused); main=\(Thread.isMainThread)", control: canvasControl)
+        let actualControl = externalCanvasControl ?? canvasControl
+        MarginRenderDiagnostics.record(event + "; editor=\(ObjectIdentifier(editor)); store=\(ObjectIdentifier(store)); pane=\(ObjectIdentifier(actualControl)); focus=\(textFocused); main=\(Thread.isMainThread)", control: actualControl)
         #endif
     }
 }

@@ -3,6 +3,11 @@ import PencilKit
 
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
+    // Keep first-responder Undo/PencilKit routing without a text keyboard when
+    // UIKit presents a tool menu. Text editing uses separate native editors.
+    private let handwritingInput = UIView(frame: .zero)
+    override var inputView: UIView? { handwritingInput }
+
     // Native UI diagnostics are available only to the dedicated regression test.
     override var accessibilityLabel: String? {
         get {
@@ -12,7 +17,9 @@ final class MarginCanvas: PKCanvasView {
                 let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden)"
                 return own + (depth > 0 ? view.subviews.map { describe($0, depth: depth - 1) }.joined(separator: " | ") : "")
             }
-            return label + "; zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
+            let nativeTool = tool as? PKInkingTool
+            let lastInk = drawing.strokes.last?.ink
+            return label + "; nativeTool=\(nativeTool?.inkType.rawValue ?? "none") color=\(String(describing: nativeTool?.color)) lastStrokeColor=\(String(describing: lastInk?.color)); zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { describe($0, depth: 2) }.joined(separator: " | ")
         }
         set { super.accessibilityLabel = newValue }
     }

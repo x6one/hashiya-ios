@@ -13,9 +13,7 @@ final class StudioIntegrationTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--test-review-entry"] + arguments
         app.launch()
-        let demonstration = app.buttons["welcomeDemonstration"]
-        XCTAssertTrue(demonstration.waitForExistence(timeout: 15))
-        demonstration.tap()
+        openProductionDemonstration(in: app)
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 15))
         return app
     }

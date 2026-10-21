@@ -6,8 +6,7 @@ final class StudioEditorToolsTests: XCTestCase {
     private func openDocument(arguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication(); app.launchArguments = ["--test-review-entry"] + arguments
         app.launch()
-        XCTAssertTrue(app.buttons["welcomeDemonstration"].waitForExistence(timeout: 15))
-        app.buttons["welcomeDemonstration"].tap()
+        openProductionDemonstration(in: app)
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 15))
         return app
     }
@@ -23,7 +22,7 @@ final class StudioEditorToolsTests: XCTestCase {
     func testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions() {
         let app = openDocument(arguments: ["--test-ink-responder"])
         func evidence(_ stage: String) {
-            print("NativePenMenu stage=\(stage) keyboards=\(app.keyboards.count) viewport=\(app.otherElements["pdfCanvas"].frame)")
+            print("NativePenMenu stage=\(stage) keyboards=\(app.keyboards.count) viewport=\(app.otherElements["pdfCanvas"].frame) responder=\(app.otherElements["pdfCanvas"].value as? String ?? "unknown")")
             let image = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
             image.name = "NativePenMenu-" + stage; image.lifetime = .keepAlways; add(image)
         }
@@ -68,8 +67,10 @@ final class StudioEditorToolsTests: XCTestCase {
     func testActualPagePreviewsNavigateAndSidebarTogglePreservesCurrentPage() {
         let app = openDocument()
         app.buttons["documentPages"].tap()
+        let pageList = app.scrollViews["documentPageList"]
+        XCTAssertTrue(pageList.waitForExistence(timeout: 5))
         for number in [1, 2, 3] {
-            let image = app.images["pagePreview-\(number)"]
+            let image = pageList.images["pagePreview-\(number)"]
             XCTAssertTrue(image.waitForExistence(timeout: 10))
             XCTAssertEqual(image.value as? String, "rendered")
         }

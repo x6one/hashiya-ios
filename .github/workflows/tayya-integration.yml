@@ -71,6 +71,7 @@ jobs:
               'compatibility': ['HashiyaTests/PageRemovalTests', 'HashiyaTests/StudioDataCompatibilityTests'],
               'language': ['HashiyaUITests/StudioIntegrationTests/testEnglishCoreToolsUseEnglishNamesAndKeepRealNotesData'],
               'data-safety': ['HashiyaTests/StudioDataCompatibilityTests/testUnreadableTextCannotBeReplacedBySavingNewAnnotation', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadableCardsCannotBeReplacedBySavingNewCard', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadableLibraryCannotBeReplacedByCreatingNotebook', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadablePDFCannotBeReplacedByAppendingPaper'],
+              'audio-page': ['HashiyaUITests/StudioAudioUITests/testContinuousRecordingKeepsOneClipAndLinksBothVisitedPages'],
               'audio-controls': ['HashiyaUITests/StudioAudioUITests'],
               'audio-seek': ['HashiyaTests/StudioAudioManagementTests/testRealPlaybackPauseSeekRateAndPeerHandoffPreserveMedia', 'HashiyaTests/StudioAudioManagementTests/testMarkerAtZeroRestartsAnAlreadyPlayingRecording'],
               'chrome': ['HashiyaUITests/StudioIntegrationTests/testAccessibilitySecondaryChromeStaysInsideItsReservedArea'],

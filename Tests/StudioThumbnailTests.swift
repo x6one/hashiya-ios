@@ -10,6 +10,8 @@ final class StudioThumbnailTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let document = try XCTUnwrap(PDFDocument(data: fixture()))
         let store = DocumentThumbnailStore(document: document, inkFolder: root)
+        let originalEmptyInk = PKDrawing().dataRepresentation()
+        try originalEmptyInk.write(to: root.appendingPathComponent("3.drawing"))
         var images: [Data] = []
         for number in 1...5 {
             let image = await store.image(page: number)
@@ -17,7 +19,9 @@ final class StudioThumbnailTests: XCTestCase {
         }
         XCTAssertNotEqual(images[0], images[1], "Text and table must show distinct real PDF content")
         XCTAssertNotEqual(images[1], images[2], "The image page must not reuse a table thumbnail")
-        XCTAssertEqual(images[3], images[4], "The last two fixture pages start identically blank")
+        XCTAssertEqual(images[3], images[4], "A native-encoded empty drawing and a page without ink both remain blank")
+        XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("3.drawing")), originalEmptyInk,
+                       "Preview must not re-encode an accepted old empty drawing to the current native representation")
         let otherKey = store.imageKey(page: 5)
         try drawing().dataRepresentation().write(to: root.appendingPathComponent("3.drawing"))
         store.invalidate(page: 4)
@@ -65,17 +69,12 @@ final class StudioThumbnailTests: XCTestCase {
         XCTAssertEqual(store.pageCount, 5)
         let added = await store.image(page: 5)
         XCTAssertNotNil(added)
-        let broken = Data("damaged user ink".utf8)
+        // The native probe showed16-byte junk is accepted as an empty drawing.
+        // Use the same demonstrably malformed format as the ink-safety fixture.
+        let broken = Data("interrupted PencilKit drawing".utf8)
+        XCTAssertThrowsError(try PKDrawing(data: broken), "The fixture must genuinely fail the native decoder")
         try broken.write(to: root.appendingPathComponent("4.drawing"))
-        for data in [broken, Data("interrupted PencilKit drawing".utf8), PKDrawing().dataRepresentation()] {
-            do {
-                let decoded = try PKDrawing(data: data)
-                print("NativeInkDecode bytes=\(data.count) strokes=\(decoded.strokes.count) serialized=\(decoded.dataRepresentation().count)")
-            } catch { print("NativeInkDecode bytes=\(data.count) throws=\(error)") }
-        }
-        let beforeKey = store.imageKey(page: 5)
         store.invalidate(page: 5)
-        print("NativeThumbnailInvalidation keyChanged=\(beforeKey != store.imageKey(page: 5)) inkExists=\(FileManager.default.fileExists(atPath: root.appendingPathComponent("4.drawing").path))")
         let failed = await store.image(page: 5)
         XCTAssertNil(failed, "Unreadable ink must show a retry/error, not a falsely clean page")
         XCTAssertNotNil(store.error)

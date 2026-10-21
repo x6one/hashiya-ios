@@ -21,6 +21,11 @@ enum InkSelection {
     }
 }
 final class LassoCanvas: PKCanvasView {
+    // Keep first-responder Undo/PencilKit routing without a text keyboard when
+    // UIKit presents a tool menu. Text editing uses separate native editors.
+    private let handwritingInput = UIView(frame: .zero)
+    override var inputView: UIView? { handwritingInput }
+
     var lassoMode = false { didSet { updateOutline() } }
     var points: [CGPoint] = [] { didSet { updateOutline() } }
     let outline = CAShapeLayer()

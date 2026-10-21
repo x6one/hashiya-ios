@@ -1178,7 +1178,7 @@ struct NativePDF: UIViewRepresentable {
             let became = canvas.becomeFirstResponder()
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--test-ink-responder") {
-                print("NativePenResponder type=\(type(of: canvas)) became=\(became) keyInput=\(canvas is UIKeyInput) textInput=\(canvas is UITextInput) inputView=\(String(describing: canvas.inputView))")
+                view.accessibilityValue = "NativePenResponder type=\(type(of: canvas)) became=\(became) keyInput=\(canvas is UIKeyInput) textInput=\(canvas is UITextInput) inputView=\(String(describing: canvas.inputView))"
             }
             #endif
         }

@@ -9,9 +9,7 @@ final class StudioAudioUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--test-review-entry"]
         app.launch()
-        let demo = app.buttons["welcomeDemonstration"]
-        XCTAssertTrue(demo.waitForExistence(timeout: 15))
-        demo.tap()
+        openProductionDemonstration(in: app)
         XCTAssertTrue(app.buttons["recordLinkedAudio"].waitForExistence(timeout: 15))
         return app
     }
@@ -51,8 +49,8 @@ final class StudioAudioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["playLinkedRecording"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons.matching(identifier: "playLinkedRecording").count, 1,
                        "Changing page must keep one M4A recording")
-        let first = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "صفحة 1")).firstMatch
-        let second = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "صفحة 2")).firstMatch
+        let first = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "audioMarker-", "صفحة 1")).firstMatch
+        let second = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "audioMarker-", "صفحة 2")).firstMatch
         XCTAssertTrue(first.waitForExistence(timeout: 5), "Recording start must persist the original page")
         XCTAssertTrue(second.exists, "The same recording must gain a new-page timestamp")
         second.tap()

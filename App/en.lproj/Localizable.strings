@@ -240,3 +240,17 @@
 "خط يد في الملاحظات %d" = "Handwriting in Note %d";
 "الصفحة المصدر محذوفة؛ التسجيل محفوظ" = "Source page deleted; recording retained";
 "تعذّر فتح صفحة الملاحظات." = "Could not open the Notes page.";
+"الأقلام المفضلة" = "Favorite pens";
+"قلم %d — %@، %.1f نقطة" = "Pen %d — %@, %.1f pt";
+"حفظ إعداد القلم الحالي" = "Save current pen settings";
+"حفظ في القلم %d" = "Save as pen %d";
+"تعذّر حفظ إعداد القلم" = "Could not save pen settings";
+"اختر قلمًا ولونًا وسماكة صالحة قبل الحفظ." = "Choose a pen, color and valid width before saving.";
+"معاينة الصفحة %d" = "Preview of page %d";
+"تعذّر تحميل معاينة الصفحة." = "Could not load the page preview.";
+"حذف صفحة %d" = "Delete page %d";
+"مصغرات الصفحات" = "Page thumbnails";
+"أدوات الدراسة" = "Study tools";
+"المحاذاة" = "Alignment";
+"تلقائية" = "Automatic";
+"توسيط" = "Center";

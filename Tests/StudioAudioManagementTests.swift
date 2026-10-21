@@ -90,6 +90,25 @@ final class StudioAudioManagementTests: XCTestCase {
         XCTAssertEqual(audio.playing, clip)
         audio.seek(AudioLink(clip: clip.lastPathComponent, time: 0, page: 1, label: "Start"))
         XCTAssertEqual(audio.playing, clip, "A timestamp at zero is a seek, independently of the whole-clip stop toggle")
+        audio.play(clip)
+        XCTAssertNil(audio.playing, "The existing whole-clip play toggle still stops playback")
+    }
+    @MainActor func testRealMarkerPlaybackStartsAtItsStoredNativeTime() async throws {
+        let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
+        let clip = root.appendingPathComponent("timestamp.m4a")
+        try m4a(at: clip)
+        let audio = PageAudio(folder: root)
+        defer { audio.stop() }
+        audio.seek(AudioLink(clip: clip.lastPathComponent, time: 1.25, page: 2, label: "Writing"))
+        let returnedAt = ProcessInfo.processInfo.systemUptime
+        XCTAssertNil(audio.error)
+        let actualTime = expectation(description: "AVAudioPlayer starts at the actual marker offset")
+        let observation = audio.playbackActivity.$time.filter { $0 > 0.05 }.prefix(1).sink { _ in actualTime.fulfill() }
+        await fulfillment(of: [actualTime], timeout: 2)
+        observation.cancel()
+        let offset = audio.playbackActivity.time - (ProcessInfo.processInfo.systemUptime - returnedAt)
+        XCTAssertEqual(offset, 1.25, accuracy: 0.35, "Waiting must not let incorrect playback from zero masquerade as a successful seek")
+        XCTAssertEqual(audio.playing, clip)
     }
     func testPendingAppendRecoversBothCrashStatesWithoutChangingExistingPageIDs() throws {
         let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }

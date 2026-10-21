@@ -40,6 +40,6 @@ extension PageAudio {
     }
     func seek(_ marker: AudioLink) {
         let target = folder.appendingPathComponent(marker.clip)
-        play(target, at: marker.time)
+        play(target, at: marker.time, restart: true)
     }
 }

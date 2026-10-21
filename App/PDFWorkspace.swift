@@ -42,6 +42,8 @@ struct PageText: Codable, Identifiable {
     @Published var saveState: SaveState = .saved
     private var documentFailure: Error?
     private var textFailure: Error?
+    private var inkFailures: [Int: Error] = [:]
+    private var readableInk = Set<Int>()
     var inkAction: ((String) -> Void)?
     var onTextSaved: ((PageText) -> Void)?
     var onInkSaved: ((Int, Int) -> Void)?
@@ -71,12 +73,27 @@ struct PageText: Codable, Identifiable {
     func requireWritable() throws {
         if let documentFailure { throw documentFailure }
         if let textFailure { throw textFailure }
+        if let failure = inkFailures.values.first { throw failure }
     }
     func savedInkCount(on index: Int) -> Int {
-        guard let data = try? Data(contentsOf: storage.appendingPathComponent("\(index).drawing")),
-              let drawing = try? PKDrawing(data: data) else { return 0 }
-        return drawing.strokes.count
+        (try? loadDrawing(on: index).strokes.count) ?? 0
     }
+    func loadDrawing(on index: Int) throws -> PKDrawing {
+        do {
+            let url = storage.appendingPathComponent("\(index).drawing")
+            let drawing = FileManager.default.fileExists(atPath: url.path) ? try PKDrawing(data: Data(contentsOf: url)) : PKDrawing()
+            readableInk.insert(index)
+            return drawing
+        } catch {
+            inkFailures[index] = error; self.error = error.localizedDescription; saveState = .failed
+            throw error
+        }
+    }
+    func requireWritableInk(on index: Int) throws {
+        try requireWritable()
+        if !readableInk.contains(index) { _ = try loadDrawing(on: index) }
+    }
+    func canWriteInk(on index: Int) -> Bool { inkFailures[index] == nil }
     private func install(_ item: PageText) {
         guard let page = document.page(at: item.page) else { return }
         for annotation in page.annotations where annotation.userName == item.id.uuidString { page.removeAnnotation(annotation) }
@@ -161,29 +178,35 @@ struct PageText: Codable, Identifiable {
         let newTexts = FileManager.default.fileExists(atPath: textURL.path) ? try JSONDecoder().decode([PageText].self, from: Data(contentsOf: textURL)) : []
         document = updated; texts = newTexts
         for item in texts { install(item) }
+        inkFailures.removeAll(); readableInk.removeAll()
         page = max(1, min(requested, document.pageCount)); inkStrokeCount = savedInkCount(on: page - 1)
         selectedInkCount = 0; editing = nil
     }
     func export() {
+        exported = nil
         do { try requireWritable() }
         catch { self.error = error.localizedDescription; return }
         guard let first = document.page(at: 0) else { return }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("Tayya-" + UUID().uuidString + ".pdf")
         let renderer = UIGraphicsPDFRenderer(bounds: first.bounds(for: .mediaBox))
+        var exportFailure: Error?
         do {
             try renderer.writePDF(to: url) { context in
                 for index in 0..<document.pageCount {
+                    if exportFailure != nil { return }
                     guard let page = document.page(at: index) else { continue }
                     let bounds = page.bounds(for: .mediaBox)
                     context.beginPage(withBounds: bounds, pageInfo: [:])
                     let cg = context.cgContext
                     cg.saveGState(); cg.translateBy(x: 0, y: bounds.height); cg.scaleBy(x: 1, y: -1)
                     page.draw(with: .mediaBox, to: cg); cg.restoreGState()
-                    if let data = try? Data(contentsOf: storage.appendingPathComponent("\(index).drawing")), let ink = try? PKDrawing(data: data) {
-                        ink.image(from: CGRect(origin: .zero, size: bounds.size), scale: 2).draw(in: bounds)
-                    }
+                    do {
+                        let ink = try loadDrawing(on: index)
+                        if !ink.strokes.isEmpty { ink.image(from: CGRect(origin: .zero, size: bounds.size), scale: 2).draw(in: bounds) }
+                    } catch { exportFailure = error }
                 }
             }
+            if let exportFailure { try? FileManager.default.removeItem(at: url); throw exportFailure }
             exported = url
         } catch { self.error = error.localizedDescription }
     }
@@ -331,7 +354,10 @@ struct DocumentScreen: View {
                 }
                 workspace.onTextTapped = { id in if !audio.recording, let marker = audio.markers.last(where: { $0.textID == id }) { audio.seek(marker) } }
             }
-            .onDisappear { audio.stop(); _ = margins.flush() }
+            .onDisappear {
+                audio.stop(); _ = margins.flush()
+                workspace.onTextSaved = nil; workspace.onInkSaved = nil; workspace.onTextTapped = nil
+            }
             .onChange(of: scenePhase) { _, phase in audio.handleScenePhase(phase) }
             .overlay(alignment: .bottom) { if ocrBusy { ProgressView("قراءة الصفحات على الجهاز…").padding().background(.regularMaterial) } }
             .alert("قراءة الصفحات", isPresented: Binding(get: { !ocrMessage.isEmpty }, set: { if !$0 { ocrMessage = "" } })) { Button("حسنًا") { ocrMessage = "" } } message: { Text(ocrMessage) }
@@ -630,16 +656,18 @@ struct DocumentScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Button { workspace.jump(workspace.page - 1) } label: {
-                    documentPageTarget("السابق في المستند", symbol: "chevron.right")
+                    documentPageTarget("السابق في المستند", symbol: "chevron.backward")
                 }.disabled(workspace.page <= 1).accessibilityIdentifier("previousDocumentPage")
                 TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center).font(.body.monospacedDigit()).frame(width: pageFieldWidth).frame(minHeight: 44).textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
                 Text("من \(workspace.document.pageCount)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail).fixedSize()
                 Button { pageFocused = false; workspace.jump(Int(pageNumber) ?? 0) } label: {
-                    Text("اذهب").font(.subheadline.weight(.medium))
-                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-                }.accessibilityIdentifier("goToPage")
+                    Group {
+                        if typeSize.isAccessibilitySize { Image(systemName: "arrow.turn.down.left").font(.system(size: TayyaMetrics.icon)) }
+                        else { Text(TayyaLocalized("اذهب")).font(.subheadline.weight(.medium)) }
+                    }.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }.accessibilityLabel(TayyaLocalized("اذهب")).accessibilityIdentifier("goToPage")
                 Button { workspace.jump(workspace.page + 1) } label: {
-                    documentPageTarget("التالي في المستند", symbol: "chevron.left")
+                    documentPageTarget("التالي في المستند", symbol: "chevron.forward")
                 }.disabled(workspace.page >= workspace.document.pageCount).accessibilityIdentifier("nextDocumentPage")
                 Spacer(minLength: 4)
                 Image(systemName: "record.circle.fill").foregroundStyle(.red)
@@ -653,7 +681,8 @@ struct DocumentScreen: View {
         }.background(TayyaTheme.mutedSurface).foregroundStyle(TayyaTheme.ink)
     }
     private func documentPageTarget(_ title: String, symbol: String) -> some View {
-        Label(title, systemImage: symbol).labelStyle(.iconOnly)
+        Label(TayyaLocalized(title), systemImage: symbol).labelStyle(.iconOnly)
+            .font(.system(size: TayyaMetrics.icon))
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
 }
@@ -1099,7 +1128,7 @@ struct NativePDF: UIViewRepresentable {
             appliedBrush = workspace.brush; appliedColor = workspace.inkColor; appliedWidth = workspace.inkWidth
             guard enabled != value else { return }; enabled = value
             for canvas in canvases.values {
-                canvas.isUserInteractionEnabled = value
+                canvas.isUserInteractionEnabled = value && workspace.canWriteInk(on: canvas.tag)
                 if !value { canvas.resignFirstResponder() }
             }
             if value { activateCurrentCanvas() }
@@ -1122,9 +1151,10 @@ struct NativePDF: UIViewRepresentable {
             canvas.isAccessibilityElement = true
             canvas.accessibilityLabel = "مساحة القلم، عدد الخطوط"
             canvas.tool = workspace.brush.tool(color: UIColor(workspace.inkColor), width: workspace.inkWidth)
-            if let data = try? Data(contentsOf: workspace.storage.appendingPathComponent("\(index).drawing")), let ink = try? PKDrawing(data: data) {
-                canvas.drawing = ink; lastSavedInk[index] = data
-            }
+            do {
+                let ink = try workspace.loadDrawing(on: index)
+                canvas.drawing = ink; lastSavedInk[index] = ink.dataRepresentation()
+            } catch { canvas.isUserInteractionEnabled = false }
             canvas.delegate = self
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             canvas.enableLasso(workspace.tool == .lasso)
@@ -1189,7 +1219,7 @@ struct NativePDF: UIViewRepresentable {
         }
         private func persistInk(_ canvas: PKCanvasView) {
             do {
-                try workspace.requireWritable()
+                try workspace.requireWritableInk(on: canvas.tag)
                 let data = canvas.drawing.dataRepresentation()
                 guard lastSavedInk[canvas.tag] != data else { return }
                 workspace.saveState = .saving

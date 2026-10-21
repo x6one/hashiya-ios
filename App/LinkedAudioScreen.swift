@@ -126,7 +126,7 @@ private struct LinkedAudioCard: View {
             Text(metadata.created, format: .dateTime.year().month().day().hour().minute())
                 .font(.caption).foregroundStyle(TayyaTheme.detail)
             HStack {
-                Text(audioTime(metadata.duration)).monospacedDigit()
+                Text(audioTime(metadata.duration)).monospacedDigit().accessibilityIdentifier("linkedRecordingDuration")
                 if let page = metadata.startPage { Text(String(format: TayyaLocalized("صفحة %d"), page)) }
                 if metadata.sourceDeleted == true { Text(TayyaLocalized("الصفحة المصدر محذوفة؛ التسجيل محفوظ")) }
             }.font(.caption).foregroundStyle(TayyaTheme.detail)

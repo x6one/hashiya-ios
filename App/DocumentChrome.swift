@@ -19,8 +19,13 @@ struct DocumentChrome: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.verticalSizeClass) private var verticalClass
     @State private var selectingPDFText = false
+    @State private var lastNotesBrush: InkBrush = .pen
 
     private var editsNotes: Bool { target == .notes && notesVisible }
+    private var saveState: PDFWorkspace.SaveState {
+        if workspace.saveState == .failed || margins.error != nil || !margins.saved { return .failed }
+        return workspace.saveState
+    }
     private var tool: PDFWorkspace.Tool {
         if editsNotes { return editor.handwriting ? (editor.brush == .selection ? .lasso : .ink) : .text }
         return selectingPDFText ? .lasso : workspace.tool
@@ -41,12 +46,12 @@ struct DocumentChrome: View {
                         .accessibilityValue(editsNotes ? "notes" : "document")
                 }
                 contextualRail
-                Image(systemName: workspace.saveState == .failed || !margins.saved ? "exclamationmark.circle" : workspace.saveState == .saving ? "arrow.triangle.2.circlepath" : "checkmark.circle")
+                Image(systemName: saveState == .failed ? "exclamationmark.circle" : saveState == .saving ? "arrow.triangle.2.circlepath" : "checkmark.circle")
                     .font(.system(size: 13))
-                    .foregroundStyle(workspace.saveState == .failed || !margins.saved ? TayyaTheme.destructive : TayyaTheme.detail)
+                    .foregroundStyle(saveState == .failed ? TayyaTheme.destructive : TayyaTheme.detail)
                     .frame(width: 24, height: TayyaMetrics.touch)
-                    .accessibilityLabel(workspace.saveState == .failed || !margins.saved ? "لم يُحفظ" : workspace.saveState == .saving ? "جارٍ الحفظ" : "محفوظ على الجهاز")
-                    .accessibilityValue(workspace.saveState == .failed || !margins.saved ? "failed" : workspace.saveState.rawValue)
+                    .accessibilityLabel(TayyaLocalized(saveState == .failed ? "لم يُحفظ" : saveState == .saving ? "جارٍ الحفظ" : "محفوظ على الجهاز"))
+                    .accessibilityValue(saveState.rawValue)
                     .accessibilityIdentifier("saveStatus")
             }
             .frame(height: TayyaMetrics.touch)
@@ -59,7 +64,7 @@ struct DocumentChrome: View {
                         dismissPageKeyboard(); selectingPDFText = false
                         if editsNotes {
                             editor.handwriting = true; editor.drawing = true
-                            if editor.brush == .selection { editor.brush = .pen }
+                            if editor.brush == .selection { editor.brush = lastNotesBrush }
                         } else { workspace.tool = workspace.tool == .ink ? .read : .ink }
                     }.accessibilityIdentifier("inkTool").accessibilityValue(String(workspace.inkStrokeCount))
                     coreButton("نص", symbol: "textformat", selected: tool == .text) {
@@ -69,7 +74,10 @@ struct DocumentChrome: View {
                     }.accessibilityIdentifier("textTool")
                     coreButton("تحديد", symbol: "lasso", selected: tool == .lasso) {
                         dismissPageKeyboard(); selectingPDFText = false
-                        if editsNotes { editor.handwriting = true; editor.drawing = true; editor.brush = .selection }
+                        if editsNotes {
+                            if editor.brush != .selection { lastNotesBrush = editor.brush }
+                            editor.handwriting = true; editor.drawing = true; editor.brush = .selection
+                        }
                         else { workspace.tool = .lasso }
                     }.accessibilityIdentifier("selectTool")
                     coreButton("الملاحظات", symbol: "note.text", selected: notesVisible, action: chooseNotes)
@@ -99,21 +107,19 @@ struct DocumentChrome: View {
         case .text:
             TayyaToolbar {
                 if editsNotes {
-                    Text("اكتب في الملاحظات. تُحفظ تغييراتك على الجهاز.")
-                        .font(.caption).fixedSize(horizontal: true, vertical: false)
+                    WorkspaceToolHint(text: "اكتب في الملاحظات. تُحفظ تغييراتك على الجهاز.")
                 } else {
                     TayyaIconButton(title: "تنسيق النص", symbol: "textformat.size") {
                         workspace.editing = workspace.texts.first { $0.page == workspace.page - 1 }
                             ?? PageText(page: workspace.page - 1, x: 40, y: 80)
                     }.accessibilityIdentifier("editText")
-                    Text("المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله.")
-                        .font(.caption).fixedSize(horizontal: true, vertical: false)
+                    WorkspaceToolHint(text: "المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله.")
                 }
             }
         case .lasso:
             TayyaToolbar {
                 if editsNotes {
-                    Text("حدّد الكتابة بالقلم لتحريكها أو نسخها.").font(.caption).fixedSize()
+                    WorkspaceToolHint(text: "حدّد الكتابة بالقلم لتحريكها أو نسخها.")
                     TayyaIconButton(title: "تراجع", symbol: "arrow.uturn.backward") { notesControl.action("undo") }
                     TayyaIconButton(title: "إعادة", symbol: "arrow.uturn.forward") { notesControl.action("redo") }
                 } else {
@@ -131,24 +137,47 @@ struct DocumentChrome: View {
                         TayyaIconButton(title: "نسخ", symbol: "doc.on.doc") { UIPasteboard.general.string = workspace.view?.currentSelection?.string }
                         TayyaIconButton(title: "إلغاء التحديد", symbol: "xmark") { workspace.view?.currentSelection = nil }
                     } else {
-                        ForEach([("يسار", "left"), ("يمين", "right"), ("أعلى", "up"), ("أسفل", "down"), ("تكبير", "grow"), ("تصغير", "shrink"), ("نسخ", "copy"), ("لصق", "paste")], id: \.1) { title, action in
-                            Button(title) { workspace.inkAction?(action) }
-                                .font(.caption).fixedSize().frame(minWidth: 44, minHeight: 44)
+                        ForEach([("يسار", "left", "arrow.left"), ("يمين", "right", "arrow.right"), ("أعلى", "up", "arrow.up"), ("أسفل", "down", "arrow.down"), ("تكبير", "grow", "arrow.up.left.and.arrow.down.right"), ("تصغير", "shrink", "arrow.down.right.and.arrow.up.left"), ("نسخ", "copy", "doc.on.doc"), ("لصق", "paste", "doc.on.clipboard")], id: \.1) { title, action, symbol in
+                            TayyaIconButton(title: title, symbol: symbol) { workspace.inkAction?(action) }
+                                .accessibilityIdentifier("selectionAction-" + action)
                         }
                     }
                 }
             }
         case .read:
-            HStack {
-                Image(systemName: "book").accessibilityHidden(true)
-                Text("اختر أداة للكتابة أو واصل القراءة").font(.caption)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }.foregroundStyle(TayyaTheme.detail).padding(.horizontal, TayyaMetrics.inset)
+            WorkspaceToolHint(text: "اختر أداة للكتابة أو واصل القراءة")
+                .padding(.horizontal, TayyaMetrics.inset)
         }
     }
 
     private func coreButton(_ title: String, symbol: String, selected: Bool, action: @escaping () -> Void) -> some View {
         WorkspaceAction(title: title, symbol: symbol, selected: selected, action: action)
+    }
+}
+
+/// Large reading fonts belong in a readable panel, outside the fixed tool rail.
+private struct WorkspaceToolHint: View {
+    let text: String
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var showing = false
+    var body: some View {
+        Button { showing = true } label: {
+            HStack(spacing: TayyaMetrics.compact) {
+                Image(systemName: "info.circle").font(.system(size: TayyaMetrics.icon))
+                    .frame(width: TayyaMetrics.touch, height: TayyaMetrics.touch)
+                if !typeSize.isAccessibilitySize {
+                    Text(TayyaLocalized(text)).font(.caption).lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }.foregroundStyle(TayyaTheme.detail)
+        }.buttonStyle(.plain).frame(minWidth: TayyaMetrics.touch, minHeight: TayyaMetrics.touch)
+            .accessibilityLabel(TayyaLocalized(text)).accessibilityIdentifier("workspaceToolHelp")
+            .sheet(isPresented: $showing) {
+                NavigationStack {
+                    ScrollView { Text(TayyaLocalized(text)).font(.body).frame(maxWidth: .infinity, alignment: .leading).padding(TayyaMetrics.section) }
+                        .background(TayyaTheme.paper).navigationTitle(TayyaLocalized("أدوات الدراسة"))
+                        .toolbar { Button(TayyaLocalized("تم")) { showing = false }.frame(minWidth: 44, minHeight: 44) }
+                }.presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+            }
     }
 }

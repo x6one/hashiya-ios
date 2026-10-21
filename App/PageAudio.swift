@@ -168,10 +168,10 @@ import AVFoundation
         if wasUsingAudioSession { deactivateAudioSession() }
         reload()
     }
-    func play(_ url: URL, at time: TimeInterval = 0) {
+    func play(_ url: URL, at time: TimeInterval = 0, restart: Bool = false) {
         guard !recording, !requestingPermission,
               playbackPeer?.recording != true, playbackPeer?.requestingPermission != true else { return }
-        if playing == url && time == 0 {
+        if playing == url && time == 0 && !restart {
             stopPlayback()
             return
         }
@@ -185,6 +185,7 @@ import AVFoundation
             let next = try AVAudioPlayer(contentsOf: url)
             next.delegate = self
             next.enableRate = true; next.rate = playbackRate
+            guard next.prepareToPlay() else { throw CocoaError(.fileReadUnknown) }
             next.currentTime = min(max(0, next.duration - 0.01), max(0, time))
             guard next.play() else { throw CocoaError(.fileReadUnknown) }
             player = next
@@ -212,9 +213,20 @@ import AVFoundation
         guard seconds.isFinite, let player else { return }
         let before = player.currentTime
         let target = min(max(0, player.duration - 0.01), max(0, before + seconds))
-        player.currentTime = target
+        if paused, let clip = playing {
+            // A paused AAC decoder can ignore currentTime assignments (native
+            // regression: target3.99, actual0 even after2s). Prepare a new real
+            // decoder without starting sound; preserve pause, URL and speed.
+            do {
+                let next = try AVAudioPlayer(contentsOf: clip)
+                next.delegate = self; next.enableRate = true; next.rate = playbackRate
+                guard next.prepareToPlay() else { throw CocoaError(.fileReadUnknown) }
+                next.currentTime = target
+                player.stop(); self.player = next
+            } catch { self.error = error.localizedDescription; return }
+        } else { player.currentTime = target }
         #if DEBUG
-        print("AudioSeek before=\(before) target=\(target) actual=\(player.currentTime) duration=\(player.duration) paused=\(paused) isPlaying=\(player.isPlaying)")
+        print("AudioSeek before=\(before) target=\(target) actual=\(self.player?.currentTime ?? -1) duration=\(player.duration) paused=\(paused) isPlaying=\(self.player?.isPlaying ?? false)")
         #endif
         samplePlayback()
     }
@@ -237,7 +249,10 @@ import AVFoundation
         guard let recorder else { recording = false; return }
         let duration = recorder.currentTime, clip = recorder.url
         recorder.stop(); self.recorder = nil; recording = false
-        do { try saveRecordingMetadata(clip, duration: duration, startPage: recordingPage, pageID: recordingPageID) }
+        // An interrupted recorder may already report zero. Read the finalized
+        // real media duration; never replace an interrupted clip with a fake one.
+        let encodedDuration = (try? AVAudioPlayer(contentsOf: clip).duration) ?? 0
+        do { try saveRecordingMetadata(clip, duration: max(duration, encodedDuration), startPage: recordingPage, pageID: recordingPageID) }
         catch { self.error = error.localizedDescription }
     }
     private func deactivateAudioSession() {

@@ -85,4 +85,22 @@ final class StudioAudioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["forwardLinkedRecording"].exists)
         XCTAssertTrue(app.buttons["shareLinkedRecording"].firstMatch.exists)
     }
+
+    func testBackgroundSavesRealRecordingAndReturningKeepsItPlayable() {
+        let app = openDocument()
+        startRecording(app)
+        let recorded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.seconds(app) >= 2 }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [recorded], timeout: 5), .completed)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.buttons["recordLinkedAudio"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons["recordLinkedAudio"].value as? String, "متوقف")
+        app.buttons["recordingDetails"].tap()
+        let duration = app.staticTexts["linkedRecordingDuration"].firstMatch
+        XCTAssertTrue(duration.waitForExistence(timeout: 5))
+        let seconds = duration.label.split(separator: ":").compactMap { Int($0) }.reduce(0) { $0 * 60 + $1 }
+        XCTAssertGreaterThanOrEqual(seconds, 2, "Background stop must retain the real encoded M4A duration")
+        app.buttons["playLinkedRecording"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["pauseLinkedRecording"].waitForExistence(timeout: 5), "The saved real media must remain decodable after returning")
+    }
 }

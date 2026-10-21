@@ -18,6 +18,8 @@ final class StudioInkSafetyTests: XCTestCase {
         let coordinator = NativePDF.Coordinator(workspace: workspace)
         let canvas = try XCTUnwrap(coordinator.pdfView(PDFView(), overlayViewFor: try XCTUnwrap(workspace.document.page(at: 0))) as? LassoCanvas)
         XCTAssertFalse(canvas.isUserInteractionEnabled)
+        coordinator.setDrawing(true)
+        XCTAssertFalse(canvas.isUserInteractionEnabled, "Choosing Pen cannot re-enable an unreadable original drawing")
         coordinator.canvasViewDrawingDidChange(canvas)
         XCTAssertEqual(try Data(contentsOf: url), broken)
         workspace.export()

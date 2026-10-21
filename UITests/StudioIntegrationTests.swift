@@ -92,6 +92,25 @@ final class StudioIntegrationTests: XCTestCase {
         keepScreenshot("Integrated-Editor-English")
     }
 
+    func testAccessibilitySecondaryChromeStaysInsideItsReservedArea() {
+        let app = openRealDocument(arguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let rail = app.otherElements["studioContextRail"]
+        XCTAssertTrue(rail.waitForExistence(timeout: 5))
+        XCTAssertEqual(rail.frame.height, 44, accuracy: 1)
+        for label in rail.staticTexts.allElementsBoundByIndex where label.exists {
+            XCTAssertGreaterThanOrEqual(label.frame.minY, rail.frame.minY - 1, "Secondary instructions must not overlap the PDF")
+            XCTAssertLessThanOrEqual(label.frame.maxY, rail.frame.maxY + 1)
+        }
+        for name in ["nextDocumentPage", "previousDocumentPage", "fitDocumentPage"] {
+            XCTAssertLessThanOrEqual(app.buttons[name].frame.height, 64, "SF glyphs keep their visual size; full VoiceOver labels remain")
+        }
+        let help = app.buttons["workspaceToolHelp"]
+        XCTAssertTrue(help.isHittable, "Full instructions remain reachable in a clear panel at accessibility sizes")
+        help.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "اختر أداة")).firstMatch.exists)
+        keepScreenshot("Integrated-Accessibility-Tool-Help")
+    }
+
     private func keepScreenshot(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name

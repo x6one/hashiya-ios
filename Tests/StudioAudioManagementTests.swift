@@ -1,5 +1,6 @@
 import XCTest
 import AVFoundation
+import Combine
 @testable import Hashiya
 
 final class StudioAudioManagementTests: XCTestCase {
@@ -44,7 +45,7 @@ final class StudioAudioManagementTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: clip), original)
         XCTAssertEqual(try Data(contentsOf: audio.metadataURL), broken)
     }
-    @MainActor func testRealPlaybackPauseSeekRateAndPeerHandoffPreserveMedia() throws {
+    @MainActor func testRealPlaybackPauseSeekRateAndPeerHandoffPreserveMedia() async throws {
         let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
         let clip = root.appendingPathComponent("playback.m4a")
         try m4a(at: clip)
@@ -58,6 +59,10 @@ final class StudioAudioManagementTests: XCTestCase {
         XCTAssertTrue(audio.paused)
         XCTAssertEqual(audio.playing, clip, "Pause retains the same player and position")
         audio.skipPlayback(by: 10)
+        let seeked = expectation(description: "real AAC player reports its requested paused seek")
+        let observation = audio.playbackActivity.$time.filter { $0 > 3 }.prefix(1).sink { _ in seeked.fulfill() }
+        await fulfillment(of: [seeked], timeout: 2)
+        observation.cancel()
         XCTAssertGreaterThan(audio.playbackActivity.time, 3)
         audio.skipPlayback(by: -10)
         XCTAssertEqual(audio.playbackActivity.time, 0, accuracy: 0.05)
@@ -74,6 +79,17 @@ final class StudioAudioManagementTests: XCTestCase {
         XCTAssertNil(audio.playing)
         XCTAssertEqual(peer.playing, clip)
         XCTAssertEqual(try Data(contentsOf: clip), original)
+    }
+    @MainActor func testMarkerAtZeroRestartsAnAlreadyPlayingRecording() throws {
+        let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }
+        let clip = root.appendingPathComponent("start.m4a")
+        try m4a(at: clip)
+        let audio = PageAudio(folder: root)
+        defer { audio.stop() }
+        audio.play(clip)
+        XCTAssertEqual(audio.playing, clip)
+        audio.seek(AudioLink(clip: clip.lastPathComponent, time: 0, page: 1, label: "Start"))
+        XCTAssertEqual(audio.playing, clip, "A timestamp at zero is a seek, independently of the whole-clip stop toggle")
     }
     func testPendingAppendRecoversBothCrashStatesWithoutChangingExistingPageIDs() throws {
         let root = try directory(); defer { try? FileManager.default.removeItem(at: root) }

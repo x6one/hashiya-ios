@@ -50,6 +50,7 @@ struct DocumentChrome: View {
                     .accessibilityIdentifier("saveStatus")
             }
             .frame(height: TayyaMetrics.touch)
+            .accessibilityElement(children: .contain).accessibilityIdentifier("studioContextRail")
             .background(TayyaTheme.surface)
             .overlay(alignment: .top) { TayyaTheme.separator.frame(height: 0.5) }
             ScrollView(.horizontal, showsIndicators: false) {

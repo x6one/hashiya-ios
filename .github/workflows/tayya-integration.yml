@@ -71,6 +71,9 @@ jobs:
               'language': ['HashiyaUITests/StudioIntegrationTests/testEnglishCoreToolsUseEnglishNamesAndKeepRealNotesData'],
               'data-safety': ['HashiyaTests/StudioDataCompatibilityTests/testUnreadableTextCannotBeReplacedBySavingNewAnnotation', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadableCardsCannotBeReplacedBySavingNewCard', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadableLibraryCannotBeReplacedByCreatingNotebook', 'HashiyaTests/StudioDataCompatibilityTests/testUnreadablePDFCannotBeReplacedByAppendingPaper'],
               'audio-controls': ['HashiyaUITests/StudioAudioUITests'],
+              'audio-seek': ['HashiyaTests/StudioAudioManagementTests/testRealPlaybackPauseSeekRateAndPeerHandoffPreserveMedia', 'HashiyaTests/StudioAudioManagementTests/testMarkerAtZeroRestartsAnAlreadyPlayingRecording'],
+              'chrome': ['HashiyaUITests/StudioIntegrationTests/testAccessibilitySecondaryChromeStaysInsideItsReservedArea'],
+              'ink-safety': ['HashiyaTests/StudioInkSafetyTests'],
               'all': ['HashiyaTests', 'HashiyaUITests/StudioIntegrationTests']
           }
           selected = []

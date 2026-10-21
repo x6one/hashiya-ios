@@ -210,7 +210,12 @@ import AVFoundation
     }
     func skipPlayback(by seconds: TimeInterval) {
         guard seconds.isFinite, let player else { return }
-        player.currentTime = min(max(0, player.duration - 0.01), max(0, player.currentTime + seconds))
+        let before = player.currentTime
+        let target = min(max(0, player.duration - 0.01), max(0, before + seconds))
+        player.currentTime = target
+        #if DEBUG
+        print("AudioSeek before=\(before) target=\(target) actual=\(player.currentTime) duration=\(player.duration) paused=\(paused) isPlaying=\(player.isPlaying)")
+        #endif
         samplePlayback()
     }
     private func startPlaybackActivity() {

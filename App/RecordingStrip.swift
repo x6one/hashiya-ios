@@ -23,7 +23,7 @@ struct RecordingStrip: View {
             Button(action: action) {
                 Image(systemName: audio.recording ? "stop.circle.fill" : "mic")
                     .font(.system(size: TayyaMetrics.icon))
-                    .frame(width: TayyaMetrics.touch, height: TayyaMetrics.touch)
+                    .frame(width: TayyaMetrics.touch, height: TayyaMetrics.touch).contentShape(Rectangle())
                     .foregroundStyle(audio.recording ? TayyaTheme.destructive : TayyaTheme.ink)
             }.buttonStyle(.plain).disabled(audio.requestingPermission)
                 .accessibilityLabel(TayyaLocalized(audio.recording ? "إيقاف" : "تسجيل"))

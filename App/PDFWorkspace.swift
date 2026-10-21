@@ -428,7 +428,7 @@ struct DocumentScreen: View {
             let notesHeight = split && !horizontal ? max(1, size.height - documentHeight - 16) : size.height
             ZStack(alignment: .topLeading) {
                 // Exactly one retained native host through tools, Focus and Notes.
-                NativePDF(workspace: workspace)
+                NativePDF(workspace: workspace, presented: !expanded)
                     .frame(width: documentWidth, height: documentHeight)
                     .position(x: documentWidth / 2, y: documentHeight / 2)
                     .opacity(expanded ? 0 : 1).allowsHitTesting(!expanded).accessibilityHidden(expanded)
@@ -1116,9 +1116,12 @@ final class ResizingPDFView: PDFView {
 }
 struct NativePDF: UIViewRepresentable {
     @ObservedObject var workspace: PDFWorkspace
+    var presented = true
     func makeCoordinator() -> Coordinator { Coordinator(workspace: workspace) }
     func makeUIView(context: Context) -> PDFView {
         let view = ResizingPDFView()
+        view.isHidden = !presented
+        view.accessibilityElementsHidden = !presented
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") || ProcessInfo.processInfo.arguments.contains("--test-native-menu") {
             view.diagnosticInkCoordinator = context.coordinator
@@ -1147,6 +1150,12 @@ struct NativePDF: UIViewRepresentable {
         return view
     }
     func updateUIView(_ view: PDFView, context: Context) {
+        // SwiftUI opacity/accessibilityHidden does not hide PDFKit's native AX
+        // subtree. Hide the retained UIKit host too; never remove its document,
+        // overlay coordinator, ink or reading position to expand Notes.
+        let hidden = !presented
+        if view.isHidden != hidden { view.isHidden = hidden }
+        view.accessibilityElementsHidden = hidden
         if view.document !== workspace.document {
             for canvas in context.coordinator.canvases.values { canvas.delegate = nil; canvas.resignFirstResponder() }
             context.coordinator.canvases.removeAll(); context.coordinator.lastStrokeCounts.removeAll()

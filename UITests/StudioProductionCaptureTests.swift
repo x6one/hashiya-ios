@@ -33,29 +33,33 @@ final class StudioProductionCaptureTests: XCTestCase {
     }
     private func assertAccessibleNavigation(_ app: XCUIApplication) {
         let window = app.windows.firstMatch.frame
+        let pdfFrame = app.otherElements["pdfCanvas"].frame
         var targets = [app.textFields["pageNumber"]]
         targets += ["previousDocumentPage", "nextDocumentPage", "goToPage", "fitDocumentPage", "recordLinkedAudio", "recordingDetails"].map { app.buttons[$0] }
         for target in targets {
             XCTAssertTrue(target.exists)
-            print("NativeNavigation target=\(target.identifier) frame=\(target.frame) window=\(window)")
-            XCTAssertGreaterThanOrEqual(target.frame.width, 44)
-            XCTAssertGreaterThanOrEqual(target.frame.height, 44)
-            XCTAssertGreaterThanOrEqual(target.frame.minX, window.minX - 0.5, "Core navigation must not begin outside the display")
-            XCTAssertLessThanOrEqual(target.frame.maxX, window.maxX + 0.5, "Core navigation must not end outside the display")
-            XCTAssertGreaterThanOrEqual(target.frame.minY, window.minY)
-            XCTAssertLessThanOrEqual(target.frame.maxY, app.otherElements["pdfCanvas"].frame.minY + 0.5,
+            let frame = target.frame
+            print("NativeNavigation target=\(target.identifier) frame=\(frame) window=\(window)")
+            XCTAssertGreaterThanOrEqual(frame.width, 44)
+            XCTAssertGreaterThanOrEqual(frame.height, 44)
+            XCTAssertGreaterThanOrEqual(frame.minX, window.minX - 0.5, "Core navigation must not begin outside the display")
+            XCTAssertLessThanOrEqual(frame.maxX, window.maxX + 0.5, "Core navigation must not end outside the display")
+            XCTAssertGreaterThanOrEqual(frame.minY, window.minY)
+            XCTAssertLessThanOrEqual(frame.maxY, pdfFrame.minY + 0.5,
                                      "Navigation must occupy its own area above the PDF")
             if target.isEnabled { XCTAssertTrue(target.isHittable) }
         }
         let total = app.staticTexts["documentPageCount"]
         XCTAssertTrue(total.exists)
-        XCTAssertGreaterThanOrEqual(total.frame.minX, window.minX)
-        XCTAssertLessThanOrEqual(total.frame.maxX, window.maxX)
+        let totalFrame = total.frame
+        XCTAssertGreaterThanOrEqual(totalFrame.minX, window.minX)
+        XCTAssertLessThanOrEqual(totalFrame.maxX, window.maxX)
         let readout = app.staticTexts["recordingElapsed"]
         XCTAssertTrue(readout.exists)
-        XCTAssertGreaterThanOrEqual(readout.frame.minX, window.minX)
-        XCTAssertLessThanOrEqual(readout.frame.maxX, window.maxX)
-        XCTAssertGreaterThan(app.otherElements["pdfCanvas"].frame.height, window.height > window.width ? window.height / 3 : 60)
+        let readoutFrame = readout.frame
+        XCTAssertGreaterThanOrEqual(readoutFrame.minX, window.minX)
+        XCTAssertLessThanOrEqual(readoutFrame.maxX, window.maxX)
+        XCTAssertGreaterThan(pdfFrame.height, window.height > window.width ? window.height / 3 : 60)
     }
     private func exerciseAccessiblePageNavigation(_ app: XCUIApplication) {
         assertAccessibleNavigation(app)

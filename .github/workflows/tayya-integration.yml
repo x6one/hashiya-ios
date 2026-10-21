@@ -63,6 +63,7 @@ jobs:
           requested = os.environ.get('REQUESTED_SUITE')
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
+              'navigation-safety': ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations', 'HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
               'navigation': ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations', 'HashiyaTests/DocumentViewportTests', 'HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney'],
               'capture-repair': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLandscapeProductionSplitAndInk', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'],
               'captures': ['HashiyaUITests/StudioProductionCaptureTests'],

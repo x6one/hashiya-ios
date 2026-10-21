@@ -19,6 +19,15 @@ final class MarginCanvas: PKCanvasView {
             }
             let nativeTool = tool as? PKInkingTool
             let lastInk = drawing.strokes.last?.ink
+            if !ProcessInfo.processInfo.arguments.contains("--test-margin-details") {
+                func legacyDescription(_ view: UIView, depth: Int) -> String {
+                    let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden)"
+                    return own + (depth > 0 ? view.subviews.map { legacyDescription($0, depth: depth - 1) }.joined(separator: " | ") : "")
+                }
+                // Match the original failing705 diagnostics exactly. Extra
+                // observation must not silently become a rendering workaround.
+                return label + "; nativeTool=\(nativeTool?.inkType.rawValue ?? "none") color=\(String(describing: nativeTool?.color)) lastStrokeColor=\(String(describing: lastInk?.color)); zoom=\(zoomScale) content=\(contentSize) offset=\(contentOffset) inset=\(contentInset) ink=\(drawing.bounds) sheet=\(sheetSize) views=" + subviews.map { legacyDescription($0, depth: 2) }.joined(separator: " | ")
+            }
             let strokeDetails = drawing.strokes.last.map { stroke -> String in
                 let path = stroke.path
                 let indices = path.count == 0 ? [] : Array(Set([0, path.count / 2, path.count - 1])).sorted()

@@ -1295,7 +1295,7 @@ final class LaunchTests: XCTestCase {
             let elementEvidence = XCTAttachment(screenshot: canvas.screenshot())
             elementEvidence.name = name + "-RedPixelFailureElement"; elementEvidence.lifetime = .keepAlways; add(elementEvidence)
             XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke")
-            if app.launchArguments.contains("--test-margin-viewport"), canvas.identifier == "marginInkCanvas" {
+            if app.launchArguments.contains("--test-margin-details"), canvas.identifier == "marginInkCanvas" {
                 // Preserve the original failure. Subsequent real user actions
                 // distinguish a stale first-stroke render from lost ink data.
                 let native = XCTAttachment(string: app.segmentedControls["marginMode"].label)
@@ -1480,7 +1480,8 @@ final class LaunchTests: XCTestCase {
         }
     }
 
-    private func verifyIndividualInkTargets(accessibilityType: Bool, paletteTransitions: Int = 1) {
+    private func verifyIndividualInkTargets(accessibilityType: Bool, paletteTransitions: Int = 1,
+                                            detailedDiagnostics: Bool = false) {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         defer {
@@ -1495,6 +1496,7 @@ final class LaunchTests: XCTestCase {
         }
         app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
             + (accessibilityType ? ["--test-accessibility-type"] : [])
+            + (detailedDiagnostics ? ["--test-margin-details"] : [])
         app.launch()
         let demo = app.buttons["welcomeDemonstration"]
         guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }
@@ -1559,7 +1561,7 @@ final class LaunchTests: XCTestCase {
 
     func testNotesPencilRemainsVisibleAfterRepeatedNativePaletteDismissals() {
         executionTimeAllowance = 360
-        verifyIndividualInkTargets(accessibilityType: true, paletteTransitions: 3)
+        verifyIndividualInkTargets(accessibilityType: true, paletteTransitions: 3, detailedDiagnostics: true)
     }
 
     func testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening() {

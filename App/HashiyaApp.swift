@@ -10,6 +10,7 @@ import ZIPFoundation
     @StateObject private var library: LibraryStore
     init() {
         #if DEBUG
+        NativeInkInspection.runIfRequested()
         // Maestro supplies named arguments directly; XCTest launch defaults
         // can also expose them through the UserDefaults argument domain.
         let maestroTesting = ProcessInfo.processInfo.arguments.contains("maestroTesting")

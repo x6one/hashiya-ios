@@ -832,7 +832,7 @@ final class ResizingPDFView: PDFView {
                   let coordinator = diagnosticInkCoordinator else { return super.accessibilityValue }
             let workspace = coordinator.workspace
             let canvas = coordinator.canvases[workspace.page - 1]
-            return "model=\(workspace.brush.rawValue)/\(workspace.inkWidth); native=\(String(describing: canvas?.tool)); events=\(NativeToolActionTrace.events.joined(separator: " | "))"
+            return "hidden=\(isHidden); axHidden=\(accessibilityElementsHidden); element=\(isAccessibilityElement); alpha=\(alpha); frame=\(frame); owner=\(String(describing: superview.map { type(of: $0) })); model=\(workspace.brush.rawValue)/\(workspace.inkWidth); native=\(String(describing: canvas?.tool)); events=\(NativeToolActionTrace.events.joined(separator: " | "))"
         }
         set { super.accessibilityValue = newValue }
     }

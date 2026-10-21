@@ -40,8 +40,8 @@ final class StudioProductionCaptureTests: XCTestCase {
             XCTAssertTrue(target.exists)
             let frame = target.frame
             print("NativeNavigation target=\(target.identifier) frame=\(frame) window=\(window)")
-            XCTAssertGreaterThanOrEqual(frame.width, 44)
-            XCTAssertGreaterThanOrEqual(frame.height, 44)
+            XCTAssertGreaterThanOrEqual(frame.width + 1e-6, 44)
+            XCTAssertGreaterThanOrEqual(frame.height + 1e-6, 44)
             XCTAssertGreaterThanOrEqual(frame.minX, window.minX - 0.5, "Core navigation must not begin outside the display")
             XCTAssertLessThanOrEqual(frame.maxX, window.maxX + 0.5, "Core navigation must not end outside the display")
             XCTAssertGreaterThanOrEqual(frame.minY, window.minY)

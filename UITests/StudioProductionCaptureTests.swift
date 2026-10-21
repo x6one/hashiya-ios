@@ -31,6 +31,28 @@ final class StudioProductionCaptureTests: XCTestCase {
         app.buttons["openNotebook-Tayya Study"].tap()
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 10))
     }
+    private func assertAccessibleNavigation(_ app: XCUIApplication) {
+        let window = app.windows.firstMatch.frame
+        var targets = [app.textFields["pageNumber"]]
+        targets += ["previousDocumentPage", "nextDocumentPage", "goToPage", "fitDocumentPage", "recordLinkedAudio", "recordingDetails"].map { app.buttons[$0] }
+        for target in targets {
+            XCTAssertTrue(target.exists)
+            print("NativeNavigation target=\(target.identifier) frame=\(target.frame) window=\(window)")
+            XCTAssertGreaterThanOrEqual(target.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(target.frame.height, 44)
+            XCTAssertGreaterThanOrEqual(target.frame.minX, window.minX - 0.5, "Core navigation must not begin outside the display")
+            XCTAssertLessThanOrEqual(target.frame.maxX, window.maxX + 0.5, "Core navigation must not end outside the display")
+            XCTAssertGreaterThanOrEqual(target.frame.minY, window.minY)
+            XCTAssertLessThanOrEqual(target.frame.maxY, app.otherElements["pdfCanvas"].frame.minY + 0.5,
+                                     "Navigation must occupy its own area above the PDF")
+            if target.isEnabled { XCTAssertTrue(target.isHittable) }
+        }
+        let readout = app.staticTexts["recordingElapsed"]
+        XCTAssertTrue(readout.exists)
+        XCTAssertGreaterThanOrEqual(readout.frame.minX, window.minX)
+        XCTAssertLessThanOrEqual(readout.frame.maxX, window.maxX)
+        XCTAssertGreaterThan(app.otherElements["pdfCanvas"].frame.height, window.height > window.width ? window.height / 3 : 60)
+    }
     private func action(_ name: String, in app: XCUIApplication) {
         app.buttons["workspaceActions"].tap()
         tapCompletedNativeMenuItem(app.buttons[name])
@@ -180,6 +202,7 @@ final class StudioProductionCaptureTests: XCTestCase {
 
     private func snapshot(_ name: String, movingContent: Bool = false) {
         let app = XCUIApplication()
+        if name == "Editor" && arguments.contains("UICTContentSizeCategoryAccessibilityXXXL") { assertAccessibleNavigation(app) }
         let landscape = XCUIDevice.shared.orientation.isLandscape
         let oriented = NSPredicate { _, _ in
             let frame = app.windows.firstMatch.frame

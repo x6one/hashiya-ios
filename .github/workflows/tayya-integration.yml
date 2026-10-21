@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         # Language/storage RED contracts are platform-independent; qualify both at GREEN.
-        family: ${{ fromJSON(contains(github.event.head_commit.message, '[integration:preset-diagnosis]') && '["iPad"]' || (contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]') || contains(github.event.head_commit.message, '[integration:study-diagnosis]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[integration:preset-diagnosis]') && '["iPad"]' || (contains(github.event.head_commit.message, '[integration:navigation-red]') || contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]') || contains(github.event.head_commit.message, '[integration:study-diagnosis]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select existing app toolchain and generate production project
@@ -63,6 +63,7 @@ jobs:
           requested = os.environ.get('REQUESTED_SUITE')
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
+              'navigation': ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations', 'HashiyaTests/DocumentViewportTests'],
               'capture-repair': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLandscapeProductionSplitAndInk', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'],
               'captures': ['HashiyaUITests/StudioProductionCaptureTests'],
               'study-diagnosis': ['HashiyaTests/StudioThumbnailTests/testInsertionRemovalAndDamagedInkNeverReturnWrongPageOrBlankSuccess', 'HashiyaUITests/StudioEditorToolsTests/testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions'],
@@ -93,7 +94,7 @@ jobs:
               if suite not in selections:
                   raise SystemExit('Unknown focused suite: ' + suite)
               # RED runs isolate the new failing contracts, not adjacent green suites.
-              names = ['HashiyaUITests/StudioIntegrationTests'] if requested_suite == 'workspace-red' else ['HashiyaTests/StudioAudioIntegrationTests'] if requested_suite == 'audio-red' else selections[suite]
+              names = ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'] if requested_suite == 'navigation-red' else ['HashiyaUITests/StudioIntegrationTests'] if requested_suite == 'workspace-red' else ['HashiyaTests/StudioAudioIntegrationTests'] if requested_suite == 'audio-red' else selections[suite]
               selected += [name for name in names if name not in selected]
           if not selected:
               raise SystemExit('No production tests selected')

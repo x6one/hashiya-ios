@@ -516,35 +516,47 @@ struct DocumentScreen: View {
             }
 
     }
-    private var needsAccessibleNavigation: Bool {
-        typeSize.isAccessibilitySize && (UIDevice.current.userInterfaceIdiom == .phone || sizeClass != .regular)
-    }
     private var workspaceRecording: some View {
         RecordingStrip(audio: audio, compact: true, details: { showLinkedAudio = true }, action: toggleRecording)
     }
+    private var stackedAccessibleNavigation: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                previousPageControl
+                VStack(spacing: 0) {
+                    pageInput
+                    pageTotal.fixedSize(horizontal: false, vertical: true)
+                }.frame(minWidth: pageFieldWidth, maxWidth: .infinity)
+                goToPageControl
+                nextPageControl
+            }.buttonStyle(.plain).padding(.horizontal, 10)
+                .background(TayyaTheme.mutedSurface).foregroundStyle(TayyaTheme.ink)
+            // Only secondary actions scroll. The current page and both
+            // directions stay visible at the user's chosen font size.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    fitPageControl
+                    recordingIndicator
+                    workspaceRecording
+                }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink).padding(.horizontal, 10)
+            }.fixedSize(horizontal: false, vertical: true)
+        }
+    }
     private var workspaceNavigation: some View {
         Group {
-            if needsAccessibleNavigation {
-                VStack(spacing: 0) {
-                    HStack(spacing: 6) {
-                        previousPageControl
-                        VStack(spacing: 0) {
-                            pageInput
-                            pageTotal.fixedSize(horizontal: false, vertical: true)
-                        }.frame(minWidth: pageFieldWidth, maxWidth: .infinity)
-                        goToPageControl
-                        nextPageControl
-                    }.buttonStyle(.plain).padding(.horizontal, 10)
-                        .background(TayyaTheme.mutedSurface).foregroundStyle(TayyaTheme.ink)
-                    // Only secondary actions scroll. The current page and both
-                    // directions stay visible at the user's chosen font size.
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            fitPageControl
-                            recordingIndicator
-                            workspaceRecording
-                        }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink).padding(.horizontal, 10)
-                    }.fixedSize(horizontal: false, vertical: true)
+            if typeSize.isAccessibilitySize {
+                ViewThatFits(in: .horizontal) {
+                    // Measure the real, unscrolled controls. A ScrollView would
+                    // always claim to fit and could hide primary page actions.
+                    // Wide landscape needs one row to retain writing space.
+                    HStack(spacing: 0) {
+                        HStack(spacing: 0) {
+                            pageControlsContent.fixedSize(horizontal: true, vertical: true)
+                            Spacer(minLength: 0)
+                        }.background(TayyaTheme.mutedSurface)
+                        workspaceRecording.fixedSize(horizontal: true, vertical: true)
+                    }
+                    stackedAccessibleNavigation
                 }
             } else {
                 HStack(spacing: 0) {
@@ -755,19 +767,22 @@ struct DocumentScreen: View {
             .accessibilityLabel("جارٍ التسجيل").accessibilityHidden(!audio.recording)
             .accessibilityIdentifier("recordingIndicator")
     }
+    private var pageControlsContent: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            previousPageControl
+            pageInput
+            pageTotal.fixedSize()
+            goToPageControl
+            nextPageControl
+            Spacer(minLength: 4)
+            recordingIndicator
+            fitPageControl
+        }.buttonStyle(.plain).padding(.horizontal, 10).frame(minHeight: 44)
+            .foregroundStyle(TayyaTheme.ink)
+    }
     private var pageControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                previousPageControl
-                pageInput
-                pageTotal.fixedSize()
-                goToPageControl
-                nextPageControl
-                Spacer(minLength: 4)
-                recordingIndicator
-                fitPageControl
-            }.buttonStyle(.plain).padding(.horizontal, 10).frame(minHeight: 44)
-        }.background(TayyaTheme.mutedSurface).foregroundStyle(TayyaTheme.ink)
+        ScrollView(.horizontal, showsIndicators: false) { pageControlsContent }
+            .background(TayyaTheme.mutedSurface)
     }
     private func documentPageTarget(_ title: String, symbol: String) -> some View {
         Label(TayyaLocalized(title), systemImage: symbol).labelStyle(.iconOnly)
@@ -1114,12 +1129,31 @@ final class ResizingPDFView: PDFView {
         }
     }
 }
+/// SwiftUI owns the representable root's AX wrapper. Keep the identified native
+/// PDF as a retained child so hidden Notes presentations also hide its AX node.
+final class NativePDFHost: UIView {
+    let pdfView = ResizingPDFView()
+    override init(frame: CGRect) { super.init(frame: frame); installPDF() }
+    required init?(coder: NSCoder) { super.init(coder: coder); installPDF() }
+    private func installPDF() {
+        isAccessibilityElement = false
+        pdfView.frame = bounds
+        pdfView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(pdfView)
+    }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if pdfView.frame != bounds { pdfView.frame = bounds }
+    }
+}
+
 struct NativePDF: UIViewRepresentable {
     @ObservedObject var workspace: PDFWorkspace
     var presented = true
     func makeCoordinator() -> Coordinator { Coordinator(workspace: workspace) }
-    func makeUIView(context: Context) -> PDFView {
-        let view = ResizingPDFView()
+    func makeUIView(context: Context) -> NativePDFHost {
+        let host = NativePDFHost(frame: .zero)
+        let view = host.pdfView
         view.isHidden = !presented
         view.accessibilityElementsHidden = !presented
         #if DEBUG
@@ -1147,12 +1181,12 @@ struct NativePDF: UIViewRepresentable {
         if let target = workspace.document.page(at: workspace.page - 1) { view.navigate(to: target) }
         view.accessibilityIdentifier = "pdfCanvas"
         workspace.inkAction = { [weak coordinator = context.coordinator] action in coordinator?.applyInkAction(action) }
-        return view
+        return host
     }
-    func updateUIView(_ view: PDFView, context: Context) {
-        // SwiftUI opacity/accessibilityHidden does not hide PDFKit's native AX
-        // subtree. Hide the retained UIKit host too; never remove its document,
-        // overlay coordinator, ink or reading position to expand Notes.
+    func updateUIView(_ host: NativePDFHost, context: Context) {
+        let view = host.pdfView
+        // Hide only the native child, whose visibility is independent of the
+        // SwiftUI root's AX proxy. Retain its document, coordinator and ink.
         let hidden = !presented
         if view.isHidden != hidden { view.isHidden = hidden }
         view.accessibilityElementsHidden = hidden
@@ -1162,12 +1196,13 @@ struct NativePDF: UIViewRepresentable {
             context.coordinator.resetInkTracking()
             view.document = workspace.document
             if let page = workspace.document.page(at: workspace.page - 1) {
-                if let view = view as? ResizingPDFView { view.navigate(to: page) } else { view.go(to: page) }
+                view.navigate(to: page)
             }
         }
         context.coordinator.setDrawing(workspace.tool == .ink || workspace.tool == .lasso)
     }
-    static func dismantleUIView(_ view: PDFView, coordinator: Coordinator) {
+    static func dismantleUIView(_ host: NativePDFHost, coordinator: Coordinator) {
+        let view = host.pdfView
         coordinator.flushPendingInk()
         for canvas in coordinator.canvases.values { canvas.delegate = nil }
         view.pageOverlayViewProvider = nil

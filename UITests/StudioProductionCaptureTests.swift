@@ -317,5 +317,47 @@ final class StudioProductionCaptureTests: XCTestCase {
             let details = XCTAttachment(data: try JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys]), uniformTypeIdentifier: "public.json")
             details.name = "ProductionMetadata-" + suffix; details.lifetime = .keepAlways; add(details)
         } catch { XCTFail("Native screenshot metadata failed: \(error)") }
+        if landscape && (name == "Editor" || name == "Focus") {
+            assertClosedNotesDoNotPaintSafeAreas(screenshot.image, in: app)
+        }
+    }
+
+    private func assertClosedNotesDoNotPaintSafeAreas(_ screenshot: UIImage, in app: XCUIApplication) {
+        // A closed retained Notes pane must not draw controls outside the PDF
+        // viewport. iPad's real page sidebar deliberately occupies this area.
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        let window = app.windows.firstMatch.frame
+        let pdf = app.otherElements["pdfCanvas"].frame
+        XCTAssertGreaterThan(pdf.height, 60)
+        let format = UIGraphicsImageRendererFormat(); format.scale = screenshot.scale
+        let upright = UIGraphicsImageRenderer(size: screenshot.size, format: format).image { _ in
+            screenshot.draw(in: CGRect(origin: .zero, size: screenshot.size))
+        }
+        guard let image = upright.cgImage else { XCTFail("Read actual screenshot pixels"); return }
+        let scale = CGFloat(image.width) / screenshot.size.width
+        let gutters = [CGRect(x: window.minX, y: pdf.minY + 2, width: max(0, pdf.minX - window.minX - 2), height: pdf.height - 4),
+                       CGRect(x: pdf.maxX + 2, y: pdf.minY + 2, width: max(0, window.maxX - pdf.maxX - 2), height: pdf.height - 4)]
+        let dark = arguments.contains("--test-appearance-dark")
+        var painted = 0
+        for gutter in gutters where gutter.width > 1 {
+            let crop = CGRect(x: gutter.minX * scale, y: gutter.minY * scale,
+                              width: gutter.width * scale, height: gutter.height * scale)
+            guard let region = image.cropping(to: crop) else { XCTFail("Read the actual safe-area gutter"); return }
+            var pixels = [UInt8](repeating: 0, count: region.width * region.height * 4)
+            pixels.withUnsafeMutableBytes { bytes in
+                guard let context = CGContext(data: bytes.baseAddress, width: region.width, height: region.height,
+                    bitsPerComponent: 8, bytesPerRow: region.width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else {
+                    XCTFail("Decode the original gutter colors"); return
+                }
+                context.draw(region, in: CGRect(x: 0, y: 0, width: region.width, height: region.height))
+                for index in stride(from: 0, to: bytes.count, by: 4) {
+                    let red = Int(bytes[index]), green = Int(bytes[index + 1]), blue = Int(bytes[index + 2])
+                    if green > red + 8 && green > blue + 4 && (dark ? green > 120 : green < 160) { painted += 1 }
+                }
+            }
+        }
+        print("ClosedNotesSafeArea inkPixels=\(painted) dark=\(dark) pdf=\(pdf) window=\(window)")
+        XCTAssertEqual(painted, 0, "Closed Notes must not leak green controls into the display safe areas")
     }
 }

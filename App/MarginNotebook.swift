@@ -1,6 +1,23 @@
 import SwiftUI
 import PencilKit
 
+#if DEBUG
+// Bounded, read-only receipts distinguish a missed tool touch from lost native
+// undo history. No observer or persisted data; empty before the first action.
+@MainActor enum MarginUndoDiagnostics {
+    private static var events: [String] = []
+    static var labelSuffix: String { events.isEmpty ? "" : "; undoEvents=[" + events.joined(separator: " | ") + "]" }
+    static func record(_ event: String, canvas: MarginCanvas?, onlyAfterAction: Bool = false) {
+        guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport"),
+              !onlyAfterAction || !events.isEmpty else { return }
+        let manager = canvas?.undoManager
+        let owner = manager.map { String(describing: ObjectIdentifier($0)) } ?? "nil"
+        events.append("\(ProcessInfo.processInfo.systemUptime): \(event); canvas=\(String(describing: canvas.map { ObjectIdentifier($0) })); manager=\(owner); strokes=\(canvas?.drawing.strokes.count ?? -1); responder=\(canvas?.isFirstResponder ?? false); canUndo=\(manager?.canUndo ?? false); canRedo=\(manager?.canRedo ?? false)")
+        if events.count > 12 { events.removeFirst(events.count - 12) }
+    }
+}
+#endif
+
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
     // Keep first-responder Undo/PencilKit routing without a text keyboard when
@@ -11,7 +28,12 @@ final class MarginCanvas: PKCanvasView {
     // Native UI diagnostics are available only to the dedicated regression test.
     override var accessibilityLabel: String? {
         get {
-            let label = super.accessibilityLabel ?? ""
+            let baseLabel = super.accessibilityLabel ?? ""
+            #if DEBUG
+            let label = baseLabel + MarginUndoDiagnostics.labelSuffix
+            #else
+            let label = baseLabel
+            #endif
             guard ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") else { return label }
             func describe(_ view: UIView, depth: Int) -> String {
                 let own = "\(type(of: view)) frame=\(view.frame) bounds=\(view.bounds) transform=\(view.transform) hidden=\(view.isHidden) alpha=\(view.alpha) layerHidden=\(view.layer.isHidden) opacity=\(view.layer.opacity) contents=\(view.layer.contents != nil) children=\(view.subviews.count)"
@@ -130,6 +152,12 @@ final class MarginCanvas: PKCanvasView {
 @MainActor final class MarginCanvasControl: ObservableObject {
     weak var canvas: MarginCanvas?
     func action(_ name: String) {
+        #if DEBUG
+        if name == "undo" || name == "redo" { MarginUndoDiagnostics.record("action=\(name) before", canvas: canvas) }
+        defer {
+            if name == "undo" || name == "redo" { MarginUndoDiagnostics.record("action=\(name) after", canvas: canvas) }
+        }
+        #endif
         switch name {
         case "fit": canvas?.fitSheet()
         case "fitWidth": canvas?.fitWidth()
@@ -359,6 +387,9 @@ struct MarginNotebook: UIViewRepresentable {
         // Keep PencilKit's live strokes authoritative until the active gesture ends.
         // A SwiftUI re-render must not reload stale bytes over an in-flight stroke.
         if coordinator.pageID != page.id || (!coordinator.isStroking && coordinator.lastInk != page.ink) {
+            #if DEBUG
+            MarginUndoDiagnostics.record("reload before pageMatches=\(coordinator.pageID == page.id) inkMatches=\(coordinator.lastInk == page.ink)", canvas: canvas, onlyAfterAction: true)
+            #endif
             coordinator.loading = true
             do {
                 let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
@@ -370,6 +401,9 @@ struct MarginNotebook: UIViewRepresentable {
                 canvas.accessibilityValue = String(ink.strokes.count)
             } catch { failed(error.localizedDescription) }
             coordinator.loading = false
+            #if DEBUG
+            MarginUndoDiagnostics.record("reload after", canvas: canvas, onlyAfterAction: true)
+            #endif
         }
         let size = CGSize(width: page.width, height: page.height)
         if canvas.sheetSize != size {

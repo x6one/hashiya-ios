@@ -23,7 +23,18 @@ if not match:
 folder = Path(match.group(1).strip()) / "File Provider Storage"
 if not verify:
     # Release the setup app before XCTest launches Tayya. Provider data persists.
-    subprocess.run(["xcrun", "simctl", "terminate", simulator, "com.apple.DocumentsApp"], check=True)
+    try:
+        subprocess.run(["xcrun", "simctl", "terminate", simulator, "com.apple.DocumentsApp"],
+                       check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as error:
+        message = (error.stdout or "") + "\n" + (error.stderr or "")
+        already_stopped = (error.returncode == 3
+                           and re.search(r"\bdomain=NSPOSIXErrorDomain,\s*code=3\b", message)
+                           and "found nothing to terminate" in message)
+        if not already_stopped:
+            print(message.strip(), file=sys.stderr, flush=True)
+            raise
+        print("Files already stopped (ESRCH); native provider lookup succeeded", flush=True)
     print("Files provider initialized and foreground released; XCTest must export fixtures through native UI", flush=True)
 else:
     app_data = subprocess.check_output(

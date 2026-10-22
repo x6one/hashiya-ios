@@ -72,6 +72,7 @@
 "المراجعة" = "Review";
 "المس الصفحة لإضافة نص، واضغط مرتين على نصك لتعديله." = "Tap the page to add text. Double-tap your text to edit it.";
 "المستند" = "Document";
+"المستند · ص %lld" = "Document · p. %lld";
 "المفضلة" = "Favorites";
 "المكتبة" = "Library";
 "الملاحظات" = "Notes";

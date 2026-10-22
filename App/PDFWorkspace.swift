@@ -429,6 +429,9 @@ struct DocumentScreen: View {
             ZStack(alignment: .topLeading) {
                 // Exactly one retained native host through tools, Focus and Notes.
                 NativePDF(workspace: workspace, presented: !expanded)
+                    // Back closed Notes overflow with paper through safe areas;
+                    // clipping this native ink hierarchy can leave stale tiles.
+                    .background(TayyaTheme.paper.ignoresSafeArea(.container, edges: .horizontal))
                     .frame(width: documentWidth, height: documentHeight)
                     .position(x: documentWidth / 2, y: documentHeight / 2)
                     .opacity(expanded ? 0 : 1).allowsHitTesting(!expanded).accessibilityHidden(expanded)
@@ -446,9 +449,6 @@ struct DocumentScreen: View {
                         .zIndex(2)
                 }
             }
-            // Retained Notes chrome must never paint into safe areas or the
-            // sibling tool rail when it exceeds the offered viewport.
-            .frame(width: size.width, height: size.height).clipped()
         }
     }
     private func openNotes() {

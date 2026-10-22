@@ -4,6 +4,7 @@ import io
 import os
 from pathlib import Path
 import runpy
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -93,6 +94,54 @@ class FilesFixtureTests(unittest.TestCase):
         result = self.verify()
         self.assertIn('Picker-fixture.pdf', result)
         self.assertIn('Picker-office.pptx', result)
+
+    def setup_with_termination_error(self, error):
+        def command(arguments, **kwargs):
+            self.assertTrue(kwargs.get('check'))
+            if arguments == ['xcrun', 'simctl', 'launch', 'current-simulator',
+                             'com.apple.DocumentsApp']:
+                return subprocess.CompletedProcess(arguments, 0)
+            self.assertEqual(arguments, ['xcrun', 'simctl', 'terminate',
+                'current-simulator', 'com.apple.DocumentsApp'])
+            raise error
+
+        def lookup(arguments, **kwargs):
+            self.assertEqual(arguments, ['xcrun', 'simctl', 'get_app_container',
+                'current-simulator', 'com.apple.DocumentsApp', 'groups'])
+            return 'group.com.apple.FileProvider.LocalStorage: ' + str(self.provider) + '\n'
+
+        output = io.StringIO()
+        with patch.dict(os.environ, {'SIMULATOR_ID': 'current-simulator'}), \
+                patch.object(sys, 'argv', [str(SCRIPT)]), \
+                patch('subprocess.run', side_effect=command), \
+                patch('subprocess.check_output', side_effect=lookup), \
+                contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+            runpy.run_path(str(SCRIPT), run_name='__main__')
+        return output.getvalue()
+
+    def test_setup_accepts_only_already_stopped_files_and_preserves_exports(self):
+        self.export_to(self.provider / 'File Provider Storage')
+        paths = list((self.provider / 'File Provider Storage').iterdir())
+        before = {path.name: path.read_bytes() for path in paths}
+        message = ('An error was encountered processing the command '
+                   '(domain=NSPOSIXErrorDomain, code=3):\n'
+                   'Simulator device failed to terminate com.apple.DocumentsApp.\n'
+                   'found nothing to terminate')
+        error = subprocess.CalledProcessError(3, ['simctl', 'terminate'], stderr=message)
+        output = self.setup_with_termination_error(error)
+        self.assertIn('already stopped', output)
+        self.assertEqual({path.name: path.read_bytes() for path in paths}, before)
+
+    def test_setup_keeps_other_termination_failures_fatal(self):
+        failures = [(3, 'Simulator connection interrupted'),
+                    (1, '(domain=NSPOSIXErrorDomain, code=3): found nothing to terminate'),
+                    (3, '(domain=NSPOSIXErrorDomain, code=2): found nothing to terminate')]
+        for code, message in failures:
+            with self.subTest(code=code, message=message):
+                error = subprocess.CalledProcessError(code, ['simctl', 'terminate'], stderr=message)
+                with self.assertRaises(subprocess.CalledProcessError) as caught:
+                    self.setup_with_termination_error(error)
+                self.assertIs(caught.exception, error)
 
     def test_app_documents_exact_exports(self):
         self.export_to(self.documents)

@@ -446,6 +446,9 @@ struct DocumentScreen: View {
                         .zIndex(2)
                 }
             }
+            // Retained Notes chrome must never paint into safe areas or the
+            // sibling tool rail when it exceeds the offered viewport.
+            .frame(width: size.width, height: size.height).clipped()
         }
     }
     private func openNotes() {

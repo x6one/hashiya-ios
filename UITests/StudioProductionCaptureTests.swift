@@ -327,8 +327,21 @@ final class StudioProductionCaptureTests: XCTestCase {
         // viewport. iPad's real page sidebar deliberately occupies this area.
         guard UIDevice.current.userInterfaceIdiom == .phone else { return }
         let window = app.windows.firstMatch.frame
-        let pdf = app.otherElements["pdfCanvas"].frame
+        let element = app.otherElements["pdfCanvas"]
+        // SwiftUI can merge a safe-area background into the identified AX
+        // frame. Measure the existing read-only native PDFView window bounds,
+        // so a wider accessibility wrapper cannot turn the gutter check empty.
+        let state = element.value as? String ?? ""
+        guard let end = state.range(of: "; pdfCenterReceives="), state.hasPrefix("screen=") else {
+            XCTFail("Read the actual native PDF window bounds: " + state); return
+        }
+        let fields = state[state.index(state.startIndex, offsetBy: 7)..<end.lowerBound]
+            .replacingOccurrences(of: "(", with: "").replacingOccurrences(of: ")", with: "")
+            .split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard fields.count == 4 else { XCTFail("Decode actual native PDF bounds: " + state); return }
+        let pdf = CGRect(x: fields[0], y: fields[1], width: fields[2], height: fields[3])
         XCTAssertGreaterThan(pdf.height, 60)
+        XCTAssertTrue(window.insetBy(dx: -0.5, dy: -0.5).contains(pdf), "Native PDF must remain inside the display")
         let format = UIGraphicsImageRendererFormat(); format.scale = screenshot.scale
         let upright = UIGraphicsImageRenderer(size: screenshot.size, format: format).image { _ in
             screenshot.draw(in: CGRect(origin: .zero, size: screenshot.size))
@@ -337,6 +350,8 @@ final class StudioProductionCaptureTests: XCTestCase {
         let scale = CGFloat(image.width) / screenshot.size.width
         let gutters = [CGRect(x: window.minX, y: pdf.minY + 2, width: max(0, pdf.minX - window.minX - 2), height: pdf.height - 4),
                        CGRect(x: pdf.maxX + 2, y: pdf.minY + 2, width: max(0, window.maxX - pdf.maxX - 2), height: pdf.height - 4)]
+        XCTAssertGreaterThan(gutters.reduce(CGFloat.zero) { $0 + $1.width }, 0,
+                             "The landscape phone safe-area check must inspect actual pixels")
         let dark = arguments.contains("--test-appearance-dark")
         var painted = 0
         for gutter in gutters where gutter.width > 1 {
@@ -357,7 +372,7 @@ final class StudioProductionCaptureTests: XCTestCase {
                 }
             }
         }
-        print("ClosedNotesSafeArea inkPixels=\(painted) dark=\(dark) pdf=\(pdf) window=\(window)")
+        print("ClosedNotesSafeArea inkPixels=\(painted) dark=\(dark) nativePDF=\(pdf) axPDF=\(element.frame) window=\(window)")
         XCTAssertEqual(painted, 0, "Closed Notes must not leak green controls into the display safe areas")
     }
 }

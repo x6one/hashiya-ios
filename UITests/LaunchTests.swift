@@ -1010,7 +1010,10 @@ final class LaunchTests: XCTestCase {
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             let state = service.state
             if observed.last != state.rawValue { observed.append(state.rawValue) }
-            return state != .notRunning && state != .unknown
+            // A reused service can still be in the background after the prior
+            // sheet closes. Its process existing does not mean this sheet's
+            // remote content is ready (observed state3 with no picker controls).
+            return state == .runningForeground
         }, object: service)
         let result = XCTWaiter.wait(for: [ready], timeout: 60)
         let elapsed = ProcessInfo.processInfo.systemUptime - started

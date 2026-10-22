@@ -1299,6 +1299,12 @@ final class LaunchTests: XCTestCase {
             recordState("StrokeNotVisible", expected: String(before))
             let elementEvidence = XCTAttachment(screenshot: canvas.screenshot())
             elementEvidence.name = name + "-RedPixelFailureElement"; elementEvidence.lifetime = .keepAlways; add(elementEvidence)
+            if canvas.identifier == "marginInkCanvas" {
+                // Read the existing bounded lifecycle transport only AFTER the
+                // original pixel failure; never mutate or warm the live canvas.
+                let lifecycle = XCTAttachment(string: app.segmentedControls["marginMode"].label)
+                lifecycle.name = name + "-FailedRenderLifecycle"; lifecycle.lifetime = .keepAlways; add(lifecycle)
+            }
             XCTFail("Actual native writing surface must gain >40 red-dominant pixels after the stroke")
             if app.launchArguments.contains("--test-margin-details"), canvas.identifier == "marginInkCanvas" {
                 // Preserve the original failure. Subsequent real user actions

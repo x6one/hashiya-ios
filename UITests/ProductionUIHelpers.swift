@@ -35,6 +35,19 @@ func waitForNativeDismissal(of element: XCUIElement, file: StaticString = #fileP
 func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
     let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in item.exists && item.isHittable }, object: nil)
     guard XCTWaiter.wait(for: [ready], timeout: 5) == .completed else {
+        // A visible native menu can report no AX hit point. Preserve its real
+        // geometry and original pixels before deciding whether a touch is valid.
+        let app = XCUIApplication()
+        let exists = item.exists
+        let identity = exists ? item.identifier : "unresolved"
+        let geometry = exists ? "frame=\(item.frame); hittable=\(item.isHittable); label=\(item.label)" : "absent"
+        let details = XCTAttachment(string: "target=\(identity); exists=\(exists); \(geometry); window=\(app.windows.firstMatch.frame)\n"
+            + String(item.debugDescription.prefix(30000)))
+        details.name = "FailedNativeMenu-" + identity; details.lifetime = .keepAlways; XCTContext.runActivity(named: "Preserve failed native menu") { activity in
+            activity.add(details)
+            let pixels = XCTAttachment(data: XCUIScreen.main.screenshot().pngRepresentation, uniformTypeIdentifier: "public.png")
+            pixels.name = "FailedNativeMenu-OriginalDisplay"; pixels.lifetime = .keepAlways; activity.add(pixels)
+        }
         XCTFail("The real native menu item must be visible and hittable before tapping", file: file, line: line); return
     }
     item.tap()

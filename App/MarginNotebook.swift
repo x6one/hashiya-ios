@@ -441,9 +441,18 @@ struct MarginNotebook: UIViewRepresentable {
             let data = canvas.drawing.dataRepresentation()
             guard data != lastInk else { return }
             lastInk = data
+            #if DEBUG
+            if let margin = canvas as? MarginCanvas { MarginRenderDiagnostics.recordCanvas("commit before at=\(ProcessInfo.processInfo.systemUptime) bytes=\(data.count) stroking=\(isStroking)", canvas: margin) }
+            #endif
             saved(canvas.drawing)
+            #if DEBUG
+            if let margin = canvas as? MarginCanvas { MarginRenderDiagnostics.recordCanvas("commit after at=\(ProcessInfo.processInfo.systemUptime) stroking=\(isStroking)", canvas: margin) }
+            #endif
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
+            #if DEBUG
+            if let margin = canvas as? MarginCanvas { MarginRenderDiagnostics.recordCanvas("drawing changed at=\(ProcessInfo.processInfo.systemUptime) loading=\(loading) stroking=\(isStroking) count=\(canvas.drawing.strokes.count)", canvas: margin) }
+            #endif
             guard !loading else { return }
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             if isStroking {
@@ -454,16 +463,25 @@ struct MarginNotebook: UIViewRepresentable {
             }
         }
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            #if DEBUG
+            if let margin = canvasView as? MarginCanvas { MarginRenderDiagnostics.recordCanvas("tool begin at=\(ProcessInfo.processInfo.systemUptime) stroking=\(isStroking)", canvas: margin) }
+            #endif
             isStroking = true
             (canvasView as? MarginCanvas)?.usingTool = true
         }
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            #if DEBUG
+            if let margin = canvasView as? MarginCanvas { MarginRenderDiagnostics.recordCanvas("tool end before at=\(ProcessInfo.processInfo.systemUptime) pending=\(hasUncommittedStroke) stroking=\(isStroking)", canvas: margin) }
+            #endif
             isStroking = false
             if hasUncommittedStroke {
                 hasUncommittedStroke = false
                 persist(canvasView)
             }
             (canvasView as? MarginCanvas)?.finishedUsingTool()
+            #if DEBUG
+            if let margin = canvasView as? MarginCanvas { MarginRenderDiagnostics.recordCanvas("tool end after at=\(ProcessInfo.processInfo.systemUptime) stroking=\(isStroking)", canvas: margin) }
+            #endif
         }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.beganUserZooming() }
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }

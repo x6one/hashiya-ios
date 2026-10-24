@@ -285,6 +285,7 @@ private struct MarginPaneContent: View {
                     next = view.superview
                 }
                 live = "control=\(ObjectIdentifier(control)); " + canvasState(canvas)
+                    + "; commits=[" + (canvas.diagnosticCoordinator?.commitSnapshot ?? "missing") + "]"
                     + "; children=" + childSample(canvas, limit: 4)
                     + "; siblings=" + (canvas.superview.map { childSample($0, limit: 6) } ?? "none")
                     + "; ancestors=[" + ancestors.joined(separator: " > ") + "]; ancestorsCapped=\(next != nil)"

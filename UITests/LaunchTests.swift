@@ -1558,6 +1558,10 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(pdf.exists)
         XCTAssertEqual(pdf.frame, pdfFrame, "Ink toolbar taps must preserve the split PDF viewport")
         XCTAssertGreaterThan(margin.frame.height, 44)
+        // All original ink/pixel/Undo/Redo/Fit assertions have already finished.
+        // Retain the same scalar receipt on success; failures retain it above.
+        let commits = XCTAttachment(string: mode.label)
+        commits.name = variant + "-CompletedNativeCommitPhases"; commits.lifetime = .keepAlways; add(commits)
     }
 
     func testIndividualInkTargetsInDocumentAndCompactSplit() {

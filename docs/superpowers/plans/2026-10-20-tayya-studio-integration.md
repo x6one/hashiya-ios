@@ -55,6 +55,16 @@
 
 ## Resume record
 
+### Current investigation — 2026-10-24, scalar commit/reload probe
+
+Resumed from34983c6; remote integration/stable/design heads and latest completed CI match the22October checkpoint below. Worktree was clean; no suspended native command. Existing whole-branch review is retained, not repeated. Use existing inline plan/SystematicDebugging; no reinstall or new dependency.
+
+Hypothesis to test, NOT a repair: double serialization/publication may trigger a same-page `configure` drawing reload and clear Undo during or after the native commit. Existing code confirms that conditional reload exists; previous runs do not prove it occurred. Replace the discarded UIKit-observing callback probe with DEBUG-only fixed scalar counters and a packed last16-phase word. Callbacks add no geometry/responder/drawing query, serialization, strings, clocks, observable state or file writes. The existing conditional records same-page vs new-page load; the original comparison, assignment, save, viewport and tool logic remain unchanged. Weak canvas→coordinator transport exposes those counters through the existing native mode label. Release tokens in both App files match HEAD after DEBUG exclusion.
+
+Files: `App/MarginNotebook.swift` scalar phases/weak transport; `App/MarginPane.swift` existing diagnostic label only; `UITests/LaunchTests.swift` adds a success receipt AFTER all original ink/pixel/UndoRedo/Fit checks. Original failure-only receipt already retains the same label. No pre-gesture interaction or assertion/deadline change; no pen rail, native storage, release identity or mock audio change.
+
+Verification: local diff/Release-token comparison first, then ONLY existing UI-first phone `LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize` via `[integration:ink-render-diagnosis]`; no preceding unit/warm-up, repeated suite, iPad retest or full gate. Expected evidence: actual counters on success or failure distinguish same-page reload (phase10) from native live-render failure without reload; phase11 is initial/new-page loading, not corruption. A pass alone is not a repair. If no failure/reload is observed, do not repeat identically or claim the global intermittent cause excluded. Native compile/runtime result pending publication.
+
 ### Current checkpoint — 2026-10-22, observer reversal completed
 
 Integration source: `d5813cc72683333940e6c04159945849313f5994`, branch `integration/tayya-studio-2`. The following dated sections are historical evidence, not instructions to restart their old pending runs. Stable remains `dbdb264bf86a6606be095aad22cd303ad01e2071`; approved design remains `3b9872a9e26fbfa2ce102b9d2cdd7d1bb7f5f480`. No stable/design/main ref was modified. No native process remains running from this checkpoint.

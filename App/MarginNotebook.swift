@@ -20,6 +20,10 @@ import PencilKit
 
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
+    #if DEBUG
+    // Weak transport for post-gesture diagnostics; no extra UIKit reads in callbacks.
+    weak var diagnosticCoordinator: MarginNotebook.Coordinator?
+    #endif
     // Keep first-responder Undo/PencilKit routing without a text keyboard when
     // UIKit presents a tool menu. Text editing uses separate native editors.
     private let handwritingInput = UIView(frame: .zero)
@@ -359,6 +363,9 @@ struct MarginNotebook: UIViewRepresentable {
         // Sheet coordinates keep their origin on the left in the Arabic UI too.
         canvas.semanticContentAttribute = .forceLeftToRight
         canvas.delegate = context.coordinator
+        #if DEBUG
+        canvas.diagnosticCoordinator = context.coordinator
+        #endif
         canvas.bounces = false
         canvas.isAccessibilityElement = true
         canvas.accessibilityIdentifier = "marginInkCanvas"
@@ -383,11 +390,15 @@ struct MarginNotebook: UIViewRepresentable {
     #endif
     private func configure(_ canvas: MarginCanvas, context: Context) {
         let coordinator = context.coordinator
+        #if DEBUG
+        coordinator.traceCommitPhase(7)
+        #endif
         coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas
         // Keep PencilKit's live strokes authoritative until the active gesture ends.
         // A SwiftUI re-render must not reload stale bytes over an in-flight stroke.
         if coordinator.pageID != page.id || (!coordinator.isStroking && coordinator.lastInk != page.ink) {
             #if DEBUG
+            coordinator.traceCommitPhase(coordinator.pageID == page.id ? 10 : 11)
             MarginUndoDiagnostics.record("reload before pageMatches=\(coordinator.pageID == page.id) inkMatches=\(coordinator.lastInk == page.ink)", canvas: canvas, onlyAfterAction: true)
             #endif
             coordinator.loading = true
@@ -427,6 +438,25 @@ struct MarginNotebook: UIViewRepresentable {
         private var appliedBrush: InkBrush?
         private var appliedColor: Color?
         private var appliedWidth: Double?
+        #if DEBUG
+        // Fixed-size scalar receipts distinguish a same-page drawing reload from
+        // a stale live render. No strings, clocks, geometry, responders, drawing
+        // serialization, publishers or file writes are added to live callbacks.
+        // Codes:1 begin,2 change,3 end,4 serialize,5 publish,6 published,
+        // 7 configure,8 unchanged bytes,9 tool change,10 same-page reload,
+        // 11 new-page load. Packed phases retain the last16 events.
+        private var commitCounts = [UInt64](repeating: 0, count: 12)
+        private var commitPhases: UInt64 = 0
+        private var commitEvents: UInt64 = 0
+        func traceCommitPhase(_ phase: Int) {
+            commitCounts[phase] += 1
+            commitPhases = (commitPhases << 4) | UInt64(phase)
+            commitEvents += 1
+        }
+        var commitSnapshot: String {
+            "events=\(commitEvents); last16=\(String(commitPhases, radix: 16)); counts0to11=\(commitCounts); loading=\(loading); stroking=\(isStroking); pending=\(hasUncommittedStroke); lastInkBytes=\(lastInk?.count ?? -1); page=\(pageID?.uuidString ?? "missing")"
+        }
+        #endif
         var saved: (PKDrawing) -> Void
         var failed: (String) -> Void
         init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void) { self.saved = saved; self.failed = failed }
@@ -434,16 +464,36 @@ struct MarginNotebook: UIViewRepresentable {
             // Saving a stroke publishes a new page and updates this representable.
             // Do not replace PencilKit's tool while that same stroke is committing.
             guard appliedBrush != brush || appliedColor != color || appliedWidth != width else { return }
+            #if DEBUG
+            traceCommitPhase(9)
+            #endif
             canvas.tool = brush.tool(color: UIColor(color), width: width)
             appliedBrush = brush; appliedColor = color; appliedWidth = width
         }
         private func persist(_ canvas: PKCanvasView) {
             let data = canvas.drawing.dataRepresentation()
-            guard data != lastInk else { return }
+            #if DEBUG
+            traceCommitPhase(4)
+            #endif
+            guard data != lastInk else {
+                #if DEBUG
+                traceCommitPhase(8)
+                #endif
+                return
+            }
             lastInk = data
+            #if DEBUG
+            traceCommitPhase(5)
+            #endif
             saved(canvas.drawing)
+            #if DEBUG
+            traceCommitPhase(6)
+            #endif
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
+            #if DEBUG
+            traceCommitPhase(2)
+            #endif
             guard !loading else { return }
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             if isStroking {
@@ -454,10 +504,16 @@ struct MarginNotebook: UIViewRepresentable {
             }
         }
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            #if DEBUG
+            traceCommitPhase(1)
+            #endif
             isStroking = true
             (canvasView as? MarginCanvas)?.usingTool = true
         }
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            #if DEBUG
+            traceCommitPhase(3)
+            #endif
             isStroking = false
             if hasUncommittedStroke {
                 hasUncommittedStroke = false

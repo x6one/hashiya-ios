@@ -27,10 +27,9 @@ final class LaunchTests: XCTestCase {
         if divider.exists { expand.tap() }
         let expanded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             expand.exists && expand.label == "العودة إلى المستند" && !divider.exists
-                && app.scrollViews["marginInkCanvas"].frame.width >= app.frame.width - 1
         }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed,
-                       "Expanded Notes must actually fill the document area before continuing")
+                       "Notes must actually enter expanded mode before continuing")
     }
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
         inkPixels(in: XCUIScreen.main.screenshot().image, frame: canvas.frame)
@@ -727,11 +726,13 @@ final class LaunchTests: XCTestCase {
         }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [portrait], timeout: 5), .completed)
         openExpandedNotes(in: app)
+        XCTAssertEqual(canvas.frame.width, app.frame.width, accuracy: 1, "Expanded handwriting must fill the document area")
         XCTAssertTrue(app.buttons["addMarginPage"].isHittable); XCTAssertEqual(canvas.value as? String, count)
         assertMarginInkVisible(canvas, in: app, stage: "full-screen")
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "PagedHandwritingFullScreen"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["expandMargin"].tap()
         openExpandedNotes(in: app)
+        XCTAssertEqual(canvas.frame.width, app.frame.width, accuracy: 1, "Reopened handwriting must remain expanded")
         XCTAssertEqual(canvas.value as? String, count, "The Notes menu must reuse the same drawing")
         app.buttons["expandMargin"].tap()
         openWorkspaceAction("addWritingPaper", in: app); app.buttons["نقاط"].tap()

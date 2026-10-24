@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "final47_one_iPad_UI_failure_notes_transition_targeted_test_repair_pending",
+  "status": "notes_transition_original_Pad_GREEN_shared_helper_text_mode_assertion_correction_pending",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "e6db46b44d51ac57f009709a62a7ce97d8d9f2ea",
   "identity": {
@@ -398,5 +398,41 @@
     "repair": "Test-only: require physical screenshot portrait orientation in existing5s predicate; state-aware Notes opening; assert actual expanded label, absent divider, full canvas width in existing5s bound. No retry/sleep/timeout increase. Preserve every original assertion.",
     "target": "notes-expansion: original failed UI plus both other shared-helper callers, each device. Pending actual macOS result.",
     "release": "Office/gallery/IPA blocked; no final IPA"
+  },
+  "notes_expansion_target": {
+    "source": "f6da65b4efa1c10ee15084acdae5ba437173a510",
+    "run": 40139181988,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40139181988",
+    "iPad": {
+      "passed": 1,
+      "failed": 2,
+      "skipped": 0,
+      "original_case_seconds": 208.783,
+      "original_case_full_canvas_width": 1032,
+      "original_case_visible_ink_pixels": 10075,
+      "remaining_failures": [
+        "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar:30",
+        "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney:30"
+      ],
+      "remaining_cause": "New helper geometry assertion incorrectly queried marginInkCanvas while Notes was in Text mode. App correctly renders TextEditor splitNotes instead, as MarginPane109-125 establishes. Test-only invalid mode assumption; not an App regression.",
+      "artifact": 12578641404,
+      "artifact_sha256": "06a40b1da8e67025d76692c8523d7e479be05138cb175b1abf54d86b5c6a7428"
+    },
+    "iPhone": {
+      "passed": 1,
+      "failed": 2,
+      "skipped": 0,
+      "original_case_seconds": 204.178,
+      "original_case_full_canvas_width": 440,
+      "original_case_visible_ink_pixels": 2911,
+      "remaining_failures": [
+        "testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar:30",
+        "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney:30"
+      ],
+      "remaining_cause": "Same invalid test helper ink-view query in Text mode as iPad; no additional failure.",
+      "swift_lint": "0violations/54files; format checks PASS"
+    },
+    "correction": "Retain expanded label/no-divider predicate for either real editor mode. Move strict full-width ink assertions to both existing PagedMargins handwriting call sites. No App changes, retries, sleeps, wider timeouts, removed original assertions or optional success.",
+    "next": "Rerun same3 affected helper callers only after this new bounded test-code correction; no full gate until all GREEN."
   }
 }

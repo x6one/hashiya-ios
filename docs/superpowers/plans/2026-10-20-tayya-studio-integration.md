@@ -1,5 +1,12 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Current directed result — f6 Notes transition (2026-10-24)
+
+[Run40139181988](https://github.com/x6one/hashiya-ios/actions/runs/40139181988), sourcef6da65b4efa1c10ee15084acdae5ba437173a510, Pad121007070668: original PagedMargins case **PASS208.783s**, native full-screen canvas **1032pt**,10075visible ink pixels (previous failing capture600pt). Complete original resize/rotation/append/save/relaunch assertions passed. Adjacent DeletePages/PaperStudioAccessibility cases fail at new helper line30 because it queried marginInkCanvas while Notes is in Text mode; real TextEditor splitNotes is the correct branch (MarginPane109-125). This is a test assertion error introduced in f6, not data loss/App regression. Total1/3PASS,2failed,0skips. Artifact12578641404 retained; no redundant137MB download because native error+branch source directly establish the wrong-mode query. Phone121007070981 completed with the same result: originalPagedMargins PASS204.178s, fullcanvas440pt/2911visibleinkpixels; only the same2wrong-mode line30 failures,0skips. SwiftLint0violations/54files and format checks passed. Both jobs finished before preparing the follow-up; no cancellation.
+
+Minimal correction keeps state-aware opening and expanded-label/no-divider predicate mode-independent; strict full-canvas-width assertions move to both actual handwriting call sites in the original case. No assertion from the original tests is weakened/deleted; the new geometry requirement remains explicit where its native view exists. App/ink/storage unchanged. Next qualify only the same3affected callers/device before any full gate.
+
+
 ## Current checkpoint — final47 actual Notes transition failure (2026-10-24)
 
 Candidate47d5eae723c28da7f2e5c77f81ac9acf092d82b8 [run40132286030](https://github.com/x6one/hashiya-ios/actions/runs/40132286030): Phone150/150+Maestro3/3+real exports PASS; Pad149/150,0skips, only LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch line719 (expandMargin absent). Office/gallery/IPA correctly blocked. No old live-ink/Redo/append721 failure recurred.

@@ -61,6 +61,14 @@ targets:
     dependencies:
       - target: Hashiya
 schemes:
+  # Focused Release UI diagnostic; the full original Hashiya scheme stays below.
+  HashiyaReleaseInk:
+    build:
+      targets:
+        Hashiya: all
+    test:
+      config: Release
+      targets: [HashiyaUITests]
   Hashiya:
     build:
       targets:

@@ -7,7 +7,7 @@ on:
       suite:
         description: Focused production integration suite
         type: choice
-        options: [foundation, library, workspace, audio, audio-controls, compatibility, language, study-tools, regressions, captures, all]
+        options: [foundation, library, workspace, audio, audio-controls, compatibility, language, study-tools, regressions, captures, ink-release, all]
         default: foundation
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         # Language/storage RED contracts are platform-independent; qualify both at GREEN.
-        family: ${{ fromJSON((contains(github.event.head_commit.message, '[integration:notes-redo-diagnosis]') && !contains(github.event.head_commit.message, '[integration:notes-bounds-red]')) && '["iPad"]' || (contains(github.event.head_commit.message, '[integration:preset-diagnosis]') || contains(github.event.head_commit.message, '[integration:visibility-diagnosis]')) && '["iPad"]' || ((contains(github.event.head_commit.message, '[integration:notes-bounds-red]') && !contains(github.event.head_commit.message, '[integration:notes-redo-diagnosis]')) || contains(github.event.head_commit.message, '[integration:ink-observer-probe]') || contains(github.event.head_commit.message, '[integration:ink-palette-cycles]') || contains(github.event.head_commit.message, '[integration:ink-render-diagnosis]') || contains(github.event.head_commit.message, '[integration:visibility-input-diagnosis]') || contains(github.event.head_commit.message, '[integration:navigation-red]') || contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]') || contains(github.event.head_commit.message, '[integration:study-diagnosis]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON((contains(github.event.head_commit.message, '[integration:notes-redo-diagnosis]') && !contains(github.event.head_commit.message, '[integration:notes-bounds-red]')) && '["iPad"]' || (contains(github.event.head_commit.message, '[integration:preset-diagnosis]') || contains(github.event.head_commit.message, '[integration:visibility-diagnosis]')) && '["iPad"]' || ((contains(github.event.head_commit.message, '[integration:notes-bounds-red]') && !contains(github.event.head_commit.message, '[integration:notes-redo-diagnosis]')) || contains(github.event.head_commit.message, '[integration:ink-observer-probe]') || contains(github.event.head_commit.message, '[integration:ink-palette-cycles]') || (contains(github.event.head_commit.message, '[integration:ink-render-diagnosis]') || contains(github.event.head_commit.message, '[integration:ink-release]')) || contains(github.event.head_commit.message, '[integration:visibility-input-diagnosis]') || contains(github.event.head_commit.message, '[integration:navigation-red]') || contains(github.event.head_commit.message, '[integration:language-red]') || contains(github.event.head_commit.message, '[integration:audio-controls-red]') || contains(github.event.head_commit.message, '[integration:study-ui-red]') || contains(github.event.head_commit.message, '[integration:study-diagnosis]')) && '["iPhone"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select existing app toolchain and generate production project
@@ -70,6 +70,7 @@ jobs:
               'ink-observer-probe': ['HashiyaTests/StudioNativeInkInspectionTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
               'ink-palette-cycles': ['HashiyaUITests/LaunchTests/testNotesPencilRemainsVisibleAfterRepeatedNativePaletteDismissals'],
               'ink-render-diagnosis': ['HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
+              'ink-release': ['HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
               'visibility-input-diagnosis': ['HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'],
               'retained-host': ['HashiyaTests/StudioNativeVisibilityTests', 'HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
               'visibility-diagnosis': ['HashiyaTests/StudioNativeVisibilityTests', 'HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney'],
@@ -117,7 +118,10 @@ jobs:
           if not selected:
               raise SystemExit('No production tests selected')
           with open('integration-selection.json', 'w') as out:
-              json.dump({'sha': os.environ['GITHUB_SHA'], 'family': family, 'device': matching[0][1], 'suites': suites, 'onlyTesting': selected}, out, indent=2)
+              release_probe = 'ink-release' in suites
+              json.dump({'sha': os.environ['GITHUB_SHA'], 'family': family, 'device': matching[0][1], 'suites': suites, 'onlyTesting': selected,
+                         'configuration': 'Release' if release_probe else 'Debug',
+                         'scheme': 'HashiyaReleaseInk' if release_probe else 'Hashiya'}, out, indent=2)
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               out.write('SIMULATOR_ID=' + matching[0][1]['udid'] + '\n')
           PY
@@ -126,12 +130,28 @@ jobs:
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
+          python3 - <<'PY'
+          import json, os, subprocess
+          path = 'integration-selection.json'
+          selection = json.load(open(path))
+          if selection['configuration'] == 'Release':
+              # Release excludes DebugVisualEnvironment. Use the real Simulator
+              # setting corresponding to its original accessibility1 test size.
+              args = ['xcrun', 'simctl', 'ui', os.environ['SIMULATOR_ID'], 'content_size']
+              subprocess.run(args + ['accessibility-medium'], check=True)
+              actual = subprocess.check_output(args, text=True).strip()
+              assert actual == 'accessibility-medium', actual
+              selection['nativeContentSize'] = actual
+              with open(path, 'w') as out:
+                  json.dump(selection, out, indent=2)
+              print('Verified real Simulator content size:', actual)
+          PY
       - name: Run selected production tests
         run: |
           python3 - <<'PY'
           import json, os, subprocess
           selection = json.load(open('integration-selection.json'))
-          args = ['xcodebuild', 'test', '-project', 'Hashiya.xcodeproj', '-scheme', 'Hashiya', '-destination', 'platform=iOS Simulator,id=' + os.environ['SIMULATOR_ID'], '-derivedDataPath', 'IntegrationBuild', '-resultBundlePath', 'IntegrationResults.xcresult', '-test-timeouts-enabled', 'YES', '-default-test-execution-time-allowance', '240', '-maximum-test-execution-time-allowance', '360', 'CODE_SIGNING_ALLOWED=NO']
+          args = ['xcodebuild', 'test', '-project', 'Hashiya.xcodeproj', '-scheme', selection['scheme'], '-configuration', selection['configuration'], '-destination', 'platform=iOS Simulator,id=' + os.environ['SIMULATOR_ID'], '-derivedDataPath', 'IntegrationBuild', '-resultBundlePath', 'IntegrationResults.xcresult', '-test-timeouts-enabled', 'YES', '-default-test-execution-time-allowance', '240', '-maximum-test-execution-time-allowance', '360', 'CODE_SIGNING_ALLOWED=NO']
           args += ['-only-testing:' + name for name in selection['onlyTesting']]
           raise SystemExit(subprocess.call(args))
           PY

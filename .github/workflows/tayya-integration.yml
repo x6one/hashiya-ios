@@ -7,7 +7,7 @@ on:
       suite:
         description: Focused production integration suite
         type: choice
-        options: [foundation, library, workspace, audio, audio-controls, compatibility, language, study-tools, regressions, captures, ink-release, external-intake, full-fit-page-red, full-fit-page, all]
+        options: [foundation, library, workspace, audio, audio-controls, compatibility, language, study-tools, regressions, captures, ink-release, external-intake, full-fit-page-red, full-fit-page, notes-expansion, all]
         default: foundation
 permissions:
   contents: read
@@ -73,6 +73,7 @@ jobs:
               'ink-release': ['HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
               'full-fit-page-red': ['HashiyaTests/DocumentViewportTests/testFinalAddedPageRemainsSelectedWhenItCannotReachTheViewportTop'],
               'full-fit-page': ['HashiyaTests/DocumentViewportTests', 'HashiyaUITests/LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch'],
+              'notes-expansion': ['HashiyaUITests/LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch', 'HashiyaUITests/LaunchTests/testDeleteAddedDocumentAndMarginPagesThroughVisibleToolbar', 'HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney'],
               'external-intake': ['HashiyaUITests/LaunchTests/testColdExternalPDFIntakeSurvivesFirstLaunchEntrance', 'HashiyaUITests/LaunchTests/testColdExternalPDFIntakeWithReduceMotion', 'HashiyaUITests/LaunchTests/testExternalPDFIntakeDismissesAlreadyVisibleWelcome'],
               'visibility-input-diagnosis': ['HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'],
               'retained-host': ['HashiyaTests/StudioNativeVisibilityTests', 'HashiyaUITests/LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],

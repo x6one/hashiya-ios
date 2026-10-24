@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "all_observed_functional_failures_directed_GREEN_freeze_final_same_SHA_qualification",
+  "status": "final47_one_iPad_UI_failure_notes_transition_targeted_test_repair_pending",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "e6db46b44d51ac57f009709a62a7ce97d8d9f2ea",
   "identity": {
@@ -368,5 +368,35 @@
       "maestro_driver_startup_ms": 180000,
       "ordinary_UI_assertions": "Original5/10s unchanged; no extra sleeps/optional/skip/retry."
     }
+  },
+  "final47_qualification": {
+    "source": "47d5eae723c28da7f2e5c77f81ac9acf092d82b8",
+    "run": 40132286030,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40132286030",
+    "iPhone": {
+      "passed": 150,
+      "failed": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "maestro_passed": 3,
+      "exports": "PDF3063/PPTX54684 bytes verified"
+    },
+    "iPad": {
+      "passed": 149,
+      "failed": 1,
+      "skipped": 0,
+      "expected_failures": 0,
+      "failure": "LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch:719; expandMargin not found",
+      "maestro": "blocked by native failure"
+    },
+    "artifact": {
+      "id": 12577342370,
+      "sha256": "bab3bac7a311b5702f4aa88d66d667a956d8b07b3d7044187440dd794c910154",
+      "crc_verified": true
+    },
+    "evidence": "Raw PagedHandwritingFullScreen PNG9E860FAA still shows split/divider/sidebar, canvas600/window1032. First expand tap after portrait did not expand; next tap expands; unconditional dock openMargin then closes. Native synthesized taps331.5,153.5 twice then777,1326. Native video retains rotation transition. Earlier ink/resize/rotation checks pass; no evidence of data loss or old append721 regression.",
+    "repair": "Test-only: require physical screenshot portrait orientation in existing5s predicate; state-aware Notes opening; assert actual expanded label, absent divider, full canvas width in existing5s bound. No retry/sleep/timeout increase. Preserve every original assertion.",
+    "target": "notes-expansion: original failed UI plus both other shared-helper callers, each device. Pending actual macOS result.",
+    "release": "Office/gallery/IPA blocked; no final IPA"
   }
 }

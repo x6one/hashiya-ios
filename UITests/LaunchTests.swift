@@ -16,10 +16,21 @@ final class LaunchTests: XCTestCase {
     }
     private func openExpandedNotes(in app: XCUIApplication) {
         revealWorkspaceTools(in: app)
-        app.buttons["openMargin"].tap()
-        if app.descendants(matching: .any)["splitDivider"].firstMatch.exists {
-            app.buttons["expandMargin"].tap()
+        let expand = app.buttons["expandMargin"]
+        let divider = app.descendants(matching: .any)["splitDivider"].firstMatch
+        // The Notes dock cycles closed -> split -> expanded -> closed.
+        // Reopening existing Notes must not blindly advance that cycle.
+        if !expand.exists {
+            app.buttons["openMargin"].tap()
+            XCTAssertTrue(expand.waitForExistence(timeout: 5))
         }
+        if divider.exists { expand.tap() }
+        let expanded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            expand.exists && expand.label == "العودة إلى المستند" && !divider.exists
+                && app.scrollViews["marginInkCanvas"].frame.width >= app.frame.width - 1
+        }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed,
+                       "Expanded Notes must actually fill the document area before continuing")
     }
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
         inkPixels(in: XCUIScreen.main.screenshot().image, frame: canvas.frame)
@@ -707,9 +718,15 @@ final class LaunchTests: XCTestCase {
         XCTAssertGreaterThan(canvas.frame.height, 44, "Landscape controls must reserve visible handwriting space")
         assertMarginInkVisible(canvas, in: app, stage: "landscape")
         XCUIDevice.shared.orientation = .portrait
-        let portrait = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.height > app.frame.width }, object: app)
+        // Window bounds change before the system finishes rotating the screen.
+        // Wait for the physical screenshot orientation as well before tapping.
+        let portrait = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let screen = XCUIScreen.main.screenshot().image
+            return app.frame.height > app.frame.width && screen.size.height > screen.size.width
+                && screen.imageOrientation == .up
+        }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [portrait], timeout: 5), .completed)
-        app.buttons["expandMargin"].tap()
+        openExpandedNotes(in: app)
         XCTAssertTrue(app.buttons["addMarginPage"].isHittable); XCTAssertEqual(canvas.value as? String, count)
         assertMarginInkVisible(canvas, in: app, stage: "full-screen")
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "PagedHandwritingFullScreen"; shot.lifetime = .keepAlways; add(shot)

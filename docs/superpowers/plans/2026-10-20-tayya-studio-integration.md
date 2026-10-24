@@ -1,5 +1,14 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Current checkpoint — final47 actual Notes transition failure (2026-10-24)
+
+Candidate47d5eae723c28da7f2e5c77f81ac9acf092d82b8 [run40132286030](https://github.com/x6one/hashiya-ios/actions/runs/40132286030): Phone150/150+Maestro3/3+real exports PASS; Pad149/150,0skips, only LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch line719 (expandMargin absent). Office/gallery/IPA correctly blocked. No old live-ink/Redo/append721 failure recurred.
+
+Native Pad artifact12577342370 (438132034bytes, SHA bab3bac7a311b5702f4aa88d66d667a956d8b07b3d7044187440dd794c910154, CRC verified) retained once. Raw PNG9E860FAA, named PagedHandwritingFullScreen, actually shows split divider/sidebar and canvas600/window1032; existing test did not assert expansion. First expand tap after portrait failed to expand, second expanded; unconditional openMargin then closed Notes. Native synthesized coordinates331.5,153.5 for both expand taps and777,1326 for dock. Video shows rotation transition; window-frame readiness alone is insufficient evidence of physical screen orientation. Data loss is not established; preceding native ink/resize/rotation checks passed.
+
+One bounded test repair: preserve App/storage/ink source; require XCUIScreen portrait dimensions and upright orientation along with window in existing5s predicate, use state-aware openExpandedNotes without blindly cycling an already-open dock, and require full canvas width/expanded label/no divider before continuing. All original assertions retained; no functional timeout increase, sleep, optional assertion or tap retry. New focused notes-expansion selector runs only failed case plus both actual shared-helper callers on each device. Targeted result pending; do not start another full gate until these pass. Earlier passing gates are retained evidence, not final-source approval.
+
+
 > **For agentic workers:** use superpowers:executing-plans for inline execution. Follow test-driven-development for behavior, systematic-debugging for failures and verification-before-completion for claims. User explicitly authorized this plan's execution without routine approval pauses.
 
 **Goal:** Integrate the approved Studio presentation into the actual production app while preserving old data, native editing and all existing functions; qualify one SHA and package its real unsigned IPA.

@@ -2,9 +2,9 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "final_native150_each_and_PadMaestro3_pass_only_Phone_library_Maestro_interaction_failed",
+  "status": "Phone_Maestro_library_RED_to_GREEN_verified_shared_flow_iPad_regression_pending",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
-  "latest_tested_workflow_source": "d6c126f771ab9c7087e2a2563e2d8c041def897d",
+  "latest_tested_workflow_source": "4e8434104e8847427fb83b8e870461f682952158",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -132,7 +132,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "Run ONLY Phone Maestro library after the proven invalid-tap repair via [diagnostic:maestro] [maestro:library] [device:iPhone]. No native XCTest/XCUITest executions or full gate until this original lifecycle passes. Native app/tests/project byte-identical to d6, all150each already passed, but eventual release must qualify same final source. No historical ink diagnostics.",
+  "resume": "The only actual remaining Phone Maestro failure has directed RED/GREEN proof. Run only related iPad Library lifecycle on the same shared centered-scroll YAML before final same-SHA qualification. No native tests or unchanged audio/cards reruns in this directed scope. App/Tests/UITests/project.yml unchanged from d6(150/150each,PadM3,PhoneM2). Once shared flow is qualified both devices, freeze one final release SHA for required all-gates/Office/unsignedIPA. Do not reopen historical failures.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -166,9 +166,7 @@
     },
     "Maestro_Office_IPA": "not reached after native failures"
   },
-  "active_failures": [
-    "Phone Maestro Library: actual tap325,904 on notebookActions[226,882..424,926] hits fixed libraryHome[324,864..428,916], so Move menu never opens. OriginalPNG/native tap log/failed hierarchy prove test interaction. Four centered visible-menu scrolls prepared, no native app change; one-flow Phone verification pending."
-  ],
+  "active_failures": [],
   "intake_scroll_attempt": {
     "source": "96f114dcf5bdc32553e382df2ee29f006146941c",
     "run": 40113788570,
@@ -303,5 +301,24 @@
     "classification": "Test interaction; Move action still exists in App/LibraryScreen.swift; physical tap lands on Home dock.",
     "pinned_command_support": "Maestro cli-2.11.0 YamlScrollUntilVisible.kt and Orchestra.kt confirm centerElement works even when AX reports100percent visible; no timeout/optional/retry changes.",
     "local_check": "All original lifecycle commands/assertions preserved in exact order after removing four added centered scroll commands; full release still selects all3flows."
+  },
+  "maestro_library_phone_green": {
+    "source": "4e8434104e8847427fb83b8e870461f682952158",
+    "run": 40127758363,
+    "job": 120972774598,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40127758363",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 331.053,
+    "scope": "Only Library lifecycle; build-for-testing only, no XCTest/XCUITest execution. All original lifecycle assertions retained.",
+    "causal_receipt": "Before tap325,904 lies inside Home dock864..916; after real scrolling menu moves882..926 to798..842 and actual tap325,820 opens Move174,706..424,748, then tap299,727 selects Move. Entire rename/trash/restore/permanent-delete/relaunch lifecycle passed.",
+    "artifact": {
+      "id": 12573910818,
+      "zip_sha256": "55655d367b5328ccb64c33d1d2711844ba6eb2b4610de8c5a50d9f3911aac1b6",
+      "CRC_verified": true,
+      "JUnit_case_count": 1,
+      "failures_skips_errors": 0
+    }
   }
 }

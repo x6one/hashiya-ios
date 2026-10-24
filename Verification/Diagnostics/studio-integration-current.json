@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "blocked_not_release_qualified",
+  "status": "single_frozen_source_release_gate_requested",
   "app_swift_source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
   "latest_tested_workflow_source": "79f3062eba2474f41fba337872f152a9cf3cd8d5",
   "identity": {
@@ -11,7 +11,7 @@
     "bundle_id": "com.ahmadalawi.hashiya",
     "minimum_ios": 17
   },
-  "scope": "Two focused iPhone Simulator executions on different SHAs/configurations. No full release gate or current iPad qualification; no IPA.",
+  "scope": "User explicitly authorized one complete iPhone+iPad release gate after reviewing both focused passes. Preserve existing source/evidence; historical failures trigger diagnosis only if they actually recur in this gate.",
   "debug_scalar_probe": {
     "source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
     "run": 40099719720,
@@ -115,7 +115,7 @@
     "Parked two-line narrow source-caption display polish remains unapplied."
   ],
   "required_before_IPA": [
-    "Causal qualification of unresolved native ink failure; no blind identical rerun or fourth compositor workaround.",
+    "Run one complete candidate gate; investigate only failures observed in that gate using native counters/xcresult before any repair or rerun.",
     "All150 current native methods per device including original68/32, no failures/skips, same final SHA.",
     "Three Maestro flows per device, actual exported bytes, compatibility/audio/Office/accessibility checks.",
     "All six real production capture journeys per device and reviewed raw-image comparison gallery.",
@@ -133,5 +133,13 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "Read this checkpoint before historical plan entries. Both native jobs completed; no suspended local command. Existing whole-branch review stands. Next step needs causal native evidence on an actual failure; current negative/passing samples do not justify another speculative production mutation."
+  "resume": "Run the existing full release pipeline once with [integration:release] on the integration branch, freeze that SHA, and follow it through completion. Do not reopen historical nonrecurring failures or repeat focused successes. If any critical current gate fails, retain evidence and diagnose its first actual failure before a limited repair. Otherwise complete native Office iphoneos build and unsigned IPA validation. Physical-device limits remain disclosed.",
+  "qualification_policy": {
+    "one_frozen_sha": true,
+    "original_and_new_tests_required": true,
+    "Maestro_and_real_export_bytes_required": true,
+    "no_blind_rerun": true,
+    "Office_and_iphoneos_packaging_only_after_required_gates_pass": true,
+    "no_Apple_upload_or_merge": true
+  }
 }

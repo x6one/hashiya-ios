@@ -75,6 +75,9 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
+      - name: Preserve failed synthetic ink before the regression runner is discarded
+        if: failure()
+        run: python3 Tools/capture_native_ink_failure.py
       - name: Export regression screenshots and summary
         if: always()
         run: |
@@ -96,6 +99,7 @@ jobs:
             regression-build.log
             RegressionScreenshots/
             NativeResults/
+            IntegrationEvidence/NativeInkFailure/
           retention-days: 7
   test:
     needs: regression

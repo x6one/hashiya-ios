@@ -10,6 +10,18 @@
 
 **Spec:** ../specs/2026-10-20-tayya-studio-integration-design.md
 
+## Current release checkpoint — 2026-10-24, actual gate failures repaired
+
+This section supersedes historical pending instructions below. The first full candidate0e32c6f/run40106092896 completed: original cold3/device passed; all99unit/device passed; complete Phone147/150 and Pad149/150, zero skips. Real exported PDF3063/PPTX54684bytes each passed. Only three phone external-intake interactions and one Pad appended-page selection failed; no historical live-ink/Redo/CloseNotes failure recurred. Maestro/Office/IPA correctly did not run.
+
+Phone cause: real imported body search result existed below the visible scroll viewport. Native tap220,555 hit the destination dock. First test scroll attempt96f also failed0/3: synthesized default swipes started220,578 in the fixed status strip. Native video/events proved that they never scrolled the library. Test-only drag inside the measured visible viewport retained original import/content/open/two-page assertions and bounds. Source717806df [run40115928063](https://github.com/x6one/hashiya-ios/actions/runs/40115928063), phone120937073115 **3/3PASS**, zero failures/skips/expected failures; production unchanged.
+
+Pad cause: appended page existed, but both pages entirely fit the narrow/tall PDF viewport. Upper-edge inference overwrote explicit page2 with page1. Sourcef558e4d [run40116402317](https://github.com/x6one/hashiya-ios/actions/runs/40116402317) reproduced this in the existing viewport unit test: content928.851pt inside1120pt, readingindex1→0 at336pt width; original Notes UI721 also failed. The selector stripped-red and ran two related unit cases plus the original UI instead of one intended unit; corrected locally by executing the actual workflow selector against a controlled simulator response. No repeat RED.
+
+Minimal production repair: only ResizingPDFView in App/PDFWorkspace.swift remembers a weak selected page while every page fits or its viewport is being restored; a fitted selected-page anchor survives return to a scrollable view. Storage/format/ink/recording engines unchanged. The original unit regression now also checks full-fit first/second/previous selection. Source7cafec00786ee8ced6e9b363d1bdbdaa6a563de0 [run40117682432](https://github.com/x6one/hashiya-ios/actions/runs/40117682432): **Phone3/3PASS** (120942304141), **Pad3/3PASS** (120942304309), zero failures/skips/expected failures. Both existing viewport methods and the entire original paged Notes resize/rotation/append/reopen case passed. Native traces retain index1 at full fit even though physical topindex0. Lint and focused preflight passed. Original68unit/32UI identities retained; current99unit/51UI unchanged.
+
+Next: freeze the commit containing this checkpoint; App/Tests/UITests/project.yml byte-identical to verified7caf. One new final qualification gate is justified by the proven repair, not an identical retry: cold originals3/device → all150/device → Maestro3/device and actual exported bytes → byte-exact native production gallery → existing full Office iphoneos/unsignedIPA workflow. Do not push after qualification or alter its source. Diagnose only an actual new failure using existing counters, xcresult and files before any fix/retry. No main/stable/design merge, Apple upload or signing secrets. Physical microphone fidelity/interruption and physical Office conversion remain unverified. No final IPA exists yet.
+
 ## 1. Foundation and focused native gate
 
 - [x] Inspect both current heads, local changes, actual baseline jobs and approved design evidence; establish isolated integration branch.

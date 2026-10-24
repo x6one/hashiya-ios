@@ -2,9 +2,9 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "release_gate_failed_current_intake_touch_and_paged_append",
-  "app_swift_source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
-  "latest_tested_workflow_source": "f558e4d2bfe1a1cf77ec3d2e9eb638d5a1869bf8",
+  "status": "observed_release_failures_fixed_directed_green_final_candidate_ready",
+  "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
+  "latest_tested_workflow_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -115,11 +115,10 @@
     "Parked two-line narrow source-caption display polish remains unapplied."
   ],
   "required_before_IPA": [
-    "Run one complete candidate gate; investigate only failures observed in that gate using native counters/xcresult before any repair or rerun.",
-    "All150 current native methods per device including original68/32, no failures/skips, same final SHA.",
-    "Three Maestro flows per device, actual exported bytes, compatibility/audio/Office/accessibility checks.",
-    "All six real production capture journeys per device and reviewed raw-image comparison gallery.",
-    "Full local Office iphoneos app build, unsigned arm64 IPA validation and SHA256 on the qualified source."
+    "Final candidate: all150 current native methods/device, original68/32 retained, zero failed/skipped/expected failures, one final SHA.",
+    "Three Maestro flows/device, actual PDF/PPTX exported bytes, compatibility/audio/Office/accessibility checks.",
+    "All six actual production capture journeys/device and reviewed raw-image comparison gallery.",
+    "Existing full native Office iphoneos build; real app arm64/Info/resources/ZIP/IPA SHA256 validation on qualified final source."
   ],
   "physical_device_limits": [
     "Microphone fidelity/interruption behavior not proven on physical hardware.",
@@ -133,7 +132,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "Qualify DocumentViewportTests2+original paged Notes continuityUI1 on both devices because shared PDF layout changed; after GREEN freeze one final qualification source. No new RED, no old ink probe.",
+  "resume": "Both observed defects have directed RED/GREEN evidence. Freeze the commit containing this checkpoint; App/Tests/UITests/project.yml identical to7caf. Run one final release gate after the actual code repair. Diagnose only real failures from this new gate; no repeated targeted probes or identical retries. Freeze HEAD through native Office/IPA.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -167,9 +166,7 @@
     },
     "Maestro_Office_IPA": "not reached after native failures"
   },
-  "active_failures": [
-    "Pad full-fit page selection: limited PDFWorkspace weak selected-page/anchor preservation implemented; native GREEN not yet run."
-  ],
+  "active_failures": [],
   "intake_scroll_attempt": {
     "source": "96f114dcf5bdc32553e382df2ee29f006146941c",
     "run": 40113788570,
@@ -213,5 +210,35 @@
     ],
     "proof": "At full fit reading/top index0 overwrites selected index1; selection remains wrong after expanding. Existing landscape reading-offset/manual-zoom test passes.",
     "selection_error": "Workflow strips -red so actual target was class2+originalUI1, not intended one method. Fixed selector locally by executing actual workflow selection Python with controlled simulator input. No repeat RED."
+  },
+  "full_fit_green": {
+    "source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
+    "run": 40117682432,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40117682432",
+    "iPhone": {
+      "job": 120942304141,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unit_seconds": 2.894,
+      "ui_seconds": 180.468
+    },
+    "iPad": {
+      "job": 120942304309,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unit_seconds": 3.418,
+      "ui_seconds": 167.554
+    },
+    "trace": "Both devices retain readingindex1 at full-fit336x1120 (contentheight928.85, physical topindex0), original larger/smaller resizing, first/second/previous selection, landscape reading offset, manual zoom, rotated PDF navigation and original paged Notes stroke/text/reopen checks passed.",
+    "production_change": "Only ResizingPDFView in App/PDFWorkspace.swift: weak selected-page reference during whole-document fit/viewport restoration and selected-page anchor. No file format/storage/audio/ink-engine change."
+  },
+  "final_candidate": {
+    "source": "The commit containing this checkpoint; exact SHA retained in ignored continuation ledger and Actions GITHUB_SHA.",
+    "qualified_app_test_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
+    "status": "Not yet fully qualified; no IPA."
   }
 }

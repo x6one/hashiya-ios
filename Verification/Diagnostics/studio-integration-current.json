@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "notes_transition_original_Pad_GREEN_shared_helper_text_mode_assertion_correction_pending",
+  "status": "e52Phone3_GREEN_Pad2_GREEN_one_false_negative_expansion_poll_targeted_repair_pending",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "e6db46b44d51ac57f009709a62a7ce97d8d9f2ea",
   "identity": {
@@ -434,5 +434,42 @@
     },
     "correction": "Retain expanded label/no-divider predicate for either real editor mode. Move strict full-width ink assertions to both existing PagedMargins handwriting call sites. No App changes, retries, sleeps, wider timeouts, removed original assertions or optional success.",
     "next": "Rerun same3 affected helper callers only after this new bounded test-code correction; no full gate until all GREEN."
+  },
+  "notes_expansion_e52": {
+    "source": "e52eae0e0d1b4e712a94d77a18750c89dfdd277c",
+    "run": 40140605164,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40140605164",
+    "iPhone": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "seconds": 239.294
+    },
+    "iPad": {
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "seconds": 379.924,
+      "cases": {
+        "delete_pages_pass_seconds": 85.612,
+        "paged_margins_pass_seconds": 228.099,
+        "accessibility_fail_seconds": 66.212
+      },
+      "failure": "testPaperStudioAccessibilityReduceMotionVisualCaptureJourney helper31 expansion expectation timeout",
+      "actual_native_state": "Expanded Notes already displayed during25s native video frame; later original assertExpandedNotesHideRetainedPDF checks label/absent divider/native hidden PDF/touch ownership all passed, as did real recording assertions. No state-changing Notes action between initial expansion and these checks.",
+      "trace": "Positive expanded label resolved before negative splitDivider Any query at25.26s; absent query retried at28.53s, helper5s expectation timed out29.99s. Large synchronous absent-node AX lookup consumed polling deadline despite already-expanded UI."
+    },
+    "artifact": {
+      "id": 12578239697,
+      "size": 130951543,
+      "sha256": "201602e3daba2f8fa2d6d769e45f0bd5f125d51fb561bdc5b14c95acc18e8256",
+      "crc_verified": true,
+      "raw_screen": "A108415B-D3C6-46D5-ADB1-192081635C43.png",
+      "native_video": "3842EF22-E22A-4B9E-9297-2428343ED407.mp4"
+    },
+    "repair": "Wait for positive expanded label with same5s; preserve strict absent-divider assertion immediately afterward outside timed poll. Both full-width ink assertions and all original conditions retained. App unchanged.",
+    "next": "Only failing PaperStudioAccessibility UI on iPad, plus SwiftLint/SwiftFormat; no rerun of the five passing targets. Then one frozen-source complete gate if successful.",
+    "stop_rule": "If this third narrow test-helper refinement fails, inspect architecture/native evidence before any fourth patch."
   }
 }

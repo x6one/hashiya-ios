@@ -26,10 +26,13 @@ final class LaunchTests: XCTestCase {
         }
         if divider.exists { expand.tap() }
         let expanded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            expand.exists && expand.label == "العودة إلى المستند" && !divider.exists
+            expand.exists && expand.label == "العودة إلى المستند"
         }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed,
                        "Notes must actually enter expanded mode before continuing")
+        // An absent-node AX lookup can retry longer than the predicate's whole
+        // deadline on iPad. Keep the same assertion outside that timed poll.
+        XCTAssertFalse(divider.exists, "Expanded Notes must remove the split divider")
     }
     private func visibleMarginInkPixels(_ canvas: XCUIElement, in app: XCUIApplication) -> Int {
         inkPixels(in: XCUIScreen.main.screenshot().image, frame: canvas.frame)

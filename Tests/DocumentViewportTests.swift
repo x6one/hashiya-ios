@@ -37,7 +37,9 @@ final class DocumentViewportTests: XCTestCase {
         XCTAssertEqual(workspace.document.pageCount, 2)
         coordinator.pageChanged()
         XCTAssertEqual(workspace.page, 2, "The final requested page must remain selected at PDFKit's scroll limit")
-        for size in [CGSize(width: 440, height: 625), CGSize(width: 440, height: 673),
+        // At this narrow/tall iPad split size both PDF pages fit in full.
+        // Top-edge inference must not silently replace an explicit page choice.
+        for size in [CGSize(width: 336, height: 1120), CGSize(width: 440, height: 625), CGSize(width: 440, height: 673),
                      CGSize(width: 600, height: 1137), CGSize(width: 440, height: 300)] {
             trace("before-\(size)")
             view.frame.size = size; trace("frame-\(size)"); view.layoutIfNeeded(); trace("layout-\(size)")

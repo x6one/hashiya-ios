@@ -504,6 +504,38 @@ jobs:
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
         run: maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults "$MAESTRO_FLOW"
+      - name: Retain focused Maestro bootstrap evidence
+        if: always() && (inputs.diagnostic == 'maestro' || contains(github.event.head_commit.message, '[diagnostic:maestro]'))
+        run: |
+          python3 - <<'PY_BOOTSTRAP'
+          import json, os, subprocess, time
+          from pathlib import Path
+
+          output = Path('FocusedEvidence/maestro-bootstrap')
+          output.mkdir(parents=True, exist_ok=True)
+          report = {'source': os.environ['GITHUB_SHA'], 'simulator': os.environ['SIMULATOR_ID'], 'commands': []}
+          predicate = 'process == "testmanagerd" OR process == "xcodebuild" OR eventMessage CONTAINS[c] "maestro-driver"'
+          commands = [
+              ('device.log', ['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log', 'show', '--last', '10m', '--style', 'compact', '--info', '--debug', '--predicate', predicate]),
+              ('host.log', ['log', 'show', '--last', '10m', '--style', 'compact', '--info', '--debug', '--predicate', predicate]),
+              ('processes.txt', ['ps', '-axo', 'pid,ppid,etime,stat,comm']),
+          ]
+          for name, command in commands:
+              record = {'file': name, 'command': command, 'started': time.time()}
+              try:
+                  with (output / name).open('w') as log:
+                      result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=60)
+                  record['exit_code'] = result.returncode
+              except subprocess.TimeoutExpired:
+                  record['timed_out'] = True
+              except OSError as error:
+                  record['error'] = str(error)
+              record['bytes'] = (output / name).stat().st_size
+              record['finished'] = time.time()
+              report['commands'].append(record)
+          (output / 'collection.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+          PY_BOOTSTRAP
       - name: Preserve margin storage boundaries
         if: always() && (inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]'))
         run: |

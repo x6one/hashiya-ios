@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "Phone_Maestro_library_RED_to_GREEN_verified_shared_flow_iPad_regression_pending",
+  "status": "Phone_Library_fix_GREEN_Pad_related_blocked_before_flow_by_Maestro_XCTest_driver_bootstrap",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "4e8434104e8847427fb83b8e870461f682952158",
   "identity": {
@@ -132,7 +132,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "The only actual remaining Phone Maestro failure has directed RED/GREEN proof. Run only related iPad Library lifecycle on the same shared centered-scroll YAML before final same-SHA qualification. No native tests or unchanged audio/cards reruns in this directed scope. App/Tests/UITests/project.yml unchanged from d6(150/150each,PadM3,PhoneM2). Once shared flow is qualified both devices, freeze one final release SHA for required all-gates/Office/unsignedIPA. Do not reopen historical failures.",
+  "resume": "One new hypothesis-driven minimal Pad Library scope with post-run host/device testmanagerd/xcodebuild/driver logs and process metadata. Hypothesis: transient cold XCTest launch/handoff blockage before Maestro server; unchanged180s bound and original flow assertions, no warm-up/native app tests, no retry loop. If it passes, record cold-start fault as not reproduced rather than fixed; if it fails, analyze collected daemon evidence before further action. No full gate while related scope unresolved.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -166,7 +166,9 @@
     },
     "Maestro_Office_IPA": "not reached after native failures"
   },
-  "active_failures": [],
+  "active_failures": [
+    "Pad related Maestro verification: no Library flow executed because driver never reached its first test suite before180s. Need native bootstrap logs; do not alter app/menu behavior or blindly increase timeout."
+  ],
   "intake_scroll_attempt": {
     "source": "96f114dcf5bdc32553e382df2ee29f006146941c",
     "run": 40113788570,
@@ -320,5 +322,21 @@
       "JUnit_case_count": 1,
       "failures_skips_errors": 0
     }
+  },
+  "maestro_library_pad_bootstrap_failure": {
+    "source": "bf1fcd8b735cd3ead73ec1a8278ececa6e3ddc3f",
+    "run": 40129143969,
+    "job": 120976944714,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40129143969",
+    "flows_executed": 0,
+    "classification": "Infrastructure: iOSDriverTimeoutException before flow/session,180000ms. xcodebuild driver stdout only6lines740bytes, no Test Suite or Running tests. Final native screen SpringBoard, Tayya not launched.",
+    "root_cause": "Underlying Xcode/testmanagerd launch blockage unknown; generic Supported platforms warning also appears in successful Phone driver, so not causal evidence.",
+    "artifact": {
+      "id": 12573968274,
+      "bytes": 420091,
+      "zip_sha256": "b416d488010bab0f66c885328fd60b3ec8feaa6d73a48eb946790e18814cd791",
+      "CRC_verified": true
+    },
+    "working_comparison": "Phone4e driver logs launch Running tests at20:07:29/Test Suite20:07:39 and flows1PASS; failing Pad20:23:44..49 only destination warnings, then no runner untiltimeout20:26:40. d6fullPadMaestro3 previouslyPASS after native suites."
   }
 }

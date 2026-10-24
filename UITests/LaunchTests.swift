@@ -984,9 +984,7 @@ final class LaunchTests: XCTestCase {
         // the real library. The filename alone cannot satisfy this check.
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText(marker)
-        let content = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", marker)).firstMatch
-        XCTAssertTrue(content.waitForExistence(timeout: 10), "Imported PDF text must appear in a real search result")
-        content.tap()
+        guard tapVisibleContentResult(title: title, marker: marker, in: app) else { return }
         let page = app.textFields["pageNumber"]
         XCTAssertTrue(page.waitForExistence(timeout: 10))
         XCTAssertTrue(app.otherElements["pdfCanvas"].exists, "Actual imported content must open in the native PDF reader")
@@ -996,6 +994,41 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(page.value as? String, "2", "Both generated PDF pages must reach the real reader")
         XCTAssertFalse(app.buttons["nextDocumentPage"].isEnabled)
         capturePaperStudio("ExternalIntake-" + variant + "-ImportedDocument", in: app)
+    }
+
+    private func tapVisibleContentResult(title: String, marker: String, in app: XCUIApplication) -> Bool {
+        let matchingContent = NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", title, marker)
+        let result = app.buttons.matching(matchingContent).firstMatch
+        guard result.waitForExistence(timeout: 10) else {
+            XCTFail("Imported PDF text must appear in a real search result"); return false
+        }
+        let results = app.scrollViews.containing(matchingContent).firstMatch
+        guard results.exists else { XCTFail("Content results must belong to the real scrollable library"); return false }
+        for _ in 0..<4 {
+            let window = app.windows.firstMatch.frame
+            var visible = results.frame.intersection(window)
+            let keyboard = app.keyboards.firstMatch
+            if keyboard.exists {
+                visible = visible.intersection(CGRect(x: window.minX, y: window.minY,
+                    width: window.width, height: max(0, keyboard.frame.minY - window.minY)))
+            }
+            let home = app.buttons["libraryHome"], sections = app.buttons["librarySections"]
+            if home.exists && sections.exists && abs(home.frame.midY - sections.frame.midY) < 1 {
+                // A horizontal destination dock clips results above the keyboard.
+                // The iPad's vertical sidebar is outside this scrolling column.
+                visible.size.height = max(0, min(visible.maxY, home.frame.minY) - visible.minY)
+            }
+            let target = result.frame
+            if !visible.isEmpty && visible.contains(target) && result.isHittable {
+                XCTAssertGreaterThanOrEqual(target.width + targetFrameTolerance, 44)
+                XCTAssertGreaterThanOrEqual(target.height + targetFrameTolerance, 44)
+                let receipt = XCTAttachment(string: "result=\(target); visibleLibrary=\(visible); label=\(result.label)")
+                receipt.name = "ExternalIntake-VisibleContentResult"; receipt.lifetime = .keepAlways; add(receipt)
+                result.tap(); return true
+            }
+            results.swipeUp()
+        }
+        XCTFail("The complete content result must be visible above the dock and keyboard before tapping"); return false
     }
 
     private func waitForNativeInkColorService(name: String) -> Bool {

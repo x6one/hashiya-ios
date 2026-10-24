@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "single_frozen_source_release_gate_requested",
+  "status": "release_gate_failed_current_intake_touch_and_paged_append",
   "app_swift_source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
   "latest_tested_workflow_source": "79f3062eba2474f41fba337872f152a9cf3cd8d5",
   "identity": {
@@ -133,7 +133,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "Run the existing full release pipeline once with [integration:release] on the integration branch, freeze that SHA, and follow it through completion. Do not reopen historical nonrecurring failures or repeat focused successes. If any critical current gate fails, retain evidence and diagnose its first actual failure before a limited repair. Otherwise complete native Office iphoneos build and unsigned IPA validation. Physical-device limits remain disclosed.",
+  "resume": "Run only3failed phone intake cases after the proven offscreen-touch test repair. Inspect current Pad append xcresult/video before any repair. No identical full rerun and no old ink diagnosis; first limited repair qualification then a final required same-source release gate.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -141,5 +141,34 @@
     "no_blind_rerun": true,
     "Office_and_iphoneos_packaging_only_after_required_gates_pass": true,
     "no_Apple_upload_or_merge": true
-  }
+  },
+  "candidate_gate": {
+    "source": "0e32c6fec33dc9001a96e8ba042f44fbf7e3f2c0",
+    "run": 40106092896,
+    "regressions_each_device": {
+      "passed": 3,
+      "failed": 0
+    },
+    "iPhone": {
+      "job": 120911950085,
+      "passed": 147,
+      "failed": 3,
+      "skipped": 0
+    },
+    "iPad": {
+      "job": 120911950004,
+      "unit_passed": 99,
+      "ui_passed": 50,
+      "ui_failed": 1
+    },
+    "real_export_bytes_each_device": {
+      "PDF": 3063,
+      "PPTX": 54684
+    },
+    "Maestro_Office_IPA": "not reached after native failures"
+  },
+  "active_failures": [
+    "Phone: three external PDF tests tap an offscreen search result; actual native tap220,555 hits destination dock/Sections. Test-only visible-result scroll repair prepared; original import/content/reader/two-page requirements retained.",
+    "Pad: paged Notes continuity case721 reports PDFpage1 instead of2 after dotted append. Evidence review pending; no production repair proposed."
+  ]
 }

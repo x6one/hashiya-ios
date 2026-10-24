@@ -2,9 +2,9 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "Phone_Library_fix_GREEN_Pad_related_blocked_before_flow_by_Maestro_XCTest_driver_bootstrap",
+  "status": "all_observed_functional_failures_directed_GREEN_freeze_final_same_SHA_qualification",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
-  "latest_tested_workflow_source": "4e8434104e8847427fb83b8e870461f682952158",
+  "latest_tested_workflow_source": "e6db46b44d51ac57f009709a62a7ce97d8d9f2ea",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -132,7 +132,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "One new hypothesis-driven minimal Pad Library scope with post-run host/device testmanagerd/xcodebuild/driver logs and process metadata. Hypothesis: transient cold XCTest launch/handoff blockage before Maestro server; unchanged180s bound and original flow assertions, no warm-up/native app tests, no retry loop. If it passes, record cold-start fault as not reproduced rather than fixed; if it fails, analyze collected daemon evidence before further action. No full gate while related scope unresolved.",
+  "resume": "No directed probes remain necessary: observed intake and PDFfull-fit App/test failures passed; only failed PhoneMaestroLibrary interaction now has exact RED/GREEN coordinates and full lifecycle1PASS/device. Freeze release-trigger commit and run required single-final-SHA completegate, all150/device including original68/32, Maestro3/device, actualexports, rawgallery, nativeOfficeiphoneos/unsignedIPA. NativeApp/tests remain byte-identicald6; broader qualification is required by exact-SHA packaging guard. Do not changeHEAD after qualification, no blind reruns; diagnose only actual new failures. Preserve historical bf1zero-flow driver timeout as unknown/nonreproduced, no arbitrary startup extension.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -166,9 +166,7 @@
     },
     "Maestro_Office_IPA": "not reached after native failures"
   },
-  "active_failures": [
-    "Pad related Maestro verification: no Library flow executed because driver never reached its first test suite before180s. Need native bootstrap logs; do not alter app/menu behavior or blindly increase timeout."
-  ],
+  "active_failures": [],
   "intake_scroll_attempt": {
     "source": "96f114dcf5bdc32553e382df2ee29f006146941c",
     "run": 40113788570,
@@ -239,9 +237,10 @@
     "production_change": "Only ResizingPDFView in App/PDFWorkspace.swift: weak selected-page reference during whole-document fit/viewport restoration and selected-page anchor. No file format/storage/audio/ink-engine change."
   },
   "final_candidate": {
-    "source": "d6c126f771ab9c7087e2a2563e2d8c041def897d",
-    "run": 40118766257,
-    "status": "150/150native each0failure/skip/expected; PadMaestro3pass; PhoneMaestro2pass1libraryfail; no Office/IPA"
+    "source": "The release-trigger commit containing this final checkpoint; exactSHA in continuation ledger and Actions GITHUB_SHA.",
+    "native_app_test_source": "Byte-identical d6c126f771ab9c7087e2a2563e2d8c041def897d, already150/150each and originalcold3each.",
+    "Maestro_shared_Library_source": "Byte-identical4e8434104e8847427fb83b8e870461f682952158, qualifiedPhone4e andPade6.",
+    "status": "Not yet all-gates qualified on finalSHA; Office/IPA not started."
   },
   "candidate_after_full_fit_repair": {
     "source": "d6c126f771ab9c7087e2a2563e2d8c041def897d",
@@ -338,5 +337,36 @@
       "CRC_verified": true
     },
     "working_comparison": "Phone4e driver logs launch Running tests at20:07:29/Test Suite20:07:39 and flows1PASS; failing Pad20:23:44..49 only destination warnings, then no runner untiltimeout20:26:40. d6fullPadMaestro3 previouslyPASS after native suites."
+  },
+  "maestro_library_pad_green": {
+    "source": "e6db46b44d51ac57f009709a62a7ce97d8d9f2ea",
+    "run": 40130700894,
+    "job": 120981629563,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40130700894",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 267.679,
+    "scope": "Only related Library lifecycle, identical shared centered-scroll YAML to Phone4e; no Hashiya XCTest/XCUITest execution or native warm-up.",
+    "artifact": {
+      "id": 12575146596,
+      "zip_sha256": "657f88ac3430fb23c187878df5aa872882a50508686176d7429380a32cf4fa9f",
+      "CRC_verified": true,
+      "JUnit_case_count": 1,
+      "failures_skips_errors": 0
+    },
+    "bootstrap": "Original180s bound unchanged; successful driver Running tests20:46:42, firstSuite20:46:48. Earlier bf1driverfault did not recur; underlying cause remains unknown, not claimed repaired.",
+    "native_evidence": "Device3291656bytes, host732472bytes, process108239bytes; all collector commands exit0."
+  },
+  "ci_job_budget": {
+    "old_minutes": 90,
+    "new_minutes": 105,
+    "reason": "Measured d6 Phone fulljob86.02min despite Library aborting after148.809s; repaired whole Library331.053s adds182.244s. Retain room for real entrance captures, full xcresult retention and uploads.",
+    "functional_limits_unchanged": {
+      "native_default_seconds": 240,
+      "native_maximum_seconds": 360,
+      "maestro_driver_startup_ms": 180000,
+      "ordinary_UI_assertions": "Original5/10s unchanged; no extra sleeps/optional/skip/retry."
+    }
   }
 }

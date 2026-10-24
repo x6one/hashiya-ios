@@ -50,6 +50,12 @@ final class DocumentViewportTests: XCTestCase {
         }
         workspace.jump(1); view.layoutIfNeeded(); coordinator.pageChanged()
         XCTAssertEqual(workspace.page, 1, "Previous-page navigation must leave the scroll limit")
+        view.frame.size = CGSize(width: 336, height: 1120); view.layoutIfNeeded(); coordinator.pageChanged()
+        XCTAssertEqual(workspace.page, 1, "Fitting the whole document must retain the first page rather than selecting the last")
+        workspace.jump(2); view.layoutIfNeeded(); coordinator.pageChanged()
+        XCTAssertEqual(workspace.page, 2, "Explicit navigation must select the second page even when both pages fit")
+        workspace.jump(1); view.layoutIfNeeded(); coordinator.pageChanged()
+        XCTAssertEqual(workspace.page, 1, "Previous-page navigation must also work without a scrollable offset")
     }
     @MainActor func testRepeatedToolbarResizesKeepTheReadingLocationOnLandscapePages() throws {
         let paper = CGRect(x: 0, y: 0, width: 960, height: 540)

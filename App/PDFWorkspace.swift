@@ -1056,6 +1056,7 @@ final class ResizingPDFView: PDFView {
     private var previousSize = CGSize.zero
     private var pendingAnchor: (page: PDFPage, point: CGPoint, atEnd: Bool)?
     private var restoringViewport = false
+    private weak var selectedReadingPage: PDFPage?
     // PDFKit's currentPage/currentDestination can refer to a later visible
     // slide in continuous mode. Reading starts at the viewport's upper edge.
     private var readingPoint: CGPoint { CGPoint(x: bounds.midX, y: bounds.minY + 1) }
@@ -1071,16 +1072,35 @@ final class ResizingPDFView: PDFView {
         let maximum = scroll.contentSize.height - scroll.bounds.height
         return maximum > -scroll.adjustedContentInset.top + 1 && scroll.contentOffset.y >= maximum - 1
     }
+    private var allPagesFitVertically: Bool {
+        guard let scroll = documentScrollView, scroll.bounds.height > 0, scroll.contentSize.height > 0 else { return false }
+        return scroll.contentSize.height <= scroll.bounds.height + 1
+    }
     var readingPage: PDFPage? {
+        // With every page visible there is no scroll offset that can express
+        // selection. Keep explicit navigation (and selection during resizing)
+        // instead of replacing it with the first page at the viewport's top.
+        if restoringViewport || allPagesFitVertically,
+           let selected = selectedReadingPage, let document,
+           document.index(for: selected) < document.pageCount { return selected }
         // PDFKit clamps navigation at the scroll limit. A short final page
         // cannot reach the upper edge, even though it is the requested page.
-        if isAtDocumentEnd, let document { return document.page(at: document.pageCount - 1) }
-        return page(for: readingPoint, nearest: true)
+        let visible: PDFPage?
+        if isAtDocumentEnd, let document { visible = document.page(at: document.pageCount - 1) }
+        else { visible = page(for: readingPoint, nearest: true) }
+        selectedReadingPage = visible
+        return visible
     }
     private var readingAnchor: (page: PDFPage, point: CGPoint, atEnd: Bool)? {
-        guard bounds.width > 0, bounds.height > 0,
-              let page = page(for: readingPoint, nearest: true) else { return nil }
-        return (page, convert(readingPoint, to: page), isAtDocumentEnd)
+        guard bounds.width > 0, bounds.height > 0, let page = readingPage else { return nil }
+        var point = convert(readingPoint, to: page)
+        if allPagesFitVertically {
+            // A selected lower page can be entirely below the upper edge.
+            // Anchor its nearest edge so expanding the PDF retains that page.
+            let box = page.bounds(for: displayBox)
+            point = CGPoint(x: min(box.maxX, max(box.minX, point.x)), y: min(box.maxY, max(box.minY, point.y)))
+        }
+        return (page, point, isAtDocumentEnd)
     }
     override var frame: CGRect {
         willSet { if newValue.size != frame.size { captureAnchor() } }
@@ -1095,6 +1115,7 @@ final class ResizingPDFView: PDFView {
         pendingAnchor = nil
         // Inserted/replaced pages need current layout before coordinate conversion.
         layoutDocumentView()
+        selectedReadingPage = page
         let box = page.bounds(for: displayBox)
         guard box.width.isFinite, box.height.isFinite, box.width > 0, box.height > 0 else { go(to: page); return }
         let inset = min(1, min(box.width, box.height) / 4)
@@ -1123,7 +1144,10 @@ final class ResizingPDFView: PDFView {
         previousSize = bounds.size
         let anchor = pendingAnchor ?? (resized ? readingAnchor : nil)
         pendingAnchor = nil
-        if resized { restoringViewport = true }
+        if resized {
+            if let anchor { selectedReadingPage = anchor.page }
+            restoringViewport = true
+        }
         defer { if resized { restoringViewport = false } }
         super.layoutSubviews()
         guard resized, bounds.width > 0, bounds.height > 0 else { return }

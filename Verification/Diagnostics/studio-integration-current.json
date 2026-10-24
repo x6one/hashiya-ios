@@ -4,7 +4,7 @@
   "branch": "integration/tayya-studio-2",
   "status": "release_gate_failed_current_intake_touch_and_paged_append",
   "app_swift_source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
-  "latest_tested_workflow_source": "96f114dcf5bdc32553e382df2ee29f006146941c",
+  "latest_tested_workflow_source": "f558e4d2bfe1a1cf77ec3d2e9eb638d5a1869bf8",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -133,7 +133,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "Qualify only three phone intake cases with valid visible gesture; reproduce Pad full-document-fit navigation separately. No blind full rerun, no historical ink probe.",
+  "resume": "Qualify DocumentViewportTests2+original paged Notes continuityUI1 on both devices because shared PDF layout changed; after GREEN freeze one final qualification source. No new RED, no old ink probe.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -168,8 +168,7 @@
     "Maestro_Office_IPA": "not reached after native failures"
   },
   "active_failures": [
-    "Phone3: default swipe begins outside scrollable content; bounded physical viewport drag prepared, native verification pending.",
-    "Pad1: original video133.7s shows both PDF pages entirely fit inside narrow/tall split; append succeeded but top-page heuristic overwrites requested2 with1. Investigate non-scrollable reading-page policy; no repair yet."
+    "Pad full-fit page selection: limited PDFWorkspace weak selected-page/anchor preservation implemented; native GREEN not yet run."
   ],
   "intake_scroll_attempt": {
     "source": "96f114dcf5bdc32553e382df2ee29f006146941c",
@@ -184,5 +183,35 @@
       "crc_verified": true
     },
     "next": "Use physical drag entirely inside computed visible library rectangle; unchanged four-gesture bound, original import/body/reader/two-page assertions and deadlines."
+  },
+  "intake_green": {
+    "source": "717806df8f2d8e9e0b22cf343cee80db9b7d5801",
+    "run": 40115928063,
+    "job": 120937073115,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "seconds": 88.309,
+    "scope": "Real import/body search/open both pages; test-only viewport drag repair."
+  },
+  "pad_full_fit_red": {
+    "source": "f558e4d2bfe1a1cf77ec3d2e9eb638d5a1869bf8",
+    "run": 40116402317,
+    "job": 120938475752,
+    "passed": 1,
+    "failed": 2,
+    "unit_failed": "DocumentViewportTests/testFinalAddedPageRemainsSelectedWhenItCannotReachTheViewportTop",
+    "ui_failed": "LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch",
+    "viewport_points": [
+      336,
+      1120
+    ],
+    "pdf_content_points": [
+      336,
+      928.8510638297871
+    ],
+    "proof": "At full fit reading/top index0 overwrites selected index1; selection remains wrong after expanding. Existing landscape reading-offset/manual-zoom test passes.",
+    "selection_error": "Workflow strips -red so actual target was class2+originalUI1, not intended one method. Fixed selector locally by executing actual workflow selection Python with controlled simulator input. No repeat RED."
   }
 }

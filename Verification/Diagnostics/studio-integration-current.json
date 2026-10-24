@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-10-24",
+  "branch": "integration/tayya-studio-2",
+  "status": "blocked_not_release_qualified",
+  "app_swift_source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
+  "latest_tested_workflow_source": "79f3062eba2474f41fba337872f152a9cf3cd8d5",
+  "identity": {
+    "version": "0.6.0",
+    "build": 13,
+    "bundle_id": "com.ahmadalawi.hashiya",
+    "minimum_ios": 17
+  },
+  "scope": "Two focused iPhone Simulator executions on different SHAs/configurations. No full release gate or current iPad qualification; no IPA.",
+  "debug_scalar_probe": {
+    "source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
+    "run": 40099719720,
+    "job": 120889189958,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40099719720",
+    "case": "LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "seconds": 226.37,
+    "notes_live_red_pixels": 3786,
+    "document_live_red_pixels": 5405,
+    "native_commit_counts_0_through_11": [
+      0,
+      1,
+      4,
+      1,
+      3,
+      3,
+      3,
+      12,
+      0,
+      4,
+      0,
+      1
+    ],
+    "native_commit_last16_hex": "3245672456724567",
+    "same_page_reloads": 0,
+    "new_page_loads": 1,
+    "complete_save_publications": 3,
+    "interpretation": "No same-page reload or publish/configure reentry in the observed passing trace. This does not exclude either during an absent failure. No production repair.",
+    "artifact": {
+      "id": 12562197977,
+      "zip_sha256": "f7bbc078ad36d2f5e9c7d3eff81597eeb0c6a6b170c1b8cd8dc1226a50196216",
+      "crc_verified": true
+    }
+  },
+  "release_probe": {
+    "source": "79f3062eba2474f41fba337872f152a9cf3cd8d5",
+    "run": 40101417998,
+    "job": 120894180416,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40101417998",
+    "case": "LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "seconds": 214.177,
+    "scheme": "HashiyaReleaseInk",
+    "configuration": "Release",
+    "xcode": "26.2",
+    "platform": "iOS Simulator, not iphoneos",
+    "native_content_size": "accessibility-medium",
+    "app_swift_debug_flag": false,
+    "app_swift_optimized": true,
+    "unit_test_target_compiled": false,
+    "notes_live_red_pixels": 3862,
+    "document_live_red_pixels": 5376,
+    "notes_viewport_points": [
+      62,
+      235.33333333333334,
+      367.3333333333333,
+      88.66666666666666
+    ],
+    "original_undo_redo_and_fit_assertions": "passed",
+    "limitations": "Release uses fresh Simulator Documents, real first-launch demonstration, native OS type setting and normal motion. DEBUG synthetic root/reset/environment are omitted. Not a perfectly isolated compiler-only A/B; no evidence the old fault is DEBUG-only. Not the Office-enabled iphoneos app.",
+    "artifact": {
+      "id": 12562879248,
+      "url": "https://github.com/x6one/hashiya-ios/actions/runs/40101417998/artifacts/12562879248",
+      "zip_sha256": "45dc68f01bac3eedc83480ba423e25da5fb0b26c01ce4aa05d3b22416f17bc96",
+      "crc_verified": true,
+      "actual_native_pngs_reviewed": [
+        {
+          "file": "B748D953-F922-499E-8F8E-C2D002731909.png",
+          "sha256": "d316a73f7543bb858e94b24a030890cf959ca457019d0adc0adb19630caae6b5"
+        },
+        {
+          "file": "E3012FB7-304F-4DD5-8FBC-05FDE9FC264A.png",
+          "sha256": "5f201dd690f406589372753fb3e7773f3f45998fbe594291f02c9a8225451fe5"
+        }
+      ]
+    }
+  },
+  "source_inventory": {
+    "unit_methods": 99,
+    "ui_methods": 51,
+    "original_unit_methods_retained": 68,
+    "original_ui_methods_retained": 32,
+    "full_Hashiya_scheme_changed": false,
+    "note": "Static inventory, not full execution results."
+  },
+  "unresolved_historical_failures": [
+    "Intermittent Notes live0 red with native count2. Earlier8f/0ad unchanged saved drawings independently rasterize red; current probes did not reproduce the failure, so no causal fix is established.",
+    "069 iPad Redo failure not explained by later same-manager passes.",
+    "9d36 English Close Notes AX hittability failure has no failed-target geometry; later pass is not cause proof."
+  ],
+  "deferred_minor_findings": [
+    "Renamed numeric legacy recording metadata may retain stale displayed startPage after earlier PDF page deletion.",
+    "CurrentPage audio scope still lists unrelated legacy/archive folders.",
+    "Parked two-line narrow source-caption display polish remains unapplied."
+  ],
+  "required_before_IPA": [
+    "Causal qualification of unresolved native ink failure; no blind identical rerun or fourth compositor workaround.",
+    "All150 current native methods per device including original68/32, no failures/skips, same final SHA.",
+    "Three Maestro flows per device, actual exported bytes, compatibility/audio/Office/accessibility checks.",
+    "All six real production capture journeys per device and reviewed raw-image comparison gallery.",
+    "Full local Office iphoneos app build, unsigned arm64 IPA validation and SHA256 on the qualified source."
+  ],
+  "physical_device_limits": [
+    "Microphone fidelity/interruption behavior not proven on physical hardware.",
+    "Physical Office conversion not proven."
+  ],
+  "protections": {
+    "stable_source_unchanged": "dbdb264bf86a6606be095aad22cd303ad01e2071",
+    "approved_design_unchanged": "3b9872a9e26fbfa2ce102b9d2cdd7d1bb7f5f480",
+    "main_merge": false,
+    "apple_upload": false,
+    "signing_secrets_touched": false,
+    "final_IPA_exists": false
+  },
+  "resume": "Read this checkpoint before historical plan entries. Both native jobs completed; no suspended local command. Existing whole-branch review stands. Next step needs causal native evidence on an actual failure; current negative/passing samples do not justify another speculative production mutation."
+}

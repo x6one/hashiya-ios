@@ -1,5 +1,16 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Final qualification checkpoint — 29c directed failure GREEN (2026-10-24)
+
+Source29c5d402879d7653fc0f6e3393e676aead83238f [run40142514849](https://github.com/x6one/hashiya-ios/actions/runs/40142514849), Pad121017023367: only remaining PaperStudioAccessibility case **1/1PASS49.425s**,0fail/skip/expected; SwiftLint0violations/54files and SwiftFormatPASS. Positiveexpanded-state wait remains5s; strict absent-divider assertion remains immediatelyafterward outside timed polling. No sleep/retry/timeoutincrease. All original assertions and both full-width handwriting assertions preserved. Other5shared-helper targets passed on e52; these are directed evidence across repair commits, not a single-SHA final release qualification.
+
+App/Tests/project.yml/Maestro/native engine source unchanged throughout these Notes test repairs. AppSwift remains7cafec00786ee8ced6e9b363d1bdbdaa6a563de0; earlier viewport/intake/Maestro fixes remain validated and are not reopened. All99unit+51UI identities retained, including original68+32. No new dependency, identity change, stable/main merge, Apple upload or signing.
+
+Freeze the commit containing this checkpoint. Next execute exactly one complete release qualification on that SHA: Tools/actionlint; independentcoldoriginal3/device; complete150native/device with0fail/skip/expected; actual exportedbytes; all3Maestro/device; first-launch/ReduceMotion evidence; real native captures/gallery; then full Office iphoneos engine+realHashiyaRelease+unsignedIPA validation/hash. Keep source fixed through packaging and preserve evidence in artifacts/ignored continuation ledger. No post-qualification documentation commit changing the release SHA. If a new failure appears, inspect its actual logs/xcresult before editing or rerunning.
+
+Native47 visualprequalification review: all32Phone+20/32Pad rawproductionPNG states reviewed (realPDF/ink/text/Notes/split/audio/markers/variedthumbnails/Focus, Arabic/English/AX5/light/dark/bothorientations), no new blocker observed. Resized in-tool previews can omit text or shift fine labels; suspect details were checked using originalPNG detail/pixel data, with no App/capture change. This is not final-source gallery approval; final captures remain required. Physical microphone fidelity/interruption and physical Office conversion remain unverified. No final IPA exists yet.
+
+
 ## Current checkpoint — e52 false-negative AX polling failure (2026-10-24)
 
 [Run40140605164](https://github.com/x6one/hashiya-ios/actions/runs/40140605164), sourcee52eae0e0d1b4e712a94d77a18750c89dfdd277c: Phone3/3PASS239.294s,0fail/skip/expected; Pad2/3PASS, only PaperStudioAccessibility helper31 timed out. OriginalPagedMargins PASS228.099s with full1032pt canvas/10262visible ink pixels; DeletePages PASS85.612s. No old defect recurred.

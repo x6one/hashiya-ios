@@ -2,9 +2,9 @@
   "schema_version": 1,
   "date_utc": "2026-10-24",
   "branch": "integration/tayya-studio-2",
-  "status": "e52Phone3_GREEN_Pad2_GREEN_one_false_negative_expansion_poll_targeted_repair_pending",
+  "status": "all_observed_failures_targeted_GREEN_freeze_complete_same_SHA_release_qualification",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
-  "latest_tested_workflow_source": "e6db46b44d51ac57f009709a62a7ce97d8d9f2ea",
+  "latest_tested_workflow_source": "29c5d402879d7653fc0f6e3393e676aead83238f",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -471,5 +471,40 @@
     "repair": "Wait for positive expanded label with same5s; preserve strict absent-divider assertion immediately afterward outside timed poll. Both full-width ink assertions and all original conditions retained. App unchanged.",
     "next": "Only failing PaperStudioAccessibility UI on iPad, plus SwiftLint/SwiftFormat; no rerun of the five passing targets. Then one frozen-source complete gate if successful.",
     "stop_rule": "If this third narrow test-helper refinement fails, inspect architecture/native evidence before any fourth patch."
+  },
+  "notes_expansion_29c": {
+    "source": "29c5d402879d7653fc0f6e3393e676aead83238f",
+    "run": 40142514849,
+    "job": 121017023367,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40142514849",
+    "case": "LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "seconds": 49.425,
+    "lint": "SwiftLint0violations/54files, SwiftFormatPASS",
+    "conditions": "Same5spositiveexpandedstate wait; strict absentdivider assertion retained immediatelyafterward. Both originalPaged handwritingwidthassertions andalloriginalassertionsretained. No sleeps/retries/timeoutincrease/Appchanges.",
+    "qualification_scope": "Directed only. Other5shared-helper targets passedon e52; do not substitute combined old passes for the next full same-SHA release gate."
+  },
+  "next_release_gate": {
+    "trigger": "[integration:release]",
+    "source": "The commit containing this checkpoint; freeze its exact SHA through qualification and packaging.",
+    "required_per_device": {
+      "unit": 99,
+      "ui": 51,
+      "failures": 0,
+      "skips": 0,
+      "expected_failures": 0,
+      "maestro": 3
+    },
+    "also_required": [
+      "original3regressions on separate cold runner per device",
+      "actual exported PDF/PPTX bytes",
+      "all6realproductioncapturejourneys per device and unmodified PNG gallery/provenance",
+      "full native Office engine iphoneos and real Hashiya Release app",
+      "validated unsigned arm64IPA with matching identity, Office resources and SHA256"
+    ],
+    "rule": "No new diagnostic probes or reruns without an actual new failure; inspect first log/xcresult/counters before any edit. No source push while qualification active."
   }
 }

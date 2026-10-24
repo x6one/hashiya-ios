@@ -4,7 +4,7 @@
   "branch": "integration/tayya-studio-2",
   "status": "release_gate_failed_current_intake_touch_and_paged_append",
   "app_swift_source": "37d445884914cc5fb5346f6ff6c3bda1aaad6414",
-  "latest_tested_workflow_source": "79f3062eba2474f41fba337872f152a9cf3cd8d5",
+  "latest_tested_workflow_source": "96f114dcf5bdc32553e382df2ee29f006146941c",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -133,7 +133,7 @@
     "signing_secrets_touched": false,
     "final_IPA_exists": false
   },
-  "resume": "Run only3failed phone intake cases after the proven offscreen-touch test repair. Inspect current Pad append xcresult/video before any repair. No identical full rerun and no old ink diagnosis; first limited repair qualification then a final required same-source release gate.",
+  "resume": "Qualify only three phone intake cases with valid visible gesture; reproduce Pad full-document-fit navigation separately. No blind full rerun, no historical ink probe.",
   "qualification_policy": {
     "one_frozen_sha": true,
     "original_and_new_tests_required": true,
@@ -168,7 +168,21 @@
     "Maestro_Office_IPA": "not reached after native failures"
   },
   "active_failures": [
-    "Phone: three external PDF tests tap an offscreen search result; actual native tap220,555 hits destination dock/Sections. Test-only visible-result scroll repair prepared; original import/content/reader/two-page requirements retained.",
-    "Pad: paged Notes continuity case721 reports PDFpage1 instead of2 after dotted append. Evidence review pending; no production repair proposed."
-  ]
+    "Phone3: default swipe begins outside scrollable content; bounded physical viewport drag prepared, native verification pending.",
+    "Pad1: original video133.7s shows both PDF pages entirely fit inside narrow/tall split; append succeeded but top-page heuristic overwrites requested2 with1. Investigate non-scrollable reading-page policy; no repair yet."
+  ],
+  "intake_scroll_attempt": {
+    "source": "96f114dcf5bdc32553e382df2ee29f006146941c",
+    "run": 40113788570,
+    "passed": 0,
+    "failed": 3,
+    "skipped": 0,
+    "failure": "Visible-result guard; all twelve default swipes start220,578 in fixed status strip, end220,378. Native video confirms unchanged library/hidden results.",
+    "artifact": {
+      "id": 12568435299,
+      "zip_sha256": "8215355108a9961e16a4a68a924d7f44e8f0a09bd084495d2cbea004aa8b66bf",
+      "crc_verified": true
+    },
+    "next": "Use physical drag entirely inside computed visible library rectangle; unchanged four-gesture bound, original import/body/reader/two-page assertions and deadlines."
+  }
 }

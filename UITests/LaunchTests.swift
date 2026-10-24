@@ -1026,8 +1026,21 @@ final class LaunchTests: XCTestCase {
                 receipt.name = "ExternalIntake-VisibleContentResult"; receipt.lifetime = .keepAlways; add(receipt)
                 result.tap(); return true
             }
-            results.swipeUp()
+            // XCTest's default swipe began at y=578 in the fixed status strip,
+            // below the library's visible bottom edge. Start inside the actual
+            // viewport so UIKit delivers the drag to the library scroll view.
+            guard !visible.isNull, visible.width >= 44, visible.height >= 88 else {
+                XCTFail("The library must expose a usable scrolling viewport"); return false
+            }
+            let receipt = XCTAttachment(string: "result=\(target); visibleLibrary=\(visible)")
+            receipt.name = "ExternalIntake-ScrollViewport"; receipt.lifetime = .keepAlways; add(receipt)
+            let origin = app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+            let start = origin.withOffset(CGVector(dx: visible.midX - window.minX, dy: visible.maxY - window.minY - 24))
+            let end = origin.withOffset(CGVector(dx: visible.midX - window.minX, dy: visible.minY - window.minY + 24))
+            start.press(forDuration: 0.1, thenDragTo: end)
         }
+        let failure = XCTAttachment(screenshot: app.screenshot())
+        failure.name = "ExternalIntake-ContentResultNotVisible"; failure.lifetime = .keepAlways; add(failure)
         XCTFail("The complete content result must be visible above the dock and keyboard before tapping"); return false
     }
 

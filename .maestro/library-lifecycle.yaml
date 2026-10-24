@@ -21,6 +21,13 @@ name: Library create move rename trash restore and delete
     id: addSection
 - assertVisible: QA Section
 - tapOn: تم
+# Center the real menu above the fixed destination dock before tapping.
+- scrollUntilVisible:
+    element:
+      id: notebookActions-QA Notebook
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: notebookActions-QA Notebook
 - tapOn:
@@ -59,6 +66,13 @@ name: Library create move rename trash restore and delete
 - runFlow: helpers/library-root.yaml
 - assertVisible:
     id: openNotebook-QA Notebook
+# Center the real menu above the fixed destination dock before tapping.
+- scrollUntilVisible:
+    element:
+      id: notebookActions-QA Notebook
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: notebookActions-QA Notebook
 - tapOn:
@@ -70,6 +84,13 @@ name: Library create move rename trash restore and delete
 - tapOn: حفظ
 - assertVisible:
     id: openNotebook-QA Renamed
+# Center the real menu above the fixed destination dock before tapping.
+- scrollUntilVisible:
+    element:
+      id: notebookActions-QA Renamed
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: notebookActions-QA Renamed
 - tapOn:
@@ -88,6 +109,13 @@ name: Library create move rename trash restore and delete
 - runFlow: helpers/library-root.yaml
 - assertVisible:
     id: openNotebook-QA Renamed
+# Center the real menu above the fixed destination dock before tapping.
+- scrollUntilVisible:
+    element:
+      id: notebookActions-QA Renamed
+    direction: DOWN
+    visibilityPercentage: 100
+    centerElement: true
 - tapOn:
     id: notebookActions-QA Renamed
 - tapOn:

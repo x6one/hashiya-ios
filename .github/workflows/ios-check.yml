@@ -493,16 +493,17 @@ jobs:
           bash "$RUNNER_TEMP/install-maestro.sh"
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
-      - name: Verify all three Maestro lifecycles
+      - name: Verify selected Maestro lifecycles
         if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
         env:
           # Cold XCTest server reached readiness after142s in39321182827.
           # Bound infrastructure startup only; flow/assertion waiters are unchanged.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
+          MAESTRO_FLOW: ${{ contains(github.event.head_commit.message, '[maestro:library]') && '.maestro/library-lifecycle.yaml' || '.maestro/' }}
           MAESTRO_CLI_NO_ANALYTICS: 'true'
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
-        run: maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
+        run: maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults "$MAESTRO_FLOW"
       - name: Preserve margin storage boundaries
         if: always() && (inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]'))
         run: |

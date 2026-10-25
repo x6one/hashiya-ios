@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: [iPhone, iPad]
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') && '["iPhone"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Generate the existing production project
@@ -74,12 +74,18 @@ jobs:
           print('Actual capture device:', device['name'], runtime)
           PY
       - name: Capture actual production study and recording screens
+        env:
+          THUMBNAIL_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath StoreBuild -only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath StoreResults.xcresult CODE_SIGNING_ALLOWED=NO | tee store-capture-build.log
+          selected=(-only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens)
+          if [ "$THUMBNAIL_DIAGNOSIS" != true ]; then
+            selected+=(-only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers)
+          fi
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath StoreBuild "${selected[@]}" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath StoreResults.xcresult CODE_SIGNING_ALLOWED=NO | tee store-capture-build.log
       - name: Preserve original results and unmodified PNGs
         if: always()
         run: |
@@ -90,15 +96,22 @@ jobs:
             xcrun xcresulttool export attachments --path StoreResults.xcresult --output-path StoreEvidence/Screenshots
             ditto -c -k --keepParent StoreResults.xcresult StoreEvidence/StoreResults.xcresult.zip
           fi
+      - name: Retain bounded native thumbnail task receipts
+        if: ${{ always() && contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
+        run: |
+          mkdir -p StoreEvidence
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 10m --style compact --info --debug --predicate 'process == "Hashiya" AND eventMessage BEGINSWITH "TayyaThumbnail"' > StoreEvidence/thumbnail-tasks.log
       - name: Require the actual medium-phone captures and original assertions
         env:
           DEVICE_FAMILY: ${{ matrix.family }}
+          THUMBNAIL_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
         run: |
           python3 - <<'PY'
           import json, os
           from pathlib import Path
           summary = json.load(open('StoreEvidence/summary.json'))
-          assert summary['result'] == 'Passed' and summary['passedTests'] == 3, summary
+          expected = 1 if os.environ['THUMBNAIL_DIAGNOSIS'] == 'true' else 3
+          assert summary['result'] == 'Passed' and summary['passedTests'] == expected, summary
           assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
           metadata = [json.loads(p.read_text()) for p in Path('StoreEvidence/Screenshots').glob('*.json') if p.name != 'manifest.json']
           width, height = (1206, 2622) if os.environ['DEVICE_FAMILY'] == 'iPhone' else (2064, 2752)
@@ -120,9 +133,11 @@ jobs:
           name: Tayya-Store-Native-Results-${{ matrix.family }}
           path: |
             StoreEvidence/StoreResults.xcresult.zip
+            StoreEvidence/thumbnail-tasks.log
             store-capture-build.log
           retention-days: 14
   artwork:
+    if: ${{ !contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
     needs: medium-phone
     runs-on: ubuntu-latest
     timeout-minutes: 10

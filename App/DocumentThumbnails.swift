@@ -51,8 +51,18 @@ import SwiftUI
     func image(page: Int) async -> UIImage? {
         guard page > 0, page <= pages.count else { return nil }
         let key = imageKey(page: page)
-        if let image = cache.object(forKey: key as NSString) { return image }
-        if let task = inFlight[key] { return await task.value }
+        if let image = cache.object(forKey: key as NSString) {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-production-content") { NSLog("TayyaThumbnail store=cache page=%d key=%@", page, key) }
+            #endif
+            return image
+        }
+        if let task = inFlight[key] {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-production-content") { NSLog("TayyaThumbnail store=join page=%d key=%@", page, key) }
+            #endif
+            return await task.value
+        }
         let requested = pages[page - 1]
         // Copying into a new document must never remove a live PDFView page.
         guard let copy = requested.copy() as? PDFPage else { error = TayyaLocalized("تعذّر تحميل معاينة الصفحة."); return nil }
@@ -60,7 +70,13 @@ import SwiftUI
         guard let data = snapshot.dataRepresentation() else { error = TayyaLocalized("تعذّر تحميل معاينة الصفحة."); return nil }
         let inkURL = inkFolder.appendingPathComponent("\(page - 1).drawing")
         let task = Task { @MainActor () -> UIImage? in
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-production-content") { NSLog("TayyaThumbnail store=renderBegin page=%d key=%@", page, key) }
+            #endif
             let result = await renderer.image(pdf: data, ink: inkURL)
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-production-content") { NSLog("TayyaThumbnail store=renderEnd page=%d key=%@ image=%d error=%d", page, key, result.image != nil, result.error != nil) }
+            #endif
             inFlight.removeValue(forKey: key)
             guard let index = pages.firstIndex(where: { $0 === requested }), imageKey(page: index + 1) == key else { return nil }
             renderCount += 1
@@ -131,8 +147,15 @@ struct DocumentPageThumbnail: View {
             Text("\(number)").font(.caption.monospacedDigit())
                 .foregroundStyle(selected ? TayyaTheme.ink : TayyaTheme.detail)
         }.task(id: store.imageKey(page: number)) {
+            #if DEBUG
+            let started = ProcessInfo.processInfo.systemUptime
+            if ProcessInfo.processInfo.arguments.contains("--test-production-content") { NSLog("TayyaThumbnail view=begin page=%d time=%.6f cancelled=%d", number, started, Task.isCancelled) }
+            #endif
             image = nil; failed = false
             let loaded = await store.image(page: number)
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--test-production-content") { NSLog("TayyaThumbnail view=end page=%d time=%.6f cancelled=%d image=%d", number, started, Task.isCancelled, loaded != nil) }
+            #endif
             guard !Task.isCancelled else { return }
             image = loaded; failed = loaded == nil
         }

@@ -1,5 +1,14 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Frozen controlled release candidate — terminal input receipts verified (2026-10-25)
+
+34dab9bf4eb26cc4f0d8a7ccdf11aa7de4d1e279 [run40169628487](https://github.com/x6one/hashiya-ios/actions/runs/40169628487), Pad121097651704: originalPapercase1/1PASS66.618s,0fail/skip/expected, SwiftLint0violations55files/SwiftFormatPASS. Native323scalarreceipts verify contact1began/ended before/after originalWindowdispatch, exactlyoneNotesAction, stableworkspace/marginsidentities, closed→split→expanded. Maxline302bytes/no bufferloss; kind9/10caps explicit. Artifact12589754022 SHA5157aaea940da744c5c90edfc1ed2eac71e3d3651716e2232ccba3c6cac87ffa/CRCverified. Historical867rootstillunknown/notclaimedfixed.
+
+Candidate adds only hardwareUITouch.timestamp to dispatchreceipts (alongside deliveryuptime), allowing futurefailure analysis to separateinjection/deliverytiming. No functional/controlflow/UI/storage/test/timeoutchange. The originalbackgroundview/extraRecognizer is removed; allformattingdeferredoutsidewindowdispatch. InstrumentationremainsDEBUG+optin, nottimingneutral orcompositorproof. Wholecandidatenativebuild/testwillverifythisadditivefield.
+
+Latestuserexplicitlypermits onecontrolledfullqualificationafterboundednon-reproduction. Freeze THIScommit; no furtherpushes through qualification/packaging. Runall151native/device(99unit+52UI, original68+32retained), coldoriginal3/device, Maestro3/device, realPDF/PPTXbytes, realnativecaptures/gallery, thenfulllocalOfficeiphoneos+realHashiyaRelease+verifiedunsignedIPA/hash. Onactualfailure inspectnewnativeevidence first; no blindretry, weakenedcondition, sleep or timeoutmask. Preserve0.6.0/13/bundle/devicefamilies/userdata/stable/main. NoApple/signing/merge; physicalmicrophonequality/interruption andphysicalOfficeconversionremainunverified.
+
+
 ## Current user ruling — controlled qualification after bounded non-reproduction (2026-10-25)
 
 Newuserpasted spec explicitly authorizes one fixedSHA full release gate when no knownfault is reproducible, even if historical Notesroot remainsunknown. This supersedes the previousstop/no-full disposition. Do not claim a productionfix; qualify current behavior honestly and investigate any actualnewfailure fromnativeevidence before reruns. Preserve stable/main, identity0.6.0/13/com.ahmadalawi.hashiya, userdata, original150+newcontactcase=151 andallMaestro3/device.

@@ -23,6 +23,7 @@ import ObjectiveC.runtime
         let kind: Int
         let contact: Int
         let time: TimeInterval
+        var sourceTime: TimeInterval = 0
         var object: UInt = 0
         var owner: UInt = 0
         var type: AnyClass?
@@ -98,6 +99,7 @@ import ObjectiveC.runtime
                                   time: ProcessInfo.processInfo.systemUptime)
             receipt.object = identity(touch.view); receipt.owner = identity(window)
             receipt.type = touch.view.map { type(of: $0) }
+            receipt.sourceTime = touch.timestamp
             receipt.phase = touch.phase.rawValue; receipt.x = point.x; receipt.y = point.y
             append(receipt)
             // Capture arbitration at both ends, not on every drawing movement.
@@ -151,8 +153,8 @@ import ObjectiveC.runtime
                 sequence += 1
                 // One bounded record per item avoids the previous1KB truncation.
                 let name = receipt.type.map { String(NSStringFromClass($0).prefix(100)) } ?? "none"
-                NSLog("TayyaNotesInput seq=%d contact=%d kind=%d uptime=%.6f phase=%d object=%llu owner=%llu class=%@ x=%.2f y=%.2f a=%d b=%d c=%d d=%d dropped=%d",
-                      sequence, receipt.contact, receipt.kind, receipt.time, receipt.phase,
+                NSLog("TayyaNotesInput seq=%d contact=%d kind=%d uptime=%.6f source=%.6f phase=%d object=%llu owner=%llu class=%@ x=%.2f y=%.2f a=%d b=%d c=%d d=%d dropped=%d",
+                      sequence, receipt.contact, receipt.kind, receipt.time, receipt.sourceTime, receipt.phase,
                       receipt.object, receipt.owner, name, receipt.x, receipt.y,
                       receipt.a, receipt.b, receipt.c, receipt.d, dropped)
             }

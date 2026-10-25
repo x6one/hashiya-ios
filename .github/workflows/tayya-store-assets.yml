@@ -97,7 +97,7 @@ jobs:
             ditto -c -k --keepParent StoreResults.xcresult StoreEvidence/StoreResults.xcresult.zip
           fi
       - name: Retain bounded native thumbnail task receipts
-        if: ${{ always() && contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
+        if: always()
         run: |
           mkdir -p StoreEvidence
           xcrun simctl spawn "$SIMULATOR_ID" log show --last 10m --style compact --info --debug --predicate 'process == "Hashiya" AND eventMessage BEGINSWITH "TayyaThumbnail"' > StoreEvidence/thumbnail-tasks.log

@@ -4,5 +4,5 @@
   {"id":"03-notes","scene":"Notes-Expanded","ipad_scene":"Notes-Split","ipad_color":"dark","heading":["ملاحظاتك","مع كل صفحة."],"ipad_heading":["ملاحظاتك","بجانب مستندك."],"detail":"صفحات للملاحظات مرتبطة بمصدرك","label":"الملاحظات","theme":"paper"},
   {"id":"04-audio","scene":"Recording-Markers","heading":["ارجع للحظة","التي تهمّك."],"detail":"تسجيلات بعلامات للصفحات والكتابة","label":"الصوت مع الدراسة","theme":"ink"},
   {"id":"05-pages","scene":"Thumbnails","heading":["اختر صفحتك.","وواصل دراستك."],"detail":"مصغرات حقيقية وتنقل واضح بين الصفحات","label":"تنقل أسهل","theme":"paper"},
-  {"id":"06-focus","scene":"Focus","heading":["مساحة أوسع.","تركيز أعمق."],"detail":"أخفِ الأدوات الثانوية وواصل القراءة","label":"وضع التركيز","theme":"paper"}
+  {"id":"06-focus","scene":"Focus","ipad_color":"dark","heading":["مساحة أوسع.","تركيز أعمق."],"detail":"أخفِ الأدوات الثانوية وواصل القراءة","label":"وضع التركيز","theme":"paper"}
 ]

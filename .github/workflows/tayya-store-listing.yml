@@ -1,8 +1,8 @@
-name: Prepare Tayya Store draft and designed images
+name: Tayya Store artwork and approved publication
 on:
   push:
     branches: [store/tayya-app-store-content]
-    paths: [Store/publication.json, Store/metadata.json]
+    paths: [Store/publication.json, Store/metadata.json, 'Store/Studio2/**', .github/workflows/tayya-store-listing.yml]
   workflow_dispatch:
     inputs:
       prepare_draft:
@@ -16,6 +16,77 @@ concurrency:
   group: tayya-store-listing
   cancel-in-progress: false
 jobs:
+  artwork:
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[store:artwork]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the preserved native capture run and unchanged production code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          c=json.loads(Path('Store/publication.json').read_text())
+          assert re.fullmatch('[a-f0-9]{40}',c['artwork_source']) and str(c['artwork_run']).isdigit()
+          subprocess.run(['git','fetch','--no-tags','--depth=1','origin',c['artwork_source']],check=True)
+          git=lambda *a:subprocess.check_output(['git',*a],text=True).strip()
+          assert git('rev-parse','HEAD:App')==git('rev-parse',c['artwork_source']+':App')==c['app_tree']
+          assert not git('diff','--name-only',c['artwork_source'],'HEAD','--','App','NativeOffice','project.yml')
+          base=f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{c['artwork_run']}"
+          run=json.loads(subprocess.check_output(['gh','api',base],text=True))
+          jobs=json.loads(subprocess.check_output(['gh','api',base+'/jobs?per_page=100'],text=True))['jobs']
+          assert run['conclusion']=='success' and run['head_sha']==c['artwork_source']
+          assert run['name']=='Tayya Store readiness and actual medium-phone captures'
+          required={'Native store capture (iPhone)','Native store capture (iPad)','artwork'}
+          assert required<={j['name'] for j in jobs if j['conclusion']=='success'}
+          Path('preserved-capture-jobs.json').write_text(json.dumps(jobs))
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('CAPTURE_RUN='+str(c['artwork_run'])+'\n')
+          print('Reusing the two actual three-case capture results; no native test is rerun')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Tayya-Store-Original-*
+          run-id: ${{ env.CAPTURE_RUN }}
+          github-token: ${{ github.token }}
+          path: NativeStoreCaptures
+      - name: Use the existing artwork renderer
+        run: |
+          command -v chromium >/dev/null || command -v google-chrome >/dev/null
+          python3 -c 'import PIL, playwright' || python3 -m pip install pillow playwright
+          python3 - <<'PY'
+          import hashlib, json, os, shutil, subprocess
+          from pathlib import Path
+          from Tools.collect_integration_captures import collect
+          c=json.loads(Path('Store/publication.json').read_text())
+          jobs=json.loads(Path('preserved-capture-jobs.json').read_text())
+          for family,width,height,folder in [('iPhone',1206,2622,'iPhone-Medium'),('iPad',2064,2752,'iPad-13')]:
+              job=next(j for j in jobs if j['name']==f'Native store capture ({family})')
+              root=Path('NativeStoreCaptures')/('Tayya-Store-Original-'+family)
+              rows=collect(root,c['artwork_source'],family,c['artwork_run'],job['id'])
+              captures=Path('preserved-'+family+'.json');captures.write_text(json.dumps(rows,ensure_ascii=False))
+              subprocess.run(['python3','Tools/render_store_artwork.py','--root',str(root),'--captures',str(captures),'--output','Tayya-App-Store-Visuals/'+folder,'--family',family,'--width',str(width),'--height',str(height)],check=True)
+          out=Path('Tayya-App-Store-Visuals');images=[]
+          for manifest in out.glob('*/store-artwork.json'):
+              for row in json.loads(manifest.read_text()):
+                  row['file']=str((manifest.parent/row['file']).relative_to(out));images.append(row)
+          assert len(images)==12
+          (out/'manifest.json').write_text(json.dumps({'source':c['artwork_source'],'run':str(c['artwork_run']),'render_run':os.environ['GITHUB_RUN_ID'],'renderer_source':os.environ['GITHUB_SHA'],'type':'Designed compositions from unchanged preserved native captures','images':images},ensure_ascii=False,indent=2)+'\n')
+          (out/'index.html').write_text('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>صور متجر طَيّة</title><style>body{background:#F8F7F3;color:#244C43;font:20px system-ui;margin:24px}a{display:inline-block;margin:12px}</style><h1>طَيّة — صور المتجر</h1><p>لقطات أصلية من التطبيق داخل تصميم بهوية طَيّة.</p><a href="iPhone-Medium/index.html">الآيفون</a><a href="iPad-13/index.html">الآيباد</a></html>')
+          subprocess.run(['node','Tools/publish_store_listing.mjs','--config','Store/publication.json','--artwork',str(out),'--validate-only'],check=True)
+          shutil.make_archive(str(out),'zip',out.parent,out.name)
+          Path(str(out)+'.zip.sha256').write_text(hashlib.sha256(Path(str(out)+'.zip').read_bytes()).hexdigest()+'  '+str(out)+'.zip\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-App-Store-Designed-Screenshots
+          path: |
+            Tayya-App-Store-Visuals/
+            Tayya-App-Store-Visuals.zip
+            Tayya-App-Store-Visuals.zip.sha256
+          retention-days: 14
   prepare:
     if: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[store:listing]')) || (github.event_name == 'workflow_dispatch' && inputs.prepare_draft) }}
     runs-on: ubuntu-latest
@@ -42,7 +113,7 @@ jobs:
           changed=git('diff','--name-only',config['app_source'],'HEAD').splitlines()
           store_tools={'Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','.github/workflows/tayya-store-listing.yml'}
           assert all(path.startswith(('Store/','docs/','Verification/')) or path in store_tools for path in changed),'Only Store content and its isolated publisher may change; production/build/signing code stays frozen'
-          assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','project.yml','EngineBridge'),'Photographed build configuration differs from the qualified candidate'
+          assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','project.yml','NativeOffice'),'Photographed build configuration differs from the qualified candidate'
           for key,source,name in [('qualified_run','app_source','iPhone and iPad preflight'),('artwork_run','artwork_source','Tayya Store readiness and actual medium-phone captures')]:
               run=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{config[key]}"],text=True))
               assert run['head_sha']==config[source] and run['name']==name and run['conclusion']=='success',run['html_url']
@@ -59,6 +130,15 @@ jobs:
         run: |
           node Tools/test_store_listing.mjs
           node Tools/publish_store_listing.mjs --validate-only
+      - name: Read the current Apple release and build13 state
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: node Tools/app_store_readiness.mjs store-apple-readiness.json
       - name: Prepare the new draft without modifying the published release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -70,5 +150,7 @@ jobs:
         if: always()
         with:
           name: Tayya-Store-draft-receipt
-          path: store-listing-report.json
+          path: |
+            store-listing-report.json
+            store-apple-readiness.json
           retention-days: 14

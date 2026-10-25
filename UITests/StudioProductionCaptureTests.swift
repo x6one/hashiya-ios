@@ -196,7 +196,7 @@ final class StudioProductionCaptureTests: XCTestCase {
 
     func testArabicLightProductionStudyScreens() {
         let app = library()
-        snapshot("Library"); openDocument(app); snapshot("Editor")
+        snapshot("Library"); openDocument(app); assertAccessibleNavigation(app); snapshot("Editor")
         app.buttons["inkTool"].tap(); draw(app, page: 1); snapshot("Pen-Tools")
         app.buttons["favoritePens"].tap(); snapshot("Favorite-Pens")
         applyFirstFavoritePen(app)

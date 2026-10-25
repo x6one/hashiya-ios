@@ -452,6 +452,16 @@ struct DocumentScreen: View {
         }
     }
     private func openNotes() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-notes-dock-input") {
+            NSLog("TayyaNotesDock action before expanded=%d split=%d target=%@", notesExpanded ? 1 : 0, splitNotes ? 1 : 0, editingTarget.rawValue)
+        }
+        defer {
+            if ProcessInfo.processInfo.arguments.contains("--test-notes-dock-input") {
+                NSLog("TayyaNotesDock action after expanded=%d split=%d target=%@", notesExpanded ? 1 : 0, splitNotes ? 1 : 0, editingTarget.rawValue)
+            }
+        }
+        #endif
         pageFocused = false
         if notesExpanded {
             notesExpanded = false; splitNotes = false; editingTarget = .document

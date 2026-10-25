@@ -930,7 +930,7 @@ final class LaunchTests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         defer { app.terminate() }
-        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-light", "--test-accessibility-type", "--test-reduce-motion", "--test-native-menu", "--test-native-visibility"]
+        app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-light", "--test-accessibility-type", "--test-reduce-motion", "--test-native-menu", "--test-native-visibility", "--test-notes-dock-input"]
         app.launch()
         let demo = app.buttons["welcomeDemonstration"]
         XCTAssertTrue(demo.waitForExistence(timeout: 15))

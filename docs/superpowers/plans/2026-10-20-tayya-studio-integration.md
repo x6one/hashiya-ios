@@ -1,5 +1,14 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Current checkpoint — 867 actual Notes dock event boundary (2026-10-25)
+
+Frozen8679992b70344422a80554e4093583c57ccfbd7c [run40143257947](https://github.com/x6one/hashiya-ios/actions/runs/40143257947): Phone150native/0fail/skip/expected+Maestro3+realPDF3063/PPTX54684PASS. Pad99unit+50UI=149PASS; only PaperStudioAccessibilityReduceMotionVisualCaptureJourney fails first at LaunchTests25 (expandMargin absent after openMargin), with3cascading errors. OriginalPagedMarginsPASS166.857s. Tools34 and independentcold3/devicePASS. PadMaestro and downstream gallery/Office/IPA correctly blocked. No old ink/Redo/append fault recurred.
+
+Architectural review after3helper refinements: stop helper patches. Current fault precedes expanded-state polling. Native video065C9402 at19s still shows healthy closedNotes; firstfailure AX7AB09159 has full active Appwindow, not an app crash. Synthesizedtap61B633FB has orientation1/window1032x1376 and point644.25,1326 within Notesrectangle594.5,1300,99.5,52. Retained UIKit systemlog at00:38:52.411/52.587 proves event dispatch to Hashiya209/window103d1bcd0, shouldSend1/ignoreInteractionEvents0. It does not identify the final hit owner or prove openNotes executed. No missing file/ink/storage evidence.
+
+Next is a diagnostic, not fix4: original failing case alone on iPad, unchanged helper/assertions/timeouts. An opt-in DEBUG-only observer on the real Notes button logs native touch owner/ancestors/gesture states and counter, returnsfalse from shouldReceive (never recognizes/cancels/prevents/delays). Log openNotes before/after and incoming DocumentChrome render state. Probe disabled outside this testcase; no Release code or user data change. If no failure reproduces, retain evidence and do not claim fixed or blindly repeat the full gate. Artifact12582251888 locally verified455730262bytes/SHA568a5a3edfa30e7b061a34e615866d09706c4ffad2f10ca7bb1a43116dd45c84/ZIPCRC.
+
+
 ## Final qualification checkpoint — 29c directed failure GREEN (2026-10-24)
 
 Source29c5d402879d7653fc0f6e3393e676aead83238f [run40142514849](https://github.com/x6one/hashiya-ios/actions/runs/40142514849), Pad121017023367: only remaining PaperStudioAccessibility case **1/1PASS49.425s**,0fail/skip/expected; SwiftLint0violations/54files and SwiftFormatPASS. Positiveexpanded-state wait remains5s; strict absent-divider assertion remains immediatelyafterward outside timed polling. No sleep/retry/timeoutincrease. All original assertions and both full-width handwriting assertions preserved. Other5shared-helper targets passed on e52; these are directed evidence across repair commits, not a single-SHA final release qualification.

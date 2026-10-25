@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "date_utc": "2026-10-24",
+  "date_utc": "2026-10-25",
   "branch": "integration/tayya-studio-2",
-  "status": "all_observed_failures_targeted_GREEN_freeze_complete_same_SHA_release_qualification",
+  "status": "867_failed_one_pad_notes_dock_case_architectural_boundary_probe_not_a_fourth_fix",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "29c5d402879d7653fc0f6e3393e676aead83238f",
   "identity": {
@@ -506,5 +506,53 @@
       "validated unsigned arm64IPA with matching identity, Office resources and SHA256"
     ],
     "rule": "No new diagnostic probes or reruns without an actual new failure; inspect first log/xcresult/counters before any edit. No source push while qualification active."
+  },
+  "release867": {
+    "source": "8679992b70344422a80554e4093583c57ccfbd7c",
+    "run": 40143257947,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40143257947",
+    "phone": {
+      "native_passed": 150,
+      "failed": 0,
+      "skipped": 0,
+      "maestro_passed": 3,
+      "exports_bytes": {
+        "PDF": 3063,
+        "PPTX": 54684
+      }
+    },
+    "pad": {
+      "native_passed": 149,
+      "failed_cases": 1,
+      "unit_passed": 99,
+      "ui_passed": 50,
+      "failed_case": "LaunchTests/testPaperStudioAccessibilityReduceMotionVisualCaptureJourney",
+      "first_error": "LaunchTests25 expandMargin absent after openMargin tap; three later assertions cascade",
+      "original_paged_margins": "PASS166.857s",
+      "exports_bytes": {
+        "PDF": 3063,
+        "PPTX": 54684
+      },
+      "Maestro": "not executed"
+    },
+    "package": "correctly skipped; no Office or IPA",
+    "artifact": {
+      "id": 12582251888,
+      "sha256": "568a5a3edfa30e7b061a34e615866d09706c4ffad2f10ca7bb1a43116dd45c84",
+      "CRC_verified": true
+    }
+  },
+  "notes_dock_architectural_review": {
+    "proven": [
+      "App remains foreground with complete window/AX hierarchy; native video shows Notes never open.",
+      "Synthesized event orientation1/parentWindow1032x1376, point644.25,1326 lies in Notes AX rectangle594.5,1300,99.5,52.",
+      "Saved UIKit logs00:38:52.411 and52.587 deliver touch UIEvent to Hashiya window; shouldSend1 ignoreInteractionEvents0.",
+      "Existing helper cycle and negative AX timeout repairs cannot explain this first missing transition. No fourth functional/helper patch."
+    ],
+    "unknown": [
+      "Native hit owner and gesture arbitration at Notes dock",
+      "Whether openNotes executes and state reaches DocumentChrome"
+    ],
+    "next": "One iPad-only original failing case with opt-in DEBUG passive touch-owner/counter, action-before/after and render-state logs. Observer returnsfalse before recognition; no cancellation, prevention, delay, retry, functional change or assertion removal. No full suite/Office/IPA until actual blocker resolved."
   }
 }

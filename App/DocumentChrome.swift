@@ -82,6 +82,14 @@ struct DocumentChrome: View {
                     }.accessibilityIdentifier("selectTool")
                     coreButton("الملاحظات", symbol: "note.text", selected: notesVisible, action: chooseNotes)
                         .accessibilityIdentifier("openMargin")
+                        #if DEBUG
+                        .background {
+                            if ProcessInfo.processInfo.arguments.contains("--test-notes-dock-input") {
+                                NotesDockInputProbe(visible: notesVisible, expanded: notesExpanded)
+                                    .allowsHitTesting(false).accessibilityHidden(true)
+                            }
+                        }
+                        #endif
                     coreButton("صفحات", symbol: "square.grid.2x2", selected: false, action: openPages)
                         .accessibilityIdentifier("documentPages")
                 }.padding(.horizontal, TayyaMetrics.inset).padding(.vertical, TayyaMetrics.unit)

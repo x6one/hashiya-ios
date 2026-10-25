@@ -15,6 +15,13 @@ from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_privacy_manifest_declares_app_owned_preference_storage(self):
+        manifest = plistlib.loads(Path("App/Resources/PrivacyInfo.xcprivacy").read_bytes())
+        reasons = {item["NSPrivacyAccessedAPIType"]: item["NSPrivacyAccessedAPITypeReasons"]
+                   for item in manifest["NSPrivacyAccessedAPITypes"]}
+        self.assertIn("CA92.1", reasons.get("NSPrivacyAccessedAPICategoryUserDefaults", []),
+                      "Persisted pen, reading and language preferences require the app-owned UserDefaults declaration")
+
     def test_unsigned_package_rejects_stale_version_build_or_other_bundle(self):
         spec = yaml.safe_load(Path("project.yml").read_text())
         settings = spec["settings"]["base"]

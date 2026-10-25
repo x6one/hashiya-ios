@@ -29,7 +29,7 @@ jobs:
           python3 -m compileall -q Tools
           curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
           tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
-          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml .github/workflows/tayya-integration.yml .github/workflows/tayya-production-review.yml
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml .github/workflows/tayya-integration.yml .github/workflows/tayya-production-review.yml .github/workflows/tayya-store-assets.yml
   regression:
     needs: tools
     # Skip duplicate PR jobs only for branches covered by the push trigger.

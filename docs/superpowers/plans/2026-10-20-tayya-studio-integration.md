@@ -1,5 +1,12 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Current experiment — first Notes contact duration (2026-10-25)
+
+8926fe3f4cb6b094e9d4a791e8574d2f56a58ee9 directed run40154066969: Papercase1/1PASS65.141s,0fail/skip/expected, strictlint/format55filesPASS. Archive12583348636 SHA c209165ba5ea832ba5f479d3404dd7a5424d7f458b2ed06e5e60c1b8fc1f4137/CRCverified. Decoded original zstd xcresult Appconsole on Linux (no Xcode emulation/newtools): one native touch at02:29:50.019588, handler50.086983, closed→split→expanded render. Not proof867fault fixed.
+
+New measured distinction: 867 failed event native dispatch52.411→52.587 =176ms; successful892 firstaction67.395ms after native touch. Working native hit chain includes UIScrollViewDelayedTouchesBeganGestureRecognizer. Hypothesis, not root: first contact crossing scroll delay may suppress action. One bounded iPad-only characterization testcase exercises one0.05/0.18/0.35s contact on separate fresh real welcome/document sessions, fully visible target, same first Notes mode/divider requirements, no retries and no App/helper changes. Original150testcases retained; this case adds one. Do not claim fix if it passes or rerun full gate while867 remains unexplained.
+
+
 ## Current checkpoint — 867 actual Notes dock event boundary (2026-10-25)
 
 Frozen8679992b70344422a80554e4093583c57ccfbd7c [run40143257947](https://github.com/x6one/hashiya-ios/actions/runs/40143257947): Phone150native/0fail/skip/expected+Maestro3+realPDF3063/PPTX54684PASS. Pad99unit+50UI=149PASS; only PaperStudioAccessibilityReduceMotionVisualCaptureJourney fails first at LaunchTests25 (expandMargin absent after openMargin), with3cascading errors. OriginalPagedMarginsPASS166.857s. Tools34 and independentcold3/devicePASS. PadMaestro and downstream gallery/Office/IPA correctly blocked. No old ink/Redo/append fault recurred.

@@ -925,6 +925,48 @@ final class LaunchTests: XCTestCase {
         capturePaperStudioAppearanceJourney("dark")
     }
 
+    func testNotesDockOpensFromOnePressAcrossScrollTouchDelayBoundary() {
+        // Characterize the lost first touch, not a retry of the failing journey.
+        // A dropped handler leaves Notes closed; a duplicate handler skips split.
+        // Each duration starts from a fresh review root and a closed Notes dock.
+        defer { XCUIDevice.shared.orientation = .portrait }
+        XCUIDevice.shared.orientation = .portrait
+        let durations: [TimeInterval] = [0.05, 0.18, 0.35]
+        for duration in durations {
+            XCTContext.runActivity(named: "First Notes press \(duration)s") { _ in
+                let app = XCUIApplication()
+                defer { app.terminate() }
+                app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-appearance-light", "--test-accessibility-type", "--test-reduce-motion", "--test-native-menu", "--test-native-visibility", "--test-notes-dock-input"]
+                app.launch()
+                let demo = app.buttons["welcomeDemonstration"]
+                guard demo.waitForExistence(timeout: 15), demo.isHittable else {
+                    XCTFail("The real demonstration must be ready before testing its Notes dock"); return
+                }
+                demo.tap()
+                guard app.buttons["inkTool"].waitForExistence(timeout: 15) else {
+                    XCTFail("The real document must open before its first Notes press"); return
+                }
+                let notes = app.buttons["openMargin"]
+                XCTAssertTrue(notes.isHittable)
+                XCTAssertTrue(app.windows.firstMatch.frame.contains(notes.frame), "Press a fully visible Notes control")
+                let expand = app.buttons["expandMargin"]
+                XCTAssertFalse(expand.exists, "Each independent contact begins with Notes closed")
+                capturePaperStudio("NotesContact-\(duration)-Before", in: app)
+                print("NotesContact firstPressSeconds=\(duration) target=\(notes.frame)")
+                notes.press(forDuration: duration)
+                guard expand.waitForExistence(timeout: 5) else {
+                    capturePaperStudio("NotesContact-\(duration)-Failure", in: app)
+                    XCTFail("One valid \(duration)s Notes press must open Notes without another press"); return
+                }
+                let isPad = UIDevice.current.userInterfaceIdiom == .pad
+                XCTAssertEqual(expand.label, isPad ? "تكبير الملاحظات" : "العودة إلى المستند",
+                               "One press must make exactly the first Notes transition")
+                XCTAssertEqual(app.descendants(matching: .any)["splitDivider"].firstMatch.exists, isPad)
+                capturePaperStudio("NotesContact-\(duration)-After", in: app)
+            }
+        }
+    }
+
     func testPaperStudioAccessibilityReduceMotionVisualCaptureJourney() {
         defer { XCUIDevice.shared.orientation = .portrait }
         XCUIDevice.shared.orientation = .portrait

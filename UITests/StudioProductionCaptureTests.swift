@@ -167,12 +167,39 @@ final class StudioProductionCaptureTests: XCTestCase {
         waitForNativeDismissal(of: pageList)
     }
 
+    private func applyFirstFavoritePen(_ app: XCUIApplication) {
+        let item = app.buttons["usePenPreset-0"]
+        XCTAssertTrue(item.waitForExistence(timeout: 5))
+        let frame = item.frame, window = app.windows.firstMatch.frame
+        guard !frame.isEmpty, window.contains(frame) else {
+            XCTFail("The actual favorite pen must be entirely inside the display before touching it"); return
+        }
+        let canvas = app.otherElements["pdfCanvas"]
+        let before = (canvas.value as? String ?? "").components(separatedBy: "apply=0;").count
+        let page = app.textFields["pageNumber"].value as? String
+        let strokes = app.buttons["inkTool"].value as? String
+        // The saved iPad failure has a visible native row and a hittable=true
+        // AX receipt after the readiness waiter expired. A real center touch
+        // avoids treating AX preferred-hit-point latency as pen functionality.
+        item.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let applied = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (canvas.value as? String ?? "").components(separatedBy: "apply=0;").count > before
+                && app.buttons["inkBrush"].value as? String == "قلم"
+                && app.buttons["inkWidth"].value as? String == "3"
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [applied], timeout: 5), .completed,
+                       "The actual favorite-pen action must commit; dismissing a backdrop cannot pass")
+        waitForNativeDismissal(of: item)
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, page)
+        XCTAssertEqual(app.buttons["inkTool"].value as? String, strokes)
+    }
+
     func testArabicLightProductionStudyScreens() {
         let app = library()
         snapshot("Library"); openDocument(app); snapshot("Editor")
         app.buttons["inkTool"].tap(); draw(app, page: 1); snapshot("Pen-Tools")
         app.buttons["favoritePens"].tap(); snapshot("Favorite-Pens")
-        tapCompletedNativeMenuItem(app.buttons["usePenPreset-0"])
+        applyFirstFavoritePen(app)
         app.buttons["textTool"].tap()
         app.otherElements["pdfCanvas"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap()
         XCTAssertTrue(app.textViews["annotationText"].waitForExistence(timeout: 5))

@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: ${{ fromJSON(contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') && '["iPhone"]' || '["iPhone","iPad"]') }}
+        family: ${{ fromJSON(contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') && '["iPhone"]' || contains(github.event.head_commit.message, '[store:menu-touch]') && '["iPad"]' || '["iPhone","iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Generate the existing production project
@@ -76,13 +76,16 @@ jobs:
       - name: Capture actual production study and recording screens
         env:
           THUMBNAIL_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
+          MENU_TOUCH_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:menu-touch]') }}
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
           selected=(-only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens)
-          if [ "$THUMBNAIL_DIAGNOSIS" != true ]; then
+          if [ "$MENU_TOUCH_DIAGNOSIS" = true ]; then
+            selected=(-only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens)
+          elif [ "$THUMBNAIL_DIAGNOSIS" != true ]; then
             selected+=(-only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers)
           fi
           xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath StoreBuild "${selected[@]}" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath StoreResults.xcresult CODE_SIGNING_ALLOWED=NO | tee store-capture-build.log
@@ -105,12 +108,13 @@ jobs:
         env:
           DEVICE_FAMILY: ${{ matrix.family }}
           THUMBNAIL_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
+          MENU_TOUCH_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:menu-touch]') }}
         run: |
           python3 - <<'PY'
           import json, os
           from pathlib import Path
           summary = json.load(open('StoreEvidence/summary.json'))
-          expected = 1 if os.environ['THUMBNAIL_DIAGNOSIS'] == 'true' else 3
+          expected = 1 if os.environ['THUMBNAIL_DIAGNOSIS'] == 'true' or os.environ['MENU_TOUCH_DIAGNOSIS'] == 'true' else 3
           assert summary['result'] == 'Passed' and summary['passedTests'] == expected, summary
           assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
           metadata = [json.loads(p.read_text()) for p in Path('StoreEvidence/Screenshots').glob('*.json') if p.name != 'manifest.json']
@@ -137,7 +141,7 @@ jobs:
             store-capture-build.log
           retention-days: 14
   artwork:
-    if: ${{ !contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') && !contains(github.event.head_commit.message, '[store:menu-touch]') }}
     needs: medium-phone
     runs-on: ubuntu-latest
     timeout-minutes: 10

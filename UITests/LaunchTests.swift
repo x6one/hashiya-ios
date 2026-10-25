@@ -1442,11 +1442,22 @@ final class LaunchTests: XCTestCase {
         }
         let savedCount = count.value as? String
         recordState("StrokeSaved", expected: savedCount)
+        let undoGestureStarted = ProcessInfo.processInfo.systemUptime
         guard tapTarget("inkUndo") else { return false }
+        let undoWaitStarted = ProcessInfo.processInfo.systemUptime
+        var undoValueSamples: [String] = []
         let undone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (Int(count.value as? String ?? "") ?? -1) == before
+            let started = ProcessInfo.processInfo.systemUptime
+            let value = count.value as? String
+            undoValueSamples.append("start=\(started); end=\(ProcessInfo.processInfo.systemUptime); value=\(value ?? "missing")")
+            return (Int(value ?? "") ?? -1) == before
         }, object: count)
-        XCTAssertEqual(XCTWaiter.wait(for: [undone], timeout: 5), .completed, "Undo edge tap must remove the actual stroke")
+        let undoResult = XCTWaiter.wait(for: [undone], timeout: 5)
+        let undoTiming = "gestureStarted=\(undoGestureStarted); waitStarted=\(undoWaitStarted); waitEnded=\(ProcessInfo.processInfo.systemUptime); result=\(undoResult.rawValue); expected=\(before)\n" + undoValueSamples.joined(separator: "\n")
+        let undoReceipt = XCTAttachment(string: undoTiming)
+        undoReceipt.name = name + "-UndoObserverTiming"; undoReceipt.lifetime = .keepAlways; add(undoReceipt)
+        print("NativeUndoObserver stage=\(name); \(undoTiming)")
+        XCTAssertEqual(undoResult, .completed, "Undo edge tap must remove the actual stroke")
         recordState("Undo", expected: String(before))
         guard tapTarget("inkRedo") else { return false }
         let redone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in

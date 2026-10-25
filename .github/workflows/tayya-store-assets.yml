@@ -1,6 +1,11 @@
 name: Tayya Store readiness and actual medium-phone captures
 on:
   workflow_dispatch:
+    inputs:
+      capture:
+        description: Capture the actual medium phone as well as checking Apple access
+        type: boolean
+        default: false
   push:
     branches: [integration/tayya-app-store]
     paths:
@@ -9,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: tayya-store-assets
+  group: tayya-store-assets-${{ contains(github.event.head_commit.message, '[store:readiness]') && 'readiness' || 'captures' }}
   cancel-in-progress: false
 jobs:
   apple-readiness:
@@ -33,6 +38,7 @@ jobs:
           path: apple-readiness.json
           retention-days: 7
   medium-phone:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.capture) || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[store:readiness]')) }}
     runs-on: macos-15
     timeout-minutes: 40
     steps:

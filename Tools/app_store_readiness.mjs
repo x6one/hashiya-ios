@@ -38,7 +38,8 @@ try {
   const versions = await get('apps/' + app.id + '/appStoreVersions?filter[platform]=IOS&limit=20');
   report.versions = versions.data.map(v => ({id: v.id, version: v.attributes.versionString,
     state: v.attributes.appStoreState, release_type: v.attributes.releaseType}));
-  const builds = await get('apps/' + app.id + '/builds?filter[version]=13&include=preReleaseVersion&limit=20');
+  // Filtering/inclusion belongs to the build collection, not app's relationship endpoint.
+  const builds = await get('builds?filter[app]=' + app.id + '&filter[version]=13&include=preReleaseVersion&limit=20');
   const trains = new Map((builds.included || []).map(v => [v.id, v.attributes.version]));
   report.build13 = builds.data.map(b => ({id: b.id, build: b.attributes.version,
     version: trains.get(b.relationships?.preReleaseVersion?.data?.id) || null,

@@ -1,0 +1,74 @@
+name: Prepare Tayya Store draft and designed images
+on:
+  push:
+    branches: [store/tayya-app-store-content]
+    paths: [Store/publication.json, Store/metadata.json]
+  workflow_dispatch:
+    inputs:
+      prepare_draft:
+        description: Prepare only the authorized new Store version and its genuine branded screenshots
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: tayya-store-listing
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[store:listing]')) || (github.event_name == 'workflow_dispatch' && inputs.prepare_draft) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate pinned qualification and native image sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          config=json.loads(Path('Store/publication.json').read_text())
+          for key in ['app_source','artwork_source','app_tree']:
+              assert re.fullmatch('[a-f0-9]{40}',config[key]),key
+          for key in ['qualified_run','artwork_run']:
+              assert str(config[key]).isdigit(),key
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          for key in ['app_source','artwork_source']:
+              subprocess.run(['git','fetch','--no-tags','--depth=1','origin',config[key]],check=True)
+              assert git('rev-parse',config[key]+':App')==config['app_tree'],'Production and photographed App trees differ'
+          assert git('rev-parse','HEAD:App')==config['app_tree'],'Store-content branch modified production'
+          changed=git('diff','--name-only',config['app_source'],'HEAD').splitlines()
+          store_tools={'Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','.github/workflows/tayya-store-listing.yml'}
+          assert all(path.startswith(('Store/','docs/','Verification/')) or path in store_tools for path in changed),'Only Store content and its isolated publisher may change; production/build/signing code stays frozen'
+          assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','project.yml','EngineBridge'),'Photographed build configuration differs from the qualified candidate'
+          for key,source,name in [('qualified_run','app_source','iPhone and iPad preflight'),('artwork_run','artwork_source','Tayya Store readiness and actual medium-phone captures')]:
+              run=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{config[key]}"],text=True))
+              assert run['head_sha']==config[source] and run['name']==name and run['conclusion']=='success',run['html_url']
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('ARTWORK_RUN='+str(config['artwork_run'])+'\n')
+          print('Both immutable sources qualified; current App tree matches all photographed production files')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-App-Store-Designed-Screenshots
+          run-id: ${{ env.ARTWORK_RUN }}
+          github-token: ${{ github.token }}
+          path: StoreArtwork
+      - name: Validate every image and raw screenshot before Apple writes
+        run: |
+          node Tools/test_store_listing.mjs
+          node Tools/publish_store_listing.mjs --validate-only
+      - name: Prepare the new draft without modifying the published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: node Tools/publish_store_listing.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Store-draft-receipt
+          path: store-listing-report.json
+          retention-days: 14

@@ -55,7 +55,7 @@ jobs:
           python3 Tools/select_app_xcode.py
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen generate
-      - name: Select an actual medium iPhone
+      - name: Select the actual Store screenshot device
         env:
           DEVICE_FAMILY: ${{ matrix.family }}
         run: |
@@ -204,6 +204,12 @@ jobs:
           Path(str(out)+'.zip.sha256').write_text(hashlib.sha256(Path(str(out)+'.zip').read_bytes()).hexdigest()+'  '+str(out)+'.zip\n')
           print('Verified12 RGB store compositions and every original source hash')
           PY
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path('store-artwork-validation.json').write_text(json.dumps({'app_id':'6818288428','bundle_id':'com.ahmadalawi.hashiya','version':'0.6.0','build':'13','artwork_source':os.environ['GITHUB_SHA'],'artwork_run':os.environ['GITHUB_RUN_ID']}))
+          PY
+          node Tools/publish_store_listing.mjs --config store-artwork-validation.json --artwork Tayya-App-Store-Visuals --validate-only
       - uses: actions/upload-artifact@v4
         with:
           name: Tayya-App-Store-Designed-Screenshots

@@ -113,6 +113,21 @@ jobs:
           test -s NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/fundamentalrc
           test -s NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/services.rdb
           test -d NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/share/fonts/truetype
+      - name: Preserve the current device binary API and privacy inventory
+        working-directory: hashiya-tools
+        run: |
+          APP_PATH=NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app
+          xcrun nm -u "$APP_PATH/Hashiya" > ../diagnostics/native-app-imports.txt
+          xcrun otool -L "$APP_PATH/Hashiya" > ../diagnostics/native-app-libraries.txt
+          python3 - <<'PY'
+          import hashlib, json, plistlib
+          from pathlib import Path
+          app=Path('NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app')
+          manifest=plistlib.loads((app/'PrivacyInfo.xcprivacy').read_bytes())
+          reasons={entry['NSPrivacyAccessedAPIType']:entry['NSPrivacyAccessedAPITypeReasons'] for entry in manifest['NSPrivacyAccessedAPITypes']}
+          assert 'CA92.1' in reasons.get('NSPrivacyAccessedAPICategoryUserDefaults',[])
+          Path('../diagnostics/native-app-privacy.json').write_text(json.dumps({'executable_sha256':hashlib.sha256((app/'Hashiya').read_bytes()).hexdigest(),'app_root_manifest':manifest},indent=2)+'\n')
+          PY
       - name: Require both simulator suites before native IPA packaging
         env:
           GH_TOKEN: ${{ github.token }}

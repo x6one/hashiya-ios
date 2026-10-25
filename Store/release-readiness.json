@@ -7,7 +7,10 @@
   "excluded_territories": [
     "FRA"
   ],
-  "note": "Initial release excludes France by explicit user choice. No assertion of no encryption, OS-only crypto, complete offline operation, or Apple approval.",
+  "note": "The October2/4 native-engine classification remains the baseline; October25 adds the integration/store delta review and actual app-owned UserDefaults reason. France remains excluded by user choice. No assertion of no encryption, OS-only cryptography, completely offline Office behavior, physical-device verification or Apple approval. Native qualification/signing/upload are separate mandatory gates.",
   "study_update_source": "1a263cafd8734ca23856d6e8fb55a542cba9e7c6",
-  "study_update_audit": "Store/release-audit-2026-10-04.md"
+  "study_update_audit": "Store/release-audit-2026-10-04.md",
+  "studio_store_source": "3461ad5b1b2dec0d41b1f510463feeb90309485e",
+  "studio_store_app_tree": "8450ba5af2106395bbfd021999e9c6722d85c90b",
+  "studio_store_audit": "Store/release-audit-2026-10-25.md"
 }

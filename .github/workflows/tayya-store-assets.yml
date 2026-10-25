@@ -73,11 +73,19 @@ jobs:
               f.write('SIMULATOR_ID=' + device['udid'] + '\n')
           print('Actual capture device:', device['name'], runtime)
           PY
+      - name: Lint only the changed navigation and capture files
+        if: ${{ matrix.family == 'iPhone' && contains(github.event.head_commit.message, '[store:navigation-green]') }}
+        run: |
+          for tool in swiftlint swiftformat; do
+            command -v "$tool" >/dev/null || brew install "$tool"
+          done
+          swiftformat --lint --config .integration.swiftformat App/PDFWorkspace.swift UITests/StudioProductionCaptureTests.swift
+          swiftlint lint --strict --config .integration.swiftlint.yml App/PDFWorkspace.swift UITests/StudioProductionCaptureTests.swift
       - name: Capture actual production study and recording screens
         env:
           THUMBNAIL_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
           MENU_TOUCH_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:menu-touch]') }}
-          NAVIGATION_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:navigation]') }}
+          NAVIGATION_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:navigation]') || contains(github.event.head_commit.message, '[store:navigation-green]') }}
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
@@ -110,7 +118,7 @@ jobs:
           DEVICE_FAMILY: ${{ matrix.family }}
           THUMBNAIL_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') }}
           MENU_TOUCH_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:menu-touch]') }}
-          NAVIGATION_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:navigation]') }}
+          NAVIGATION_DIAGNOSIS: ${{ contains(github.event.head_commit.message, '[store:navigation]') || contains(github.event.head_commit.message, '[store:navigation-green]') }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -143,7 +151,7 @@ jobs:
             store-capture-build.log
           retention-days: 14
   artwork:
-    if: ${{ !contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') && !contains(github.event.head_commit.message, '[store:menu-touch]') && !contains(github.event.head_commit.message, '[store:navigation]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') && !contains(github.event.head_commit.message, '[store:menu-touch]') && !contains(github.event.head_commit.message, '[store:navigation]') && !contains(github.event.head_commit.message, '[store:navigation-green]') }}
     needs: medium-phone
     runs-on: ubuntu-latest
     timeout-minutes: 10

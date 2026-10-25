@@ -537,9 +537,15 @@ struct DocumentScreen: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 previousPageControl
-                VStack(spacing: 0) {
-                    pageInput
-                    pageTotal.fixedSize(horizontal: false, vertical: true)
+                Group {
+                    if typeSize.isAccessibilitySize {
+                        VStack(spacing: 0) {
+                            pageInput
+                            pageTotal.fixedSize(horizontal: false, vertical: true)
+                        }
+                    } else {
+                        HStack(spacing: 6) { pageInput; pageTotal.fixedSize() }
+                    }
                 }.frame(minWidth: pageFieldWidth, maxWidth: .infinity)
                 goToPageControl
                 nextPageControl
@@ -557,27 +563,18 @@ struct DocumentScreen: View {
         }
     }
     private var workspaceNavigation: some View {
-        Group {
-            if typeSize.isAccessibilitySize {
-                ViewThatFits(in: .horizontal) {
-                    // Measure the real, unscrolled controls. A ScrollView would
-                    // always claim to fit and could hide primary page actions.
-                    // Wide landscape needs one row to retain writing space.
-                    HStack(spacing: 0) {
-                        HStack(spacing: 0) {
-                            pageControlsContent.fixedSize(horizontal: true, vertical: true)
-                            Spacer(minLength: 0)
-                        }.background(TayyaTheme.mutedSurface)
-                        workspaceRecording.fixedSize(horizontal: true, vertical: true)
-                    }
-                    stackedAccessibleNavigation
-                }
-            } else {
+        ViewThatFits(in: .horizontal) {
+            // Measure unscrolled controls at every text size. A ScrollView
+            // always claims to fit and can clip primary page actions.
+            // Wide landscape retains one row for more writing space.
+            HStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    pageControls.frame(minWidth: 0, maxWidth: .infinity)
-                    workspaceRecording
-                }
+                    pageControlsContent.fixedSize(horizontal: true, vertical: true)
+                    Spacer(minLength: 0)
+                }.background(TayyaTheme.mutedSurface)
+                workspaceRecording.fixedSize(horizontal: true, vertical: true)
             }
+            stackedAccessibleNavigation
         }.background(TayyaTheme.surface)
             .overlay(alignment: .bottom) { TayyaTheme.separator.frame(height: 0.5).allowsHitTesting(false) }
     }
@@ -752,6 +749,8 @@ struct DocumentScreen: View {
         TextField("الصفحة", text: $pageNumber).keyboardType(.numberPad).multilineTextAlignment(.center)
             .font(.body.monospacedDigit()).frame(width: pageFieldWidth).frame(minHeight: 44)
             .textFieldStyle(.roundedBorder).accessibilityIdentifier("pageNumber").focused($pageFocused)
+            .contentShape(Rectangle())
+            .simultaneousGesture(TapGesture().onEnded { _ in pageFocused = true })
     }
     private var pageTotal: some View {
         Text("من \(workspace.document.pageCount)").font(.caption).monospacedDigit().foregroundStyle(TayyaTheme.detail)
@@ -793,10 +792,6 @@ struct DocumentScreen: View {
             fitPageControl
         }.buttonStyle(.plain).padding(.horizontal, 10).frame(minHeight: 44)
             .foregroundStyle(TayyaTheme.ink)
-    }
-    private var pageControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) { pageControlsContent }
-            .background(TayyaTheme.mutedSurface)
     }
     private func documentPageTarget(_ title: String, symbol: String) -> some View {
         Label(TayyaLocalized(title), systemImage: symbol).labelStyle(.iconOnly)

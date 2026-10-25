@@ -31,14 +31,18 @@ final class StudioProductionCaptureTests: XCTestCase {
         app.buttons["openNotebook-Tayya Study"].tap()
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 10))
     }
-    private func assertAccessibleNavigation(_ app: XCUIApplication) {
+    private func assertAccessibleNavigation(_ app: XCUIApplication, standardPageInput: Bool = false) {
         let window = app.windows.firstMatch.frame
         let pdfFrame = app.otherElements["pdfCanvas"].frame
         var targets = [app.textFields["pageNumber"]]
         targets += ["previousDocumentPage", "nextDocumentPage", "goToPage", "fitDocumentPage", "recordLinkedAudio", "recordingDetails"].map { app.buttons[$0] }
         for target in targets {
             XCTAssertTrue(target.exists)
-            let frame = target.frame
+            let nativeFrame = target.frame
+            let extendsInputTouch = standardPageInput && target.identifier == "pageNumber" && nativeFrame.height < 44
+            // UIKit exposes the34pt text-editor rectangle separately from its
+            // SwiftUI44pt touch area. Prove both outer borders really focus it.
+            let frame = extendsInputTouch ? nativeFrame.insetBy(dx: 0, dy: -(44 - nativeFrame.height) / 2) : nativeFrame
             print("NativeNavigation target=\(target.identifier) frame=\(frame) window=\(window)")
             XCTAssertGreaterThanOrEqual(frame.width + 1e-6, 44)
             XCTAssertGreaterThanOrEqual(frame.height + 1e-6, 44)
@@ -48,7 +52,9 @@ final class StudioProductionCaptureTests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxY, pdfFrame.minY + 0.5,
                                      "Navigation must occupy its own area above the PDF")
             if target.isEnabled {
-                if target.identifier == "nextDocumentPage" {
+                if extendsInputTouch {
+                    assertPageInputBorders(target, in: app)
+                } else if target.identifier == "nextDocumentPage" {
                     assertNextPageTouch(target, in: app)
                 } else { XCTAssertTrue(target.isHittable) }
             }
@@ -64,6 +70,23 @@ final class StudioProductionCaptureTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(readoutFrame.minX, window.minX)
         XCTAssertLessThanOrEqual(readoutFrame.maxX, window.maxX)
         XCTAssertGreaterThan(pdfFrame.height, window.height > window.width ? window.height / 3 : 60)
+    }
+    private func assertPageInputBorders(_ field: XCUIElement, in app: XCUIApplication) {
+        let page = app.textFields["pageNumber"].value as? String ?? ""
+        XCTAssertFalse(page.isEmpty)
+        for bottom in [false, true] {
+            let extra = (44 - field.frame.height) / 2 - 1
+            field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: bottom ? 1 : 0))
+                .withOffset(CGVector(dx: 0, dy: bottom ? extra : -extra)).tap()
+            let focused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                app.keyboards.firstMatch.exists && field.value as? String == ""
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed,
+                           "The outer44pt page-input touch area must activate the actual number field")
+            field.typeText(page); app.buttons["goToPage"].tap()
+            XCTAssertEqual(field.value as? String, page, "Restore the actual reading page after verifying the touch border")
+            waitForNativeDismissal(of: app.keyboards.firstMatch)
+        }
     }
     private func assertNextPageTouch(_ target: XCUIElement, in app: XCUIApplication) {
         let number = app.textFields["pageNumber"]
@@ -196,14 +219,14 @@ final class StudioProductionCaptureTests: XCTestCase {
 
     func testArabicLightProductionStudyScreens() {
         let app = library()
-        snapshot("Library"); openDocument(app); assertAccessibleNavigation(app); snapshot("Editor")
+        snapshot("Library"); openDocument(app); assertAccessibleNavigation(app, standardPageInput: true); snapshot("Editor")
         app.buttons["inkTool"].tap(); draw(app, page: 1); snapshot("Pen-Tools")
         app.buttons["favoritePens"].tap(); snapshot("Favorite-Pens")
         applyFirstFavoritePen(app)
         app.buttons["textTool"].tap()
         app.otherElements["pdfCanvas"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap()
         XCTAssertTrue(app.textViews["annotationText"].waitForExistence(timeout: 5))
-        app.textViews["annotationText"].tap(); app.textViews["annotationText"].typeText("Integrated study note")
+        app.textViews["annotationText"].tap(); app.textViews["annotationText"].typeText("Assets = Liabilities + Equity")
         snapshot("Text-Editor", movingContent: true)
         app.buttons["saveAnnotation"].tap()
         waitForNativeDismissal(of: app.textViews["annotationText"])

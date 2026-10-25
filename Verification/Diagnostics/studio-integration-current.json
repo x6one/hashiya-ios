@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-25",
   "branch": "integration/tayya-studio-2",
-  "status": "controlled_release_candidate_frozen_for_one_complete_same_SHA_gate",
+  "status": "539_controlled_gate_blocked_actualPadLiveInkFailure_test_observer_hypothesis_one_directed_probe",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "34dab9bf4eb26cc4f0d8a7ccdf11aa7de4d1e279",
   "identity": {
@@ -608,5 +608,46 @@
       "minimum_ios": 17
     },
     "limits": "Micphysicalquality/interruption andOfficeconversiononphysicalhardware unverified. NoApple/Stablemerge. Oldfaultnotdeclaredfixed fromnonreproduction."
+  },
+  "controlled539_results": {
+    "run": 40170448849,
+    "source": "53976e72cf5b9b6f3c098b53474bc585ced14352",
+    "tools": "34/34+actionlint4PASS",
+    "Phone_cold": {
+      "passed": 3,
+      "failed": 0,
+      "seconds": 492.168
+    },
+    "Pad_attempt1": "0Appcases; RunningBoard0x2182BAAD/XCTRunnerInitialization watchdog; originalartifact12589084427/a225ec482fdceaa9891c9384b557b3190f8b20d000440691157c02103ecb154d retained locally",
+    "Pad_attempt2": {
+      "job": 121104250595,
+      "passed": 2,
+      "failed": 1,
+      "seconds": 470.677,
+      "failed_case": "LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+      "first_failure": "LaunchTests1417 AccessibilityType-CompactSplitInk actualvisibleRed delta0, threshold>40",
+      "other_originals": "IndividualInkTargetsInDocumentAndCompactSplit215.413s+WorkspaceNavigation38.863sPASS"
+    },
+    "full151_Maestro_gallery_Office_IPA": "not executed; correctlyblockedbycoldguard",
+    "artifact": {
+      "id": 12590509714,
+      "bytes": 191086791,
+      "sha256": "0488ccc18f23fe7b38c341a568a598240a297e5859d51acfbe42cb4727a2c9c5",
+      "CRC_verified": true,
+      "local": "/workspace/cold-pad-recovery-53976e72.zip"
+    }
+  },
+  "ink_visibility_observer_hypothesis": {
+    "proven": [
+      "NativeNotesstroke1->2; correctredRGB1/.7098/.6863; storedPKDrawing950bytes/raster3880redpixels",
+      "Nativewindow/canvasgeometry stable; no samepage reload, one newpage load; loading/stroking/pending=false; originalsequence1,3,2,4,5,6,7",
+      "ActualfullPNG+elementPNG showexistinggreenlineonly inNotes whilepreviousDocumentredline visible; EXIF8 correctlyapplied, so notjustorientationcrop orlostdata",
+      "Oldpixelpredicateobject=canvas triggersrepeatedAXdebugdescriptions andfullhierarchysnapshots inlogs whilewaiting; saved-countAXqueriesalsooccurbeforevisualcommit",
+      "PKTiledCanvas.hidden=true alsoinhealthyStandard/Phone; notbyitselfrootfailure. NewNoteswindowhooknotinstalledinthiscase(launchargslackflag)."
+    ],
+    "unknown": "UnderlyinglivePencilKitpresentationmechanism; possibletestobserver effect, notprovenproductiondefect.",
+    "single_hypothesis": "UnnecessaryAX/render-hierarchy observation duringnativevisualcommit canperturbMetalpresentation. Measureactualscreen beforepoststrokeAX count/diagnostics, useNSObjectexpectationobject toavoidimplicitAXpoll.",
+    "experiment": "OnlyexistingfailedoriginalA11ycaseonPad. Sameone stroke, actual>40pixel/5s condition andcount>before/10s, exactframechecks, Undo/Redo/Fit unchanged. NoApp/Engine/toolbar/datachange, noSleep/retry/timeoutincrease, no fullgateuntilresultanalyzed.",
+    "failure_policy": "Ifstillfails, hypothesisdisproved; inspectremainingnewnativeevidence beforeanyfurtherpatch. DoNotblindrerun."
   }
 }

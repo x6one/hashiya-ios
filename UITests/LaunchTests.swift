@@ -1375,13 +1375,12 @@ final class LaunchTests: XCTestCase {
         recordState("BeforeStroke", expected: String(before))
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.35)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
-        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (Int(count.value as? String ?? "") ?? 0) > before
-        }, object: count)
-        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Targets must leave a usable native writing surface")
-        // AX geometry reads can consume the entire visibility deadline. The
-        // gesture does not change geometry; verify both frames after polling.
+        // Observe presentation before querying the native drawing hierarchy.
+        // XCTest describes XCUIElement expectation objects through AX on every
+        // poll, even if the predicate itself only reads the screen. Keep this
+        // exact >40-pixel/5s contract independent of those diagnostic getters.
         let pollingStarted = ProcessInfo.processInfo.systemUptime
+        print("NativeInkVisibility stage=\(name); observer=screen-only; begin")
         var pixelSamples: [(started: Double, captured: Double, measured: Double, pixels: Int)] = []
         let visibleRed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             let started = ProcessInfo.processInfo.systemUptime
@@ -1391,8 +1390,13 @@ final class LaunchTests: XCTestCase {
             pixelSamples.append((started - pollingStarted, captured - pollingStarted,
                 ProcessInfo.processInfo.systemUptime - pollingStarted, pixels))
             return pixels - beforeRed > 40
-        }, object: canvas)
+        }, object: NSObject())
         let visibleResult = XCTWaiter.wait(for: [visibleRed], timeout: 5)
+        print("NativeInkVisibility stage=\(name); observer=screen-only; result=\(visibleResult.rawValue)")
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (Int(count.value as? String ?? "") ?? 0) > before
+        }, object: count)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 10), .completed, "Targets must leave a usable native writing surface")
         XCTAssertEqual(canvas.frame, strokeFrame, "Color stroke must preserve the measured writing surface")
         XCTAssertEqual(app.frame, applicationFrame, "Color stroke must preserve the measured application frame")
         let polling = XCTAttachment(string: "result=\(visibleResult.rawValue); baseline=\(beforeRed); crop=\(pixelFrame)\n"

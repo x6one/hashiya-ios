@@ -1,5 +1,14 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Actual539 cold-gate failure — isolate visual measurement from AX observation (2026-10-25)
+
+Controlled53976e72cf5b9b6f3c098b53474bc585ced14352/run40170448849: Tools34/actionlint4PASS, Phonecold3PASS492.168s. Padattempt1 executed0Appcases: RunningBoardkilledRunner21363 with0x2182BAAD/XCTRunnerInitializationtimeout; archive12589084427 retained. Onefailed-job-only recovery retainedsameSHA andPhone/Toolsresults. Padattempt2 nowexecuted3originals:2PASS/1FAIL470.677s. OnlytestIndividualInkTargetsAtAccessibilityTextSize:1417 failedatAccessibilityType-CompactSplitInk visible-red criterion; normalInk/NavigationPASS. Full151/device/Maestro/gallery/Office/IPA neverstarted andremainblocked. No secondblindjobretry.
+
+Nativearchive12590509714,191086791bytes/SHA0488ccc18f23fe7b38c341a568a598240a297e5859d51acfbe42cb4727a2c9c5/CRCverified. Input/saving succeeded: Notescount1→2, correctred950bytePKDrawing, independentnativePKDrawing.image3880redpixels. Actualfull+elementPNGs containonlyoldgreenNotesline; screenshotEXIF8/crop valid. Frame560x547/zoom.861538stable; scalarcounts10samePageReload=0, newpageLoad1, onepublish; pending/loading/strokingfalse. HiddenPKTiledCanvasalsopresentinhealthyexamples, notprovenroot. NoNoteswindowhookflaginthisoriginalcase.
+
+Hypothesis(notprovenroot): oldvisualmeasurementitselfqueriesAXbeforeandduringnativecommit; logs show repeateddebugDescriptions/fullhierarchy snapshots despitepredicateonlyreadingpixels. Oneboundedtest-only correction: pollactualUIScreenfirst withplainNSObjectexpectationobject, thenperformthesame10srealstroke-countassertionandframe/Undo/Redo/Fit checks. Retainexact>40redpixels/5s, all151identities, actualonegesture andallrequirements; noApp/toolbar/storage/migrationchange. TargetonlyexistingfailedA11ycaseonPad; no fullgateuntilitsnativeevidenceisread. UnderlyingPencilKitpresentationstillunknown; iffailsagain, doNOTcallfixedorstackworkarounds.
+
+
 ## Frozen controlled release candidate — terminal input receipts verified (2026-10-25)
 
 34dab9bf4eb26cc4f0d8a7ccdf11aa7de4d1e279 [run40169628487](https://github.com/x6one/hashiya-ios/actions/runs/40169628487), Pad121097651704: originalPapercase1/1PASS66.618s,0fail/skip/expected, SwiftLint0violations55files/SwiftFormatPASS. Native323scalarreceipts verify contact1began/ended before/after originalWindowdispatch, exactlyoneNotesAction, stableworkspace/marginsidentities, closed→split→expanded. Maxline302bytes/no bufferloss; kind9/10caps explicit. Artifact12589754022 SHA5157aaea940da744c5c90edfc1ed2eac71e3d3651716e2232ccba3c6cac87ffa/CRCverified. Historical867rootstillunknown/notclaimedfixed.

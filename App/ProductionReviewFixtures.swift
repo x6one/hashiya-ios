@@ -20,12 +20,12 @@ enum ProductionReviewFixtures {
         let notes = MarginPages(root: library.root, notebook: note.id)
         guard let first = notes.currentID else { throw CocoaError(.fileReadCorruptFile) }
         notes.editTitle("ملاحظات الدراسة", page: first)
-        notes.editText("أفكار أساسية\n\n• راجع الجدول في الصفحة الثانية.\n• قارن الصورة بالملاحظات.\n• اربط وقت الكتابة بالتسجيل الحقيقي.\n\nهذه بيانات اختبار معزولة محفوظة بمحرك الملاحظات الأصلي.", page: first)
+        notes.editText("مراجعة المحاضرة\n\n• ميّز بين الأصول والالتزامات.\n• اكتب مثالًا لكل مفهوم.\n• راجع توازن المعادلة المحاسبية.\n\nالأصول = الالتزامات + حقوق الملكية\n\nسؤال للمراجعة\nكيف يؤثر شراء أصل نقدًا على إجمالي الأصول؟", page: first)
         notes.linkCurrent(to: 2)
         notes.saveInk(ink(), page: first)
         guard notes.add(linkedTo: 4), let second = notes.currentID else { throw CocoaError(.fileWriteUnknown) }
         notes.editTitle("متابعة الدراسة", page: second)
-        notes.editText("صفحة ملاحظات مستقلة ثانية، مرتبطة بصفحة PDF الرابعة.", page: second)
+        notes.editText("تطبيق ما تعلّمته\n\nاكتب خطوات الحل، ثم قارن النتيجة بالمثال في الصفحة الرابعة.\n\nضع علامة عند الفكرة التي تريد مراجعتها لاحقًا.", page: second)
         guard notes.select(first), notes.saved, notes.error == nil else { throw CocoaError(.fileWriteUnknown) }
     }
     private static func mixedPDF() -> Data {
@@ -34,13 +34,13 @@ enum ProductionReviewFixtures {
             for number in 1...5 {
                 context.beginPage(); UIColor.white.setFill(); context.cgContext.fill(bounds)
                 if number < 5 {
-                    let titles = ["مساحة دراسة ذكية", "جدول الدراسة", "صورة داخل PDF", "الكتابة بالقلم"]
+                    let titles = ["مبادئ المحاسبة", "جدول الدراسة", "ملخص بصري", "مساحة التطبيق"]
                     let paragraph = NSMutableParagraphStyle(); paragraph.alignment = .right
                     (titles[number - 1] as NSString).draw(in: CGRect(x: 40, y: 45, width: 570, height: 60),
                         withAttributes: [.font: UIFont.boldSystemFont(ofSize: 30), .foregroundColor: UIColor(TayyaTheme.brandInk), .paragraphStyle: paragraph])
                 }
                 if number == 1 {
-                    let text = "مراجعة المحاضرة\n\nاقرأ الأفكار الأساسية، ثم اكتب ملاحظاتك بجانب المستند.\n\nهذا PDF حقيقي من خمس صفحات مختلفة: نص، جدول، صورة، صفحة بالقلم، وصفحة فارغة.\n\nStudy with real PDFKit content, native PencilKit ink and page-linked audio.\n\nيمكنك حفظ الكتابة، إضافة النصوص، التنقل والتصدير من التطبيق الحقيقي."
+                    let text = "الفصل الأول • الأساسيات\n\nالمحاسبة لغة لتنظيم المعلومات المالية وفهمها. نبدأ بثلاثة مفاهيم: الأصول، والالتزامات، وحقوق الملكية.\n\nالأصول موارد تملكها المنشأة. والالتزامات مبالغ مستحقة عليها. أما حقوق الملكية فتمثل الفرق بينهما.\n\nالمعادلة الأساسية\nالأصول = الالتزامات + حقوق الملكية\n\nفكّر وطبّق\nاكتب مثالًا على أصل، ثم وضّح كيف يختلف عن المصروف. دوّن أسئلتك قبل الانتقال إلى الصفحة التالية."
                     let paragraph = NSMutableParagraphStyle(); paragraph.alignment = .right; paragraph.lineSpacing = 12
                     (text as NSString).draw(in: CGRect(x: 45, y: 140, width: 560, height: 640),
                         withAttributes: [.font: UIFont.systemFont(ofSize: 23), .foregroundColor: UIColor.darkGray, .paragraphStyle: paragraph])

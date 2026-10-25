@@ -1,0 +1,23 @@
+@font-face{font-family:TayyaHeadline;src:url('fonts/NotoKufiArabic-Bold.ttf');font-weight:700;font-display:block}
+@font-face{font-family:TayyaText;src:url('fonts/NotoSansArabic-Regular.ttf');font-weight:400;font-display:block}
+:root{--paper:#F8F7F3;--ink:#244C43;--copper:#C48F68;--selection:#E9EFEA;--text:#282C2B}
+*{box-sizing:border-box}html,body{margin:0;width:var(--w);height:var(--h);overflow:hidden}
+body{position:relative;background:var(--paper);color:var(--ink);font-family:TayyaText,sans-serif}
+body.ink{background:var(--ink);color:var(--paper)}
+.fold-edge{position:absolute;inset:0 auto auto 0;width:27%;height:17%;background:var(--selection);clip-path:polygon(0 0,100% 0,0 100%);opacity:.65}
+.ink .fold-edge{background:#376052;opacity:.8}
+.fold-stitch{position:absolute;left:0;top:0;width:13%;height:10%;background:var(--copper);clip-path:polygon(0 0,100% 0,0 100%);opacity:.28}
+.brand{position:absolute;top:2.3%;right:6.5%;display:flex;align-items:center;gap:20px;direction:rtl;height:64px}
+.brand svg{width:54px;height:54px;fill:currentColor}.brand-name{font-family:TayyaHeadline;font-weight:700;font-size:38px;line-height:1.6}
+.brand-latin{font-size:19px;letter-spacing:7px;direction:ltr;opacity:.75;padding-top:10px}
+.eyebrow{position:absolute;top:6.4%;left:8%;right:8%;text-align:center;font-size:26px;line-height:1.7}
+.eyebrow span{display:inline-block;padding:4px 25px;background:#EEE4D9;color:var(--ink);border-radius:999px}
+.ink .eyebrow span{background:#32594E;color:var(--paper)}
+.headline{position:absolute;top:8.3%;left:5%;right:5%;margin:0;text-align:center;direction:rtl;font-family:TayyaHeadline;font-weight:700;font-size:clamp(80px,7vw,108px);line-height:1.52;letter-spacing:0}
+.headline span{display:block;white-space:nowrap}
+.detail{position:absolute;top:18.3%;left:5%;right:5%;text-align:center;direction:rtl;font-size:clamp(28px,2.45vw,42px);line-height:1.7;color:#52635B;margin:0}
+.ink .detail{color:#D6E4DB}
+.tablet .headline{font-size:104px;line-height:1.36}.tablet .detail{top:19.2%}
+.app-frame{position:absolute;top:22.5%;left:50%;transform:translateX(-50%);width:var(--screen-w);height:var(--screen-h);border:3px solid rgba(36,76,67,.18);border-radius:52px;overflow:hidden;background:#fff;box-shadow:0 30px 65px rgba(36,76,67,.13)}
+.ink .app-frame{border-color:rgba(255,255,255,.36);box-shadow:0 30px 65px rgba(0,0,0,.22)}
+.app-frame img{display:block;width:100%;height:100%;object-fit:contain;image-orientation:from-image}

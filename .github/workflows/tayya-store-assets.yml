@@ -13,11 +13,13 @@ on:
       - 'Tools/app_store_readiness.mjs'
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: tayya-store-assets-${{ contains(github.event.head_commit.message, '[store:readiness]') && 'readiness' || 'captures' }}
   cancel-in-progress: false
 jobs:
   apple-readiness:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[store:captures]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -39,8 +41,13 @@ jobs:
           retention-days: 7
   medium-phone:
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.capture) || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[store:readiness]')) }}
+    name: Native store capture (${{ matrix.family }})
     runs-on: macos-15
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [iPhone, iPad]
     steps:
       - uses: actions/checkout@v4
       - name: Generate the existing production project
@@ -49,11 +56,14 @@ jobs:
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen generate
       - name: Select an actual medium iPhone
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
         run: |
           python3 - <<'PY'
           import json, os, re, subprocess
           available = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
-          matches = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, devices in available.items() if 'iOS' in runtime for d in devices if d['name'] == 'iPhone 17 Pro']
+          required = 'iPhone 17 Pro' if os.environ['DEVICE_FAMILY'] == 'iPhone' else 'iPad Pro 13-inch (M5)'
+          matches = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, devices in available.items() if 'iOS' in runtime for d in devices if d['name'] == required]
           if not matches:
               raise SystemExit('The required actual medium-phone simulator is unavailable; do not relabel another device')
           _, runtime, device = max(matches, key=lambda row: row[0])
@@ -69,7 +79,7 @@ jobs:
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath StoreBuild -only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath StoreResults.xcresult CODE_SIGNING_ALLOWED=NO | tee store-capture-build.log
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath StoreBuild -only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens -only-testing:HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath StoreResults.xcresult CODE_SIGNING_ALLOWED=NO | tee store-capture-build.log
       - name: Preserve original results and unmodified PNGs
         if: always()
         run: |
@@ -81,22 +91,95 @@ jobs:
             ditto -c -k --keepParent StoreResults.xcresult StoreEvidence/StoreResults.xcresult.zip
           fi
       - name: Require the actual medium-phone captures and original assertions
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
         run: |
           python3 - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
           summary = json.load(open('StoreEvidence/summary.json'))
-          assert summary['result'] == 'Passed' and summary['passedTests'] == 2, summary
+          assert summary['result'] == 'Passed' and summary['passedTests'] == 3, summary
           assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
           metadata = [json.loads(p.read_text()) for p in Path('StoreEvidence/Screenshots').glob('*.json') if p.name != 'manifest.json']
-          assert metadata and all(m['pixel_width'] == 1206 and m['pixel_height'] == 2622 and m['orientation'] == 'portrait' for m in metadata), metadata
-          print('Verified actual 1206x2622 production captures:', len(metadata))
+          width, height = (1206, 2622) if os.environ['DEVICE_FAMILY'] == 'iPhone' else (2064, 2752)
+          assert metadata and all(m['pixel_width'] == width and m['pixel_height'] == height and m['orientation'] == 'portrait' for m in metadata), metadata
+          print('Verified actual', width, height, 'production captures:', len(metadata))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Tayya-Store-Actual-iPhone-Medium
+          name: Tayya-Store-Original-${{ matrix.family }}
           path: |
-            StoreEvidence/
+            StoreEvidence/summary.json
+            StoreEvidence/store-device.json
+            StoreEvidence/Screenshots/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Store-Native-Results-${{ matrix.family }}
+          path: |
+            StoreEvidence/StoreResults.xcresult.zip
             store-capture-build.log
+          retention-days: 14
+  artwork:
+    needs: medium-phone
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Tayya-Store-Original-*
+          path: NativeStoreCaptures
+      - name: Use the existing renderer and install only missing Python bindings
+        run: |
+          command -v chromium >/dev/null || command -v google-chrome >/dev/null
+          python3 -c 'import PIL, playwright' || python3 -m pip install pillow playwright
+      - name: Typeset six truthful store images per device and validate original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" > store-jobs.json
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from Tools.collect_integration_captures import collect
+          jobs = json.load(open('store-jobs.json'))['jobs']
+          for family, width, height, folder in [('iPhone',1206,2622,'iPhone-Medium'),('iPad',2064,2752,'iPad-13')]:
+              job = next(j for j in jobs if j['name'] == f'Native store capture ({family})')
+              assert job['conclusion'] == 'success', job
+              evidence = Path('NativeStoreCaptures') / ('Tayya-Store-Original-' + family)
+              rows = collect(evidence, os.environ['GITHUB_SHA'], family, os.environ['GITHUB_RUN_ID'], job['id'])
+              manifest = Path('store-captures-' + family + '.json')
+              manifest.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
+              subprocess.run(['python3','Tools/render_store_artwork.py','--root',str(evidence),'--captures',str(manifest),'--output','Tayya-App-Store-Visuals/'+folder,'--family',family,'--width',str(width),'--height',str(height)],check=True)
+          PY
+          python3 - <<'PY'
+          import hashlib, json, os, shutil
+          from pathlib import Path
+          from PIL import Image
+          out=Path('Tayya-App-Store-Visuals'); rows=[]
+          for manifest in out.glob('*/store-artwork.json'):
+              group=json.loads(manifest.read_text());assert len(group)==6
+              for row in group:
+                  path=manifest.parent/row['file']
+                  with Image.open(path) as im: assert im.mode=='RGB' and im.size==(row['width'],row['height'])
+                  assert hashlib.sha256(path.read_bytes()).hexdigest()==row['sha256']
+                  assert hashlib.sha256((manifest.parent/row['original_file']).read_bytes()).hexdigest()==row['original_sha256']
+                  row['file']=str(path.relative_to(out));rows.append(row)
+          assert len(rows)==12
+          (out/'manifest.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'type':'Designed marketing compositions using byte-preserved actual production captures','images':rows},ensure_ascii=False,indent=2))
+          (out/'index.html').write_text('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>صور متجر طَيّة</title><style>body{background:#F8F7F3;color:#244C43;font:20px system-ui;margin:24px}a{display:inline-block;margin:12px}</style><h1>طَيّة — صور المتجر المصممة</h1><p>لقطات حقيقية من التطبيق داخل تصميم بهوية طَيّة.</p><a href="iPhone-Medium/index.html">الآيفون</a><a href="iPad-13/index.html">الآيباد</a></html>')
+          shutil.make_archive(str(out),'zip',out.parent,out.name)
+          Path(str(out)+'.zip.sha256').write_text(hashlib.sha256(Path(str(out)+'.zip').read_bytes()).hexdigest()+'  '+str(out)+'.zip\n')
+          print('Verified12 RGB store compositions and every original source hash')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-App-Store-Designed-Screenshots
+          path: |
+            Tayya-App-Store-Visuals/
+            Tayya-App-Store-Visuals.zip
+            Tayya-App-Store-Visuals.zip.sha256
           retention-days: 14

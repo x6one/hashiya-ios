@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date_utc": "2026-10-25",
   "branch": "integration/tayya-studio-2",
-  "status": "single_new_hypothesis_valid_contact_duration_crosses_native_scroll_touch_delay",
+  "status": "new_user_authorized_controlled_release_prepare_terminal_input_receipts",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
   "latest_tested_workflow_source": "29c5d402879d7653fc0f6e3393e676aead83238f",
   "identity": {
@@ -560,5 +560,20 @@
     "hypothesis": "Contact crossing native scroll touch delay boundary can suppress first Notes action; not proven. Test duration alone without changing App/helper, source/timeouts/assertions.",
     "experiment": "One new characterization testcase, three independent fresh real welcome/document launches, one contact each0.05/0.18/0.35s. Require first Notes state, divider and fully visible control; no retries. iPadonly focused run. New case adds to all originals, never replaces them.",
     "decision": "If any first press fails, use native hit/action/render counter evidence; if all pass, durationalone not reproduced and must not claim root/fix or repeat identical/full run."
+  },
+  "user_spec": "Pasted text.txt (2026-10-25): permits onefixedSHAfullgate ifnoreproducibleknownfault, retainunknownroot/no unprovenfix claims",
+  "notes_receipts_v2": {
+    "source_base": "d6e4dc4fc20c58f6b5a6c3587bf54b4f2e2409fb",
+    "status": "localreview+checks; nextnativePaperPadonce",
+    "review": "read-only /root/notes_terminal_receipts_review: noCritical/Important; twoMinor corrected inonepass beforepublish",
+    "changes": [
+      "DEBUGoptin publicUIWindow.sendEvent observation forwardsoriginalexactonce; noextraView/GestureRecognizer orUITest changes",
+      "Boundedscalar before/afterbegan,moved,ended,cancelled/nativeowner+gesturestates; format/logdeferredafternativedispatch",
+      "Notesactioncounter/state+modelidentities andChromeappear/update/disappear; no reactivepublication/userdatawrite",
+      "Contact0/phase-1 marksoutside-dispatchcorrelationunknown; phase-2 marksambiguousmulti; model/actionIDsretainstatecontext",
+      "kind9/10 markgesture/ancestrycaps; droppedcountmarksbufferevictions; nothingclaimsfulltracewhenomitted"
+    ],
+    "limits": "Nozero-overhead/timingneutralclaim; Chromeupdateisnotcompositorproof. ExplicitAXflushcanexportunfinishedcontacts. ActualUIstates/PNGs/nativeassertionsremainrequired. AllinstrumentationDEBUG+flagonly.",
+    "plan": "OneoriginalPaperPadnativeprequalification; ifnoreproandtelemetryvalid, freezecandidateandonefull151native+Maestro3/exports/capturesperdevice. ThenfullnativeOffice/iphoneos/unsignedIPA; nevermerge/Apple orclaimhistoricalrootfixed."
   }
 }

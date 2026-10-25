@@ -82,14 +82,6 @@ struct DocumentChrome: View {
                     }.accessibilityIdentifier("selectTool")
                     coreButton("الملاحظات", symbol: "note.text", selected: notesVisible, action: chooseNotes)
                         .accessibilityIdentifier("openMargin")
-                        #if DEBUG
-                        .background {
-                            if ProcessInfo.processInfo.arguments.contains("--test-notes-dock-input") {
-                                NotesDockInputProbe(visible: notesVisible, expanded: notesExpanded)
-                                    .allowsHitTesting(false).accessibilityHidden(true)
-                            }
-                        }
-                        #endif
                     coreButton("صفحات", symbol: "square.grid.2x2", selected: false, action: openPages)
                         .accessibilityIdentifier("documentPages")
                 }.padding(.horizontal, TayyaMetrics.inset).padding(.vertical, TayyaMetrics.unit)
@@ -98,7 +90,23 @@ struct DocumentChrome: View {
             .accessibilityIdentifier("studioToolDock").background(TayyaTheme.surface)
         }
         .onChange(of: editor.handwriting) { _, _ in if notesVisible { target = .notes } }
+        #if DEBUG
+        .onAppear {
+            NotesDockInputTrace.installIfNeeded()
+            traceNotesChrome(6)
+        }
+        .onChange(of: notesVisible) { _, _ in traceNotesChrome(7) }
+        .onChange(of: notesExpanded) { _, _ in traceNotesChrome(7) }
+        .onDisappear { traceNotesChrome(8) }
+        #endif
     }
+
+    #if DEBUG
+    private func traceNotesChrome(_ kind: Int) {
+        NotesDockInputTrace.notes(kind, expanded: notesExpanded, visible: notesVisible,
+                                 targetNotes: target == .notes, workspace: workspace, margins: margins)
+    }
+    #endif
 
     @ViewBuilder private var contextualRail: some View {
         switch tool {

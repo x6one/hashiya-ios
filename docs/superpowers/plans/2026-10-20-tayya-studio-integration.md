@@ -1,5 +1,14 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Current user ruling — controlled qualification after bounded non-reproduction (2026-10-25)
+
+Newuserpasted spec explicitly authorizes one fixedSHA full release gate when no knownfault is reproducible, even if historical Notesroot remainsunknown. This supersedes the previousstop/no-full disposition. Do not claim a productionfix; qualify current behavior honestly and investigate any actualnewfailure fromnativeevidence before reruns. Preserve stable/main, identity0.6.0/13/com.ahmadalawi.hashiya, userdata, original150+newcontactcase=151 andallMaestro3/device.
+
+892 andd6e4 targetedpasses/actual70.554/185.199/358.256ms actionlatencies do not establish why867lostfirstNotes transition. Independentreview foundno provenproductionhitshape/stateidentitybug, but oldprobe onlysawbegan, didsynchronousformatting andtruncatedancestorline at1KB. Replace diagnostic only: removeitsbackgroundUIView/windowrecognizer; optinDEBUG UIWindow publicsendEvent observation forwardsoriginalexactonce, collectsboundedscalarsbefore/afterbegan/ended/cancelled/nativeview+gesturestate, notesactionbeforeafter/state/modelIDs andChromeupdate/lifecycle. Deferformatting/logging untilafterdispatch, normallyaftercontactsfinish; AXmayflushunfinishedcontact. NoUIpublication/persistence/sleep/retry/timeout/assertionchange. Contact0 meansunprovenattribution; omissionreceipts+dropcount makecapsvisible. Notzerooverhead, notcompositorproof, nofunctionalrepair.
+
+Freshread-onlycode review notes_terminal_receipts_review foundnoCritical/Important. TwoMinor correctedbeforepublish: avoidstickyfingerattribution outsideunambiguoussynchronoussinglecontact andmarkgesture/ancestorcapomissions. NextoneoriginalPaperPadnativebuild/testverifiesnewreceiptpipeline; ifPASS/noactualfault, freezeonecandidate andruncomplete151/device+coldoriginal3+Maestro3+realexports/captures/gallery, thenfullOfficeiphoneos+unsignedIPA. Do not rerunoldcontactdurationprobe orrepeatfull blindly.
+
+
 ## Current experiment — first Notes contact duration (2026-10-25)
 
 8926fe3f4cb6b094e9d4a791e8574d2f56a58ee9 directed run40154066969: Papercase1/1PASS65.141s,0fail/skip/expected, strictlint/format55filesPASS. Archive12583348636 SHA c209165ba5ea832ba5f479d3404dd7a5424d7f458b2ed06e5e60c1b8fc1f4137/CRCverified. Decoded original zstd xcresult Appconsole on Linux (no Xcode emulation/newtools): one native touch at02:29:50.019588, handler50.086983, closed→split→expanded render. Not proof867fault fixed.

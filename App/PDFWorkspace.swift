@@ -453,13 +453,11 @@ struct DocumentScreen: View {
     }
     private func openNotes() {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--test-notes-dock-input") {
-            NSLog("TayyaNotesDock action before expanded=%d split=%d target=%@", notesExpanded ? 1 : 0, splitNotes ? 1 : 0, editingTarget.rawValue)
-        }
+        NotesDockInputTrace.notes(4, expanded: notesExpanded, visible: splitNotes || notesExpanded,
+                                 targetNotes: editingTarget == .notes, workspace: workspace, margins: margins)
         defer {
-            if ProcessInfo.processInfo.arguments.contains("--test-notes-dock-input") {
-                NSLog("TayyaNotesDock action after expanded=%d split=%d target=%@", notesExpanded ? 1 : 0, splitNotes ? 1 : 0, editingTarget.rawValue)
-            }
+            NotesDockInputTrace.notes(5, expanded: notesExpanded, visible: splitNotes || notesExpanded,
+                                     targetNotes: editingTarget == .notes, workspace: workspace, margins: margins)
         }
         #endif
         pageFocused = false
@@ -859,6 +857,7 @@ final class ResizingPDFView: PDFView {
     fileprivate weak var diagnosticInkCoordinator: NativePDF.Coordinator?
     override var accessibilityValue: String? {
         get {
+            NotesDockInputTrace.requestFlush(allowUnfinished: true)
             guard ProcessInfo.processInfo.arguments.contains("--test-native-menu"),
                   let coordinator = diagnosticInkCoordinator else { return super.accessibilityValue }
             let workspace = coordinator.workspace

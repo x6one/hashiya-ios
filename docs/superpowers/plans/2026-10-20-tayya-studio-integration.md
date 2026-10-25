@@ -1,5 +1,12 @@
 # Tayya Studio 2.0 integration implementation plan
 
+## Screen-only ink measurement qualified; freeze next controlled candidate (2026-10-25)
+
+299255201841954a7131876792e610a7011eff98/run40174858643/Pad121113245848: original accessibility ink case1/1PASS186.425s,0fail/skip/expected; SwiftLint0violations55files/SwiftFormatPASS. Actual screenshot deltas document10276red/1.544s, compactNotes3730red/1.515s; no AX debugDescriptions between visual begin/result. Savedstroke2, Undo1, Redo2, FitSheet/FitWidth and stablegeometry retained. Verified native screenshot visibly contains both redstrokes. Artifact12591723803/84961359B/SHA7b62e3188dc06ce2d2a85b9d01b27ca06751381a0feab071cd641a2f3a09c5e7/CRCverified.
+
+This is a test-observer correction, not proof of the underlying intermittent PencilKit or historical Notes root. No App functional change, original151cases and pixel/count/geometry/Undo/Redo thresholds retained. Latest user authorizes one controlled full qualification if no knownfailure currentlyreproduces. Freeze THIS documentation-only checkpoint (same executable/test/workflow source as299), run full151/device + cold3/device + Maestro3/device + realPDF/PPTXexports + nativecaptures/gallery; only then Officefullnativeengine and realHashiyaiphoneos unsignedIPA/hash. If actualnewfailure occurs, inspect fresh nativeevidence before any patch/rerun. No furtherpushes during gate/packaging; no stable/main/Apple/signing/data/identity changes. Physicalmic/Office runtime limits remain explicit.
+
+
 ## Actual539 cold-gate failure — isolate visual measurement from AX observation (2026-10-25)
 
 Controlled53976e72cf5b9b6f3c098b53474bc585ced14352/run40170448849: Tools34/actionlint4PASS, Phonecold3PASS492.168s. Padattempt1 executed0Appcases: RunningBoardkilledRunner21363 with0x2182BAAD/XCTRunnerInitializationtimeout; archive12589084427 retained. Onefailed-job-only recovery retainedsameSHA andPhone/Toolsresults. Padattempt2 nowexecuted3originals:2PASS/1FAIL470.677s. OnlytestIndividualInkTargetsAtAccessibilityTextSize:1417 failedatAccessibilityType-CompactSplitInk visible-red criterion; normalInk/NavigationPASS. Full151/device/Maestro/gallery/Office/IPA neverstarted andremainblocked. No secondblindjobretry.

@@ -2,9 +2,9 @@
   "schema_version": 1,
   "date_utc": "2026-10-25",
   "branch": "integration/tayya-studio-2",
-  "status": "539_controlled_gate_blocked_actualPadLiveInkFailure_test_observer_hypothesis_one_directed_probe",
+  "status": "299_screen_only_observer_target_green_freeze_one_new_controlled_release_candidate",
   "app_swift_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
-  "latest_tested_workflow_source": "34dab9bf4eb26cc4f0d8a7ccdf11aa7de4d1e279",
+  "latest_tested_workflow_source": "299255201841954a7131876792e610a7011eff98",
   "identity": {
     "version": "0.6.0",
     "build": 13,
@@ -488,24 +488,16 @@
     "qualification_scope": "Directed only. Other5shared-helper targets passedon e52; do not substitute combined old passes for the next full same-SHA release gate."
   },
   "next_release_gate": {
-    "trigger": "[integration:release]",
-    "source": "The commit containing this checkpoint; freeze its exact SHA through qualification and packaging.",
-    "required_per_device": {
-      "unit": 99,
-      "ui": 51,
-      "failures": 0,
-      "skips": 0,
-      "expected_failures": 0,
-      "maestro": 3
-    },
-    "also_required": [
-      "original3regressions on separate cold runner per device",
-      "actual exported PDF/PPTX bytes",
-      "all6realproductioncapturejourneys per device and unmodified PNG gallery/provenance",
-      "full native Office engine iphoneos and real Hashiya Release app",
-      "validated unsigned arm64IPA with matching identity, Office resources and SHA256"
-    ],
-    "rule": "No new diagnostic probes or reruns without an actual new failure; inspect first log/xcresult/counters before any edit. No source push while qualification active."
+    "state": "freeze_THIS_commit_and_run_once",
+    "policy": "latestuser permitscontrolledqualificationwhenfailure notcurrentlyreproducible; no claimrootfixed",
+    "native_inventory": 151,
+    "unit": 99,
+    "ui": 52,
+    "maestro_per_device": 3,
+    "required": "alloriginal+new/device, cold3/device, realexports, nativegallery, Officefullengine/iphoneos, realHashiyaunsignedIPA/SHA256 sameSHA",
+    "on_failure": "Inspect new actual logs/xcresult/counters before any fix/retry. No sameconditionsblindrerun or relaxedassertions.",
+    "production_app_source": "7cafec00786ee8ced6e9b363d1bdbdaa6a563de0",
+    "candidate_delta": "Onlythischeckpoint after299; no App/test/workflowchange"
   },
   "release867": {
     "source": "8679992b70344422a80554e4093583c57ccfbd7c",
@@ -649,5 +641,32 @@
     "single_hypothesis": "UnnecessaryAX/render-hierarchy observation duringnativevisualcommit canperturbMetalpresentation. Measureactualscreen beforepoststrokeAX count/diagnostics, useNSObjectexpectationobject toavoidimplicitAXpoll.",
     "experiment": "OnlyexistingfailedoriginalA11ycaseonPad. Sameone stroke, actual>40pixel/5s condition andcount>before/10s, exactframechecks, Undo/Redo/Fit unchanged. NoApp/Engine/toolbar/datachange, noSleep/retry/timeoutincrease, no fullgateuntilresultanalyzed.",
     "failure_policy": "Ifstillfails, hypothesisdisproved; inspectremainingnewnativeevidence beforeanyfurtherpatch. DoNotblindrerun."
+  },
+  "ink_visibility_observer_green": {
+    "source": "299255201841954a7131876792e610a7011eff98",
+    "run": 40174858643,
+    "job": 121113245848,
+    "case": "testIndividualInkTargetsAtAccessibilityTextSize",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "seconds": 186.425,
+    "artifact": 12591723803,
+    "artifact_sha256": "7b62e3188dc06ce2d2a85b9d01b27ca06751381a0feab071cd641a2f3a09c5e7",
+    "CRC_verified": true,
+    "actual_screen_pixels": {
+      "document": {
+        "delta": 10276,
+        "measured_seconds": 1.5436599583333646
+      },
+      "compactNotes": {
+        "delta": 3730,
+        "measured_seconds": 1.5152024166667388
+      }
+    },
+    "retained_contracts": "same >40red/5s, actualsavedcount/10s, frame/zoom, Undo2→1/Redo1→2, FitSheet/FitWidth; allpassed",
+    "log_observation": "No XCUIElement/debugDescription/AX snapshots between screen-only begin and result markers; flags still original --test-margin-viewport/accessibility-type",
+    "limitations": "One directed GREEN supports removing AX observer interference but does not prove historical PencilKit root. Historical Notes root also unknown; no App functional patch."
   }
 }

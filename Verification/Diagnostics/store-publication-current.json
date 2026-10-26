@@ -34,7 +34,7 @@
     "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
     "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
   ],
-  "decision": "No fourth speculative compositor/engine patch and no unchanged production rerun. Keep full release gate and Apple binary upload blocked. Isolate native PencilKit without SwiftUI/persistence once; a pass is inconclusive and is never Tayya qualification.",
+  "decision": "Measure the remaining real workspace publication/responder boundary once with passive DEBUG receipts. No fourth speculative compositor/engine patch. Full release and Apple upload remain blocked.",
   "native_control": {
     "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
     "run": 40266142260,
@@ -75,7 +75,7 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "Actual live-ink first-stroke failure remains uncorrected. New source-level isolation is prepared; release qualification, final IPA and Apple upload remain blocked. Store12image artwork/publishing tools are retained.",
+  "remaining": "No functional production repair established. Actual-source isolation passed, so measure the real shared Notes->workspace->NativePDF boundary once rather than repeating controls. Preserve12 Store images and guarded publication tools; no Apple writes.",
   "last_full_gate": {
     "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
     "run": 40211390622,
@@ -83,21 +83,6 @@
     "cold_iPhone": "2/3passed; Undo observer deadline failed",
     "cold_iPad": "3/3passed",
     "full151_per_device_Maestro_Office": "Correctly not executed after the critical cold failure; no new qualified IPA."
-  },
-  "next_probe": {
-    "hypothesis": "A valid committed stroke does not necessarily complete native tile rendering; observe native canvasViewDidFinishRendering versus drawing-change sequence at the actual failing boundary.",
-    "scope": "DEBUG-only scalar callback counters plus existing pre/post gesture AX receipt; no native UI/drawing reads, clocks, persistence or publications in callback. Release token sequence unchanged.",
-    "test": "Only original iPhone testIndividualInkTargetsAtAccessibilityTextSize; no changed deadlines or assertions, no Release/full suite.",
-    "interpretation": "A pass is measurement only. On failure compare baseline and failed renderCompletions/renderedChangeCount; do not infer fix from successful tracing.",
-    "result": {
-      "source": "4a00210c7436dd31e5cc0b2981753e77788a4f8e",
-      "run": 40279190238,
-      "passed": 1,
-      "failed": 0,
-      "seconds": 205.034,
-      "counter": "renderCompletions1/renderedChangeCount1 before stroke, after visible stroke, Undo and Redo.",
-      "limit": "Apple documents assigned drawing/userzoom/scroll readiness, not interactive-stroke render revisions. Successful measurement does not prove old failure fixed. Remove temporary observer by restoring exact original MarginNotebook bytes."
-    }
   },
   "rotation_control": {
     "hypothesis": "Previous bare control started directly in landscape. Actual failed app retains same canvas across440x147.333 portrait->367.333x88.667 landscape, a viewport/zoom-cache boundary omitted from control.",
@@ -117,10 +102,63 @@
     "scope": "Native PDF overlay pencil stroke, native Undo/Redo and Fit before lazy creation and retained portrait->landscape Notes. No SwiftUI/model/persistence. One passing isolation does not exclude intermittent failure or qualify Tayya."
   },
   "source_engine_control": {
-    "status": "Prepared; not executed",
+    "status": "PASS1/1;0failed,0skipped;66.223s",
     "hypothesis": "Previous native controls omitted actual MarginNotebook delegate, actual InkToolbar SwiftUI color sheet and MarginPages observable atomic saves. Exercise those unmodified production sources inside the same diagnostic-only dual-canvas host.",
     "only_test": "ControlTests.testProductionNotesAfterDocumentInk",
     "scope": "Separate native-ink-control bundle; only synthetic tmp/ReviewEntry UUID data. Keep >40red/5s and native Undo/Redo deadlines. No App file or storage-format changes. Post-test native inspection reads saved bytes and preserves original hashes.",
-    "limit": "If it passes once, the actual app failure remains unresolved. If it fails, compare raw live PNG, native count, correct color and independent saved raster before attributing the cause."
+    "limit": "If it passes once, the actual app failure remains unresolved. If it fails, compare raw live PNG, native count, correct color and independent saved raster before attributing the cause.",
+    "source": "33c3062e4c1b11115f7747474016a467b7e2baf8",
+    "run": 40286057164,
+    "document_red_pixels": 5943,
+    "notes_red_pixels": 3903,
+    "notes_first_sample_seconds": 1.2838828333333367,
+    "inputs_unchanged": true,
+    "collection_errors": [],
+    "artifact": 12634855701,
+    "artifact_sha256": "3ef7f52dd04e1ed9095ee54d36ce7c78ae4bdb19b088b37fc56da28b69185da9",
+    "interpretation": "Actual unchanged source core rendered this native stroke. One passing isolation does not establish a repair. It omits shared PDFWorkspace publication and real parent view hierarchy."
+  },
+  "render_callback_probe": {
+    "hypothesis": "A valid committed stroke does not necessarily complete native tile rendering; observe native canvasViewDidFinishRendering versus drawing-change sequence at the actual failing boundary.",
+    "scope": "DEBUG-only scalar callback counters plus existing pre/post gesture AX receipt; no native UI/drawing reads, clocks, persistence or publications in callback. Release token sequence unchanged.",
+    "test": "Only original iPhone testIndividualInkTargetsAtAccessibilityTextSize; no changed deadlines or assertions, no Release/full suite.",
+    "interpretation": "A pass is measurement only. On failure compare baseline and failed renderCompletions/renderedChangeCount; do not infer fix from successful tracing.",
+    "result": {
+      "source": "4a00210c7436dd31e5cc0b2981753e77788a4f8e",
+      "run": 40279190238,
+      "passed": 1,
+      "failed": 0,
+      "seconds": 205.034,
+      "counter": "renderCompletions1/renderedChangeCount1 before stroke, after visible stroke, Undo and Redo.",
+      "limit": "Apple documents assigned drawing/userzoom/scroll readiness, not interactive-stroke render revisions. Successful measurement does not prove old failure fixed. Remove temporary observer by restoring exact original MarginNotebook bytes."
+    }
+  },
+  "next_probe": {
+    "status": "prepared; not executed",
+    "hypothesis": "Actual Notes saved callback unconditionally publishes workspace.canUndoPageDeletion=false, updating shared NativePDF. PageChanged/willDisplay may activate PDF independently of Notes target. Core control omitted this shared coupling. Measure actual event order before deciding whether a transient native ownership handoff is present.",
+    "only_test": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize on iPhone only",
+    "scope": "DEBUG-only fixed scalar counters128phase ring; no clocks, native drawing/geometry/responder reads, publishers, file writes, delegate replacements or timing/assertion changes. Existing post-gesture AX receipt transports counts. Release normalized sources in both modified files remain identical to33c3062.",
+    "phase_legend": {
+      "1": "Notes begin",
+      "2": "Notes end",
+      "3": "Notes drawingChange",
+      "4": "Notes saved enter",
+      "5": "Notes saved return",
+      "6": "workspace undo-clear begin",
+      "7": "workspace undo-clear end",
+      "8": "NativePDF update enter",
+      "9": "NativePDF update exit",
+      "10": "PDF drawing-enabled transition",
+      "11": "PDF pageChanged activation requested",
+      "12": "PDF willDisplay activation requested",
+      "13": "PDF enable activation requested",
+      "14": "existing PDF becomeFirstResponder returnedtrue",
+      "15": "existing PDF becomeFirstResponder returnedfalse",
+      "16": "Notes didMoveToWindow before existing responder call",
+      "17": "Notes didMoveToWindow after existing responder call",
+      "19": "PDF setDrawing enter",
+      "20": "PDF tool configuration changed"
+    },
+    "interpretation": "A successful run is only a measured trace. On failure correlate actual save/publication/PDF activation order with original pixel/raster evidence. Do not claim a fix or rerun an unchanged case from one healthy trace. Phase14 only means the existing becomeFirstResponder request returnedtrue; it can already be first responder and by itself does not prove a handoff or root cause."
   }
 }

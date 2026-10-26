@@ -2,6 +2,28 @@ import SwiftUI
 import PencilKit
 
 #if DEBUG
+// Passive cross-host ordering only. No clocks, drawing/geometry/responder
+// getters, observers, publishers, or writes inside the native callbacks.
+@MainActor enum NativeInkOwnershipTrace {
+    private static var active = false
+    private static var counts = [UInt64](repeating: 0, count: 21)
+    private static var ring = [UInt8](repeating: 0, count: 128)
+    private static var cursor = 0
+    static func arm() { active = ProcessInfo.processInfo.arguments.contains("--test-margin-viewport") }
+    static func record(_ phase: Int) {
+        guard active else { return }
+        counts[phase] += 1; ring[cursor % ring.count] = UInt8(phase); cursor += 1
+    }
+    static var summary: String {
+        guard active else { return "" }
+        let start = max(0, cursor - ring.count)
+        let phases = (start..<cursor).map { String(ring[$0 % ring.count]) }.joined(separator: ",")
+        return "; ownership=[events=\(cursor); counts0to20=\(counts); phases=\(phases)]"
+    }
+}
+#endif
+
+#if DEBUG
 // Bounded, read-only receipts distinguish a missed tool touch from lost native
 // undo history. No observer or persisted data; empty before the first action.
 @MainActor enum MarginUndoDiagnostics {
@@ -34,7 +56,7 @@ final class MarginCanvas: PKCanvasView {
         get {
             let baseLabel = super.accessibilityLabel ?? ""
             #if DEBUG
-            let label = baseLabel + MarginUndoDiagnostics.labelSuffix
+            let label = baseLabel + MarginUndoDiagnostics.labelSuffix + NativeInkOwnershipTrace.summary
             #else
             let label = baseLabel
             #endif
@@ -97,7 +119,13 @@ final class MarginCanvas: PKCanvasView {
         #if DEBUG
         MarginRenderDiagnostics.recordCanvas("didMoveToWindow before responder", canvas: self)
         #endif
+        #if DEBUG
+        NativeInkOwnershipTrace.record(16)
+        #endif
         if window != nil { becomeFirstResponder() }
+        #if DEBUG
+        NativeInkOwnershipTrace.record(17)
+        #endif
         #if DEBUG
         MarginRenderDiagnostics.recordCanvas("didMoveToWindow return", canvas: self)
         #endif
@@ -353,6 +381,9 @@ struct MarginNotebook: UIViewRepresentable {
         #if DEBUG
         MarginRenderDiagnostics.record("makeUIView enter page=\(page.id); control=\(ObjectIdentifier(control))")
         #endif
+        #if DEBUG
+        NativeInkOwnershipTrace.arm()
+        #endif
         let canvas = MarginCanvas()
         // PencilKit owns clipping of its zoomed tiles at the viewport boundary.
         // An additional SwiftUI mask must not wrap the native drawing surface.
@@ -485,7 +516,13 @@ struct MarginNotebook: UIViewRepresentable {
             #if DEBUG
             traceCommitPhase(5)
             #endif
+            #if DEBUG
+            NativeInkOwnershipTrace.record(4)
+            #endif
             saved(canvas.drawing)
+            #if DEBUG
+            NativeInkOwnershipTrace.record(5)
+            #endif
             #if DEBUG
             traceCommitPhase(6)
             #endif
@@ -493,6 +530,7 @@ struct MarginNotebook: UIViewRepresentable {
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             #if DEBUG
             traceCommitPhase(2)
+            NativeInkOwnershipTrace.record(3)
             #endif
             guard !loading else { return }
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
@@ -506,6 +544,7 @@ struct MarginNotebook: UIViewRepresentable {
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
             #if DEBUG
             traceCommitPhase(1)
+            NativeInkOwnershipTrace.record(1)
             #endif
             isStroking = true
             (canvasView as? MarginCanvas)?.usingTool = true
@@ -513,6 +552,7 @@ struct MarginNotebook: UIViewRepresentable {
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
             #if DEBUG
             traceCommitPhase(3)
+            NativeInkOwnershipTrace.record(2)
             #endif
             isStroking = false
             if hasUncommittedStroke {

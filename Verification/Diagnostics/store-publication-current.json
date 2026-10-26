@@ -1,11 +1,11 @@
 {
-  "status": "Frozen candidate preparation after passing targeted Debug/Release evidence; mandatory full qualification still pending",
+  "status": "Freezing verified menu-observer correction for final full qualification; no Apple upload yet",
   "target": {
     "version": "0.6.0",
     "build": "13",
     "bundle_id": "com.ahmadalawi.hashiya"
   },
-  "production_app_tree": "8450ba5af2106395bbfd021999e9c6722d85c90b",
+  "production_app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
   "store_controller": "65b50e9f43d569dfda5aaf238de9dc7535cf2f34",
   "last_production_test": {
     "source": "5123b96e8df5b9f7515edb83313cc2f2d8619e8c",
@@ -34,7 +34,7 @@
     "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
     "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
   ],
-  "decision": "Stop further isolation experiments. Follow user instruction to retain changes/evidence and run ONE comprehensive release qualification on one fixed candidate with existing diagnostics. No functional rendering fix is claimed from healthy traces. Preserve and analyze any actual failure before further changes or retries.",
+  "decision": "The actual failed UI action was correct; retained5s observer now verifies absence in1.51s/0.37s using bounded collection query. Preserve all original151cases. Include real favorite-pen menu/binding case alongside the original3coldregressions before the full151/device gate. NoApp/project/NativeOffice changes; reuse existing actual Store images truthfully fromDDsource.",
   "native_control": {
     "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
     "run": 40266142260,
@@ -75,14 +75,15 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "One full same-SHA release gate and same-SHA actual Store capture run; handle any failure from its original evidence. Do not enable Store binary publication before every required job succeeds. Physical microphone/interruption and physical Office conversion remain unverified by CI.",
+  "remaining": "One final frozen release qualification including related menus, all151cases/device, Maestro and exports; then nativeOffice/iphoneos/IPA/gallery. Preserve the already verified12 original-DD-source Store images with same App tree. Enable Store publication only after every mandatory gate passes.",
   "last_full_gate": {
-    "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
-    "run": 40211390622,
+    "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+    "run": 40290027939,
     "status": "FAILED",
-    "cold_iPhone": "2/3passed; Undo observer deadline failed",
-    "cold_iPad": "3/3passed",
-    "full151_per_device_Maestro_Office": "Correctly not executed after the critical cold failure; no new qualified IPA."
+    "iPhone": "151/151nativePASS;3MaestroPASS; actualPDF3063B/PPTX54684B exportPASS",
+    "iPad": "150/151nativePASS; only testArabicDarkProductionScreens failed at menu-dismissal observer; actual byte exports passed; Maestro not run after native failure",
+    "cold_regression": "3/3PASS on eachfamily, including actual pixels/nativeUndoRedo/reading navigation",
+    "gallery_and_Office_IPA": "Correctly skipped after the critical incomplete native gate. No new IPA and no Apple writes."
   },
   "rotation_control": {
     "hypothesis": "Previous bare control started directly in landscape. Actual failed app retains same canvas across440x147.333 portrait->367.333x88.667 landscape, a viewport/zoom-cache boundary omitted from control.",
@@ -191,16 +192,98 @@
     }
   },
   "release_candidate": {
-    "status": "prepared; not yet dispatched",
-    "parent": "e227e8c3501321f4bc08748e2ef33cff072dcb0a",
+    "status": "prepared for one full frozen qualification after targetedGREEN",
+    "parent": "d8f7cfd2b1087f9c9231aede17376413ed1753fb",
     "app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
+    "cold_regressions_per_device": 4,
+    "original_three_regressions_retained": true,
+    "added_related_case": "StudioEditorToolsTests.testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch",
     "native_counts_per_device": {
       "Tests": 99,
       "UITests": 52
     },
-    "original_tests_retained": true,
-    "required": "3 original cold regression cases/device, all151XCTest+XCUITest/device,3Maestro/device, real export bytes, native gallery, complete Office and Releaseiphoneos/IPA on exact same candidate. Existing jobs enforce no failed/skipped/expected failures.",
-    "diagnostics_retained": "DEBUG scalar cross-host trace plus existing native xcresult/failure preservation. Release behavior/source unaffected by tracing.",
-    "capture": "Recapture both Store devices at this same candidate. Reuse byte-exact approved Pad06 DarkFocus copy from4517; actual native PNG originals never edited."
+    "Maestro_per_device": 3,
+    "expected_failures_or_skips": 0,
+    "required": "Both cold4case jobs, both complete151case jobs +actualexportbytes+Maestro, productiongallery, and fullOffice/Releaseiphoneos/unsignedIPA on this same source. Existing mandatory success guards retained and coldguard strengthened to4/4."
+  },
+  "menu_dismissal_fix": {
+    "status": "GREEN original failing Dark capture passed1/1;0failed,0skipped",
+    "failed_source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+    "failed_run": 40290027939,
+    "failed_job": 121469715385,
+    "test": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+    "artifact": 12641150825,
+    "artifact_sha256": "9d7df82ba8d0fb54de87842f463b0f1de1868a86275c942c9bbd7d93e6523944",
+    "local_zip": "/workspace/Tayya-dd009-iPad-failure.zip",
+    "sha256_crc_verified": true,
+    "evidence": {
+      "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+      "run": 40290027939,
+      "job": 121469715385,
+      "test": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+      "failure": "UITests/StudioProductionCaptureTests.swift110 -> ProductionUIHelpers.waitForNativeDismissal(!item.exists), timeout5s",
+      "recording": "Screenshots/E5A53669-9EBE-4960-888A-812EFF84131E.mp4",
+      "recording_sha256": "9a02c33b0535474f431a9c75c388c021c90e75b64401675b91c1dc3ebb8a3262",
+      "recording_start_epoch": 1793006983.249,
+      "synthesized_split_tap_epoch": 1793007010.73,
+      "synthesized_split_tap_point": [
+        126,
+        95.5
+      ],
+      "parent_window_points": [
+        1032,
+        1376
+      ],
+      "tap_video_pts": 27.481,
+      "notes_visible_menu_gone_frame_pts": 29.2,
+      "frame_estimated_wall_time": "2026-10-26T09:30:12.449Z",
+      "first_negative_exists_query": "2026-10-26T09:30:13.612Z",
+      "query_retries": "2026-10-26T09:30:17.921Z",
+      "waiter_failure": "2026-10-26T09:30:18.395Z",
+      "proved": "Original tap executed; native menu is gone and correct Notes split is already visible before the absence query. Failure is an observer false negative, not a failed split action.",
+      "not_proved": "Original predicate did not retain its return value; cannot distinguish precisely delayed missing-element lookup completion from an AX cached result. Query retries/delay are recorded.",
+      "analysis_frames": "AnalysisOnly extracted video frames, never Store screenshots; raw recording and artifact remain unchanged."
+    },
+    "change": "Keep exact original ready and native item.tap. Capture nonempty ID beforetap; guard actual app runningForeground and query complete app.buttons.matching(identifier:ID).count. Zero is normal collection result and equivalent to button absence. Avoid fullPDFattribute snapshot and missing-leaf retry. Eager firstread; only remaining5s maypoll; observedAt<=5 always mandatory. NoApp/storage/build/signing changes; all original151tests remain.",
+    "validation": "Original failing Dark capture ONLY on iPad via integration:menu-dismissal; same original151testcases retained.",
+    "attempts": [
+      {
+        "source": "afc1643ac9221452ee5cb241d4d03ef5a78fafe3",
+        "run": 40345353385,
+        "case": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+        "status": "FAIL1/1; hard5scontractretained",
+        "observed": "Singlefullapp.snapshot found0matchingbuttons,192nodes but returned6.052921916666605s afterstart. Correctly failed observedAt<=5; no productfault shown.",
+        "artifact": 12662800478,
+        "artifact_sha256": "c760b8b289281a4085e9a8063e1caf97449c6a94fdde726f03c21eb3ff796d8b",
+        "local_downloaded": false
+      }
+    ],
+    "second_hypothesis": "Fullsnapshot attribute acquisition itself exceeded5s. A filtered matching-button count needs identity/type only and accepts zero without failed-element lookup. Native performance must be proved by the targeted original case; never infer from helper review.",
+    "green": {
+      "source": "d8f7cfd2b1087f9c9231aede17376413ed1753fb",
+      "run": 40348990787,
+      "job": 121663556653,
+      "test": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 56.717,
+      "split_menu_absence_seconds": 1.5112292499999853,
+      "close_notes_menu_absence_seconds": 0.37310712499999,
+      "matches": 0,
+      "original_five_second_bound_retained": true,
+      "artifact": 12662918298,
+      "artifact_sha256": "7677d5995b1842047cc26ef76e9998244ef326b0e4893deca6bc7d5d3875963a"
+    }
+  },
+  "current_store_artwork": {
+    "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+    "run": 40290027945,
+    "status": "PASS3/3 perdevice +artwork; all12 native compositions visually reviewed",
+    "artifact": 12636063053,
+    "sha256": "a9426765df10985ba6ed07575308a957f11fa4eeca236ab8e99dcf0f506e75ab",
+    "inner_sha256": "6669acb230552fcf8ec6badeb412c8fa7abd8bb408b4065fdd4cc7233cf9965f",
+    "local_root": "/workspace/Tayya-Store-dd009fff/Tayya-App-Store-Visuals",
+    "identity_rgb_dimensions_hashes_crc_passed": true,
+    "reuse": "Since the fix is tests-only and App/project/NativeOffice unchanged, reuse these exact images with truthful original source/run. Do not relabel them or rerun passing captures."
   }
 }

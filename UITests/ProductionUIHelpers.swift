@@ -50,8 +50,49 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
         }
         XCTFail("The real native menu item must be visible and hittable before tapping", file: file, line: line); return
     }
+    // Capture the real identifier while the row still exists. Reading a
+    // disappeared XCUIElement retries its lookup and can exhaust the waiter's
+    // deadline even when the original video already shows closed Notes menus.
+    let identity = item.identifier
+    guard !identity.isEmpty else {
+        XCTFail("The real menu row must have an identifier before selecting it", file: file, line: line); return
+    }
     item.tap()
-    // UIKit can report app idle while its context menu is still dismissing.
-    // A following tap would hit that menu's backdrop instead of the next tool.
-    waitForNativeDismissal(of: item, file: file, line: line)
+    let app = XCUIApplication()
+    let started = ProcessInfo.processInfo.systemUptime
+    var observedAt: TimeInterval?
+    var samples: [String] = []
+    func menuIsAbsent() -> Bool {
+        guard app.state == .runningForeground else {
+            samples.append("elapsed=\(ProcessInfo.processInfo.systemUptime - started); applicationNotForeground")
+            return false
+        }
+        // Count is a complete collection query: zero is a normal result, not
+        // a missing leaf that XCTest resolves with implicit lookup retries.
+        // Restrict the query to menu identity rather than every accessibility
+        // attribute of the PDF and Notes underneath it.
+        let matches = app.buttons.matching(identifier: identity).count
+        let elapsed = ProcessInfo.processInfo.systemUptime - started
+        samples.append("elapsed=\(elapsed); matches=\(matches)")
+        if matches == 0 { observedAt = elapsed; return true }
+        return false
+    }
+    var result: XCTWaiter.Result = .timedOut
+    if menuIsAbsent() {
+        result = .completed
+    } else {
+        let remaining = 5 - (ProcessInfo.processInfo.systemUptime - started)
+        if remaining > 0 {
+            let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in menuIsAbsent() }, object: NSObject())
+            result = XCTWaiter.wait(for: [closed], timeout: remaining)
+        }
+    }
+    let receipt = XCTAttachment(string: "target=\(identity); result=\(result.rawValue)\n" + samples.joined(separator: "\n"))
+    receipt.name = "NativeMenuDismissal-" + identity; receipt.lifetime = .keepAlways
+    XCTContext.runActivity(named: "Verify actual native menu removal") { $0.add(receipt) }
+    print("NativeMenuDismissal target=\(identity); result=\(result.rawValue); " + samples.joined(separator: "; "))
+    XCTAssertEqual(result, .completed,
+                   "The native presentation must leave the hierarchy before interacting with controls behind it", file: file, line: line)
+    XCTAssertLessThanOrEqual(observedAt ?? .infinity, 5,
+                             "Observe actual menu removal within the original five-second deadline", file: file, line: line)
 }

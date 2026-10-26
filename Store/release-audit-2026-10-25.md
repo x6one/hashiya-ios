@@ -84,8 +84,12 @@ is forged. No Apple write/upload/review submission has occurred; publication is
 still disabled until critical native qualification and controller review pass.
 
 
-### 2026-10-26 — frozen qualification candidate (publication disabled)
+### 2026-10-26 — measured observer fix and frozen final qualification
 
-Candidate `dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39` retains the original production engine and the measured native Undo/Redo observer checks. Targeted actual-source control33c3062 passed1/1; the original iPhone ink case on e227e8c passed1/1 in188.136s. These healthy traces do not establish the cause or repair of the earlier intermittent first-stroke presentation failure.
+Candidate `7c78ff621cdd75ff2f23053cab3546275476213e`, App tree `c8db1ddd12d24f4ef3a15e91f187815d6c553ebd`, is frozen for run40351298874. The previous DD full run passed151/151,3Maestro and actual exports on iPhone; iPad passed150/151 with only a false-negative native-menu dismissal observer. Raw original video and synthesized touch prove the menu closed and Notes split before the failing negative-element query. No original ink failure recurred.
 
-The one complete qualification is run40290027939; actual same-source Store captures are run40290027945. Both must finish successfully before publication. Store controller App/build/test sources are byte-identical to this candidate; only its isolated publisher and Store material differ. `publish_binary` remains false. Fresh controller checks passed44Python +16Node tests and7workflows; their mocked upload fixture is not an Apple upload. Privacy/support URLs returnedHTTP200.
+The corrected TEST-ONLY collection query retains the original touch/readiness and5s hard bound. Target run40348990787 passed the original iPad Dark case1/1: split-menu absence1.511s, close-Notes absence0.373s,0matchingbuttons. The full-root snapshot probe had correctly failed its retained5s bound at6.053s; it was not accepted. Final qualification adds the existing favorite-pen menu/binding case to all original3 cold cases and requires4/4 without failure/skip before the complete151/device suite.
+
+Reuse actual native Store capture/artwork run40290027945, sourceDD009, artifact12636063053. All12 original compositions passed source/run/hash/RGB/dimension/CRC checks and visual review. The App, NativeOffice and project trees did not change for this test-only fix; keep truthful original DD source metadata, never relabel or reshoot the pictures. Outer SHA256`a9426765df10985ba6ed07575308a957f11fa4eeca236ab8e99dcf0f506e75ab`; inner ZIP`6669acb230552fcf8ec6badeb412c8fa7abd8bb408b4065fdd4cc7233cf9965f`.
+
+Store controller production/build/unit/UI sources match the final candidate exactly. Only allowed Store material and the isolated publisher differ. Binary publishing remains false; no Apple writes. All7 actual release jobs, native exports/Maestro/gallery, Office andiphoneos package must pass before enabling publication. Apple build processing, encryption/build attachment and review are still verification steps after upload. Physical microphone/interruption quality and physical Office conversion remain outside CI proof.

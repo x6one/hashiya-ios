@@ -3,9 +3,9 @@
   "bundle_id": "com.ahmadalawi.hashiya",
   "version": "0.6.0",
   "build": "13",
-  "app_source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+  "app_source": "7c78ff621cdd75ff2f23053cab3546275476213e",
   "app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
-  "qualified_run": 40290027939,
+  "qualified_run": 40351298874,
   "artwork_source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
   "artwork_run": 40290027945,
   "publish_binary": false

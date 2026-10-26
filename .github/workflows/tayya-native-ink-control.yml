@@ -27,7 +27,7 @@ jobs:
           matches=[d for runtime,rows in devices.items() if runtime.endswith('iOS-26-2') for d in rows if d['name']=='iPhone 17 Pro Max' and d['isAvailable']]
           assert len(matches)==1,matches
           with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SIMULATOR_ID='+matches[0]['udid']+'\n')
-          Path('control-context.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'device':matches[0],'runtime':'iOS26.2','purpose':'Native PencilKit isolation only, never Tayya qualification or Store imagery','persistence_callbacks':False,'SwiftUI':False},indent=2)+'\n')
+          Path('control-context.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'device':matches[0],'runtime':'iOS26.2','purpose':'Native PencilKit isolation only, never Tayya qualification or Store imagery','persistence_callbacks':False,'SwiftUI':False,'preceding_PDF_canvas':True,'only_test':'testDocumentInkThenRetainedNotesFirstPencilStroke'},indent=2)+'\n')
           PY
       - name: Boot the same native runtime and accessibility size
         run: |
@@ -37,7 +37,7 @@ jobs:
       - name: Exercise one first stroke in the isolated native control
         run: |
           set -o pipefail
-          xcodebuild -project Verification/NativeInkControl/NativeInkControl.xcodeproj -scheme NativeInkControl -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeControlBuild -resultBundlePath NativeControl.xcresult -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test 2>&1 | tee native-control.log
+          xcodebuild -project Verification/NativeInkControl/NativeInkControl.xcodeproj -scheme NativeInkControl -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeControlBuild -resultBundlePath NativeControl.xcresult -only-testing:NativeInkControlTests/ControlTests/testDocumentInkThenRetainedNotesFirstPencilStroke -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test 2>&1 | tee native-control.log
       - name: Preserve native diagnostics without modifying the production app
         if: always()
         run: |

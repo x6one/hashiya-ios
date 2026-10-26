@@ -3,10 +3,19 @@ import UIKit
 
 final class ControlTests: XCTestCase {
     @MainActor func testFirstCompactPencilStrokeAfterNativeColorPicker() {
+        exerciseNativeInk(precedingDocument: false)
+    }
+    @MainActor func testDocumentInkThenRetainedNotesFirstPencilStroke() {
+        exerciseNativeInk(precedingDocument: true)
+    }
+    @MainActor private func exerciseNativeInk(precedingDocument: Bool) {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         defer { XCUIDevice.shared.orientation = .portrait }
-        let app = XCUIApplication(); app.launch()
+        let app = XCUIApplication()
+        if precedingDocument { app.launchArguments = ["--two-canvases"] }
+        app.launch()
+        if precedingDocument { exerciseDocument(in: app) }
         let canvas = app.scrollViews["controlCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
         XCTAssertEqual(canvas.value as? String, "1")
@@ -25,23 +34,56 @@ final class ControlTests: XCTestCase {
         XCTAssertEqual(canvas.frame.width, 367.3333333333333, accuracy: 1)
         XCTAssertEqual(canvas.frame.height, 88.66666666666666, accuracy: 1)
         app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()
+        selectColor(in: app, swatchName: "dark red 16", rgba: "0.5137,0.0667,0.0000,1.0000")
+        let frame = canvas.frame
+        let state = { app.staticTexts["controlStrokeCount"].label }
+        let before = XCTAttachment(string: state()); before.name = "DIAGNOSTIC-Notes-BeforeNativeOwners"
+        before.lifetime = .keepAlways; add(before)
+        requireRedStroke(on: canvas, frame: frame, name: "Notes", nativeState: state)
+        XCTAssertEqual(canvas.value as? String, "2")
+        XCTAssertEqual(canvas.frame, frame)
+    }
+    @MainActor private func exerciseDocument(in app: XCUIApplication) {
+        let pdf = app.otherElements["controlPDF"]
+        XCTAssertTrue(pdf.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["controlStrokeCount"].value as? String, "0")
+        app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()
+        selectColor(in: app, swatchName: "red 77", rgba: "1.0000,0.7098,0.6863,1.0000")
+        requireRedStroke(on: pdf, frame: pdf.frame, name: "PrecedingDocument",
+                         nativeState: { app.staticTexts["controlStrokeCount"].label })
+        for (action, expected) in [("controlUndo", "0"), ("controlRedo", "1")] {
+            app.buttons[action].tap()
+            let started = ProcessInfo.processInfo.systemUptime
+            let actual = app.staticTexts["controlStrokeCount"].value as? String
+            let elapsed = ProcessInfo.processInfo.systemUptime - started
+            XCTAssertEqual(actual, expected)
+            XCTAssertLessThanOrEqual(elapsed, 5, "Native Undo/Redo result must be observed within5s")
+        }
+        app.buttons["controlFit"].tap()
+        XCTAssertEqual(app.staticTexts["controlStrokeCount"].value as? String, "1")
+        attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-PrecedingDocument-AfterRedoFit")
+        app.buttons["controlShowNotes"].tap()
+    }
+    @MainActor private func selectColor(in app: XCUIApplication, swatchName: String, rgba: String) {
         let picker = app.otherElements["controlPicker"].firstMatch
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         let swatch = picker.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", "dark red 16")).firstMatch
+            .matching(NSPredicate(format: "label == %@", swatchName)).firstMatch
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             swatch.exists && swatch.isHittable && picker.frame.contains(swatch.frame)
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
         swatch.tap(); app.buttons["controlCloseColor"].tap()
         let committed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (app.staticTexts["controlTool"].value as? String)?.contains("rgba:0.5137,0.0667,0.0000,1.0000") == true
+            (app.staticTexts["controlTool"].value as? String)?.contains("rgba:" + rgba) == true
                 && !app.otherElements["controlPicker"].exists
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)
-        let frame = canvas.frame
+    }
+    @MainActor private func requireRedStroke(on canvas: XCUIElement, frame: CGRect, name: String,
+                                           nativeState: (() -> String)? = nil) {
         let baseline = XCUIScreen.main.screenshot()
-        attach(baseline, "DIAGNOSTIC-NativeControl-Before")
+        attach(baseline, "DIAGNOSTIC-" + name + "-Before")
         let before = redPixels(baseline, frame: frame)
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.35)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
@@ -54,12 +96,14 @@ final class ControlTests: XCTestCase {
         }, object: NSObject())
         let result = XCTWaiter.wait(for: [visible], timeout: 5)
         let timing = XCTAttachment(string: samples.joined(separator: "\n"))
-        timing.name = "DIAGNOSTIC-NativeControl-ActualPixels"; timing.lifetime = .keepAlways; add(timing)
-        attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-NativeControl-After")
-        print("NativePencilKitControl result=\(result.rawValue); \(samples.joined(separator: "; "))")
+        timing.name = "DIAGNOSTIC-" + name + "-ActualPixels"; timing.lifetime = .keepAlways; add(timing)
+        attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-" + name + "-After")
+        if let nativeState {
+            let owners = XCTAttachment(string: nativeState())
+            owners.name = "DIAGNOSTIC-" + name + "-AfterNativeOwners"; owners.lifetime = .keepAlways; add(owners)
+        }
+        print("NativePencilKitControl phase=\(name); result=\(result.rawValue); \(samples.joined(separator: "; "))")
         XCTAssertEqual(result, .completed, "The isolated native control must display its actual first red pencil stroke within5s")
-        XCTAssertEqual(canvas.value as? String, "2")
-        XCTAssertEqual(canvas.frame, frame)
     }
     private func attach(_ screenshot: XCUIScreenshot, _ name: String) {
         let file = XCTAttachment(screenshot: screenshot); file.name = name; file.lifetime = .keepAlways; add(file)

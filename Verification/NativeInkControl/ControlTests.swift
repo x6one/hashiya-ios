@@ -4,12 +4,24 @@ import UIKit
 final class ControlTests: XCTestCase {
     @MainActor func testFirstCompactPencilStrokeAfterNativeColorPicker() {
         continueAfterFailure = false
-        XCUIDevice.shared.orientation = .landscapeLeft
+        XCUIDevice.shared.orientation = .portrait
         defer { XCUIDevice.shared.orientation = .portrait }
         let app = XCUIApplication(); app.launch()
         let canvas = app.scrollViews["controlCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
         XCTAssertEqual(canvas.value as? String, "1")
+        XCTAssertEqual(canvas.frame.width, 440, accuracy: 1)
+        XCTAssertEqual(canvas.frame.height, 147.33333333333331, accuracy: 1)
+        attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-NativeControl-PortraitSeed")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let application = app.frame
+            guard application.width > application.height else { return false }
+            let paper = canvas.frame
+            return abs(paper.width - 367.3333333333333) <= 1
+                && abs(paper.height - 88.66666666666666) <= 1
+        }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
         XCTAssertEqual(canvas.frame.width, 367.3333333333333, accuracy: 1)
         XCTAssertEqual(canvas.frame.height, 88.66666666666666, accuracy: 1)
         app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()

@@ -98,7 +98,13 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
         super.viewDidLayoutSubviews()
         controls.frame = CGRect(x: 62, y: 80, width: 300, height: 44)
         status.frame = CGRect(x: 62, y: 132, width: view.bounds.width - 124, height: 32)
-        canvas.frame = CGRect(x: 62, y: 235.33333333333334, width: 367.3333333333333, height: 88.66666666666666)
+        if view.bounds.width > view.bounds.height {
+            canvas.frame = CGRect(x: 62, y: 235.33333333333334, width: 367.3333333333333, height: 88.66666666666666)
+        } else {
+            // The failing app creates this SAME canvas in portrait before
+            // rotating it. A landscape-only fresh canvas misses that boundary.
+            canvas.frame = CGRect(x: 0, y: 670.6666666666666, width: 440, height: 147.33333333333331)
+        }
     }
     private func applyTool() {
         canvas.tool = PKInkingTool(ink, color: color, width: 8)

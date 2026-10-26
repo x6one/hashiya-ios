@@ -87,6 +87,20 @@
     "hypothesis": "A valid committed stroke does not necessarily complete native tile rendering; observe native canvasViewDidFinishRendering versus drawing-change sequence at the actual failing boundary.",
     "scope": "DEBUG-only scalar callback counters plus existing pre/post gesture AX receipt; no native UI/drawing reads, clocks, persistence or publications in callback. Release token sequence unchanged.",
     "test": "Only original iPhone testIndividualInkTargetsAtAccessibilityTextSize; no changed deadlines or assertions, no Release/full suite.",
-    "interpretation": "A pass is measurement only. On failure compare baseline and failed renderCompletions/renderedChangeCount; do not infer fix from successful tracing."
+    "interpretation": "A pass is measurement only. On failure compare baseline and failed renderCompletions/renderedChangeCount; do not infer fix from successful tracing.",
+    "result": {
+      "source": "4a00210c7436dd31e5cc0b2981753e77788a4f8e",
+      "run": 40279190238,
+      "passed": 1,
+      "failed": 0,
+      "seconds": 205.034,
+      "counter": "renderCompletions1/renderedChangeCount1 before stroke, after visible stroke, Undo and Redo.",
+      "limit": "Apple documents assigned drawing/userzoom/scroll readiness, not interactive-stroke render revisions. Successful measurement does not prove old failure fixed. Remove temporary observer by restoring exact original MarginNotebook bytes."
+    }
+  },
+  "rotation_control": {
+    "hypothesis": "Previous bare control started directly in landscape. Actual failed app retains same canvas across440x147.333 portrait->367.333x88.667 landscape, a viewport/zoom-cache boundary omitted from control.",
+    "scope": "Only isolated ControlApp/ControlTests change; same5s readiness nowchecks both windoworientation and actualcanvasdimensions. Production MarginNotebook restored byte-exactfeb1, no new functional patch.",
+    "status": "prepared for one bounded native control; no production rerun"
   }
 }

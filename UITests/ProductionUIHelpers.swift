@@ -63,22 +63,18 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
     var observedAt: TimeInterval?
     var samples: [String] = []
     func menuIsAbsent() -> Bool {
-        do {
-            // One fresh root contains both the menu and the workspace. Traverse
-            // the complete tree; no missing-element lookup or implicit retry.
-            var pending: [any XCUIElementSnapshot] = [try app.snapshot()]
-            var matches = 0, nodes = 0
-            while let node = pending.popLast() {
-                nodes += 1
-                if node.elementType == .button && node.identifier == identity { matches += 1 }
-                pending.append(contentsOf: node.children)
-            }
-            let elapsed = ProcessInfo.processInfo.systemUptime - started
-            samples.append("elapsed=\(elapsed); matches=\(matches); nodes=\(nodes)")
-            if matches == 0 { observedAt = elapsed; return true }
-        } catch {
-            samples.append("elapsed=\(ProcessInfo.processInfo.systemUptime - started); snapshotError=\(error.localizedDescription)")
+        guard app.state == .runningForeground else {
+            samples.append("elapsed=\(ProcessInfo.processInfo.systemUptime - started); applicationNotForeground")
+            return false
         }
+        // Count is a complete collection query: zero is a normal result, not
+        // a missing leaf that XCTest resolves with implicit lookup retries.
+        // Restrict attributes to the actual button identifier; fetching every
+        // PDF accessibility attribute took6.05s in the rejected snapshot probe.
+        let matches = app.buttons.matching(identifier: identity).count
+        let elapsed = ProcessInfo.processInfo.systemUptime - started
+        samples.append("elapsed=\(elapsed); matches=\(matches)")
+        if matches == 0 { observedAt = elapsed; return true }
         return false
     }
     var result: XCTWaiter.Result = .timedOut

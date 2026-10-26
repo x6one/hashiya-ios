@@ -66,8 +66,8 @@ final class ControlTests: XCTestCase {
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return 0 }
             context.draw(ink, in: CGRect(x: 0, y: 0, width: ink.width, height: ink.height))
             var count = 0
-            for i in stride(from: 0, to: bytes.count, by: 4) {
-                let r = Int(bytes[i]), g = Int(bytes[i + 1]), b = Int(bytes[i + 2])
+            for i in stride(from: 0, to: data.count, by: 4) {
+                let r = Int(data[i]), g = Int(data[i + 1]), b = Int(data[i + 2])
                 if r > g + 25 && r > b + 25 && r > 80 { count += 1 }
             }
             return count

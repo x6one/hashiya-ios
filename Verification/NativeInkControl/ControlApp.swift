@@ -2,6 +2,7 @@
 import UIKit
 import PencilKit
 import PDFKit
+import SwiftUI
 
 @main final class ControlApp: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
@@ -17,14 +18,20 @@ final class ControlScene: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: scene)
-        window.rootViewController = ControlController()
+        if ProcessInfo.processInfo.arguments.contains("--test-inspect-review-ink") {
+            #if DEBUG
+            NativeInkInspection.runIfRequested()
+            #endif
+            window.rootViewController = UIViewController()
+        } else { window.rootViewController = ControlController() }
         self.window = window
         window.makeKeyAndVisible()
     }
 }
 
 // Match the actual failed compact viewport/zoom and seeded native drawing.
-// There is no SwiftUI, model observer, PKCanvasViewDelegate or persistence.
+// The bare path has no model/persistence; --production-notes loads the actual
+// unmodified MarginNotebook/InkToolbar/MarginPages sources instead.
 class ControlCanvasBase: PKCanvasView {
     private let noKeyboard = UIView(frame: .zero)
     override var inputView: UIView? { noKeyboard }
@@ -59,8 +66,10 @@ final class ControlInkCount: UILabel {
     weak var canvas: PKCanvasView?
     weak var document: PKCanvasView?
     weak var notes: PKCanvasView?
+    weak var productionControl: MarginCanvasControl?
+    var productionActive = false
     override var accessibilityValue: String? {
-        get { canvas.map { String($0.drawing.strokes.count) } }
+        get { (productionActive ? productionControl?.canvas : canvas).map { String($0.drawing.strokes.count) } }
         set { super.accessibilityValue = newValue }
     }
     override var accessibilityLabel: String? {
@@ -69,7 +78,12 @@ final class ControlInkCount: UILabel {
                 guard let canvas else { return "absent" }
                 return "id=\(ObjectIdentifier(canvas)); window=\(canvas.window != nil); responder=\(canvas.isFirstResponder)"
             }
-            return "document=[\(state(document))]; notes=[\(state(notes))]"
+            let owners = "document=[\(state(document))]; notes=[\(state(productionControl?.canvas ?? notes))]"
+            #if DEBUG
+            return owners + "; commit=[\(productionControl?.canvas?.diagnosticCoordinator?.commitSnapshot ?? "bare control")]"
+            #else
+            return owners
+            #endif
         }
         set { super.accessibilityLabel = newValue }
     }
@@ -82,12 +96,19 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
     private let count = ControlInkCount()
     private let twoCanvases = ProcessInfo.processInfo.arguments.contains("--two-canvases")
     private var notesVisible = false
+    private let useProduction = ProcessInfo.processInfo.arguments.contains("--production-notes")
+    private let productionControl = MarginCanvasControl()
+    private var productionStore: MarginPages?
+    private var productionHost: UIHostingController<ProductionNotesControl>?
     private let status = UILabel()
     private let controls = UIStackView()
     private var ink = PKInkingTool.InkType.pen
     private var color = UIColor(red: 0.07, green: 0.25, blue: 0.22, alpha: 1)
     private var picker: UIColorPickerViewController?
-    private var activeCanvas: PKCanvasView { twoCanvases && !notesVisible ? documentCanvas : canvas }
+    private var activeCanvas: PKCanvasView? {
+        if twoCanvases && !notesVisible { return documentCanvas }
+        return useProduction ? productionControl.canvas : canvas
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -118,6 +139,17 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
         applyTool()
     }
     private func configureNotes() {
+        if useProduction {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent("ReviewEntry-" + UUID().uuidString)
+            let store = MarginPages(root: root, notebook: UUID())
+            if let id = store.currentID { store.saveInk(seedDrawing(), page: id) }
+            let host = UIHostingController(rootView: ProductionNotesControl(store: store, editor: store.editor, control: productionControl))
+            host.view.backgroundColor = .clear; host.view.isOpaque = false
+            addChild(host); view.addSubview(host.view); host.didMove(toParent: self)
+            productionStore = store; productionHost = host
+            count.productionControl = productionControl; count.productionActive = true
+            return
+        }
         view.addSubview(canvas)
         canvas.backgroundColor = UIColor(red: 1, green: 0.992, blue: 0.94, alpha: 1)
         canvas.drawingPolicy = .anyInput
@@ -128,15 +160,18 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
         canvas.isAccessibilityElement = true
         canvas.accessibilityIdentifier = "controlCanvas"
         canvas.accessibilityLabel = "Isolated native PencilKit control"
+        canvas.drawing = seedDrawing()
+        count.canvas = canvas; count.notes = canvas
+    }
+    private func seedDrawing() -> PKDrawing {
         let locations = [CGPoint(x: 70, y: 110), CGPoint(x: 200, y: 150),
                          CGPoint(x: 340, y: 100), CGPoint(x: 480, y: 145)]
         let points = locations.enumerated().map { index, point in
             PKStrokePoint(location: point, timeOffset: Double(index) * 0.1, size: CGSize(width: 4, height: 4),
                           opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2)
         }
-        canvas.drawing = PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: color),
+        return PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: color),
             path: PKStrokePath(controlPoints: points, creationDate: Date()))])
-        count.canvas = canvas; count.notes = canvas
     }
     private func configureDocument() {
         documentCanvas.contentSize = documentCanvas.bounds.size
@@ -187,6 +222,7 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
             else { pdf.frame = CGRect(x: 0, y: 188, width: view.bounds.width, height: 466.6666666666666) }
         }
         guard notesVisible else { return }
+        if useProduction { productionHost?.view.frame = view.bounds; return }
         if view.bounds.width > view.bounds.height {
             canvas.frame = CGRect(x: 62, y: 235.33333333333334, width: 367.3333333333333, height: 88.66666666666666)
         } else {
@@ -196,15 +232,18 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
         }
     }
     private func applyTool() {
-        activeCanvas.tool = PKInkingTool(ink, color: color, width: 8)
+        if useProduction && notesVisible, let store = productionStore {
+            store.editor.brush = ink == .pencil ? .pencil : .pen
+            store.editor.color = Color(uiColor: color); store.editor.width = 8
+        } else { activeCanvas?.tool = PKInkingTool(ink, color: color, width: 8) }
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         color.getRed(&r, green: &g, blue: &b, alpha: &a)
         status.text = String(format: "%@ rgba:%.4f,%.4f,%.4f,%.4f; width8", ink.rawValue, r, g, b, a)
         status.accessibilityValue = status.text
     }
     @objc private func selectPencil() { ink = .pencil; applyTool() }
-    @objc private func undoInk() { activeCanvas.undoManager?.undo() }
-    @objc private func redoInk() { activeCanvas.undoManager?.redo() }
+    @objc private func undoInk() { activeCanvas?.undoManager?.undo() }
+    @objc private func redoInk() { activeCanvas?.undoManager?.redo() }
     @objc private func fitDocument() { pdf.scaleFactor = pdf.scaleFactorForSizeToFit }
     @objc private func selectColor() {
         let picker = UIColorPickerViewController()

@@ -10,7 +10,19 @@ targets:
   NativeInkControl:
     type: application
     platform: iOS
-    sources: [ControlApp.swift]
+    sources:
+      - ControlApp.swift
+      - ProductionNotesControl.swift
+      - ../../App/MarginNotebook.swift
+      - ../../App/MarginPages.swift
+      - ../../App/TayyaTheme.swift
+      - ../../App/TayyaComponents.swift
+      - ../../App/TayyaLocalization.swift
+      - ../../App/TayyaMotion.swift
+      - ../../App/DebugVisualEnvironment.swift
+      - ../../App/InkToolbarScrollView.swift
+      - ../../App/PenPresets.swift
+      - ../../App/NativeInkInspection.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ahmadalawi.hashiya.native-ink-control

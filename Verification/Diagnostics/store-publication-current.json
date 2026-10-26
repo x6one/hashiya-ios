@@ -14,7 +14,8 @@
     "case": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
     "passed": 0,
     "failed": 1,
-    "failure": "UITests/LaunchTests.swift1421: actual native writing surface must gain >40 red pixels after first compact Notes stroke"
+    "failure": "UITests/LaunchTests.swift1421: actual native writing surface must gain >40 red pixels after first compact Notes stroke",
+    "note": "Last reproduced failing instance; later observer-only run40279190238 passed1/1, not a functional repair."
   },
   "saved_failure": {
     "artifact": 12625114449,
@@ -74,7 +75,7 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "Live presentation cause remains unproven after actual-failure counters and one isolated native control. Stop speculative production changes and unchanged native reruns; keep native release qualification and Apple upload blocked pending new causal evidence. All raw evidence and exact sources are retained for continuation.",
+  "remaining": "Actual live-ink first-stroke failure remains uncorrected. New source-level isolation is prepared; release qualification, final IPA and Apple upload remain blocked. Store12image artwork/publishing tools are retained.",
   "last_full_gate": {
     "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
     "run": 40211390622,
@@ -101,6 +102,25 @@
   "rotation_control": {
     "hypothesis": "Previous bare control started directly in landscape. Actual failed app retains same canvas across440x147.333 portrait->367.333x88.667 landscape, a viewport/zoom-cache boundary omitted from control.",
     "scope": "Only isolated ControlApp/ControlTests change; same5s readiness nowchecks both windoworientation and actualcanvasdimensions. Production MarginNotebook restored byte-exactfeb1, no new functional patch.",
-    "status": "prepared for one bounded native control; no production rerun"
+    "status": "PASS1/1;0failed;35.656s",
+    "source": "3127af0b5917c61b838a137f13ad0741de536cc4",
+    "run": 40280701339,
+    "red_pixels": 3854,
+    "first_sample_seconds": 1.2817704
+  },
+  "dual_canvas_control": {
+    "source": "c654b7208168590a71d308e556d91e4467fb3b20",
+    "run": 40283503639,
+    "status": "PASS1/1;0failed;52.472s",
+    "document_red_pixels": 5968,
+    "notes_red_pixels": 3876,
+    "scope": "Native PDF overlay pencil stroke, native Undo/Redo and Fit before lazy creation and retained portrait->landscape Notes. No SwiftUI/model/persistence. One passing isolation does not exclude intermittent failure or qualify Tayya."
+  },
+  "source_engine_control": {
+    "status": "Prepared; not executed",
+    "hypothesis": "Previous native controls omitted actual MarginNotebook delegate, actual InkToolbar SwiftUI color sheet and MarginPages observable atomic saves. Exercise those unmodified production sources inside the same diagnostic-only dual-canvas host.",
+    "only_test": "ControlTests.testProductionNotesAfterDocumentInk",
+    "scope": "Separate native-ink-control bundle; only synthetic tmp/ReviewEntry UUID data. Keep >40red/5s and native Undo/Redo deadlines. No App file or storage-format changes. Post-test native inspection reads saved bytes and preserves original hashes.",
+    "limit": "If it passes once, the actual app failure remains unresolved. If it fails, compare raw live PNG, native count, correct color and independent saved raster before attributing the cause."
   }
 }

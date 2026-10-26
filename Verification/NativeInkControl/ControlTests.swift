@@ -8,15 +8,19 @@ final class ControlTests: XCTestCase {
     @MainActor func testDocumentInkThenRetainedNotesFirstPencilStroke() {
         exerciseNativeInk(precedingDocument: true)
     }
-    @MainActor private func exerciseNativeInk(precedingDocument: Bool) {
+    @MainActor func testProductionNotesAfterDocumentInk() {
+        exerciseNativeInk(precedingDocument: true, productionNotes: true)
+    }
+    @MainActor private func exerciseNativeInk(precedingDocument: Bool, productionNotes: Bool = false) {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         defer { XCUIDevice.shared.orientation = .portrait }
         let app = XCUIApplication()
         if precedingDocument { app.launchArguments = ["--two-canvases"] }
+        if productionNotes { app.launchArguments += ["--production-notes", "--test-accessibility-type", "--test-reduce-motion"] }
         app.launch()
         if precedingDocument { exerciseDocument(in: app) }
-        let canvas = app.scrollViews["controlCanvas"]
+        let canvas = app.scrollViews[productionNotes ? "marginInkCanvas" : "controlCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
         XCTAssertEqual(canvas.value as? String, "1")
         XCTAssertEqual(canvas.frame.width, 440, accuracy: 1)
@@ -33,8 +37,19 @@ final class ControlTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
         XCTAssertEqual(canvas.frame.width, 367.3333333333333, accuracy: 1)
         XCTAssertEqual(canvas.frame.height, 88.66666666666666, accuracy: 1)
-        app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()
-        selectColor(in: app, swatchName: "dark red 16", rgba: "0.5137,0.0667,0.0000,1.0000")
+        if productionNotes {
+            app.buttons["inkBrush"].tap()
+            app.buttons["inkBrushOption-pencil"].tap()
+            XCTAssertEqual(app.buttons["inkBrush"].value as? String, "رصاص")
+            app.buttons["inkWidth"].tap()
+            app.buttons["inkWidthOption-8"].tap()
+            XCTAssertEqual(app.buttons["inkWidth"].value as? String, "8")
+            app.buttons["inkColor"].tap()
+            selectProductionColor(in: app)
+        } else {
+            app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()
+            selectColor(in: app, swatchName: "dark red 16", rgba: "0.5137,0.0667,0.0000,1.0000")
+        }
         let frame = canvas.frame
         let state = { app.staticTexts["controlStrokeCount"].label }
         let before = XCTAttachment(string: state()); before.name = "DIAGNOSTIC-Notes-BeforeNativeOwners"
@@ -77,6 +92,22 @@ final class ControlTests: XCTestCase {
         let committed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (app.staticTexts["controlTool"].value as? String)?.contains("rgba:" + rgba) == true
                 && !app.otherElements["controlPicker"].exists
+        }, object: NSObject())
+        XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)
+    }
+    @MainActor private func selectProductionColor(in app: XCUIApplication) {
+        let picker = app.otherElements["nativeInkColorPicker"].firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        let swatch = picker.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "dark red 16")).firstMatch
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            swatch.exists && swatch.isHittable && picker.frame.contains(swatch.frame)
+        }, object: NSObject())
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
+        swatch.tap(); app.buttons["closeInkColorPicker"].tap()
+        let committed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (app.buttons["inkColor"].value as? String) == "rgba:0.5137,0.0667,0.0000,1.0000"
+                && !app.otherElements["nativeInkColorPicker"].exists
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)
     }

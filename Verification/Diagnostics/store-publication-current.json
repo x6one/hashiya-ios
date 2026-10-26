@@ -1,5 +1,5 @@
 {
-  "status": "investigating live rendering boundary; release and Apple upload blocked",
+  "status": "Frozen candidate preparation after passing targeted Debug/Release evidence; mandatory full qualification still pending",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -34,7 +34,7 @@
     "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
     "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
   ],
-  "decision": "Measure the remaining real workspace publication/responder boundary once with passive DEBUG receipts. No fourth speculative compositor/engine patch. Full release and Apple upload remain blocked.",
+  "decision": "Stop further isolation experiments. Follow user instruction to retain changes/evidence and run ONE comprehensive release qualification on one fixed candidate with existing diagnostics. No functional rendering fix is claimed from healthy traces. Preserve and analyze any actual failure before further changes or retries.",
   "native_control": {
     "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
     "run": 40266142260,
@@ -75,7 +75,7 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "No functional production repair established. Actual-source isolation passed, so measure the real shared Notes->workspace->NativePDF boundary once rather than repeating controls. Preserve12 Store images and guarded publication tools; no Apple writes.",
+  "remaining": "One full same-SHA release gate and same-SHA actual Store capture run; handle any failure from its original evidence. Do not enable Store binary publication before every required job succeeds. Physical microphone/interruption and physical Office conversion remain unverified by CI.",
   "last_full_gate": {
     "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
     "run": 40211390622,
@@ -134,7 +134,7 @@
     }
   },
   "next_probe": {
-    "status": "prepared; not executed",
+    "status": "PASS1/1;0failed,0skipped;188.136s",
     "hypothesis": "Actual Notes saved callback unconditionally publishes workspace.canUndoPageDeletion=false, updating shared NativePDF. PageChanged/willDisplay may activate PDF independently of Notes target. Core control omitted this shared coupling. Measure actual event order before deciding whether a transient native ownership handoff is present.",
     "only_test": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize on iPhone only",
     "scope": "DEBUG-only fixed scalar counters128phase ring; no clocks, native drawing/geometry/responder reads, publishers, file writes, delegate replacements or timing/assertion changes. Existing post-gesture AX receipt transports counts. Release normalized sources in both modified files remain identical to33c3062.",
@@ -159,6 +159,48 @@
       "19": "PDF setDrawing enter",
       "20": "PDF tool configuration changed"
     },
-    "interpretation": "A successful run is only a measured trace. On failure correlate actual save/publication/PDF activation order with original pixel/raster evidence. Do not claim a fix or rerun an unchanged case from one healthy trace. Phase14 only means the existing becomeFirstResponder request returnedtrue; it can already be first responder and by itself does not prove a handoff or root cause."
+    "interpretation": "A successful run is only a measured trace. On failure correlate actual save/publication/PDF activation order with original pixel/raster evidence. Do not claim a fix or rerun an unchanged case from one healthy trace. Phase14 only means the existing becomeFirstResponder request returnedtrue; it can already be first responder and by itself does not prove a handoff or root cause.",
+    "source": "e227e8c3501321f4bc08748e2ef33cff072dcb0a",
+    "run": 40287698972,
+    "artifact": 12634954475,
+    "artifact_sha256": "8f078196da685d789f1818241e5e4f1964bc20182d8441ed3a27013aba46243c",
+    "observed_phases_after_first_notes_stroke": [
+      3,
+      3,
+      16,
+      17,
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      5,
+      8,
+      19,
+      9
+    ],
+    "observation": "Notes save returned, then NativePDF update/setDrawing returned. No native PDF activation request or enabled/tool transition occurred after Notes creation in this healthy trace. Does not establish or exclude the cause of the previous intermittent failure.",
+    "undo_read_seconds": {
+      "document": 0.3833348750000978,
+      "notes": 0.3962898749999093
+    },
+    "redo_read_seconds": {
+      "document": 0.2420988333334357,
+      "notes": 0.3455692499999409
+    }
+  },
+  "release_candidate": {
+    "status": "prepared; not yet dispatched",
+    "parent": "e227e8c3501321f4bc08748e2ef33cff072dcb0a",
+    "app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
+    "native_counts_per_device": {
+      "Tests": 99,
+      "UITests": 52
+    },
+    "original_tests_retained": true,
+    "required": "3 original cold regression cases/device, all151XCTest+XCUITest/device,3Maestro/device, real export bytes, native gallery, complete Office and Releaseiphoneos/IPA on exact same candidate. Existing jobs enforce no failed/skipped/expected failures.",
+    "diagnostics_retained": "DEBUG scalar cross-host trace plus existing native xcresult/failure preservation. Release behavior/source unaffected by tracing.",
+    "capture": "Recapture both Store devices at this same candidate. Reuse byte-exact approved Pad06 DarkFocus copy from4517; actual native PNG originals never edited."
   }
 }

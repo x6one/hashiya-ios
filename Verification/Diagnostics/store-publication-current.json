@@ -1,5 +1,5 @@
 {
-  "status": "Sharednativeabsenceoracle positive+negativeconditionscorrect;7587runFAILEDtwoincorrectnewretained-view assumptions; correctingtestscope/stateinvariants withoutAppchanges.",
+  "status": "Both realnative menu controls PASSED2/2 withoutskips; originalFocus/Notes/thumbs/images visuallyreviewed; freezing one comprehensive152-case candidate withunchangedproductionAppc8.",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -76,9 +76,9 @@
     "apple_writes": false
   },
   "remaining": [
-    "Prove why the valid imported-PDF card tap did not open its real editor on iPad.",
-    "Verify native menu-absence waiter within unchanged actual5s bound; countqueryfailed underfullload.",
-    "OnlyaftertargetedGREEN andrealfixes, qualifyonefixedSHA onbothfamilies, actualexports/Maestro/gallery/nativeOffice/iphoneosIPA; thenauthorizedAppleupload."
+    "Completeonefrozen152-casefullqualificationonbothfamilies, Maestro/byteexports/gallery/Officeiphoneos/unsignedIPA.",
+    "InspectandverifyactualIPA/source/hashandresourcesafterallnativegatespass.",
+    "OnlythenenableexistingreviewedStorecontroller forauthorizedsignedAppleupload;processing/buildattachment/exportcompliance/reviewrequireactualevidence."
   ],
   "last_full_gate": {
     "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
@@ -460,5 +460,36 @@
     },
     "original_cases": "Alloriginal151bodies/casesretained; total152; sourceAppunchangedc8; sharedwaiterunchanged; nonewobserver/timeout/productionchange.",
     "review": "Independentreviewfoundnoblockingissue. Empty+narrowviewport<44 isonlya readyness-scopingheuristic, NOTproofofcorrectFocuslayout; full-widthemptyinventorystillfails andoriginalpixel/orientationchecksremainmandatory. Geometry/divider/pageinvarianceisactualpassive-actioncontract."
+  },
+  "verified_menu_controls": {
+    "source": "65ea71d02438941c371b963ef691f7c9fdc8d487",
+    "run": 40399169136,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40399169136",
+    "result": "Passed",
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "positive": "OriginalDarkbodycompletedNotesopen/close, allfiveactualnativepreviews, thumbnailsandFocus. Nativeabsencetrue2.235823/1.455821s,foregroundtrue.",
+    "negative": "SAMEoraclefalse6.615091swhileactualmenu remainsopen,rowvisible/foregroundtrue;actualPDFgeometry/divider/pageunchanged. NoNotesAX-absenceassumption.",
+    "originalimages_reviewed": "Native original Focus PNG showsfullPDF/noSidebar; actual negativePNGshowsmenustillopenandPDFunchanged; allfivepreviewtypesvisible, page4inkrendered. No postcapturealteration.",
+    "small_artifact": {
+      "id": 12689461855,
+      "bytes": 2557132,
+      "sha256": "0059fbbc6585eade9ad8057a31707076347351b0753e011a209133b39845782b",
+      "local": "/workspace/Tayya-65ea-menu-controls.zip",
+      "sha_crc_verified": true
+    },
+    "full_evidence_artifact": 12689566671,
+    "original_cases": "151originalcasesretained +1negative =152 (99unit+53UI). Both2selectedexactmethods executed,0fail/skip/expected."
+  },
+  "frozen_release_gate": {
+    "purpose": "RequiredcomprehensivevalidationofcumulativetestfixessinceFAILED7c, notdocumentation-onlyretesting orrepeatinggreenprobes.",
+    "controls_source": "65ea71d02438941c371b963ef691f7c9fdc8d487",
+    "App_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
+    "app_and_tests": "ProductionAppandallunit/UItestcodeMATCHverified65eacontrolsource exactly; onlyCIminimumguardstrengthened100\u2192152 plus thisevidence entry.",
+    "required": "Cold4/device, all152/device,3Maestro/device,actualPDF/PPTXexports,nativegallery,fullOfficearm64iphoneosandunsignedIPA. SAMEcandidateSHA; fail/skipblocksalllatergates.",
+    "status": "Pending current [integration:release] run; noApp/IPA/Applequalificationclaimyet. ExactcandidateSHA/runpersisted inresumledgerandCIartifacts.",
+    "photos": "ReuseapprovedactualDD12compositionartifact12636063053 sinceApp/NativeOffice/projectunchangedc8. KeepgenuineDDsource/runmetadata; norelabeledpictures."
   }
 }

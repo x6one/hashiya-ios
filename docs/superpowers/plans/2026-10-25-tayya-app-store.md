@@ -79,3 +79,12 @@ consumer accepts GitHub artifact metadata+outer ZIP; provenance consumes the
 original signer's unmodified receipt and actual exported IPA. The existing
 Office build gate must pass before its candidate artifact can be reused. App
 Review submission and release/territory/encryption changes remain separate.
+
+
+## Post-upload processing verification (no review submission)
+
+- [x] Add eight pure Apple-response/upload-receipt contracts in `Tools/test_store_release.py`; observe missing-validator RED, then52Python+16Node GREEN. A ninth real CLI VALID→FAILED regression reproduced the stale report; the failure path now replaces it before rethrow, and53Python+16Node pass.
+- [x] `Tools/store_release.py` validates the same accepted upload/controller/app/engine provenance before classifying only0.6.0(13). `processing-source` uses no Apple credentials; `processing` reads the unchanged read-only Node probe output. Pending exits10; onlyVALID exits0; failure/invalid/ambiguous/wrong-app states fail. Keep original signer receipt immutable and `app_store_submitted=false`.
+- [x] Prepare a dependent Ubuntu job in `.github/workflows/tayya-store-listing.yml`: consume a small SAME-RUN provenance+COMPLETE24image receipt, verify authorization before keys, poll the existing read-only Apple probe for at most20min with20s intervals. Never repeat the binary upload. Retain processing evidence even on failure. No original signing/build helper change.
+- [x] Independent review found only the stale terminal report; the correction and real CLI regression were reviewed again with no remaining important issue.53Python+16Node, actionlint and diff-check pass. Publication remains disabled until all7 final qualification jobs succeed.
+- [ ] Observe actual Apple processingVALID after the authorized real signed upload. A unit fixture or successful transfer does not complete this step. Export compliance, build attachment and App Review remain separately verified actions.

@@ -163,14 +163,81 @@ def write_provenance(config, repository, distribution, engine_receipt, controlle
             "legacy_source_commit_meaning": "Original signer records the controller GITHUB_SHA; actual built checkout is application_source."}
 
 
+def verify_upload_receipt(config, upload, controller):
+    validate_target(config)
+    engine = upload.get("engine", {})
+    if (upload.get("application_source") != config["app_source"]
+            or upload.get("application_tree") != config["app_tree"]
+            or upload.get("controller_source") != controller
+            or upload.get("qualified_run") != config["qualified_run"]
+            or engine.get("qualified_run") != config["qualified_run"]
+            or engine.get("application_source") != config["app_source"]
+            or upload.get("upload_accepted") is not True
+            or upload.get("app_store_submitted") is not False
+            or upload.get("apple_processing_confirmed") is not False
+            or not re.fullmatch(r"[a-f0-9]{64}", upload.get("signed_ipa_sha256", ""))):
+        raise ValueError("Processing requires the attested immutable upload receipt")
+
+
+def verify_processing(config, apple, upload, controller):
+    """Classify a read-only Apple response; never infer review or repeat upload."""
+    verify_upload_receipt(config, upload, controller)
+    if (apple.get("read_only") is not True
+            or apple.get("ready_for_distribution_authentication") is not True
+            or apple.get("app", {}).get("id") != config["app_id"]
+            or apple.get("app", {}).get("bundle_id") != config["bundle_id"]):
+        raise ValueError("Unverified read-only Apple app response")
+    matches = [b for b in apple.get("build13", [])
+               if b.get("build") == str(config["build"]) and b.get("version") == config["version"]]
+    if len(matches) > 1:
+        raise ValueError("Ambiguous Apple build identity")
+    if apple.get("version_0_6_build_13_exists") is not bool(matches):
+        raise ValueError("Inconsistent Apple build identity")
+    build = matches[0] if matches else None
+    status = build.get("processing") if build else "NOT_LISTED_YET"
+    if status not in ("NOT_LISTED_YET", "PROCESSING", "VALID"):
+        raise ValueError("Apple processing is failed, invalid or unrecognized: " + str(status))
+    if build and (not isinstance(build.get("id"), str) or not re.fullmatch(r"[a-zA-Z0-9-]+", build["id"])):
+        raise ValueError("Invalid Apple build identity")
+    return {"application_source": config["app_source"], "application_tree": config["app_tree"],
+            "controller_source": controller, "qualified_run": config["qualified_run"],
+            "version": config["version"], "build": str(config["build"]),
+            "apple_build_id": build["id"] if build else None, "processing_state": status,
+            "signed_ipa_sha256": upload["signed_ipa_sha256"], "upload_accepted": True,
+            "apple_processing_confirmed": status == "VALID", "app_store_submitted": False,
+            "read_only": True, "scope": "Apple build processing only; export compliance, attachment and review are separate."}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=["engine", "source", "receipt"])
+    parser.add_argument("operation", choices=["engine", "source", "receipt", "processing", "processing-source"])
     args = parser.parse_args()
     config = json.loads(Path("Store/publication.json").read_text())
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     verify_authorization(config, os.environ, event)
     verify_listing(json.loads(Path("StoreDraft/store-listing-report.json").read_text()), config)
+    if args.operation in ("processing", "processing-source"):
+        upload = json.loads(Path("AppleDistribution/store-publication-provenance.json").read_text())
+        verify_upload_receipt(config, upload, os.environ["GITHUB_SHA"])
+        if args.operation == "processing-source":
+            print("Current trusted upload receipt is qualified; no Apple credential has been used")
+            return
+        try:
+            receipt = verify_processing(config, json.loads(Path("store-after-upload.json").read_text()),
+                                        upload, os.environ["GITHUB_SHA"])
+        except (ValueError, OSError, TypeError, KeyError) as error:
+            Path("store-processing-report.json").write_text(json.dumps({
+                "application_source": config["app_source"], "controller_source": os.environ["GITHUB_SHA"],
+                "qualified_run": config["qualified_run"], "processing_state": "VERIFICATION_FAILED",
+                "apple_processing_confirmed": False, "app_store_submitted": False,
+                "read_only": True, "error": str(error)
+            }, indent=2) + "\n")
+            raise
+        Path("store-processing-report.json").write_text(json.dumps(receipt, indent=2) + "\n")
+        print("Apple build13 processing: " + receipt["processing_state"])
+        if not receipt["apple_processing_confirmed"]:
+            raise SystemExit(10)  # Pending is not success and never asks for another upload.
+        return
     if args.operation == "source":
         verify_checkout(config, Path("hashiya-tools"))
         print("Actual application checkout is still the clean qualified source")

@@ -245,6 +245,15 @@ jobs:
         run: python3 Tools/distribute_native_app.py
       - name: Attest the actual app checkout separately from the controller commit
         run: python3 Tools/store_release.py receipt
+      - name: Retain the small immutable upload receipt for read-only processing verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Apple-upload-receipt
+          path: |
+            AppleDistribution/store-publication-provenance.json
+            StoreDraft/store-listing-report.json
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -256,4 +265,50 @@ jobs:
             store-engine-receipt.json
             store-before-upload.json
             diagnostics/link-probe/link-report.json
+          retention-days: 14
+  processing:
+    needs: publish
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:publish-approved]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-Apple-upload-receipt
+          path: .
+      - name: Verify the same-run accepted upload before using Apple credentials
+        run: python3 Tools/store_release.py processing-source
+      - name: Confirm actual Apple processing without repeating the binary upload
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 - <<'PY_PROCESSING'
+          import subprocess, time
+          deadline = time.monotonic() + 1200
+          while True:
+              remaining = deadline - time.monotonic()
+              if remaining <= 0:
+                  raise SystemExit('Apple build processing is still pending after20min; retain evidence, do not upload again')
+              subprocess.run(['node', 'Tools/app_store_readiness.mjs', 'store-after-upload.json'],
+                             check=True, timeout=min(100, remaining))
+              check = subprocess.run(['python3', 'Tools/store_release.py', 'processing'])
+              if check.returncode == 0:
+                  break
+              if check.returncode != 10:
+                  check.check_returncode()
+              time.sleep(min(20, max(0, deadline - time.monotonic())))
+          PY_PROCESSING
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Apple-processing-verification
+          path: |
+            store-after-upload.json
+            store-processing-report.json
           retention-days: 14

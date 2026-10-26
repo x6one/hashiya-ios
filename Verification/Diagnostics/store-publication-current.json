@@ -1,11 +1,11 @@
 {
-  "status": "Frozen candidate preparation after passing targeted Debug/Release evidence; mandatory full qualification still pending",
+  "status": "Fixing one proved native-menu test observer false negative after full qualification",
   "target": {
     "version": "0.6.0",
     "build": "13",
     "bundle_id": "com.ahmadalawi.hashiya"
   },
-  "production_app_tree": "8450ba5af2106395bbfd021999e9c6722d85c90b",
+  "production_app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
   "store_controller": "65b50e9f43d569dfda5aaf238de9dc7535cf2f34",
   "last_production_test": {
     "source": "5123b96e8df5b9f7515edb83313cc2f2d8619e8c",
@@ -34,7 +34,7 @@
     "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
     "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
   ],
-  "decision": "Stop further isolation experiments. Follow user instruction to retain changes/evidence and run ONE comprehensive release qualification on one fixed candidate with existing diagnostics. No functional rendering fix is claimed from healthy traces. Preserve and analyze any actual failure before further changes or retries.",
+  "decision": "Fix the proved dismissal observer false negative only, run the original failing case on iPad, then qualify the resulting tested source once. No original ink failure reproduced in this full gate; do not reopen it. Do not retry the failed gate unchanged or enable Apple publication.",
   "native_control": {
     "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
     "run": 40266142260,
@@ -75,14 +75,15 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "One full same-SHA release gate and same-SHA actual Store capture run; handle any failure from its original evidence. Do not enable Store binary publication before every required job succeeds. Physical microphone/interruption and physical Office conversion remain unverified by CI.",
+  "remaining": "Targeted iPad Dark capture must verify unchanged menu-absence/5s/native-state requirements, then one complete same-SHA release qualification and dependent Office/iphoneos/IPA. Existing12 Store images retained; Store controller still disabled and pinned to failed gate until final qualification.",
   "last_full_gate": {
-    "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
-    "run": 40211390622,
+    "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+    "run": 40290027939,
     "status": "FAILED",
-    "cold_iPhone": "2/3passed; Undo observer deadline failed",
-    "cold_iPad": "3/3passed",
-    "full151_per_device_Maestro_Office": "Correctly not executed after the critical cold failure; no new qualified IPA."
+    "iPhone": "151/151nativePASS;3MaestroPASS; actualPDF3063B/PPTX54684B exportPASS",
+    "iPad": "150/151nativePASS; only testArabicDarkProductionScreens failed at menu-dismissal observer; actual byte exports passed; Maestro not run after native failure",
+    "cold_regression": "3/3PASS on eachfamily, including actual pixels/nativeUndoRedo/reading navigation",
+    "gallery_and_Office_IPA": "Correctly skipped after the critical incomplete native gate. No new IPA and no Apple writes."
   },
   "rotation_control": {
     "hypothesis": "Previous bare control started directly in landscape. Actual failed app retains same canvas across440x147.333 portrait->367.333x88.667 landscape, a viewport/zoom-cache boundary omitted from control.",
@@ -202,5 +203,57 @@
     "required": "3 original cold regression cases/device, all151XCTest+XCUITest/device,3Maestro/device, real export bytes, native gallery, complete Office and Releaseiphoneos/IPA on exact same candidate. Existing jobs enforce no failed/skipped/expected failures.",
     "diagnostics_retained": "DEBUG scalar cross-host trace plus existing native xcresult/failure preservation. Release behavior/source unaffected by tracing.",
     "capture": "Recapture both Store devices at this same candidate. Reuse byte-exact approved Pad06 DarkFocus copy from4517; actual native PNG originals never edited."
+  },
+  "menu_dismissal_fix": {
+    "status": "Prepared; targeted native GREEN not yet run",
+    "failed_source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+    "failed_run": 40290027939,
+    "failed_job": 121469715385,
+    "test": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+    "artifact": 12641150825,
+    "artifact_sha256": "9d7df82ba8d0fb54de87842f463b0f1de1868a86275c942c9bbd7d93e6523944",
+    "local_zip": "/workspace/Tayya-dd009-iPad-failure.zip",
+    "sha256_crc_verified": true,
+    "evidence": {
+      "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+      "run": 40290027939,
+      "job": 121469715385,
+      "test": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+      "failure": "UITests/StudioProductionCaptureTests.swift110 -> ProductionUIHelpers.waitForNativeDismissal(!item.exists), timeout5s",
+      "recording": "Screenshots/E5A53669-9EBE-4960-888A-812EFF84131E.mp4",
+      "recording_sha256": "9a02c33b0535474f431a9c75c388c021c90e75b64401675b91c1dc3ebb8a3262",
+      "recording_start_epoch": 1793006983.249,
+      "synthesized_split_tap_epoch": 1793007010.73,
+      "synthesized_split_tap_point": [
+        126,
+        95.5
+      ],
+      "parent_window_points": [
+        1032,
+        1376
+      ],
+      "tap_video_pts": 27.481,
+      "notes_visible_menu_gone_frame_pts": 29.2,
+      "frame_estimated_wall_time": "2026-10-26T09:30:12.449Z",
+      "first_negative_exists_query": "2026-10-26T09:30:13.612Z",
+      "query_retries": "2026-10-26T09:30:17.921Z",
+      "waiter_failure": "2026-10-26T09:30:18.395Z",
+      "proved": "Original tap executed; native menu is gone and correct Notes split is already visible before the absence query. Failure is an observer false negative, not a failed split action.",
+      "not_proved": "Original predicate did not retain its return value; cannot distinguish precisely delayed missing-element lookup completion from an AX cached result. Query retries/delay are recorded.",
+      "analysis_frames": "AnalysisOnly extracted video frames, never Store screenshots; raw recording and artifact remain unchanged."
+    },
+    "change": "Keep exact original readiness and native item.tap. Capture nonempty identifier beforetap; eager single app.snapshot traverses entire AX tree for samebutton+ID; only poll remaining5s if stillpresent; snapshoterrors cannotpass, observedAt must remain<=5. No App/storage/build/signing changes; other sheet dismissal helpers retained.",
+    "validation": "Original failing Dark capture ONLY on iPad via integration:menu-dismissal; same original151testcases retained."
+  },
+  "current_store_artwork": {
+    "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
+    "run": 40290027945,
+    "status": "PASS3/3 perdevice +artwork; all12 native compositions visually reviewed",
+    "artifact": 12636063053,
+    "sha256": "a9426765df10985ba6ed07575308a957f11fa4eeca236ab8e99dcf0f506e75ab",
+    "inner_sha256": "6669acb230552fcf8ec6badeb412c8fa7abd8bb408b4065fdd4cc7233cf9965f",
+    "local_root": "/workspace/Tayya-Store-dd009fff/Tayya-App-Store-Visuals",
+    "identity_rgb_dimensions_hashes_crc_passed": true,
+    "reuse": "Since the fix is tests-only and App/project/NativeOffice unchanged, reuse these exact images with truthful original source/run. Do not relabel them or rerun passing captures."
   }
 }

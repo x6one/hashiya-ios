@@ -76,7 +76,7 @@ jobs:
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -only-testing:HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
       - name: Preserve failed synthetic ink before the regression runner is discarded
         if: failure()
         run: python3 Tools/capture_native_ink_failure.py
@@ -92,6 +92,16 @@ jobs:
             shasum -a 256 NativeResults/RegressionResults.xcresult.zip > NativeResults/RegressionResults.xcresult.sha256 || status=1
             exit "$status"
           fi
+      - name: Require the original three regressions and related menu binding case
+        run: |
+          python3 - <<'PY_REGRESSION'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('NativeResults/RegressionResults-summary.json').read_text())
+          assert summary['result'] == 'Passed' and summary['passedTests'] == 4, summary
+          assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
+          print('All original3 cold regressions plus the real menu/preset binding regression passed:4/4')
+          PY_REGRESSION
       - name: Retain targeted regression evidence
         if: always()
         uses: actions/upload-artifact@v4

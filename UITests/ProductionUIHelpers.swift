@@ -69,8 +69,8 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
         }
         // Count is a complete collection query: zero is a normal result, not
         // a missing leaf that XCTest resolves with implicit lookup retries.
-        // Restrict attributes to the actual button identifier; fetching every
-        // PDF accessibility attribute took6.05s in the rejected snapshot probe.
+        // Restrict the query to menu identity rather than every accessibility
+        // attribute of the PDF and Notes underneath it.
         let matches = app.buttons.matching(identifier: identity).count
         let elapsed = ProcessInfo.processInfo.systemUptime - started
         samples.append("elapsed=\(elapsed); matches=\(matches)")

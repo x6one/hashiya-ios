@@ -1,5 +1,5 @@
 {
-  "status": "Targeted menu observer correction pending native performance verification; fullgate remains blocked",
+  "status": "Freezing verified menu-observer correction for final full qualification; no Apple upload yet",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -34,7 +34,7 @@
     "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
     "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
   ],
-  "decision": "Fix the proved dismissal observer false negative only, run the original failing case on iPad, then qualify the resulting tested source once. No original ink failure reproduced in this full gate; do not reopen it. Do not retry the failed gate unchanged or enable Apple publication.",
+  "decision": "The actual failed UI action was correct; retained5s observer now verifies absence in1.51s/0.37s using bounded collection query. Preserve all original151cases. Include real favorite-pen menu/binding case alongside the original3coldregressions before the full151/device gate. NoApp/project/NativeOffice changes; reuse existing actual Store images truthfully fromDDsource.",
   "native_control": {
     "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
     "run": 40266142260,
@@ -75,7 +75,7 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "Run only original iPad Dark case with narrow count observer; do not extend5s. If it passes, add existing shared-menu favorite-pen regression before full151/device qualification on one final SHA; preserve approvedDDphotos because actualApp/project/NativeOffice are unchanged.",
+  "remaining": "One final frozen release qualification including related menus, all151cases/device, Maestro and exports; then nativeOffice/iphoneos/IPA/gallery. Preserve the already verified12 original-DD-source Store images with same App tree. Enable Store publication only after every mandatory gate passes.",
   "last_full_gate": {
     "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
     "run": 40290027939,
@@ -192,20 +192,22 @@
     }
   },
   "release_candidate": {
-    "status": "prepared; not yet dispatched",
-    "parent": "e227e8c3501321f4bc08748e2ef33cff072dcb0a",
+    "status": "prepared for one full frozen qualification after targetedGREEN",
+    "parent": "d8f7cfd2b1087f9c9231aede17376413ed1753fb",
     "app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
+    "cold_regressions_per_device": 4,
+    "original_three_regressions_retained": true,
+    "added_related_case": "StudioEditorToolsTests.testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch",
     "native_counts_per_device": {
       "Tests": 99,
       "UITests": 52
     },
-    "original_tests_retained": true,
-    "required": "3 original cold regression cases/device, all151XCTest+XCUITest/device,3Maestro/device, real export bytes, native gallery, complete Office and Releaseiphoneos/IPA on exact same candidate. Existing jobs enforce no failed/skipped/expected failures.",
-    "diagnostics_retained": "DEBUG scalar cross-host trace plus existing native xcresult/failure preservation. Release behavior/source unaffected by tracing.",
-    "capture": "Recapture both Store devices at this same candidate. Reuse byte-exact approved Pad06 DarkFocus copy from4517; actual native PNG originals never edited."
+    "Maestro_per_device": 3,
+    "expected_failures_or_skips": 0,
+    "required": "Both cold4case jobs, both complete151case jobs +actualexportbytes+Maestro, productiongallery, and fullOffice/Releaseiphoneos/unsignedIPA on this same source. Existing mandatory success guards retained and coldguard strengthened to4/4."
   },
   "menu_dismissal_fix": {
-    "status": "Second bounded observer query prepared; first fullsnapshot probe correctly rejected as late",
+    "status": "GREEN original failing Dark capture passed1/1;0failed,0skipped",
     "failed_source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
     "failed_run": 40290027939,
     "failed_job": 121469715385,
@@ -256,7 +258,22 @@
         "local_downloaded": false
       }
     ],
-    "second_hypothesis": "Fullsnapshot attribute acquisition itself exceeded5s. A filtered matching-button count needs identity/type only and accepts zero without failed-element lookup. Native performance must be proved by the targeted original case; never infer from helper review."
+    "second_hypothesis": "Fullsnapshot attribute acquisition itself exceeded5s. A filtered matching-button count needs identity/type only and accepts zero without failed-element lookup. Native performance must be proved by the targeted original case; never infer from helper review.",
+    "green": {
+      "source": "d8f7cfd2b1087f9c9231aede17376413ed1753fb",
+      "run": 40348990787,
+      "job": 121663556653,
+      "test": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 56.717,
+      "split_menu_absence_seconds": 1.5112292499999853,
+      "close_notes_menu_absence_seconds": 0.37310712499999,
+      "matches": 0,
+      "original_five_second_bound_retained": true,
+      "artifact": 12662918298,
+      "artifact_sha256": "7677d5995b1842047cc26ef76e9998244ef326b0e4893deca6bc7d5d3875963a"
+    }
   },
   "current_store_artwork": {
     "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",

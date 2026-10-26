@@ -1,0 +1,86 @@
+{
+  "status": "blocked; no App Store upload or new qualified IPA",
+  "target": {
+    "version": "0.6.0",
+    "build": "13",
+    "bundle_id": "com.ahmadalawi.hashiya"
+  },
+  "production_app_tree": "8450ba5af2106395bbfd021999e9c6722d85c90b",
+  "store_controller": "65b50e9f43d569dfda5aaf238de9dc7535cf2f34",
+  "last_production_test": {
+    "source": "5123b96e8df5b9f7515edb83313cc2f2d8619e8c",
+    "run": 40262819235,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40262819235",
+    "case": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
+    "passed": 0,
+    "failed": 1,
+    "failure": "UITests/LaunchTests.swift1421: actual native writing surface must gain >40 red pixels after first compact Notes stroke"
+  },
+  "saved_failure": {
+    "artifact": 12625114449,
+    "sha256": "f900457bed493516e520e5acb3d1801701680de35f316b721c0e21c5d5d123ad",
+    "local": "/workspace/Tayya-native-failure-5123",
+    "crc_verified": true
+  },
+  "proved": [
+    "Five screen-only observations from1.04 through5.39s returned0 red pixels; whole-screen and element captures show only the original green stroke.",
+    "The real drawing has2 strokes,796 persisted bytes; independent native PKDrawing raster005 contains3927 red pixels. Original synthetic inputs remain byte-identical after inspection.",
+    "Red stroke bounds(156,52,269,29) atzoom0.565 fit inside the same367.333x88.667 viewport. Missing input, offscreen red stroke and corrupt saved ink are excluded for this instance.",
+    "Actual failed-instance phase counts0to11=[0,1,2,1,1,1,1,10,0,4,0,1], tail7779797971324567. Same-page reload0, initial load1; no configure inside save publication; canvas remains first responder.",
+    "Document Undo/Redo first-observation checks passed in0.406s/0.256s within the retained5s bound. CompactSplit Undo/Redo was not reached; do not claim the complete repair verified."
+  ],
+  "unresolved": [
+    "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
+    "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
+  ],
+  "decision": "No fourth speculative compositor/engine patch and no unchanged production rerun. Keep full release gate and Apple binary upload blocked. Isolate native PencilKit without SwiftUI/persistence once; a pass is inconclusive and is never Tayya qualification.",
+  "native_control": {
+    "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
+    "run": 40266142260,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40266142260",
+    "status": "PASS1/1;0failed,0skipped,0expectedFailures",
+    "scope": "Independent Verification/NativeInkControl target, same viewport/zoom/seed/pencil/native color picker/gesture; no SwiftUI, PDF, PKCanvasViewDelegate or persistence. Retains custom fit/inputView setup, so a failure does not by itself prove an Apple framework defect. Never distributed as Tayya.",
+    "earlier_build_only_failure": {
+      "run": 40265708075,
+      "executed_tests": 0,
+      "reason": "Swift exclusive-access error in diagnostic pixel utility; fixed through the borrowed byte buffer. Not native runtime evidence."
+    },
+    "seconds": 32.796,
+    "first_sample_seconds": 1.320279416666608,
+    "red_pixels": 3910,
+    "baseline_red_pixels": 0,
+    "artifact": 12626334253,
+    "artifact_sha256": "32f57082ffcbe81caffb43c220165adfe6d410a8ee839de02affd58cedd59917",
+    "crc_verified": true,
+    "raw_after_png": "F8E9BE31-E7A7-4329-AAF2-03046E1490EA.png",
+    "interpretation": "The native control rendered this first stroke. This single passing control does not exclude an intermittent framework issue, identify the application trigger or qualify Tayya. No identical application rerun or production patch follows this negative finding."
+  },
+  "store_images": {
+    "capture_source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
+    "capture_run": 40211390688,
+    "renderer_source": "4517cfe148aa22de9245b2e02583bfde8cf29565",
+    "render_run": 40214217251,
+    "artifact": 12606922443,
+    "images": 12,
+    "sha256": "7fa0729d0e9ec42d16c5931279b10b8ceccda093ef8321e8b99fe209cb42b810",
+    "inner_zip_sha256": "454d3ec368c4d6ec6d38d440ecfa7e7eb2b9427cfb7a9178c1c5c6fd19d42a7e",
+    "verified": "All12 actual native originals/output hashes, RGB/noalpha/dimensions, outer/innerCRC and visual review passed. OnlyPad06Focus changed to its preserved actual DarkFocus capture."
+  },
+  "publication_tools": {
+    "python_passed": 44,
+    "node_passed": 16,
+    "workflows_linted": 6,
+    "native_gates_replaced": false,
+    "enabled": false,
+    "apple_writes": false
+  },
+  "remaining": "Live presentation cause remains unproven after actual-failure counters and one isolated native control. Stop speculative production changes and unchanged native reruns; keep native release qualification and Apple upload blocked pending new causal evidence. All raw evidence and exact sources are retained for continuation.",
+  "last_full_gate": {
+    "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
+    "run": 40211390622,
+    "status": "FAILED",
+    "cold_iPhone": "2/3passed; Undo observer deadline failed",
+    "cold_iPad": "3/3passed",
+    "full151_per_device_Maestro_Office": "Correctly not executed after the critical cold failure; no new qualified IPA."
+  }
+}

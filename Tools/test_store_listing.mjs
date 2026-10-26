@@ -63,3 +63,29 @@ test('rejects an artwork workflow whose required native iPad capture was skipped
   const jobs=[{name:'Native store capture (iPhone)',status:'completed',conclusion:'success'},{name:'Native store capture (iPad)',status:'completed',conclusion:'skipped'},{name:'artwork',status:'completed',conclusion:'success'}];
   assert.throws(()=>validateQualification(run,jobs,'a'.repeat(40),'artwork'),/gate|test/i);
 });
+test('accepts separately rendered images while keeping the original native run provenance',()=>{
+  const f=fixture();try{
+    f.config.render_run='43';f.config.renderer_source='b'.repeat(40);
+    const manifest=JSON.parse(readFileSync(join(f.root,'manifest.json'),'utf8'));
+    Object.assign(manifest,{render_run:'43',renderer_source:'b'.repeat(40)});
+    writeFileSync(join(f.root,'manifest.json'),JSON.stringify(manifest));
+    assert.equal(validateArtwork(f.root,f.config).length,12);
+  }finally{f.close();}
+});
+test('rejects a separately rendered artifact from the wrong renderer source',()=>{
+  const f=fixture();try{
+    f.config.render_run='43';f.config.renderer_source='b'.repeat(40);
+    const manifest=JSON.parse(readFileSync(join(f.root,'manifest.json'),'utf8'));
+    Object.assign(manifest,{render_run:'43',renderer_source:'c'.repeat(40)});
+    writeFileSync(join(f.root,'manifest.json'),JSON.stringify(manifest));
+    assert.throws(()=>validateArtwork(f.root,f.config),/render/i);
+  }finally{f.close();}
+});
+test('accepts an actual complete render job independently of its native capture job',()=>{
+  const run={head_sha:'b'.repeat(40),name:'Tayya Store artwork and approved publication',conclusion:'success'};
+  assert.equal(validateQualification(run,[{name:'artwork',status:'completed',conclusion:'success'}],'b'.repeat(40),'render'),true);
+});
+test('rejects an overall green controller run which did not actually render the images',()=>{
+  const run={head_sha:'b'.repeat(40),name:'Tayya Store artwork and approved publication',conclusion:'success'};
+  assert.throws(()=>validateQualification(run,[{name:'artwork',status:'completed',conclusion:'skipped'}],'b'.repeat(40),'render'),/gate/i);
+});

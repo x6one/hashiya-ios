@@ -52,3 +52,30 @@ Version 0.6.0; build 13; com.ahmadalawi.hashiya; iOS 17; iPhone+iPad. No user-da
 - [ ] After final capture/native qualification, create store/tayya-app-store-content with Store/publication.json containing actual immutable source/run/App-tree values. This branch changes Store content and its isolated publication helper only; do not modify production, build or signing code or move the frozen candidate.
 
 Current source-of-truth task ledger: .superpowers/sdd/2026-10-25-tayya-app-store/current.json (ignored local continuation state). No Apple upload or review submission has occurred during preparation.
+
+
+### Authorized Store release controller (October26 continuation)
+
+The user authorized App Store publication. Preserve the original manual Office
+workflow and all signing helpers; add a separate, explicit Store entry point
+rather than requiring an unavailable workflow_dispatch tool.
+
+- [ ] `Tools/test_store_release.py`: real ZIP/TAR/git/IPA fixtures must reject wrong
+  source/run/hash, unsafe tar entries, late/unprocessed draft assets and false
+  application-source attribution. Observe RED before implementing the helper.
+- [ ] `Tools/store_release.py`: safely consume only the engine artifact from the
+  successful pinned seven-job run; verify engine124ecf55, arm64/iphoneos; write a
+  separate provenance receipt from the actual qualified checkout and signed IPA.
+- [ ] `.github/workflows/tayya-store-listing.yml`: require an explicit publication
+  flag/tag, successful native/artwork/renderer gates and24 COMPLETE Store assets;
+  checkout the immutable app separately, reuse unchanged link/prepare/distribute
+  helpers and read Apple build13 state before signing. Never override GITHUB_SHA.
+- [ ] Verify Python+Node suites, actionlint and actual artwork; independent review
+  before enabling the upload job. Keep controller and built-source SHAs distinct.
+
+Interfaces: `--qualify-only` reuses the existing seven-job/native-artifact checks
+without Apple writes. Draft receipt consumes only COMPLETE24-photo output; engine
+consumer accepts GitHub artifact metadata+outer ZIP; provenance consumes the
+original signer's unmodified receipt and actual exported IPA. The existing
+Office build gate must pass before its candidate artifact can be reused. App
+Review submission and release/territory/encryption changes remain separate.

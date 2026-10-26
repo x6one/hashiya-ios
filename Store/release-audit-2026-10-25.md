@@ -41,3 +41,44 @@ Reviewing the six actually rendered marketing proofs then revealed clipped norma
 Source3461ad5 adapts that same existing unscrolled ViewThatFits layout for every text size, keeps the normal fallback page/count inline to retain PDF space, and gives the already44pt-framed input an explicit content-shape focus gesture. Original AX5 frame checks remain unchanged. Both native targets exposed a literal44pt input rectangle after the production gesture repair: medium phone(217.667,116,48,44), iPad(924,87,48,44). The temporary inferred-touch-area fallback was never executed on either device and was removed before freezing; the strict original native-frame44pt assertion is restored byte-for-byte, with all window bounds and actual next/previous touches. No font shrink, new dependency, user-data change, remapped identifier or speculative thumbnail patch. Native Light validation run40199323239 passed1/1 per family: iPhone141.725s and iPad201.707s,0 failures/skips; modified-file SwiftLint/SwiftFormat also passed. These focused results do not replace comprehensive qualification.
 
 The Store publisher requires each of the seven actual release job gates and all three actual artwork jobs, not merely a green workflow which ran Tools only. Twelve Node contracts cover the filesystem/hash/PNG/run/failed-upload/qualification boundaries. One independent review caught a producer-contract mismatch: collection records expose canonical test_url, not a run field. The validator now verifies the actual repository/run/job URL already produced by the collector; no old screenshot metadata is relabeled. Actual full-artifact validation is still required before Apple writes.
+
+
+## October26 Store continuation
+
+The12 refined real-source artwork images are verified in run40214217251,
+artifact12606922443. Outer ZIP SHA256
+`7fa0729d0e9ec42d16c5931279b10b8ceccda093ef8321e8b99fe209cb42b810`;
+editable inner ZIP SHA256
+`454d3ec368c4d6ec6d38d440ecfa7e7eb2b9427cfb7a9178c1c5c6fd19d42a7e`.
+Only iPad06Focus differs from the first12: it uses the preserved real DarkFocus
+capture, avoiding overlap caused by the test's freely placed annotation.
+Native capture source/run remain c5d1990/run40211390688; controller/render
+identity4517cfe/run40214217251 is recorded separately. No screenshots are invented,
+retouched or relabeled as a different device capture. All12 original/output
+hashes, PNG dimensions/RGB and both ZIP CRCs pass; all12 images were reviewed.
+Apple's current screenshot-specifications page was re-read on October26:
+required medium Dynamic Island iPhone and13-inch iPad, accepted1206x2622 and
+2064x2752, no alpha. See
+https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/.
+
+The c5d1990 full qualification run40211390622 is FAILED: cold iPhone2/3,
+iPad3/3; the full151/device, Maestro and Office stages were correctly skipped.
+The iPhone AX5 compact Notes Undo case failed its observer deadline. Preserved
+native evidence shows a valid edge tap and the same native UndoManager2->1 in
+6.817ms, with AX value1 emitted before the logged deadline and successful Redo
+later; no App Undo/data-loss defect was demonstrated. The timing-only original
+case run40213938608 passed1/1 without App/timeout changes. The exact internal
+waiter stall remains unproven. Test-only source5123b96 checks the first post-tap
+value for both Undo and Redo AND asserts the read completes within the original
+5s budget. All actual edge/pixel/stroke/fit/page requirements remain. Its native
+verification is pending; no later candidate is qualified from this evidence.
+
+The user has authorized Apple publication. The original manual Office workflow
+and all native/signing helpers remain unchanged. A separately guarded Store
+controller is being prepared to reuse only the engine candidate from the exact
+successful seven-job release run, with an exact clean application checkout and
+24 COMPLETE draft images. Explicit publication config+trusted branch/event/tag
+are mandatory. The original signer records controller GITHUB_SHA; a separate
+receipt attests the actual built checkout and signed IPA hash. No event or SHA
+is forged. No Apple write/upload/review submission has occurred; publication is
+still disabled until critical native qualification and controller review pass.

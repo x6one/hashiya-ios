@@ -8,11 +8,11 @@ import {execFileSync} from 'node:child_process';
 const hash=(b,algorithm='sha256')=>createHash(algorithm).update(b).digest('hex');
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 export function validateQualification(run,jobs,source,kind) {
-  const name=kind==='release'?'iPhone and iPad preflight':'Tayya Store readiness and actual medium-phone captures';
+  const name=kind==='release'?'iPhone and iPad preflight':kind==='render'?'Tayya Store artwork and approved publication':'Tayya Store readiness and actual medium-phone captures';
   if(run.head_sha!==source||run.name!==name||run.conclusion!=='success')throw new Error('The immutable source run did not qualify');
   const required=kind==='release'
     ? ['tools','regression (iPhone)','regression (iPad)','test (iPhone)','test (iPad)','production-review / gallery','device-package / ios-engine']
-    : ['Native store capture (iPhone)','Native store capture (iPad)','artwork'];
+    : kind==='render'?['artwork']:['Native store capture (iPhone)','Native store capture (iPad)','artwork'];
   for(const name of required)if(!jobs.some(j=>j.name===name&&j.status==='completed'&&j.conclusion==='success'))
     throw new Error('Required native gate did not pass: '+name);
   return true;
@@ -29,6 +29,8 @@ export function validateArtwork(root,config) {
   if(!/^[a-f0-9]{40}$/.test(config.artwork_source)||manifest.source!==config.artwork_source)
     throw new Error('Artwork source revision differs from the approved native capture');
   if(!/^\d+$/.test(String(config.artwork_run))||String(manifest.run)!==String(config.artwork_run))throw new Error('Artwork run differs from the qualified capture');
+  if(config.render_run!==undefined&&(!/^\d+$/.test(String(config.render_run))||!/^[a-f0-9]{40}$/.test(config.renderer_source)
+      ||String(manifest.render_run)!==String(config.render_run)||manifest.renderer_source!==config.renderer_source))throw new Error('Artwork renderer identity mismatch');
   if(manifest.images?.length!==12)throw new Error('Exactly12 validated artwork images are required');
   const seen=new Set(),counts={iPhone:0,iPad:0};
   function inside(file) {
@@ -65,13 +67,15 @@ async function main() {
   const appTree=execFileSync('git',['rev-parse','HEAD:App'],{encoding:'utf8'}).trim();
   if(appTree!==config.app_tree)throw new Error('The current production App tree differs from the photographed source');
   const report={app_id:config.app_id,version:config.version,build:config.build,artwork_source:config.artwork_source,
-    application_tree:appTree,run:process.env.GITHUB_RUN_ID,mode:'prepare-draft-only',screenshots:[]};
+    application_tree:appTree,run:process.env.GITHUB_RUN_ID,mode:'prepare-draft-only',screenshots:[],screenshot_sets:[]};
   const reportFile=arg('--report','store-listing-report.json');
   const save=()=>writeFileSync(reportFile,JSON.stringify(report,null,2)+'\n');
   const metadata=read('Store/metadata.json');
   if(metadata.version!==config.version||String(metadata.build)!==String(config.build)||metadata.bundle_id!==config.bundle_id)throw new Error('Store copy belongs to another release');
   if(!process.env.GH_TOKEN)throw new Error('Missing read-only Actions verification token');
-  for(const [id,source,kind] of [[config.qualified_run,config.app_source,'release'],[config.artwork_run,config.artwork_source,'artwork']]){
+  const qualifications=[[config.qualified_run,config.app_source,'release'],[config.artwork_run,config.artwork_source,'artwork']];
+  if(config.render_run!==undefined)qualifications.push([config.render_run,config.renderer_source,'render']);
+  for(const [id,source,kind] of qualifications){
     if(!/^\d+$/.test(String(id))||!/^[a-f0-9]{40}$/.test(source))throw new Error('Invalid pinned qualification identity');
     async function github(suffix){
       const response=await fetch('https://api.github.com/repos/x6one/hashiya-ios/actions/runs/'+id+suffix,{headers:{Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json'},signal:AbortSignal.timeout(30000)});
@@ -81,6 +85,7 @@ async function main() {
     const run=await github(''),jobs=await github('/jobs?per_page=100');
     validateQualification(run,jobs.jobs,source,kind);
   }
+  if(args.includes('--qualify-only')){console.log('Verified every pinned native, artwork and renderer gate without Apple writes');return;}
   for(const name of ['ASC_PRIVATE_KEY_BASE64','ASC_KEY_ID','ASC_ISSUER_ID'])if(!process.env[name])throw new Error('Missing credential: '+name);
   const enc=x=>Buffer.from(JSON.stringify(x)).toString('base64url');
   function jwt(){const now=Math.floor(Date.now()/1000),s=enc({alg:'ES256',kid:process.env.ASC_KEY_ID,typ:'JWT'})+'.'+enc({iss:process.env.ASC_ISSUER_ID,iat:now,exp:now+600,aud:'appstoreconnect-v1'});return s+'.'+sign('sha256',Buffer.from(s),{key:Buffer.from(process.env.ASC_PRIVATE_KEY_BASE64,'base64'),dsaEncoding:'ieee-p1363'}).toString('base64url');}
@@ -110,11 +115,21 @@ async function main() {
       if(!localization)localization=(await api('POST','appStoreVersionLocalizations',payload('appStoreVersionLocalizations',{locale,...attrs},{appStoreVersion:rel('appStoreVersions',version.id)}))).data;
       else await api('PATCH','appStoreVersionLocalizations/'+localization.id,payload('appStoreVersionLocalizations',attrs,null,localization.id));
       let sets=(await api('GET','appStoreVersionLocalizations/'+localization.id+'/appScreenshotSets?limit=50')).data;
+      const inventories=new Map();
+      for(const set of sets){
+        const images=(await api('GET','appScreenshotSets/'+set.id+'/appScreenshots?limit=50')).data;
+        inventories.set(set.id,images);
+        report.screenshot_sets.push({locale,id:set.id,display:set.attributes.screenshotDisplayType,
+          images:images.map(s=>({id:s.id,file:s.attributes.fileName,checksum:s.attributes.sourceFileChecksum}))});
+        save();
+        if(images.length&&!['APP_IPHONE_61','APP_IPAD_PRO_3GEN_129'].includes(set.attributes.screenshotDisplayType))
+          throw new Error('Preserved additional draft screenshot set '+set.attributes.screenshotDisplayType+'; inspect inherited images before declaring the Store ready');
+      }
       // Arabic is the approved initial marketing language, including secondary localization media.
       for(const [family,display] of [['iPhone','APP_IPHONE_61'],['iPad','APP_IPAD_PRO_3GEN_129']]){
         let set=sets.find(s=>s.attributes.screenshotDisplayType===display);
         if(!set)set=(await api('POST','appScreenshotSets',payload('appScreenshotSets',{screenshotDisplayType:display},{appStoreVersionLocalization:rel('appStoreVersionLocalizations',localization.id)}))).data;
-        const existing=(await api('GET','appScreenshotSets/'+set.id+'/appScreenshots?limit=50')).data;
+        const existing=inventories.get(set.id)||[];
         if(existing.some(s=>!s.attributes.fileName.startsWith('Tayya-Studio2-')))throw new Error('Preserved unmanaged screenshots in the new draft; inspect before replacing');
         const desired=files.filter(f=>f.family===family),ordered=[];
         const desiredNames=new Set(desired.map(f=>'Tayya-Studio2-'+family+'-'+basename(f.file)));

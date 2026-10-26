@@ -34,7 +34,9 @@ final class MarginCanvas: PKCanvasView {
         get {
             let baseLabel = super.accessibilityLabel ?? ""
             #if DEBUG
-            let label = baseLabel + MarginUndoDiagnostics.labelSuffix
+            let commits = ProcessInfo.processInfo.arguments.contains("--test-margin-viewport")
+                ? "; nativeCommit=[" + (diagnosticCoordinator?.commitSnapshot ?? "missing") + "]" : ""
+            let label = baseLabel + MarginUndoDiagnostics.labelSuffix + commits
             #else
             let label = baseLabel
             #endif
@@ -448,13 +450,21 @@ struct MarginNotebook: UIViewRepresentable {
         private var commitCounts = [UInt64](repeating: 0, count: 12)
         private var commitPhases: UInt64 = 0
         private var commitEvents: UInt64 = 0
+        private var renderCompletions: UInt64 = 0
+        private var renderedChangeCount: UInt64 = 0
         func traceCommitPhase(_ phase: Int) {
             commitCounts[phase] += 1
             commitPhases = (commitPhases << 4) | UInt64(phase)
             commitEvents += 1
         }
         var commitSnapshot: String {
-            "events=\(commitEvents); last16=\(String(commitPhases, radix: 16)); counts0to11=\(commitCounts); loading=\(loading); stroking=\(isStroking); pending=\(hasUncommittedStroke); lastInkBytes=\(lastInk?.count ?? -1); page=\(pageID?.uuidString ?? "missing")"
+            "events=\(commitEvents); last16=\(String(commitPhases, radix: 16)); counts0to11=\(commitCounts); renderCompletions=\(renderCompletions); renderedChangeCount=\(renderedChangeCount); loading=\(loading); stroking=\(isStroking); pending=\(hasUncommittedStroke); lastInkBytes=\(lastInk?.count ?? -1); page=\(pageID?.uuidString ?? "missing")"
+        }
+        func canvasViewDidFinishRendering(_ canvasView: PKCanvasView) {
+            // Scalar-only observation: no UI/drawing reads or publication while
+            // PencilKit completes its native rendering callback.
+            renderCompletions &+= 1
+            renderedChangeCount = commitCounts[2]
         }
         #endif
         var saved: (PKDrawing) -> Void

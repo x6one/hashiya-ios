@@ -1,5 +1,5 @@
 {
-  "status": "blocked; no App Store upload or new qualified IPA",
+  "status": "investigating live rendering boundary; release and Apple upload blocked",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -82,5 +82,11 @@
     "cold_iPhone": "2/3passed; Undo observer deadline failed",
     "cold_iPad": "3/3passed",
     "full151_per_device_Maestro_Office": "Correctly not executed after the critical cold failure; no new qualified IPA."
+  },
+  "next_probe": {
+    "hypothesis": "A valid committed stroke does not necessarily complete native tile rendering; observe native canvasViewDidFinishRendering versus drawing-change sequence at the actual failing boundary.",
+    "scope": "DEBUG-only scalar callback counters plus existing pre/post gesture AX receipt; no native UI/drawing reads, clocks, persistence or publications in callback. Release token sequence unchanged.",
+    "test": "Only original iPhone testIndividualInkTargetsAtAccessibilityTextSize; no changed deadlines or assertions, no Release/full suite.",
+    "interpretation": "A pass is measurement only. On failure compare baseline and failed renderCompletions/renderedChangeCount; do not infer fix from successful tracing."
   }
 }

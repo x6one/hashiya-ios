@@ -63,6 +63,7 @@ jobs:
           requested = os.environ.get('REQUESTED_SUITE')
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
+              'picker-boundary': ['HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint', 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
               'menu-dismissal': ['HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens'],
               'menu-boundary': ['HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
               'notes-redo-diagnosis': ['HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],

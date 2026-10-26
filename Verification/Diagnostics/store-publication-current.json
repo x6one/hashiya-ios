@@ -1,12 +1,12 @@
 {
-  "status": "Freezing verified menu-observer correction for final full qualification; no Apple upload yet",
+  "status": "Blocked by two evidenced iPad failures in full7c78 gate; noApplewrite/IPA; investigating actualboundarybefore repair",
   "target": {
     "version": "0.6.0",
     "build": "13",
     "bundle_id": "com.ahmadalawi.hashiya"
   },
   "production_app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
-  "store_controller": "65b50e9f43d569dfda5aaf238de9dc7535cf2f34",
+  "store_controller": "e81d82be0b1d93bd2a2a528e76670b439e8a9921",
   "last_production_test": {
     "source": "5123b96e8df5b9f7515edb83313cc2f2d8619e8c",
     "run": 40262819235,
@@ -75,7 +75,11 @@
     "enabled": false,
     "apple_writes": false
   },
-  "remaining": "One final frozen release qualification including related menus, all151cases/device, Maestro and exports; then nativeOffice/iphoneos/IPA/gallery. Preserve the already verified12 original-DD-source Store images with same App tree. Enable Store publication only after every mandatory gate passes.",
+  "remaining": [
+    "Prove why the valid imported-PDF card tap did not open its real editor on iPad.",
+    "Verify native menu-absence waiter within unchanged actual5s bound; countqueryfailed underfullload.",
+    "OnlyaftertargetedGREEN andrealfixes, qualifyonefixedSHA onbothfamilies, actualexports/Maestro/gallery/nativeOffice/iphoneosIPA; thenauthorizedAppleupload."
+  ],
   "last_full_gate": {
     "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
     "run": 40290027939,
@@ -285,5 +289,76 @@
     "local_root": "/workspace/Tayya-Store-dd009fff/Tayya-App-Store-Visuals",
     "identity_rgb_dimensions_hashes_crc_passed": true,
     "reuse": "Since the fix is tests-only and App/project/NativeOffice unchanged, reuse these exact images with truthful original source/run. Do not relabel them or rerun passing captures."
+  },
+  "current_gate": {
+    "source": "7c78ff621cdd75ff2f23053cab3546275476213e",
+    "run": 40351298874,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40351298874",
+    "result": "FAILED",
+    "cold": {
+      "iPhone": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      "iPad": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "iPhone": {
+      "XCTest": 99,
+      "XCUITest": 52,
+      "native_passed": 151,
+      "failed": 0,
+      "skipped": 0,
+      "Maestro_passed": 3,
+      "PDF_export_bytes": 3063,
+      "PPTX_export_bytes": 54684
+    },
+    "iPad": {
+      "XCTest_passed": 99,
+      "XCUITest_passed": 50,
+      "native_passed": 149,
+      "failed": 2,
+      "skipped": 0,
+      "Maestro": "not executed after native failure"
+    },
+    "artifact": {
+      "id": 12671041568,
+      "bytes": 465162027,
+      "sha256": "a1466b2abac239c4e91a87d885599986d41735ef0ae7c3f0f68a7a1d615b5df4",
+      "local": "/workspace/Tayya-7c78-iPad-failure.zip",
+      "sha_crc_verified": true
+    },
+    "failures": [
+      {
+        "case": "LaunchTests.testAppOwnedDocumentPickerImportsPDF",
+        "line": "UITests/LaunchTests.swift:501",
+        "facts": [
+          "Import status succeeded; real PDF cover and card visible.",
+          "Actual synthesized tap665.25,735.75 insidecard543.5,611,243.5,249.5; correct native Window context507553203; EventDispatch ignoreInteractionEvents0 at16:13:05.514/05.680.",
+          "Native snapshot16:13:16.509 stillLibrary, card retained; textTool absent becauseeditor never appeared.",
+          "Old DD009 Pad passed samecase; Appandcase sources identical. No proven data loss, invalid tap or rootcause."
+        ],
+        "hypothesis": "Distinguish native press reaching existing LibraryPressStyle from existing destinationonAppear; passiveDEBUG printsonly underoriginaltestfixture arg; no interaction change."
+      },
+      {
+        "case": "StudioProductionCaptureTests.testArabicDarkProductionScreens",
+        "line": "UITests/StudioProductionCaptureTests.swift:110",
+        "facts": [
+          "Exact original video06825263-E129-45A7-A88B-63EBF7F8266F.mp4 shows menuCLOSED and correct NotesSplit atPTS28, recordstart1793033739.460.",
+          "Collection count0 returnedafter6.124917083333457s, hard5s guardcorrectlyfailed.",
+          "InternalXCTestt28.40 query\u219234.52 completion shows countitself~6.12s; outerwalllogflushlag mustnotbemisread asforegroundquerycost."
+        ],
+        "next_hypothesis": "Third observerdesign: PUBLIC waitForNonExistence(timeout:5), retainactualelapsed<=5 andforegroundassert. ApplemetadataXcode16.3; no introducediOSversion. No fourthobserverpatchifthisfails."
+      }
+    ],
+    "native_unified_log": {
+      "partial_bytes": 395570861,
+      "collection_status": "timed out after120s; selectedfailurewindowsretained; no crashreportsdoesNOTproveabsenceofcrash"
+    },
+    "next": "One original4casePad-focusedbatch: precedingPDF+PPTX imports, actualfailedAppOwnedPDF and actualfailedDark. No fullgate/Applewrite/package beforeevidence."
   }
 }

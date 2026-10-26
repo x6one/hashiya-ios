@@ -1442,17 +1442,28 @@ final class LaunchTests: XCTestCase {
         }
         let savedCount = count.value as? String
         recordState("StrokeSaved", expected: savedCount)
-        guard tapTarget("inkUndo") else { return false }
-        let undone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (Int(count.value as? String ?? "") ?? -1) == before
-        }, object: count)
-        XCTAssertEqual(XCTWaiter.wait(for: [undone], timeout: 5), .completed, "Undo edge tap must remove the actual stroke")
+        // Native Undo/Redo runs synchronously. Observe the first post-tap value
+        // directly: a timer-based predicate adds a one-second delay before its
+        // blocking AX query, and can time out before delivering that result.
+        // Keep the original five-second observation bound, including AX cost;
+        // a correct value returned late must still fail.
+        func assertInkAction(_ identifier: String, expected: String?, message: String) -> Bool {
+            let gestureStarted = ProcessInfo.processInfo.systemUptime
+            guard tapTarget(identifier) else { return false }
+            let started = ProcessInfo.processInfo.systemUptime
+            let actual = count.value as? String
+            let ended = ProcessInfo.processInfo.systemUptime
+            let timing = "action=\(identifier); gestureStarted=\(gestureStarted); readStarted=\(started); readEnded=\(ended); expected=\(expected ?? "missing"); actual=\(actual ?? "missing")"
+            let receipt = XCTAttachment(string: timing)
+            receipt.name = name + "-" + identifier + "-ObserverTiming"; receipt.lifetime = .keepAlways; add(receipt)
+            print("NativeInkActionObserver stage=\(name); \(timing)")
+            XCTAssertEqual(actual, expected, message)
+            XCTAssertLessThanOrEqual(ended - started, 5, "The native result must be observed within the original five-second deadline")
+            return true
+        }
+        guard assertInkAction("inkUndo", expected: String(before), message: "Undo edge tap must remove the actual stroke") else { return false }
         recordState("Undo", expected: String(before))
-        guard tapTarget("inkRedo") else { return false }
-        let redone = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            count.value as? String == savedCount
-        }, object: count)
-        XCTAssertEqual(XCTWaiter.wait(for: [redone], timeout: 5), .completed, "Redo edge tap must restore the actual stroke")
+        guard assertInkAction("inkRedo", expected: savedCount, message: "Redo edge tap must restore the actual stroke") else { return false }
         recordState("Redo", expected: savedCount)
         let frame = canvas.frame, page = app.textFields["pageNumber"].value as? String
         guard tapTarget("fitMargin") else { return false }

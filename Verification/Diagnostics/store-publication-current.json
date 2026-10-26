@@ -1,0 +1,206 @@
+{
+  "status": "Frozen candidate preparation after passing targeted Debug/Release evidence; mandatory full qualification still pending",
+  "target": {
+    "version": "0.6.0",
+    "build": "13",
+    "bundle_id": "com.ahmadalawi.hashiya"
+  },
+  "production_app_tree": "8450ba5af2106395bbfd021999e9c6722d85c90b",
+  "store_controller": "65b50e9f43d569dfda5aaf238de9dc7535cf2f34",
+  "last_production_test": {
+    "source": "5123b96e8df5b9f7515edb83313cc2f2d8619e8c",
+    "run": 40262819235,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40262819235",
+    "case": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
+    "passed": 0,
+    "failed": 1,
+    "failure": "UITests/LaunchTests.swift1421: actual native writing surface must gain >40 red pixels after first compact Notes stroke",
+    "note": "Last reproduced failing instance; later observer-only run40279190238 passed1/1, not a functional repair."
+  },
+  "saved_failure": {
+    "artifact": 12625114449,
+    "sha256": "f900457bed493516e520e5acb3d1801701680de35f316b721c0e21c5d5d123ad",
+    "local": "/workspace/Tayya-native-failure-5123",
+    "crc_verified": true
+  },
+  "proved": [
+    "Five screen-only observations from1.04 through5.39s returned0 red pixels; whole-screen and element captures show only the original green stroke.",
+    "The real drawing has2 strokes,796 persisted bytes; independent native PKDrawing raster005 contains3927 red pixels. Original synthetic inputs remain byte-identical after inspection.",
+    "Red stroke bounds(156,52,269,29) atzoom0.565 fit inside the same367.333x88.667 viewport. Missing input, offscreen red stroke and corrupt saved ink are excluded for this instance.",
+    "Actual failed-instance phase counts0to11=[0,1,2,1,1,1,1,10,0,4,0,1], tail7779797971324567. Same-page reload0, initial load1; no configure inside save publication; canvas remains first responder.",
+    "Document Undo/Redo first-observation checks passed in0.406s/0.256s within the retained5s bound. CompactSplit Undo/Redo was not reached; do not claim the complete repair verified."
+  ],
+  "unresolved": [
+    "The live renderer/compositor trigger is not identified; correct saved data does not prove correct live display.",
+    "End->drawingChange->serialize->publish->configure leaves synchronous delegate/persistence timing as a confound. It is not proof that persistence caused the failure."
+  ],
+  "decision": "Stop further isolation experiments. Follow user instruction to retain changes/evidence and run ONE comprehensive release qualification on one fixed candidate with existing diagnostics. No functional rendering fix is claimed from healthy traces. Preserve and analyze any actual failure before further changes or retries.",
+  "native_control": {
+    "source": "66b0ef81d30028115f02bd0e2708ceed3667e08f",
+    "run": 40266142260,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40266142260",
+    "status": "PASS1/1;0failed,0skipped,0expectedFailures",
+    "scope": "Independent Verification/NativeInkControl target, same viewport/zoom/seed/pencil/native color picker/gesture; no SwiftUI, PDF, PKCanvasViewDelegate or persistence. Retains custom fit/inputView setup, so a failure does not by itself prove an Apple framework defect. Never distributed as Tayya.",
+    "earlier_build_only_failure": {
+      "run": 40265708075,
+      "executed_tests": 0,
+      "reason": "Swift exclusive-access error in diagnostic pixel utility; fixed through the borrowed byte buffer. Not native runtime evidence."
+    },
+    "seconds": 32.796,
+    "first_sample_seconds": 1.320279416666608,
+    "red_pixels": 3910,
+    "baseline_red_pixels": 0,
+    "artifact": 12626334253,
+    "artifact_sha256": "32f57082ffcbe81caffb43c220165adfe6d410a8ee839de02affd58cedd59917",
+    "crc_verified": true,
+    "raw_after_png": "F8E9BE31-E7A7-4329-AAF2-03046E1490EA.png",
+    "interpretation": "The native control rendered this first stroke. This single passing control does not exclude an intermittent framework issue, identify the application trigger or qualify Tayya. No identical application rerun or production patch follows this negative finding."
+  },
+  "store_images": {
+    "capture_source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
+    "capture_run": 40211390688,
+    "renderer_source": "4517cfe148aa22de9245b2e02583bfde8cf29565",
+    "render_run": 40214217251,
+    "artifact": 12606922443,
+    "images": 12,
+    "sha256": "7fa0729d0e9ec42d16c5931279b10b8ceccda093ef8321e8b99fe209cb42b810",
+    "inner_zip_sha256": "454d3ec368c4d6ec6d38d440ecfa7e7eb2b9427cfb7a9178c1c5c6fd19d42a7e",
+    "verified": "All12 actual native originals/output hashes, RGB/noalpha/dimensions, outer/innerCRC and visual review passed. OnlyPad06Focus changed to its preserved actual DarkFocus capture."
+  },
+  "publication_tools": {
+    "python_passed": 44,
+    "node_passed": 16,
+    "workflows_linted": 6,
+    "native_gates_replaced": false,
+    "enabled": false,
+    "apple_writes": false
+  },
+  "remaining": "One full same-SHA release gate and same-SHA actual Store capture run; handle any failure from its original evidence. Do not enable Store binary publication before every required job succeeds. Physical microphone/interruption and physical Office conversion remain unverified by CI.",
+  "last_full_gate": {
+    "source": "c5d1990237a46f584b9a64b2c590bbe4c0b8522b",
+    "run": 40211390622,
+    "status": "FAILED",
+    "cold_iPhone": "2/3passed; Undo observer deadline failed",
+    "cold_iPad": "3/3passed",
+    "full151_per_device_Maestro_Office": "Correctly not executed after the critical cold failure; no new qualified IPA."
+  },
+  "rotation_control": {
+    "hypothesis": "Previous bare control started directly in landscape. Actual failed app retains same canvas across440x147.333 portrait->367.333x88.667 landscape, a viewport/zoom-cache boundary omitted from control.",
+    "scope": "Only isolated ControlApp/ControlTests change; same5s readiness nowchecks both windoworientation and actualcanvasdimensions. Production MarginNotebook restored byte-exactfeb1, no new functional patch.",
+    "status": "PASS1/1;0failed;35.656s",
+    "source": "3127af0b5917c61b838a137f13ad0741de536cc4",
+    "run": 40280701339,
+    "red_pixels": 3854,
+    "first_sample_seconds": 1.2817704
+  },
+  "dual_canvas_control": {
+    "source": "c654b7208168590a71d308e556d91e4467fb3b20",
+    "run": 40283503639,
+    "status": "PASS1/1;0failed;52.472s",
+    "document_red_pixels": 5968,
+    "notes_red_pixels": 3876,
+    "scope": "Native PDF overlay pencil stroke, native Undo/Redo and Fit before lazy creation and retained portrait->landscape Notes. No SwiftUI/model/persistence. One passing isolation does not exclude intermittent failure or qualify Tayya."
+  },
+  "source_engine_control": {
+    "status": "PASS1/1;0failed,0skipped;66.223s",
+    "hypothesis": "Previous native controls omitted actual MarginNotebook delegate, actual InkToolbar SwiftUI color sheet and MarginPages observable atomic saves. Exercise those unmodified production sources inside the same diagnostic-only dual-canvas host.",
+    "only_test": "ControlTests.testProductionNotesAfterDocumentInk",
+    "scope": "Separate native-ink-control bundle; only synthetic tmp/ReviewEntry UUID data. Keep >40red/5s and native Undo/Redo deadlines. No App file or storage-format changes. Post-test native inspection reads saved bytes and preserves original hashes.",
+    "limit": "If it passes once, the actual app failure remains unresolved. If it fails, compare raw live PNG, native count, correct color and independent saved raster before attributing the cause.",
+    "source": "33c3062e4c1b11115f7747474016a467b7e2baf8",
+    "run": 40286057164,
+    "document_red_pixels": 5943,
+    "notes_red_pixels": 3903,
+    "notes_first_sample_seconds": 1.2838828333333367,
+    "inputs_unchanged": true,
+    "collection_errors": [],
+    "artifact": 12634855701,
+    "artifact_sha256": "3ef7f52dd04e1ed9095ee54d36ce7c78ae4bdb19b088b37fc56da28b69185da9",
+    "interpretation": "Actual unchanged source core rendered this native stroke. One passing isolation does not establish a repair. It omits shared PDFWorkspace publication and real parent view hierarchy."
+  },
+  "render_callback_probe": {
+    "hypothesis": "A valid committed stroke does not necessarily complete native tile rendering; observe native canvasViewDidFinishRendering versus drawing-change sequence at the actual failing boundary.",
+    "scope": "DEBUG-only scalar callback counters plus existing pre/post gesture AX receipt; no native UI/drawing reads, clocks, persistence or publications in callback. Release token sequence unchanged.",
+    "test": "Only original iPhone testIndividualInkTargetsAtAccessibilityTextSize; no changed deadlines or assertions, no Release/full suite.",
+    "interpretation": "A pass is measurement only. On failure compare baseline and failed renderCompletions/renderedChangeCount; do not infer fix from successful tracing.",
+    "result": {
+      "source": "4a00210c7436dd31e5cc0b2981753e77788a4f8e",
+      "run": 40279190238,
+      "passed": 1,
+      "failed": 0,
+      "seconds": 205.034,
+      "counter": "renderCompletions1/renderedChangeCount1 before stroke, after visible stroke, Undo and Redo.",
+      "limit": "Apple documents assigned drawing/userzoom/scroll readiness, not interactive-stroke render revisions. Successful measurement does not prove old failure fixed. Remove temporary observer by restoring exact original MarginNotebook bytes."
+    }
+  },
+  "next_probe": {
+    "status": "PASS1/1;0failed,0skipped;188.136s",
+    "hypothesis": "Actual Notes saved callback unconditionally publishes workspace.canUndoPageDeletion=false, updating shared NativePDF. PageChanged/willDisplay may activate PDF independently of Notes target. Core control omitted this shared coupling. Measure actual event order before deciding whether a transient native ownership handoff is present.",
+    "only_test": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize on iPhone only",
+    "scope": "DEBUG-only fixed scalar counters128phase ring; no clocks, native drawing/geometry/responder reads, publishers, file writes, delegate replacements or timing/assertion changes. Existing post-gesture AX receipt transports counts. Release normalized sources in both modified files remain identical to33c3062.",
+    "phase_legend": {
+      "1": "Notes begin",
+      "2": "Notes end",
+      "3": "Notes drawingChange",
+      "4": "Notes saved enter",
+      "5": "Notes saved return",
+      "6": "workspace undo-clear begin",
+      "7": "workspace undo-clear end",
+      "8": "NativePDF update enter",
+      "9": "NativePDF update exit",
+      "10": "PDF drawing-enabled transition",
+      "11": "PDF pageChanged activation requested",
+      "12": "PDF willDisplay activation requested",
+      "13": "PDF enable activation requested",
+      "14": "existing PDF becomeFirstResponder returnedtrue",
+      "15": "existing PDF becomeFirstResponder returnedfalse",
+      "16": "Notes didMoveToWindow before existing responder call",
+      "17": "Notes didMoveToWindow after existing responder call",
+      "19": "PDF setDrawing enter",
+      "20": "PDF tool configuration changed"
+    },
+    "interpretation": "A successful run is only a measured trace. On failure correlate actual save/publication/PDF activation order with original pixel/raster evidence. Do not claim a fix or rerun an unchanged case from one healthy trace. Phase14 only means the existing becomeFirstResponder request returnedtrue; it can already be first responder and by itself does not prove a handoff or root cause.",
+    "source": "e227e8c3501321f4bc08748e2ef33cff072dcb0a",
+    "run": 40287698972,
+    "artifact": 12634954475,
+    "artifact_sha256": "8f078196da685d789f1818241e5e4f1964bc20182d8441ed3a27013aba46243c",
+    "observed_phases_after_first_notes_stroke": [
+      3,
+      3,
+      16,
+      17,
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      5,
+      8,
+      19,
+      9
+    ],
+    "observation": "Notes save returned, then NativePDF update/setDrawing returned. No native PDF activation request or enabled/tool transition occurred after Notes creation in this healthy trace. Does not establish or exclude the cause of the previous intermittent failure.",
+    "undo_read_seconds": {
+      "document": 0.3833348750000978,
+      "notes": 0.3962898749999093
+    },
+    "redo_read_seconds": {
+      "document": 0.2420988333334357,
+      "notes": 0.3455692499999409
+    }
+  },
+  "release_candidate": {
+    "status": "prepared; not yet dispatched",
+    "parent": "e227e8c3501321f4bc08748e2ef33cff072dcb0a",
+    "app_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
+    "native_counts_per_device": {
+      "Tests": 99,
+      "UITests": 52
+    },
+    "original_tests_retained": true,
+    "required": "3 original cold regression cases/device, all151XCTest+XCUITest/device,3Maestro/device, real export bytes, native gallery, complete Office and Releaseiphoneos/IPA on exact same candidate. Existing jobs enforce no failed/skipped/expected failures.",
+    "diagnostics_retained": "DEBUG scalar cross-host trace plus existing native xcresult/failure preservation. Release behavior/source unaffected by tracing.",
+    "capture": "Recapture both Store devices at this same candidate. Reuse byte-exact approved Pad06 DarkFocus copy from4517; actual native PNG originals never edited."
+  }
+}

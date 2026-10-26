@@ -68,7 +68,7 @@ jobs:
               raise SystemExit('The required actual medium-phone simulator is unavailable; do not relabel another device')
           _, runtime, device = max(matches, key=lambda row: row[0])
           with open('store-device.json', 'w') as f:
-              json.dump({'source': os.environ['GITHUB_SHA'], 'runtime': runtime, 'device': device}, f, indent=2)
+              json.dump({'source': os.environ['GITHUB_SHA'], 'app_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD:App'], text=True).strip(), 'release_qualification': 'separate mandatory gate on this same source', 'runtime': runtime, 'device': device}, f, indent=2)
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write('SIMULATOR_ID=' + device['udid'] + '\n')
           print('Actual capture device:', device['name'], runtime)

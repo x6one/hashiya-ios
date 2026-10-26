@@ -82,3 +82,10 @@ are mandatory. The original signer records controller GITHUB_SHA; a separate
 receipt attests the actual built checkout and signed IPA hash. No event or SHA
 is forged. No Apple write/upload/review submission has occurred; publication is
 still disabled until critical native qualification and controller review pass.
+
+
+### 2026-10-26 — frozen qualification candidate (publication disabled)
+
+Candidate `dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39` retains the original production engine and the measured native Undo/Redo observer checks. Targeted actual-source control33c3062 passed1/1; the original iPhone ink case on e227e8c passed1/1 in188.136s. These healthy traces do not establish the cause or repair of the earlier intermittent first-stroke presentation failure.
+
+The one complete qualification is run40290027939; actual same-source Store captures are run40290027945. Both must finish successfully before publication. Store controller App/build/test sources are byte-identical to this candidate; only its isolated publisher and Store material differ. `publish_binary` remains false. Fresh controller checks passed44Python +16Node tests and7workflows; their mocked upload fixture is not an Apple upload. Privacy/support URLs returnedHTTP200.

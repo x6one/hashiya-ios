@@ -726,7 +726,13 @@ struct DocumentScreen: View {
                           label: String(format: TayyaLocalized("ملاحظة %d: %@"), margins.position + 1, String(text.suffix(70))))
     }
     private func recordMarginInk(_ count: Int, _ id: UUID) {
+        #if DEBUG
+        NativeInkOwnershipTrace.record(6)
+        #endif
         workspace.canUndoPageDeletion = false
+        #if DEBUG
+        NativeInkOwnershipTrace.record(7)
+        #endif
         let source = margins.pages.first { $0.id == id }?.sourcePage ?? workspace.page
         recordAudioMarker(page: source, notePageID: id, kind: "notesInk", strokeCount: count,
                           label: String(format: TayyaLocalized("خط يد في الملاحظات %d"), margins.position + 1))
@@ -1210,6 +1216,10 @@ struct NativePDF: UIViewRepresentable {
         return view
     }
     func updateUIView(_ view: PDFView, context: Context) {
+        #if DEBUG
+        NativeInkOwnershipTrace.record(8)
+        defer { NativeInkOwnershipTrace.record(9) }
+        #endif
         // Retain the document and ink while hiding full-screen Notes' PDF.
         // XCTest can retain its identified AX node despite these actual flags.
         let hidden = !presented
@@ -1254,7 +1264,12 @@ struct NativePDF: UIViewRepresentable {
             if workspace.page != index + 1 { workspace.page = index + 1 }
             let count = canvases[index]?.drawing.strokes.count ?? workspace.savedInkCount(on: index)
             if workspace.inkStrokeCount != count { workspace.inkStrokeCount = count }
-            if enabled { activateCurrentCanvas() }
+            if enabled {
+                #if DEBUG
+                NativeInkOwnershipTrace.record(11)
+                #endif
+                activateCurrentCanvas()
+            }
         }
         @objc func tap(_ gesture: UITapGestureRecognizer) {
             guard let view = workspace.view else { return }
@@ -1292,25 +1307,41 @@ struct NativePDF: UIViewRepresentable {
             if gesture.state == .cancelled || gesture.state == .failed { if let original = dragging { workspace.previewPosition(original) }; dragging = nil; dragOrigin = nil }
         }
         func setDrawing(_ value: Bool) {
+            #if DEBUG
+            NativeInkOwnershipTrace.record(19)
+            #endif
             if let view = workspace.view, view.isInMarkupMode != value { view.isInMarkupMode = value }
             let toolChanged = appliedBrush != workspace.brush || appliedColor != workspace.inkColor || appliedWidth != workspace.inkWidth
+            #if DEBUG
+            if toolChanged { NativeInkOwnershipTrace.record(20) }
+            #endif
             for canvas in canvases.values {
                 canvas.enableLasso(workspace.tool == .lasso)
                 if toolChanged { canvas.tool = workspace.brush.tool(color: UIColor(workspace.inkColor), width: workspace.inkWidth) }
             }
             appliedBrush = workspace.brush; appliedColor = workspace.inkColor; appliedWidth = workspace.inkWidth
-            guard enabled != value else { return }; enabled = value
+            guard enabled != value else { return }
+            #if DEBUG
+            NativeInkOwnershipTrace.record(10)
+            #endif
+            enabled = value
             for canvas in canvases.values {
                 canvas.isUserInteractionEnabled = value && workspace.canWriteInk(on: canvas.tag)
                 if !value { canvas.resignFirstResponder() }
             }
-            if value { activateCurrentCanvas() }
+            if value {
+                #if DEBUG
+                NativeInkOwnershipTrace.record(13)
+                #endif
+                activateCurrentCanvas()
+            }
         }
         private func activateCurrentCanvas() {
             guard let view = workspace.view, let page = (view as? ResizingPDFView)?.readingPage ?? view.currentPage,
                   let canvas = canvases[workspace.document.index(for: page)], canvas.window != nil else { return }
             let became = canvas.becomeFirstResponder()
             #if DEBUG
+            NativeInkOwnershipTrace.record(became ? 14 : 15)
             if ProcessInfo.processInfo.arguments.contains("--test-ink-responder") {
                 view.accessibilityValue = "NativePenResponder type=\(type(of: canvas)) became=\(became) keyInput=\(canvas is UIKeyInput) textInput=\(canvas is UITextInput) inputView=\(String(describing: canvas.inputView))"
             }
@@ -1342,7 +1373,12 @@ struct NativePDF: UIViewRepresentable {
             return canvas
         }
         func pdfView(_ view: PDFView, willDisplayOverlayView overlayView: UIView, for page: PDFPage) {
-            if enabled { activateCurrentCanvas() }
+            if enabled {
+                #if DEBUG
+                NativeInkOwnershipTrace.record(12)
+                #endif
+                activateCurrentCanvas()
+            }
         }
         func applyInkAction(_ action: String) {
             guard let canvas = canvases[workspace.page - 1] else { return }

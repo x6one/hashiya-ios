@@ -229,6 +229,30 @@ final class StudioProductionCaptureTests: XCTestCase {
         closeNotes(app); thumbnails(app)
         focus(app); snapshot("Focus")
     }
+    func testNativeMenuAbsenceRejectsAnUnselectedVisibleAction() {
+        let app = library(dark: true); openDocument(app)
+        waitForRenderedSidebarPreviews(app)
+        app.buttons["workspaceActions"].tap()
+        let item = app.buttons["splitDocumentNotes"]
+        XCTAssertTrue(item.waitForExistence(timeout: 5))
+        // Do not select or dismiss anything. An actually open native menu
+        // must fail the same absence oracle used by the original positive case.
+        let observation = observeNativeMenuAbsence(of: item)
+        let stillPresent = item.exists
+        let details = "frameworkTimeout=5; nativeAbsent=\(observation.absent); rowStillPresent=\(stillPresent); observerWallSeconds=\(observation.wallSeconds); foreground=\(observation.foreground)"
+        print("NativeMenuOpenNegativeControl " + details)
+        let receipt = XCTAttachment(string: details)
+        receipt.name = "NativeMenuOpenNegativeControl"; receipt.lifetime = .keepAlways; add(receipt)
+        let screen = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screen.name = "NativeMenuStillOpenOriginalDisplay"; screen.lifetime = .keepAlways; add(screen)
+        XCTAssertFalse(observation.absent, "An unselected visible menu must never pass native absence")
+        XCTAssertTrue(stillPresent)
+        XCTAssertTrue(item.frame.intersects(app.windows.firstMatch.frame))
+        XCTAssertTrue(observation.foreground)
+        XCTAssertFalse(app.textViews["splitNotes"].exists, "Waiting must not perform the Notes action")
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
+        app.terminate()
+    }
     func testLargestArabicProductionTextInBothOrientations() {
         let app = library(large: true)
         snapshot("Library"); openDocument(app); exerciseAccessiblePageNavigation(app); snapshot("Editor")

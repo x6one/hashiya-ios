@@ -1,5 +1,5 @@
 {
-  "status": "Af8 focused3importsPASS; Darkcapture failed BEFORE publicmenuwait; correcting async preview readiness, noAppfunctionalchange orApplewrite.",
+  "status": "Stoppedafterthirdobserverform; architecture review found addedRPCwallSLOabsentfromoriginalcontract; validating restoration withreal negative+originalpositive controls. NoAppchange/Applewrite.",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -393,5 +393,48 @@
     "retained_conditions": "OriginalsettledScreenshot5s wholepixel+orientationfunctionbyteidentical; originalPNGExif/touch checksretained. Native menuwait5+realelapsed<=5+foregroundretained andSTILLUNVERIFIED. All151testcasesretained.",
     "production": "Removedaf8DEBUGLibraryprintprobe; entireAppreturns exactc8db1ddd12d24f4ef3a15e91f187815d6c553ebd. Originalimportcasesunchanged; their3/3targetpassisNOTcausalrepairproof.",
     "next": "OneoriginalDarkcaseonly onPad; doNOTrepeatsuccessfulimports/fullgate."
+  },
+  "latest_menu_evidence": {
+    "source": "622f0d828d04dd6579a99f17a6df561899688354",
+    "run": 40390401430,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40390401430",
+    "result": "FAILED1/1;preserved",
+    "preview_readiness": "All5 actualvisibleimagesrendered;12.32343775s<newshared30;original5spixelcompositorPASSED",
+    "native_wait": {
+      "framework_timeout": 5,
+      "result": true,
+      "observer_wall_seconds": 7.0326729583333645,
+      "foreground": true,
+      "failure": "OnlyaddedRPCwall<=5 assertion atStudioProductionCaptureTests.swift110"
+    },
+    "artifact": {
+      "id": 12685300360,
+      "sha256": "e693da0225588fdd01c3c4192f00a85d7e371638dc9d5d131f506c1004450b6a",
+      "bytes": 93563030,
+      "local": "/workspace/Tayya-622-iPad-native-wait.zip",
+      "sha_crc_verified": true
+    },
+    "video": {
+      "original": "A184D124-59E9-44EC-B9D0-D132A13BC177.mp4",
+      "start_unix": 1793044801.551,
+      "synthesized_touch_record_unix": 1793044869.14,
+      "frame_443_pts": 69.095,
+      "frame_443": "NotesvisiblebutnativecontextMenuSTILLOPEN; doNOTcallthisclosed",
+      "frame_496_pts": 70.203333,
+      "frame_496_unix": 1793044871.754333,
+      "frame_496": "MenuCLOSEDandcorrectNotesSplit; approximateupperbound2.61saftertouchrecord. VFRframesnotnominalseektime; no postcapturecrop/rotation."
+    }
+  },
+  "menu_observer_architecture_ruling": {
+    "original_contract_source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39:UITests/ProductionUIHelpers.swift",
+    "original_contract": "Originaltap/readiness;XCTWaiter.wait(!element.exists,timeout5) mustreturncompleted; no totalwall-clock assertion.",
+    "mistake": "WeaddedactualRPCelapsed<=5 inafc1643 asanoverstronginterpretation; snapshot/count/public-native variantsallfindactualabsencebutcan exceed5s inremoteAXwork. No provenAppmenudismissaldefect fromthatmetric.",
+    "independent_review": "Explicitarchitecture review after3forms agreedthisconflatesremoteRPCwalltimewithappreadiness; earlierreviewendorsement acknowledgedtoo strong. Restoreoriginalframework-waitcontract, not a fourthobservermechanism.",
+    "correction": "SamePUBLICwaitForNonExistence(timeout5) MUSTreturntrue;foreground and ALLoriginalNotes/actionpostconditionsremain; actualwalltime retained diagnostic ONLY. DoNOTclaimnativeTrueat7s provesphysicalUI5s; latestoriginalvideo separatelyshowsclosedby~2.6s.",
+    "controls": "OriginalDarkpositivebodyunchanged. NEWseparate test leavesactualmenuOPEN: nativewait5 MUSTfalse,rowstillpresent/visible,foreground,noNotesactionandpage1; retainsraworiginalPNGandreceipt. Addedtoall151 originaltests =>152, no replacement.",
+    "focused_gate": "menu-dismissalselects2exactmethods; generalexact-methodselectionguardnowrequires everyselectedmethodexecute,0fail/skip; nofullrunbeforebothcontrolsPASS.",
+    "preservation": "AllpreviousfailedrunsremainFAILED; allartifacts/hash/CRC retained; noApp/engine/storage/UIstatefix claimed. AppTreec8 remains byteidentical.",
+    "shared_oracle": "observeNativeMenuAbsence(of:) is used by BOTH actual positivehelper and separate negativecase; notparallelAPI/mockedalwaysTrue. Actualsamefixed5frameworkdeadline, actualbool/foreground pluswallmetrics.",
+    "implementation_review": "Independent reviewer checkedconcrete code+sameoracle+2methodguard; no remainingimportantfinding; nativevalidationpending."
   }
 }

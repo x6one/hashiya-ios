@@ -1,5 +1,5 @@
 {
-  "status": "Blocked by two evidenced iPad failures in full7c78 gate; noApplewrite/IPA; investigating actualboundarybefore repair",
+  "status": "Af8 focused3importsPASS; Darkcapture failed BEFORE publicmenuwait; correcting async preview readiness, noAppfunctionalchange orApplewrite.",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -360,5 +360,38 @@
       "collection_status": "timed out after120s; selectedfailurewindowsretained; no crashreportsdoesNOTproveabsenceofcrash"
     },
     "next": "One original4casePad-focusedbatch: precedingPDF+PPTX imports, actualfailedAppOwnedPDF and actualfailedDark. No fullgate/Applewrite/package beforeevidence."
+  },
+  "current_followup": {
+    "source": "af8a392d87417ec1a971de5071476227fc8b93a8",
+    "run": 40369233813,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40369233813",
+    "status": "FAILED3PASS1FAIL0SKIP",
+    "imports": "All3 originalPDF/PPTX/AppOwnedPDF casesPASS; AppOwned48.458s; no originalcase/assertionchanged and no functionalrepairclaim",
+    "failure": "StudioProductionCaptureTests.testArabicDarkProductionScreens:303, initialEditor settledScreenshot5s. Public native menu waiter NEVER REACHED.",
+    "artifact": {
+      "id": 12674090018,
+      "bytes": 92081452,
+      "sha256": "c4c2b8c4315ce21b90d33cde1e4621e911b7eeacf0e66ba27c3b16295fc9ad61",
+      "sha_crc_verified": true,
+      "local": "/workspace/Tayya-af8-iPad-boundary.zip"
+    },
+    "facts": [
+      "ExistingNativeInkFailure/native-system.log was alreadyinsideartifact; readcachedlog, no newrun needed.",
+      "Pages1/2/3/5 render13.562\u219213.611; page4 ink13.563\u219237.813 (24.25s), resultimage1/error0; viewendcancelled0.",
+      "MetalCompilingShader onthreadf14b14.035\u219237.209 correlatedwithslowfirstPencilKitraster; exactworkerinternal call notinstrumented.",
+      "Originalvideo Editorframes15.5..19.5 shows actualpage4ProgressView, PDFgeometry/contentstable; dominantchangesaboveRGB16localizedtilesx1920,y1408/1472. Video compressionnoise nevertreated as originalPNGdifferencethreshold.",
+      "LibraryDEBUGstdoutprintsnotfoundinretainednative/logs; successfulinstrumentedimportdoesnotprovecauseoffullgatefailure. Removeprobe beforequalifyingApp orreusingDDimages.",
+      "Syntheticinputsunchanged=true inoriginalnativecollector."
+    ],
+    "decision_pending": "Reviewboundedstate-basedvisiblepreviewreadinessbeforeUNCHANGED5spixelsettling; one30s sharedbudget basedmeasured24scoldnativeworker, noSleep/movingcontent/skip/timeoutchange toexistingassertions. NexttargetonlyDark, doNOTrepeatsuccessful3imports. NoAppfunctionalchange proposed."
+  },
+  "capture_readiness_decision": {
+    "review": "Independent architecture review accepted explicit async-content readiness before unchanged5s compositor assertion. Visiblecontainers define requiredpages, includingplaceholders; nooffscreenrequests/scrolling; failonemptyvisibleinventoryorreaderror.",
+    "evidence": "Page4 inkthumbnail render17:51:13.563\u219237.813,24.25s; allother4pagesend13.611; image1/error0/cancelled0; Metalcompiler14.035\u219237.209. Actualspinnerblockedfullpixelstability.",
+    "new_content_allowance_seconds": 30,
+    "scope": "ONEshareddeadline across ONLY sidebarpagecontainersintersecting actualsidebar/windowviewport; requirecorrespondingpagePreview-N value rendered; norequestwholePDF/nosleep/nofont/Appchanges.",
+    "retained_conditions": "OriginalsettledScreenshot5s wholepixel+orientationfunctionbyteidentical; originalPNGExif/touch checksretained. Native menuwait5+realelapsed<=5+foregroundretained andSTILLUNVERIFIED. All151testcasesretained.",
+    "production": "Removedaf8DEBUGLibraryprintprobe; entireAppreturns exactc8db1ddd12d24f4ef3a15e91f187815d6c553ebd. Originalimportcasesunchanged; their3/3targetpassisNOTcausalrepairproof.",
+    "next": "OneoriginalDarkcaseonly onPad; doNOTrepeatsuccessfulimports/fullgate."
   }
 }

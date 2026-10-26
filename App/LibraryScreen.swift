@@ -383,14 +383,7 @@ struct LibraryScreen: View {
     private func notebookCard(_ note: Notebook) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             NavigationLink {
-                NotebookScreen(id: note.id, store: store).onAppear {
-                    #if DEBUG
-                    if ProcessInfo.processInfo.arguments.contains("--test-app-owned-picker") {
-                        print("LibraryNavigationBoundary destinationAppeared=\(note.id); uptime=\(ProcessInfo.processInfo.systemUptime)")
-                    }
-                    #endif
-                    lastOpenedNotebook = note.id.uuidString
-                }
+                NotebookScreen(id: note.id, store: store).onAppear { lastOpenedNotebook = note.id.uuidString }
             } label: {
                 VStack(alignment: .leading, spacing: 12) {
                     notebookCover(note)
@@ -501,14 +494,7 @@ private struct LibraryPressStyle: ButtonStyle {
     @Environment(\.tayyaReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        #if DEBUG
-        // Passive observation only for the existing isolated picker fixture.
-        // Do not add gestures, reroute touches or change NavigationLink state.
-        if ProcessInfo.processInfo.arguments.contains("--test-app-owned-picker") {
-            print("LibraryNavigationBoundary stylePressed=\(configuration.isPressed); uptime=\(ProcessInfo.processInfo.systemUptime)")
-        }
-        #endif
-        return configuration.label
+        configuration.label
             .opacity(configuration.isPressed ? 0.78 : 1)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }

@@ -279,6 +279,43 @@ final class StudioProductionCaptureTests: XCTestCase {
         snapshot("Recording-Playback", movingContent: true)
     }
 
+    private func waitForRenderedSidebarPreviews(_ app: XCUIApplication) {
+        let sidebar = app.descendants(matching: .any)["documentPageSidebar"].firstMatch
+        guard sidebar.exists else { return }
+        let started = ProcessInfo.processInfo.systemUptime
+        let viewport = sidebar.frame.intersection(app.windows.firstMatch.frame)
+        guard !viewport.isNull, !viewport.isEmpty else { return }
+        let cells = sidebar.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "sidebarPage-")).allElementsBoundByIndex
+        var required: [String] = []
+        for cell in cells {
+            let visible = cell.frame.intersection(viewport)
+            if !visible.isNull, !visible.isEmpty {
+                required.append("pagePreview-" + String(cell.identifier.dropFirst("sidebarPage-".count)))
+            }
+        }
+        guard !required.isEmpty else {
+            XCTFail("The visible sidebar must expose its real page containers: " + sidebar.debugDescription); return
+        }
+        // The saved cold Simulator trace spent24.25s in the native ink preview
+        // while Metal compiled shaders. Wait for real async content FIRST;
+        // the separate five-second pixel/orientation check remains unchanged.
+        // One deadline covers visible placeholders only, never the whole PDF.
+        for identity in required {
+            let remaining = 30 - (ProcessInfo.processInfo.systemUptime - started)
+            let image = sidebar.images[identity]
+            guard remaining > 0, image.waitForExistence(timeout: remaining) else {
+                let evidence = XCTAttachment(string: "required=\(required)\n" + sidebar.debugDescription)
+                evidence.name = "FailedVisiblePreviewReadiness"; evidence.lifetime = .keepAlways; add(evidence)
+                XCTFail("Visible native preview did not finish within the shared30s content budget: " + identity); return
+            }
+            XCTAssertEqual(image.value as? String, "rendered", "A placeholder or failed image is not a ready preview")
+        }
+        let elapsed = ProcessInfo.processInfo.systemUptime - started
+        print("NativePreviewReadiness required=\(required); elapsed=\(elapsed)")
+        XCTAssertLessThanOrEqual(elapsed, 30, "All visible previews share one content-loading budget")
+        XCTAssertEqual(app.state, .runningForeground)
+    }
+
     private func settledScreenshot(_ app: XCUIApplication, landscape: Bool, movingContent: Bool) -> XCUIScreenshot? {
         let oriented = NSPredicate { _, _ in
             let frame = app.windows.firstMatch.frame
@@ -307,6 +344,7 @@ final class StudioProductionCaptureTests: XCTestCase {
     private func snapshot(_ name: String, movingContent: Bool = false) {
         let app = XCUIApplication()
         let landscape = XCUIDevice.shared.orientation.isLandscape
+        waitForRenderedSidebarPreviews(app)
         var settled = settledScreenshot(app, landscape: landscape, movingContent: movingContent)
         if name == "Editor" && arguments.contains("UICTContentSizeCategoryAccessibilityXXXL") {
             assertAccessibleNavigation(app)

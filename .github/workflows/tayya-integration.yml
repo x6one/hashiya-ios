@@ -202,6 +202,19 @@ jobs:
           assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
           print('Verified native tests:', summary['passedTests'])
           PY
+      - name: Retain small unmodified menu-control images and receipts
+        if: always() && (inputs.suite == 'menu-dismissal' || contains(github.event.head_commit.message, '[integration:menu-dismissal]'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-menu-controls-${{ matrix.family }}
+          path: |
+            integration-selection.json
+            IntegrationEvidence/summary.json
+            IntegrationEvidence/Screenshots/*.png
+            IntegrationEvidence/Screenshots/*.txt
+            IntegrationEvidence/Screenshots/*.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v4

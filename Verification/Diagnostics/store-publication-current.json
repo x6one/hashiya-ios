@@ -1,5 +1,5 @@
 {
-  "status": "Stoppedafterthirdobserverform; architecture review found addedRPCwallSLOabsentfromoriginalcontract; validating restoration withreal negative+originalpositive controls. NoAppchange/Applewrite.",
+  "status": "Sharednativeabsenceoracle positive+negativeconditionscorrect;7587runFAILEDtwoincorrectnewretained-view assumptions; correctingtestscope/stateinvariants withoutAppchanges.",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -436,5 +436,29 @@
     "preservation": "AllpreviousfailedrunsremainFAILED; allartifacts/hash/CRC retained; noApp/engine/storage/UIstatefix claimed. AppTreec8 remains byteidentical.",
     "shared_oracle": "observeNativeMenuAbsence(of:) is used by BOTH actual positivehelper and separate negativecase; notparallelAPI/mockedalwaysTrue. Actualsamefixed5frameworkdeadline, actualbool/foreground pluswallmetrics.",
     "implementation_review": "Independent reviewer checkedconcrete code+sameoracle+2methodguard; no remainingimportantfinding; nativevalidationpending."
+  },
+  "menu_controls_followup": {
+    "source": "7587f7d02dd19645dab8413bcf06138cd8b37dc9",
+    "run": 40394505252,
+    "result": "FAILED2/2,retained",
+    "core_evidence": [
+      "OriginalDarksplitnativeTrue3.022s andclosenativeTrue1.588s,foregroundtrue; actualNotesandthumbnailsstepsreached.",
+      "NegativeSAMEoracle nativeFalse6.747s,rowstillpresentandinwindow,foregroundtrue; mandatoryabsenceassertiondidnotacceptopenmenu."
+    ],
+    "actual_failures": [
+      "DarkfinalFocuscapture: newpreviewpreconditionmistookretainedcollapsedSidebar forvisiblecontent; AXframe(1024,0,16,1376),viewport8px,0pagecards.",
+      "Negative: ournew !splitNotes.exists assertionwrong; productiondeliberatelykeepsNotesmountedbehindopaquePDF, zIndex-1/hitTestingfalse/accessibilityHidden. AXexistencedoesnotmeanNotesaction."
+    ],
+    "source_proof": "App/PDFWorkspace.swift documentSurface/showsSidebar retainswidth0sidebar forFocus,expandedNotes,AX3; retainedDocumentSurface alwaysmountsNotesbehindPDFwhenclosed. Thisisrequirednativehostretention; doNOTchangeApptofitincorrecttest.",
+    "correction": "Onlyemptyinventory+narrowviewport<44 iscollapsednon-content; full-sizedemptyinventorystillFAIL. Originalcompositor5/PNG checksstillrun forFocus. NegativeassertsactualPDFframe,conditionalsplitDividerpresenceandpageUNCHANGEDvsbeforewaiting,initialpage1stillrequired; corefalse/rowvisible/foregroundremain.",
+    "artifact": {
+      "id": 12685269291,
+      "expected_sha256": "540ff3551b79e5f79477c27507e06a606f7c70c29b228ad95c93bf13010480a6",
+      "bytes": 137875041,
+      "downloaded": false,
+      "reason": "Currentfailurelogs+retentioncodeproveassumptions; no needdownload138MBjustrepeatreads. Artifactremainsavailable. Nextmeaningfulrunadds smallrawPNG/TXT/JSONcontrolbundle alongsideunchangedfullxcresult."
+    },
+    "original_cases": "Alloriginal151bodies/casesretained; total152; sourceAppunchangedc8; sharedwaiterunchanged; nonewobserver/timeout/productionchange.",
+    "review": "Independentreviewfoundnoblockingissue. Empty+narrowviewport<44 isonlya readyness-scopingheuristic, NOTproofofcorrectFocuslayout; full-widthemptyinventorystillfails andoriginalpixel/orientationchecksremainmandatory. Geometry/divider/pageinvarianceisactualpassive-actioncontract."
   }
 }

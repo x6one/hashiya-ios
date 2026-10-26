@@ -235,6 +235,13 @@ final class StudioProductionCaptureTests: XCTestCase {
         app.buttons["workspaceActions"].tap()
         let item = app.buttons["splitDocumentNotes"]
         XCTAssertTrue(item.waitForExistence(timeout: 5))
+        let canvas = app.otherElements["pdfCanvas"]
+        XCTAssertTrue(canvas.exists)
+        let canvasBefore = canvas.frame
+        let divider = app.descendants(matching: .any)["splitDivider"].firstMatch
+        let splitBefore = divider.exists
+        let pageBefore = app.textFields["pageNumber"].value as? String
+        XCTAssertEqual(pageBefore, "1", "The control must start on the actual source page")
         // Do not select or dismiss anything. An actually open native menu
         // must fail the same absence oracle used by the original positive case.
         let observation = observeNativeMenuAbsence(of: item)
@@ -249,8 +256,12 @@ final class StudioProductionCaptureTests: XCTestCase {
         XCTAssertTrue(stillPresent)
         XCTAssertTrue(item.frame.intersects(app.windows.firstMatch.frame))
         XCTAssertTrue(observation.foreground)
-        XCTAssertFalse(app.textViews["splitNotes"].exists, "Waiting must not perform the Notes action")
-        XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
+        // Notes deliberately remain mounted behind the native PDF when closed.
+        // Their AX existence is not visibility. Assert the actual layout stays
+        // unchanged while the same menu is left open instead.
+        XCTAssertEqual(canvas.frame, canvasBefore, "Waiting must not change the document/Notes layout")
+        XCTAssertEqual(divider.exists, splitBefore, "Waiting must not perform the split action")
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, pageBefore)
         app.terminate()
     }
     func testLargestArabicProductionTextInBothOrientations() {
@@ -316,6 +327,13 @@ final class StudioProductionCaptureTests: XCTestCase {
             if !visible.isNull, !visible.isEmpty {
                 required.append("pagePreview-" + String(cell.identifier.dropFirst("sidebarPage-".count)))
             }
+        }
+        if required.isEmpty, viewport.width < 44 {
+            // The retained, zero-width sidebar can expose only its native
+            // scroll-indicator sliver in Focus, expanded Notes or largest text.
+            // No page card is visible; the original compositor check still runs.
+            print("NativePreviewReadiness noVisiblePagesInCollapsedSidebar viewport=\(viewport)")
+            return
         }
         guard !required.isEmpty else {
             XCTFail("The visible sidebar must expose its real page containers: " + sidebar.debugDescription); return

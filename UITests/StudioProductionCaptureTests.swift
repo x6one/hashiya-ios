@@ -229,6 +229,41 @@ final class StudioProductionCaptureTests: XCTestCase {
         closeNotes(app); thumbnails(app)
         focus(app); snapshot("Focus")
     }
+    func testNativeMenuAbsenceRejectsAnUnselectedVisibleAction() {
+        let app = library(dark: true); openDocument(app)
+        waitForRenderedSidebarPreviews(app)
+        app.buttons["workspaceActions"].tap()
+        let item = app.buttons["splitDocumentNotes"]
+        XCTAssertTrue(item.waitForExistence(timeout: 5))
+        let canvas = app.otherElements["pdfCanvas"]
+        XCTAssertTrue(canvas.exists)
+        let canvasBefore = canvas.frame
+        let divider = app.descendants(matching: .any)["splitDivider"].firstMatch
+        let splitBefore = divider.exists
+        let pageBefore = app.textFields["pageNumber"].value as? String
+        XCTAssertEqual(pageBefore, "1", "The control must start on the actual source page")
+        // Do not select or dismiss anything. An actually open native menu
+        // must fail the same absence oracle used by the original positive case.
+        let observation = observeNativeMenuAbsence(of: item)
+        let stillPresent = item.exists
+        let details = "frameworkTimeout=5; nativeAbsent=\(observation.absent); rowStillPresent=\(stillPresent); observerWallSeconds=\(observation.wallSeconds); foreground=\(observation.foreground)"
+        print("NativeMenuOpenNegativeControl " + details)
+        let receipt = XCTAttachment(string: details)
+        receipt.name = "NativeMenuOpenNegativeControl"; receipt.lifetime = .keepAlways; add(receipt)
+        let screen = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screen.name = "NativeMenuStillOpenOriginalDisplay"; screen.lifetime = .keepAlways; add(screen)
+        XCTAssertFalse(observation.absent, "An unselected visible menu must never pass native absence")
+        XCTAssertTrue(stillPresent)
+        XCTAssertTrue(item.frame.intersects(app.windows.firstMatch.frame))
+        XCTAssertTrue(observation.foreground)
+        // Notes deliberately remain mounted behind the native PDF when closed.
+        // Their AX existence is not visibility. Assert the actual layout stays
+        // unchanged while the same menu is left open instead.
+        XCTAssertEqual(canvas.frame, canvasBefore, "Waiting must not change the document/Notes layout")
+        XCTAssertEqual(divider.exists, splitBefore, "Waiting must not perform the split action")
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, pageBefore)
+        app.terminate()
+    }
     func testLargestArabicProductionTextInBothOrientations() {
         let app = library(large: true)
         snapshot("Library"); openDocument(app); exerciseAccessiblePageNavigation(app); snapshot("Editor")
@@ -279,6 +314,50 @@ final class StudioProductionCaptureTests: XCTestCase {
         snapshot("Recording-Playback", movingContent: true)
     }
 
+    private func waitForRenderedSidebarPreviews(_ app: XCUIApplication) {
+        let sidebar = app.descendants(matching: .any)["documentPageSidebar"].firstMatch
+        guard sidebar.exists else { return }
+        let started = ProcessInfo.processInfo.systemUptime
+        let viewport = sidebar.frame.intersection(app.windows.firstMatch.frame)
+        guard !viewport.isNull, !viewport.isEmpty else { return }
+        let cells = sidebar.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "sidebarPage-")).allElementsBoundByIndex
+        var required: [String] = []
+        for cell in cells {
+            let visible = cell.frame.intersection(viewport)
+            if !visible.isNull, !visible.isEmpty {
+                required.append("pagePreview-" + String(cell.identifier.dropFirst("sidebarPage-".count)))
+            }
+        }
+        if required.isEmpty, viewport.width < 44 {
+            // The retained, zero-width sidebar can expose only its native
+            // scroll-indicator sliver in Focus, expanded Notes or largest text.
+            // No page card is visible; the original compositor check still runs.
+            print("NativePreviewReadiness noVisiblePagesInCollapsedSidebar viewport=\(viewport)")
+            return
+        }
+        guard !required.isEmpty else {
+            XCTFail("The visible sidebar must expose its real page containers: " + sidebar.debugDescription); return
+        }
+        // The saved cold Simulator trace spent24.25s in the native ink preview
+        // while Metal compiled shaders. Wait for real async content FIRST;
+        // the separate five-second pixel/orientation check remains unchanged.
+        // One deadline covers visible placeholders only, never the whole PDF.
+        for identity in required {
+            let remaining = 30 - (ProcessInfo.processInfo.systemUptime - started)
+            let image = sidebar.images[identity]
+            guard remaining > 0, image.waitForExistence(timeout: remaining) else {
+                let evidence = XCTAttachment(string: "required=\(required)\n" + sidebar.debugDescription)
+                evidence.name = "FailedVisiblePreviewReadiness"; evidence.lifetime = .keepAlways; add(evidence)
+                XCTFail("Visible native preview did not finish within the shared30s content budget: " + identity); return
+            }
+            XCTAssertEqual(image.value as? String, "rendered", "A placeholder or failed image is not a ready preview")
+        }
+        let elapsed = ProcessInfo.processInfo.systemUptime - started
+        print("NativePreviewReadiness required=\(required); elapsed=\(elapsed)")
+        XCTAssertLessThanOrEqual(elapsed, 30, "All visible previews share one content-loading budget")
+        XCTAssertEqual(app.state, .runningForeground)
+    }
+
     private func settledScreenshot(_ app: XCUIApplication, landscape: Bool, movingContent: Bool) -> XCUIScreenshot? {
         let oriented = NSPredicate { _, _ in
             let frame = app.windows.firstMatch.frame
@@ -307,6 +386,7 @@ final class StudioProductionCaptureTests: XCTestCase {
     private func snapshot(_ name: String, movingContent: Bool = false) {
         let app = XCUIApplication()
         let landscape = XCUIDevice.shared.orientation.isLandscape
+        waitForRenderedSidebarPreviews(app)
         var settled = settledScreenshot(app, landscape: landscape, movingContent: movingContent)
         if name == "Editor" && arguments.contains("UICTContentSizeCategoryAccessibilityXXXL") {
             assertAccessibleNavigation(app)

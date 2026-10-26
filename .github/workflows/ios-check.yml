@@ -324,7 +324,7 @@ jobs:
           from pathlib import Path
           summary = json.load(open('NativeResults/TestResults-summary.json'))
           expected = sum(len(re.findall(r'\bfunc\s+test\w+\s*\(', path.read_text())) for folder in ['Tests', 'UITests'] for path in Path(folder).glob('*.swift'))
-          assert expected >= 100, 'Retain all original68unit and32UI cases plus integration tests'
+          assert expected >= 152, 'Retain original68unit/32UI, all integration cases and the native menu negative control'
           assert summary['result'] == 'Passed', summary
           assert summary['passedTests'] == expected, ('Every current XCTest/XCUITest case must execute', expected, summary)
           assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary

@@ -63,7 +63,8 @@ jobs:
           requested = os.environ.get('REQUESTED_SUITE')
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
-              'menu-dismissal': ['HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens'],
+              'picker-boundary': ['HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint', 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
+              'menu-dismissal': ['HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
               'menu-boundary': ['HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
               'notes-redo-diagnosis': ['HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
               'notes-bounds': ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
@@ -192,11 +193,28 @@ jobs:
           python3 - <<'PY'
           import json
           summary = json.load(open('IntegrationEvidence/summary.json'))
+          selection = json.load(open('integration-selection.json'))
           assert summary['result'] == 'Passed', summary
           assert summary['passedTests'] > 0, 'An empty test selection is not verification'
+          methods = selection['onlyTesting']
+          if all(name.count('/') == 2 for name in methods):
+              assert summary['passedTests'] == len(methods), ('Every selected method must execute', methods, summary)
           assert summary['failedTests'] == summary['skippedTests'] == summary['expectedFailures'] == 0, summary
           print('Verified native tests:', summary['passedTests'])
           PY
+      - name: Retain small unmodified menu-control images and receipts
+        if: always() && (inputs.suite == 'menu-dismissal' || contains(github.event.head_commit.message, '[integration:menu-dismissal]'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-menu-controls-${{ matrix.family }}
+          path: |
+            integration-selection.json
+            IntegrationEvidence/summary.json
+            IntegrationEvidence/Screenshots/*.png
+            IntegrationEvidence/Screenshots/*.txt
+            IntegrationEvidence/Screenshots/*.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v4

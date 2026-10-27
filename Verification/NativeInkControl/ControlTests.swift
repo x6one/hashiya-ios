@@ -36,7 +36,10 @@ final class ControlTests: XCTestCase {
             : CGRect(x: 0, y: 670.6666666666666, width: 440, height: 147.33333333333331)
         XCTAssertEqual(canvas.frame.width, portrait.width, accuracy: 1)
         XCTAssertEqual(canvas.frame.height, portrait.height, accuracy: 1)
-        if padRecurrence { XCTAssertEqual(canvas.frame.minY, portrait.minY, accuracy: 1) }
+        if padRecurrence {
+            XCTAssertEqual(canvas.frame.minX, portrait.minX, accuracy: 1)
+            XCTAssertEqual(canvas.frame.minY, portrait.minY, accuracy: 1)
+        }
         attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-NativeControl-PortraitSeed")
         XCUIDevice.shared.orientation = .landscapeLeft
         let expectedPaper = padRecurrence ? CGRect(x: 0, y: 251.5, width: 560, height: 547)

@@ -39,13 +39,18 @@ struct ProductionNotesControl: View {
                 : landscape
                 ? CGRect(x: 62, y: 324, width: 832, height: 44)
                 : CGRect(x: 0, y: 818, width: 440, height: 44)
+            // The recorded frames are physical window coordinates. The RTL
+            // host mirrors logical x placement; compensate in this Pad-only
+            // fixture while keeping the actual Notes/toolbar Arabic direction.
+            let paperCenterX = pad && TayyaLocalization.shared.direction == .rightToLeft
+                ? geometry.size.width - paper.midX : paper.midX
             ZStack(alignment: .topLeading) {
                 if let page = store.current {
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush,
                                    color: editor.color, width: editor.width, control: control,
                                    saved: { store.saveInk($0, page: page.id) }, failed: { store.error = $0 })
                         .frame(width: paper.width, height: paper.height)
-                        .position(x: paper.midX, y: paper.midY)
+                        .position(x: paperCenterX, y: paper.midY)
                 }
                 InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width,
                            allowsWidthFit: true, compact: true, action: control.action)

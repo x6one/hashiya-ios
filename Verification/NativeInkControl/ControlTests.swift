@@ -28,7 +28,7 @@ final class ControlTests: XCTestCase {
             XCTAssertEqual(app.frame.width, 1032, accuracy: 1)
             XCTAssertEqual(app.frame.height, 1376, accuracy: 1)
         }
-        if precedingDocument { exerciseDocument(in: app) }
+        if precedingDocument { exerciseDocument(in: app, padRecurrence: padRecurrence) }
         let canvas = app.scrollViews[productionNotes ? "marginInkCanvas" : "controlCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
         XCTAssertEqual(canvas.value as? String, "1")
@@ -81,12 +81,13 @@ final class ControlTests: XCTestCase {
         XCTAssertEqual(canvas.value as? String, "2")
         XCTAssertEqual(canvas.frame, frame)
     }
-    @MainActor private func exerciseDocument(in app: XCUIApplication) {
+    @MainActor private func exerciseDocument(in app: XCUIApplication, padRecurrence: Bool = false) {
         let pdf = app.otherElements["controlPDF"]
         XCTAssertTrue(pdf.waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["controlStrokeCount"].value as? String, "0")
         app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()
-        selectColor(in: app, swatchName: "red 77", rgba: "1.0000,0.7098,0.6863,1.0000")
+        selectColor(in: app, swatchName: "red 77", rgba: "1.0000,0.7098,0.6863,1.0000",
+                    observeServiceStartup: padRecurrence)
         requireRedStroke(on: pdf, frame: pdf.frame, name: "PrecedingDocument",
                          nativeState: { app.staticTexts["controlStrokeCount"].label })
         for (action, expected) in [("controlUndo", "0"), ("controlRedo", "1")] {
@@ -102,7 +103,9 @@ final class ControlTests: XCTestCase {
         attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-PrecedingDocument-AfterRedoFit")
         app.buttons["controlShowNotes"].tap()
     }
-    @MainActor private func selectColor(in app: XCUIApplication, swatchName: String, rgba: String) {
+    @MainActor private func selectColor(in app: XCUIApplication, swatchName: String, rgba: String,
+                                       observeServiceStartup: Bool = false) {
+        if observeServiceStartup { requireOriginalColorServiceReadiness(stage: "Document") }
         let picker = app.otherElements["controlPicker"].firstMatch
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         let swatch = picker.descendants(matching: .any)
@@ -119,6 +122,7 @@ final class ControlTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)
     }
     @MainActor private func selectProductionColor(in app: XCUIApplication, padRecurrence: Bool = false) {
+        if padRecurrence { requireOriginalColorServiceReadiness(stage: "Notes") }
         let picker = app.otherElements["nativeInkColorPicker"].firstMatch
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         let swatch = picker.descendants(matching: .any)
@@ -134,6 +138,28 @@ final class ControlTests: XCTestCase {
                 && !app.otherElements["nativeInkColorPicker"].exists
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)
+    }
+    @MainActor private func requireOriginalColorServiceReadiness(stage: String) {
+        // Match LaunchTests.waitForNativeInkColorService's existing startup
+        // precondition. A cold OS remote service can leave an empty presented
+        // window before its AX picker exists (recorded in failed490f).
+        // Observe only: never launch/prewarm it, retry the tap, or extend the
+        // original five-second picker/content and live-stroke assertions.
+        let service = XCUIApplication(bundleIdentifier: "com.apple.UIKit.ColorPickerUIService")
+        let started = ProcessInfo.processInfo.systemUptime
+        var states = [service.state.rawValue]
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let state = service.state
+            if states.last != state.rawValue { states.append(state.rawValue) }
+            return state == .runningForeground
+        }, object: service)
+        let result = XCTWaiter.wait(for: [ready], timeout: 60)
+        let receipt = "stage=\(stage); states=\(states); final=\(service.state.rawValue); elapsed=\(ProcessInfo.processInfo.systemUptime - started); result=\(result.rawValue)"
+        let attachment = XCTAttachment(string: receipt)
+        attachment.name = "DIAGNOSTIC-OriginalColorServiceReadiness-" + stage
+        attachment.lifetime = .keepAlways; add(attachment)
+        print("NativeControlColorService " + receipt)
+        XCTAssertEqual(result, .completed, "Original OS color-service startup precondition must succeed")
     }
     @MainActor private func requireRedStroke(on canvas: XCUIElement, frame: CGRect, name: String,
                                            nativeState: (() -> String)? = nil) {

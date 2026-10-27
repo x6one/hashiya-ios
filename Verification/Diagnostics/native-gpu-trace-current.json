@@ -1,0 +1,37 @@
+{
+  "status": "Original case passed; native profiler failed, no GPU trace. Device-context correction locally verified, native confirmation pending.",
+  "source": "16cdbf4a296d4de2d74ef54963d9bf163b81951f",
+  "run": 40478504555,
+  "url": "https://github.com/x6one/hashiya-ios/actions/runs/40478504555",
+  "job": 122102593832,
+  "build_for_testing": "PASS",
+  "original_test": {
+    "name": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "architecture": "arm64",
+    "device": "iPad Pro 13-inch (M5)",
+    "iOS": "26.2"
+  },
+  "profiler": {
+    "exit": 21,
+    "error": "Cannot find process for provided pid: 11148",
+    "trace_exists": false,
+    "root": "The default host device namespace was used; retained native xctrace help documents explicit Simulator device selection. Host PID validation alone does not select that device namespace.",
+    "fix": "Add --device SIMULATOR_ID to xctrace record only; no App/UITest/timeout/default change.",
+    "validation": "New external-command contract failed before the flag and passed afterward; full Tools39/39 PASS. This is CLI-contract validation, not native GPU proof."
+  },
+  "artifact": {
+    "id": 12721659713,
+    "bytes": 83580698,
+    "sha256": "a0092c78cf0ad4432f4a196961533d715447f4c203219a9f8290b7a018c162b7",
+    "sha_crc_verified": true,
+    "local": "/workspace/Tayya-16cdb-native-trace.zip"
+  },
+  "interpretation": "No actual failure was captured; root cause of full9fd1 iPad live-ink defect remains unproven. Do not run full qualification or sign/upload from this isolated pass.",
+  "next": "One corrected simulator-device trace attempt; inspect real test and instrumentation outcomes separately. No automatic/identical retry.",
+  "publication_enabled": false,
+  "Apple_writes": false
+}

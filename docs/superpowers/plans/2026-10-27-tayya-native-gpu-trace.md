@@ -4,7 +4,7 @@
 
 **Goal:** Measure the previously unobserved native command-submission/execution boundary in the original real-App iPad live-ink case.
 
-**Architecture:** Attach the existing Xcode Metal System Trace instrument to the actual simulator App host PID. Preserve the unmodified original XCTest, original PNGs, xcresult, native logs and trace. Do not substitute an isolated canvas or a rendering-completion callback: the latter was already investigated and is not an interactive-stroke revision oracle.
+**Architecture:** Attach the existing Xcode Metal System Trace instrument to the verified App PID in the explicitly selected simulator device context. Preserve the unmodified original XCTest, original PNGs, xcresult, native logs and trace. Do not substitute an isolated canvas or a rendering-completion callback: the latter was already investigated and is not an interactive-stroke revision oracle.
 
 **Tech Stack:** Existing macOS15 runner, Xcode26.2, xctrace, Python standard library, XCTest.
 
@@ -41,3 +41,24 @@ Files: create `Tools/profile_native_ink.py`, `Tools/test_profile_native_ink.py` 
 Prior user authorization supplies execution approval: do not pause for routine plan confirmation. This is diagnostic infrastructure around an already-failed original test, not production behavior implementation; no fabricated RED/GREEN repair claim. Apple documents Metal System Trace and CLI trace export; GPU capture is not assumed unavailable on Simulator. No native callback counters are reintroduced.
 
 References: https://developer.apple.com/videos/play/wwdc2023/10099/ ; https://developer.apple.com/documentation/xcode-release-notes/xcode-12-release-notes/ ; https://developer.apple.com/documentation/metal/developing-metal-apps-that-run-in-simulator .
+
+## Native result and bounded device-context correction
+
+16cdbf4a/run40478504555 built successfully and the original case passed1/1,
+0 failures/skips/expected failures. Profiler exited21 with the actual saved
+message `Cannot find process for provided pid: 11148`; no trace was created.
+The native `xctrace help record` retained in that artifact states that an
+omitted device selects the host, and explicitly demonstrates Metal System
+Trace on a named Simulator. Host PS verifies the executable but does not
+select Instruments' device namespace. This is a diagnosed profiler defect,
+not an App rendering failure or repair. Artifact12721659713,83580698 bytes,
+SHA256 a0092c78cf0ad4432f4a196961533d715447f4c203219a9f8290b7a018c162b7
+was downloaded once and SHA/CRC verified.
+
+Ruling: correct only the profiler command to include `--device SIMULATOR_ID`,
+verified by an external-command contract RED→GREEN test. One corrected native
+capture attempt is authorized under this new measured condition; no automatic
+retry, App/UITest change, deadline extension or full qualification. Record a
+second infrastructure failure or healthy case honestly; do not calibrate the
+fixture indefinitely. Native CLI error tails now accompany the small process
+report so another large download is unnecessary just to read an error message.

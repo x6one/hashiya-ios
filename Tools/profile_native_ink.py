@@ -40,7 +40,7 @@ def run(command):
     report = {"source": os.environ["GITHUB_SHA"], "run": os.environ["GITHUB_RUN_ID"],
               "device": os.environ["SIMULATOR_ID"], "started_utc": utc(),
               "target": "HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
-              "scope": "One original case; host Metal System Trace of actual simulator App PID",
+              "scope": "One original case; Metal System Trace in the selected simulator device context",
               "limits": "Measurement can perturb timing. No repair, release qualification or physical-device proof.",
               "app_pid": None, "profiler_exit": None, "test_exit": None, "errors": []}
     profiler = None
@@ -60,6 +60,7 @@ def run(command):
                             report["attach_requested_utc"] = utc()
                             profiler = subprocess.Popen([
                                 "xcrun", "xctrace", "record", "--template", "Metal System Trace",
+                                "--device", report["device"],
                                 "--attach", str(pid), "--time-limit", "360s",
                                 "--output", str(output / "OriginalInk.trace")],
                                 stdout=trace_log, stderr=subprocess.STDOUT)
@@ -101,6 +102,8 @@ def run(command):
             report["profiler_exit"] = profiler.returncode
         report["completed_utc"] = utc()
         report["trace_exists"] = (output / "OriginalInk.trace").exists()
+        if report["profiler_exit"] not in (None, 0):
+            report["profiler_error_tail"] = (output / "profiler.log").read_text()[-4000:]
         (output / "process-report.json").write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps(report, indent=2))
     return report["test_exit"] or (2 if report["errors"] or report["profiler_exit"] != 0 or not report["trace_exists"] else 0)

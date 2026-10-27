@@ -1,0 +1,282 @@
+name: Tayya TestFlight QA Candidate — Not Production Qualified
+run-name: Internal QA of ${{ inputs.app_source }} — no public qualification
+on:
+  workflow_dispatch:
+    inputs:
+      app_source:
+        description: Exact40-character production commit SHA; not a branch or tag
+        required: true
+        default: b11b67975576642a47de81407b363fc99601aa6b
+        type: string
+      upload_to_apple:
+        description: Upload the verified signed QA build to App Store Connect; never submit a review
+        required: true
+        default: true
+        type: boolean
+      internal_group_id:
+        description: Optional existing internal TestFlight group for your account; no testers are invited
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: tayya-testflight-candidate
+  cancel-in-progress: false
+jobs:
+  qa-candidate:
+    if: github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/integration/tayya-app-store'
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      APP_SOURCE: ${{ inputs.app_source }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require a pinned production source on the authorized branch
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          assert re.fullmatch('[a-f0-9]{40}',os.environ['APP_SOURCE']), 'Use an exact commit SHA'
+          subprocess.run(['git','merge-base','--is-ancestor',os.environ['APP_SOURCE'],'HEAD'],check=True)
+          print('TestFlight QA Candidate — Not Production Qualified')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.app_source }}
+          path: app
+          persist-credentials: false
+      - name: Use the installed native app toolchain and build prerequisites
+        run: |
+          python3 Tools/select_app_xcode.py
+          command -v xcodegen >/dev/null || brew install xcodegen
+          test -x "$(brew --prefix openssl@3)/bin/openssl" || brew install openssl@3
+          if ! python3 -c 'import yaml'; then
+            python3 -m venv "$RUNNER_TEMP/tayya-qa-python"
+            "$RUNNER_TEMP/tayya-qa-python/bin/python" -m pip install PyYAML
+            echo "$RUNNER_TEMP/tayya-qa-python/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Verify distribution controller contracts without simulator tests
+        run: |
+          python3 -m unittest discover -s Tools -p 'test_*.py'
+          node Tools/test_store_listing.mjs
+          node Tools/test_testflight_candidate.mjs
+      - name: Attest the source and retain the unresolved simulator boundary
+        run: |
+          mkdir -p QA
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          import yaml
+          git=lambda *a:subprocess.check_output(['git',*a],text=True).strip()
+          source=os.environ['APP_SOURCE']; baseline='c07e69eb49bea0588efb6c0f8d24c8b8e777c67c'
+          assert git('-C','app','rev-parse','HEAD')==source
+          spec=yaml.safe_load(Path('app/project.yml').read_text())
+          assert str(spec['settings']['base']['MARKETING_VERSION'])=='0.6.0'
+          assert spec['targets']['Hashiya']['settings']['base']['PRODUCT_BUNDLE_IDENTIFIER']=='com.ahmadalawi.hashiya'
+          assert str(spec['options']['deploymentTarget']['iOS'])=='17.0'
+          assert not git('diff','--name-only',baseline,source,'--','NativeOffice'), 'Review native engine ABI changes before reusing its artifact'
+          report={'label':'TestFlight QA Candidate — Not Production Qualified','production_qualified':False,
+            'controller_source':os.environ['GITHUB_SHA'],'application_source':source,'application_tree':git('-C','app','rev-parse','HEAD:App'),
+            'baseline':baseline,'baseline_full_run':40175783379,'run':os.environ['GITHUB_RUN_ID'],
+            'simulator_live_ink_cause':'unresolved','simulator_missed_undo_cause':'unresolved',
+            'physical_device_result':'NOT TESTED','recorded_stroke_data_loss_proven':False,
+            'app_store_review_submitted':False,'public_release_requested':False}
+          Path('QA/source.json').write_text(json.dumps(report,indent=2)+'\n')
+          Path('QA/baseline-production.diff').write_text(git('diff',baseline,source,'--','App/MarginNotebook.swift','App/MarginPane.swift','App/PDFWorkspace.swift','App/DocumentThumbnails.swift'))
+          Path('QA/canonical-project-before.sha256').write_text(hashlib.sha256(Path('app/project.yml').read_bytes()).hexdigest()+'\n')
+          PY
+      - name: Read actual Apple builds and allocate an unused QA build number
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node Tools/testflight_candidate.mjs select QA/apple-build-selection.json
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          import yaml
+          selected=json.loads(Path('QA/apple-build-selection.json').read_text())
+          build=selected['build']; assert re.fullmatch('[1-9][0-9]{0,3}',build)
+          project=Path('app/project.yml'); spec=yaml.safe_load(project.read_text())
+          previous=str(spec['settings']['base']['CURRENT_PROJECT_VERSION'])
+          if build!=previous:
+              text=project.read_text(); before="    CURRENT_PROJECT_VERSION: '"+previous+"'"
+              assert text.count(before)==1
+              project.write_text(text.replace(before,"    CURRENT_PROJECT_VERSION: '"+build+"'"))
+          expected=yaml.safe_load(project.read_text())
+          expected['settings']['base']['CURRENT_PROJECT_VERSION']=spec['settings']['base']['CURRENT_PROJECT_VERSION']
+          assert expected==spec, 'Only build metadata may be overridden'
+          with open(os.environ['GITHUB_ENV'],'a') as file: file.write('TAYYA_QA_BUILD='+build+'\n')
+          Path('QA/build-metadata.json').write_text(json.dumps({'source_build':previous,'qa_build':build,'marketing_version':'0.6.0','build_override':build!=previous,'selection_reason':selected['reason']},indent=2)+'\n')
+          PY
+      - name: Independently verify the current distribution certificate and profile
+        working-directory: app
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: python3 ../Tools/distribute_native_app.py --verify-signing-only
+      - name: Reuse the verified original Office engine without rebuilding it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/x6one/hashiya-ios/actions/artifacts/12593749685 > QA/engine-artifact-metadata.json
+          gh api repos/x6one/hashiya-ios/actions/artifacts/12593749685/zip > "$RUNNER_TEMP/tayya-qa-engine.zip"
+          python3 - <<'PY'
+          import hashlib, json, os, shutil, tarfile, zipfile
+          from pathlib import Path, PurePosixPath
+          archive=Path(os.environ['RUNNER_TEMP'])/'tayya-qa-engine.zip'
+          meta=json.loads(Path('QA/engine-artifact-metadata.json').read_text())
+          digest='4332a7be70855cd447384c8356c18a4429549bac1650a4b7c0b7f93a7ab89933'
+          assert meta['id']==12593749685 and meta['expired'] is False and meta['name']=='office-engine-arm64-linking-candidate'
+          assert meta['workflow_run']['id']==40175783379 and meta['workflow_run']['head_sha']=='c07e69eb49bea0588efb6c0f8d24c8b8e777c67c'
+          assert archive.stat().st_size==meta['size_in_bytes']==265998445 and meta['digest']=='sha256:'+digest
+          with archive.open('rb') as file: assert hashlib.file_digest(file,'sha256').hexdigest()==digest
+          packed=Path(os.environ['RUNNER_TEMP'])/'tayya-qa-engine.tar.gz'
+          with zipfile.ZipFile(archive) as zipped:
+              entries=zipped.infolist()
+              assert len(entries)==1 and entries[0].filename=='OfficeEngineCandidate.tar.gz' and 0<entries[0].file_size<2*1024**3
+              with zipped.open(entries[0]) as source, packed.open('wb') as dest: shutil.copyfileobj(source,dest)
+          with tarfile.open(packed,'r:gz') as tar:
+              members=tar.getmembers(); assert len(members)<100000 and sum(m.size for m in members)<16*1024**3
+              names=set()
+              for member in members:
+                  p=PurePosixPath(member.name)
+                  assert p.parts and p.parts[0]=='OfficeEngineCandidate' and not p.is_absolute() and '..' not in p.parts and '\\' not in member.name
+                  assert member.isfile() or member.isdir()
+                  assert p.as_posix() not in names; names.add(p.as_posix())
+              assert not Path('OfficeEngineCandidate').exists()
+              tar.extractall('.',filter='data')
+          manifest=json.loads(Path('OfficeEngineCandidate/manifest.json').read_text())
+          assert manifest['source']=='124ecf55b0f0969b7859d2f803f0bc3a0049a4dc' and manifest['platform']=='iphoneos' and manifest['architecture']=='arm64'
+          Path('QA/engine.json').write_text(json.dumps({'artifact':meta['id'],'artifact_sha256':digest,'origin_run':40175783379,'origin_application_source':meta['workflow_run']['head_sha'],'upstream_engine':manifest['source'],'candidate_application_source':os.environ['APP_SOURCE'],'reuse_is_not_current_app_qualification':True},indent=2)+'\n')
+          PY
+      - name: Link the full native engine and build the real Release iphoneos app
+        run: |
+          set -o pipefail
+          python3 app/Tools/link_office_engine.py OfficeEngineCandidate QA/link-probe
+          cd app
+          python3 Tools/prepare_native_office_app.py ../OfficeEngineCandidate ../QA/link-probe project.yml
+          xcodegen generate --spec NativeOfficeProject.yml
+          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -showBuildSettings -json > ../QA/release-build-settings.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows=json.loads(Path('../QA/release-build-settings.json').read_text())
+          settings=next(r['buildSettings'] for r in rows if r['target']=='Hashiya')
+          conditions=settings.get('SWIFT_ACTIVE_COMPILATION_CONDITIONS','').split()
+          assert 'DEBUG' not in conditions and 'HASHIYA_NATIVE_OFFICE' in conditions
+          assert settings['PLATFORM_NAME']=='iphoneos' and settings['PRODUCT_BUNDLE_IDENTIFIER']=='com.ahmadalawi.hashiya'
+          PY
+          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath NativeDeviceBuild CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../QA/native-app-build.log
+          python3 Tools/package_native_app.py NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app ../UnsignedCandidate
+          mkdir -p ../QA/Unsigned
+          cp ../UnsignedCandidate/*.ipa ../UnsignedCandidate/*.sha256 ../UnsignedCandidate/*.json ../QA/Unsigned/
+      - name: Archive sign verify and optionally upload through the existing distributor
+        working-directory: app
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          QA_UPLOAD: ${{ inputs.upload_to_apple }}
+        run: |
+          args=(--preserve-archive)
+          if [ "$QA_UPLOAD" != true ]; then args+=(--archive-only); fi
+          python3 ../Tools/distribute_native_app.py "${args[@]}"
+      - name: Retain only verified output and attest its exact source and hashes
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, plistlib, shutil, subprocess, zipfile
+          from pathlib import Path, PurePosixPath
+          out=Path('AppleDistribution'); report=out/'distribution-report.json'
+          if not report.exists():
+              print('No verified signed IPA receipt; no signing or upload success claimed')
+              raise SystemExit(0)
+          result=json.loads(report.read_text()); selected=json.loads(Path('QA/apple-build-selection.json').read_text())
+          assert result['code_signed'] is True and result['archive_retained'] is True
+          assert result['source_commit']==os.environ['GITHUB_SHA'] and result['run']==os.environ['GITHUB_RUN_ID']
+          assert result['version']=='0.6.0' and result['build']==selected['build'] and result['bundle_id']=='com.ahmadalawi.hashiya'
+          ipas=list((out/'Export').glob('*.ipa')); assert len(ipas)==1
+          with ipas[0].open('rb') as file: assert hashlib.file_digest(file,'sha256').hexdigest()==result['sha256']
+          with zipfile.ZipFile(ipas[0]) as zipped:
+              assert zipped.testzip() is None
+              for name in zipped.namelist():
+                  p=PurePosixPath(name); assert not p.is_absolute() and '..' not in p.parts
+              plists=[n for n in zipped.namelist() if n.startswith('Payload/') and n.endswith('.app/Info.plist') and n.count('/')==2]
+              assert len(plists)==1
+              info=plistlib.loads(zipped.read(plists[0])); assert info['CFBundleVersion']==selected['build'] and info['CFBundleShortVersionString']=='0.6.0'
+          archive=out/'Tayya.xcarchive'; archived_app=archive/'Products/Applications/Hashiya.app'
+          subprocess.run(['codesign','--verify','--deep','--strict',str(archived_app)],check=True)
+          build=subprocess.check_output(['xcrun','vtool','-show-build',str(archived_app/'Hashiya')],text=True)
+          assert 'platform IOS\n' in build
+          packed=out/'Tayya-QA.xcarchive.zip'
+          subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(archive),str(packed)],check=True)
+          assert not subprocess.check_output(['git','-C','app','diff','--name-only','--','App','NativeOffice'],text=True).strip()
+          provenance=json.loads(Path('QA/source.json').read_text())
+          provenance.update(build_metadata=json.loads(Path('QA/build-metadata.json').read_text()),engine=json.loads(Path('QA/engine.json').read_text()),distribution=result)
+          verified=Path('QA/Verified'); verified.mkdir(exist_ok=False)
+          verified_ipa=verified/'Tayya-QA.ipa'; verified_archive=verified/'Tayya-QA.xcarchive.zip'
+          shutil.copy2(ipas[0],verified_ipa); shutil.copy2(packed,verified_archive)
+          hashes={}
+          for file in [verified_ipa,verified_archive,*Path('QA/Unsigned').glob('*.ipa')]:
+              with file.open('rb') as stream: hashes[str(file)]=hashlib.file_digest(stream,'sha256').hexdigest()
+          assert hashes[str(verified_ipa)]==result['sha256']
+          provenance['artifacts_sha256']=hashes
+          Path('QA/provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          Path('QA/SHA256SUMS').write_text(''.join(f'{digest}  {name}\n' for name,digest in hashes.items()))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-TestFlight-QA-Not-Production-Qualified-${{ github.run_id }}
+          path: |
+            AppleDistribution/distribution-report.json
+            SigningPreflight/signing-preflight.json
+            QA/
+            Store/testflight-qa.md
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Confirm the accepted upload and actual Apple processing independently
+        if: success() && inputs.upload_to_apple
+        timeout-minutes: 25
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TAYYA_QA_INTERNAL_GROUP: ${{ inputs.internal_group_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, time
+          from pathlib import Path
+          receipt=json.loads(Path('QA/provenance.json').read_text())
+          assert receipt['distribution']['upload_accepted'] is True
+          assert receipt['application_source']==os.environ['APP_SOURCE'] and receipt['controller_source']==os.environ['GITHUB_SHA']
+          deadline=time.monotonic()+1200
+          while time.monotonic()<deadline:
+              check=subprocess.run(['node','Tools/testflight_candidate.mjs','status','QA/apple-processing.json'],timeout=90)
+              if check.returncode==0: break
+              if check.returncode!=10: check.check_returncode()
+              time.sleep(min(20,max(0,deadline-time.monotonic())))
+          else: raise SystemExit('Apple processing remains pending after20min; retain the accepted upload, do not upload again')
+          subprocess.run(['node','Tools/testflight_candidate.mjs','assign','QA/internal-testing.json'],check=True,timeout=90)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-TestFlight-QA-Apple-State-${{ github.run_id }}
+          path: |
+            QA/apple-build-selection.json
+            QA/apple-processing.json
+            QA/internal-testing.json
+            QA/provenance.json
+          if-no-files-found: warn
+          retention-days: 14

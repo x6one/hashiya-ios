@@ -13,6 +13,28 @@ import profile_native_ink
 
 
 class OriginalOutcomeTests(unittest.TestCase):
+    def test_capture_stops_at_notes_observation_before_original_test_cleanup(self):
+        # A complete capture needs a native save while the target still lives;
+        # stopping only after XCTest terminates the App loses that opportunity.
+        with tempfile.TemporaryDirectory() as temporary:
+            previous = Path.cwd()
+            try:
+                os.chdir(temporary)
+                binary = Path('xcrun')
+                binary.write_text('#!' + sys.executable + '\nimport signal,time,pathlib,sys\ndef stop(*args):\n pathlib.Path("saved-while-test-alive").write_text(str(not pathlib.Path("original-finished").exists()))\n a=sys.argv[1:];pathlib.Path(a[a.index("--output")+1]).mkdir();raise SystemExit(0)\nsignal.signal(signal.SIGINT,stop)\npathlib.Path("profiler-ready").touch()\nwhile True:time.sleep(0.01)\n')
+                binary.chmod(0o755)
+                original = 'import time,pathlib\nwhile not pathlib.Path("profiler-ready").exists():time.sleep(0.01)\nprint("NativeInkVisibility stage=AccessibilityType-CompactSplitInk; observer=screen-only; result=2",flush=True)\ntime.sleep(0.8)\npathlib.Path("original-finished").touch()\nraise SystemExit(7)'
+                with patch.dict(os.environ, {"PATH": str(Path.cwd()) + os.pathsep + os.environ['PATH'],
+                     "GITHUB_SHA": "test-source", "GITHUB_RUN_ID": "1", "SIMULATOR_ID": "test-device"}), \
+                     patch.object(profile_native_ink, 'actual_app_pid', return_value=123), \
+                     contextlib.redirect_stdout(io.StringIO()):
+                    result = profile_native_ink.run([sys.executable, '-c', original])
+                self.assertEqual(Path('saved-while-test-alive').read_text(), 'True')
+                self.assertTrue(Path('original-finished').exists())
+                self.assertEqual(result, 7, 'Native capture success must retain the original failure')
+            finally:
+                os.chdir(previous)
+
     def test_profiler_targets_the_selected_simulator_not_the_host(self):
         # Native xctrace's host default cannot resolve a simulator-only PID.
         # Exercise the real process invocation against a minimal external CLI

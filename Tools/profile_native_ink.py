@@ -46,8 +46,11 @@ def run(command):
     profiler = None
     tests = None
     attach_enabled = True
+    stop_requested = False
+    observation_tail = ""
     try:
-        with (output / "original-test.log").open("w") as test_log, (output / "profiler.log").open("w") as trace_log:
+        with (output / "original-test.log").open("w") as test_log, (output / "profiler.log").open("w") as trace_log, \
+                (output / "original-test.log").open("r", errors="replace") as observations:
             tests = subprocess.Popen(command, stdout=test_log, stderr=subprocess.STDOUT)
             deadline = time.monotonic() + 600
             attach_deadline = time.monotonic() + 180
@@ -62,6 +65,7 @@ def run(command):
                                 "xcrun", "xctrace", "record", "--template", "Metal System Trace",
                                 "--device", report["device"],
                                 "--attach", str(pid), "--time-limit", "360s",
+                                "--window", "120s", "--no-prompt",
                                 "--output", str(output / "OriginalInk.trace")],
                                 stdout=trace_log, stderr=subprocess.STDOUT)
                         elif time.monotonic() > attach_deadline:
@@ -70,6 +74,18 @@ def run(command):
                         # A profiler failure must not terminate or relaunch XCTest.
                         report["errors"].append(str(error))
                         attach_enabled = False
+                observation_tail = (observation_tail + observations.read())[-4000:]
+                marker = "NativeInkVisibility stage=AccessibilityType-CompactSplitInk; observer=screen-only; result="
+                if profiler is not None and profiler.poll() is None and not stop_requested and marker in observation_tail:
+                    # Stop after the existing observer returns, before the test's
+                    # screenshots/AX diagnostics and eventual App termination.
+                    # Never change the original XCTest action, wait or outcome.
+                    native_log = (output / "profiler.log").read_text()
+                    if "Stopping recording" not in native_log and "Saving output file" not in native_log:
+                        profiler.send_signal(signal.SIGINT)
+                    stop_requested = True
+                    report["stop_reason"] = "Original Notes live-pixel observation completed"
+                    report["stop_requested_utc"] = utc()
                 if time.monotonic() > deadline:
                     raise TimeoutError("Original native test process exceeded600s; no retry")
                 time.sleep(0.25)  # Process readiness only; no UI wait or test timing change.
@@ -77,14 +93,25 @@ def run(command):
             report["test_completed_utc"] = utc()
             if profiler is None:
                 raise RuntimeError("Original test ended before a verified actual App PID could be attached")
+            if profiler.poll() is None and not stop_requested:
+                native_log = (output / "profiler.log").read_text()
+                if "Stopping recording" not in native_log and "Saving output file" not in native_log:
+                    profiler.send_signal(signal.SIGINT)
+                report["stop_reason"] = "Original test completed; preserve any native auto-save already running"
+            # Native archive finalization is separate from the unchanged5s UI
+            # contract. Poll while saving; never send another SIGINT during save.
+            saving_deadline = time.monotonic() + 300
+            heartbeat = time.monotonic() + 30
+            while profiler.poll() is None and time.monotonic() < saving_deadline:
+                if time.monotonic() >= heartbeat:
+                    print("Original test completed; native trace finalization is still running", flush=True)
+                    heartbeat = time.monotonic() + 30
+                time.sleep(0.5)
             if profiler.poll() is None:
-                profiler.send_signal(signal.SIGINT)
-            try:
-                report["profiler_exit"] = profiler.wait(timeout=60)
-            except subprocess.TimeoutExpired:
                 profiler.kill()
                 report["profiler_exit"] = profiler.wait(timeout=10)
-                raise TimeoutError("Profiler did not finalize within60s after original-case completion")
+                raise TimeoutError("Native trace finalization exceeded its separate300s resource ceiling")
+            report["profiler_exit"] = profiler.returncode
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         report["errors"].append(str(error))
     finally:

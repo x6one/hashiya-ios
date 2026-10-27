@@ -62,3 +62,9 @@ retry, App/UITest change, deadline extension or full qualification. Record a
 second infrastructure failure or healthy case honestly; do not calibrate the
 fixture indefinitely. Native CLI error tails now accompany the small process
 report so another large download is unnecessary just to read an error message.
+
+## Measured lifecycle defect and revised collection boundary
+
+615bf9e/run40480529697 reproduced the real Notes failure: live0red,2savedstrokes,950bytes,independent3878red; exact original error atLaunchTests1427. Correct simulator targeting attached actualApp13294. OriginaltestFAIL1/1,0skip. The collection script then sent/awaited stop after target exit and killed xctrace during Saving output file after60s. Only the20MB template and53KB run-issue SQLite survived; local parsing confirms no event-run data to restore. This is a collector lifecycle defect, not a diagnosed App cause.
+
+Ruling: the saved native command supports --window. Retain120s and stop on the ORIGINAL Notes pixel-observer result from xcodebuild stdout, before diagnostics/cleanup terminate the target. Never send SIGINT again while native save is running. Finalize within a separate300s resource ceiling with heartbeats; original test,5s pixel budget and all expected outcomes remain untouched. A real-process boundary test was RED thenGREEN; fullTools40/40PASS. This new condition is justified by actual reproduced failure and the collector kill trace; no identical rerun or automatic retry. If another capture is unusable, stop calibrating this collector and record the exact blocker.

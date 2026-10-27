@@ -11,32 +11,52 @@ final class ControlTests: XCTestCase {
     @MainActor func testProductionNotesAfterDocumentInk() {
         exerciseNativeInk(precedingDocument: true, productionNotes: true)
     }
-    @MainActor private func exerciseNativeInk(precedingDocument: Bool, productionNotes: Bool = false) {
+    @MainActor func testIPadProductionNotesAfterDocumentInk() {
+        exerciseNativeInk(precedingDocument: true, productionNotes: true, padRecurrence: true)
+    }
+    @MainActor private func exerciseNativeInk(precedingDocument: Bool, productionNotes: Bool = false,
+                                             padRecurrence: Bool = false) {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         defer { XCUIDevice.shared.orientation = .portrait }
         let app = XCUIApplication()
         if precedingDocument { app.launchArguments = ["--two-canvases"] }
         if productionNotes { app.launchArguments += ["--production-notes", "--test-accessibility-type", "--test-reduce-motion"] }
+        if padRecurrence { app.launchArguments += ["--pad-recurrence"] }
         app.launch()
+        if padRecurrence {
+            XCTAssertEqual(app.frame.width, 1032, accuracy: 1)
+            XCTAssertEqual(app.frame.height, 1376, accuracy: 1)
+        }
         if precedingDocument { exerciseDocument(in: app) }
         let canvas = app.scrollViews[productionNotes ? "marginInkCanvas" : "controlCanvas"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 5))
         XCTAssertEqual(canvas.value as? String, "1")
-        XCTAssertEqual(canvas.frame.width, 440, accuracy: 1)
-        XCTAssertEqual(canvas.frame.height, 147.33333333333331, accuracy: 1)
+        let portrait = padRecurrence ? CGRect(x: 0, y: 251.5, width: 405, height: 891)
+            : CGRect(x: 0, y: 670.6666666666666, width: 440, height: 147.33333333333331)
+        XCTAssertEqual(canvas.frame.width, portrait.width, accuracy: 1)
+        XCTAssertEqual(canvas.frame.height, portrait.height, accuracy: 1)
+        if padRecurrence { XCTAssertEqual(canvas.frame.minY, portrait.minY, accuracy: 1) }
         attach(XCUIScreen.main.screenshot(), "DIAGNOSTIC-NativeControl-PortraitSeed")
         XCUIDevice.shared.orientation = .landscapeLeft
+        let expectedPaper = padRecurrence ? CGRect(x: 0, y: 251.5, width: 560, height: 547)
+            : CGRect(x: 62, y: 235.33333333333334, width: 367.3333333333333, height: 88.66666666666666)
         let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             let application = app.frame
             guard application.width > application.height else { return false }
             let paper = canvas.frame
-            return abs(paper.width - 367.3333333333333) <= 1
-                && abs(paper.height - 88.66666666666666) <= 1
+            return abs(paper.width - expectedPaper.width) <= 1
+                && abs(paper.height - expectedPaper.height) <= 1
         }, object: app)
         XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
-        XCTAssertEqual(canvas.frame.width, 367.3333333333333, accuracy: 1)
-        XCTAssertEqual(canvas.frame.height, 88.66666666666666, accuracy: 1)
+        XCTAssertEqual(canvas.frame.width, expectedPaper.width, accuracy: 1)
+        XCTAssertEqual(canvas.frame.height, expectedPaper.height, accuracy: 1)
+        if padRecurrence {
+            XCTAssertEqual(app.frame.width, 1376, accuracy: 1)
+            XCTAssertEqual(app.frame.height, 1032, accuracy: 1)
+            XCTAssertEqual(canvas.frame.minX, expectedPaper.minX, accuracy: 1)
+            XCTAssertEqual(canvas.frame.minY, expectedPaper.minY, accuracy: 1)
+        }
         if productionNotes {
             app.buttons["inkBrush"].tap()
             app.buttons["inkBrushOption-pencil"].tap()
@@ -45,7 +65,7 @@ final class ControlTests: XCTestCase {
             app.buttons["inkWidthOption-8"].tap()
             XCTAssertEqual(app.buttons["inkWidth"].value as? String, "8")
             app.buttons["inkColor"].tap()
-            selectProductionColor(in: app)
+            selectProductionColor(in: app, padRecurrence: padRecurrence)
         } else {
             app.buttons["controlPencil"].tap(); app.buttons["controlColor"].tap()
             selectColor(in: app, swatchName: "dark red 16", rgba: "0.5137,0.0667,0.0000,1.0000")
@@ -95,18 +115,19 @@ final class ControlTests: XCTestCase {
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)
     }
-    @MainActor private func selectProductionColor(in app: XCUIApplication) {
+    @MainActor private func selectProductionColor(in app: XCUIApplication, padRecurrence: Bool = false) {
         let picker = app.otherElements["nativeInkColorPicker"].firstMatch
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         let swatch = picker.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", "dark red 16")).firstMatch
+            .matching(NSPredicate(format: "label == %@", padRecurrence ? "red 77" : "dark red 16")).firstMatch
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             swatch.exists && swatch.isHittable && picker.frame.contains(swatch.frame)
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
         swatch.tap(); app.buttons["closeInkColorPicker"].tap()
         let committed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (app.buttons["inkColor"].value as? String) == "rgba:0.5137,0.0667,0.0000,1.0000"
+            (app.buttons["inkColor"].value as? String) == (padRecurrence
+                ? "rgba:1.0000,0.7098,0.6863,1.0000" : "rgba:0.5137,0.0667,0.0000,1.0000")
                 && !app.otherElements["nativeInkColorPicker"].exists
         }, object: NSObject())
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 5), .completed)

@@ -13,6 +13,8 @@ jobs:
     if: contains(github.event.head_commit.message, '[diagnostic:native-ink-control]')
     runs-on: macos-15
     timeout-minutes: 30
+    env:
+      PAD_CONTROL: ${{ contains(github.event.head_commit.message, '[diagnostic:pad-native]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Generate only the isolated diagnostic target
@@ -24,10 +26,13 @@ jobs:
           import json, os, subprocess
           from pathlib import Path
           devices=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','-j'],text=True))['devices']
-          matches=[d for runtime,rows in devices.items() if runtime.endswith('iOS-26-2') for d in rows if d['name']=='iPhone 17 Pro Max' and d['isAvailable']]
+          pad=os.environ['PAD_CONTROL']=='true'
+          name='iPad Pro 13-inch (M5)' if pad else 'iPhone 17 Pro Max'
+          only_test='testIPadProductionNotesAfterDocumentInk' if pad else 'testProductionNotesAfterDocumentInk'
+          matches=[d for runtime,rows in devices.items() if runtime.endswith('iOS-26-2') for d in rows if d['name']==name and d['isAvailable']]
           assert len(matches)==1,matches
-          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SIMULATOR_ID='+matches[0]['udid']+'\n')
-          Path('control-context.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'device':matches[0],'runtime':'iOS26.2','purpose':'Native PencilKit isolation only, never Tayya qualification or Store imagery','persistence_callbacks':True,'SwiftUI':True,'actual_source_engine':['MarginNotebook.swift','MarginPages.swift','InkToolbarScrollView.swift','PenPresets.swift'],'preceding_PDF_canvas':True,'only_test':'testProductionNotesAfterDocumentInk'},indent=2)+'\n')
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SIMULATOR_ID='+matches[0]['udid']+'\nCONTROL_TEST='+only_test+'\n')
+          Path('control-context.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'device':matches[0],'runtime':'iOS26.2','purpose':'Native PencilKit isolation only, never Tayya qualification or Store imagery','persistence_callbacks':True,'SwiftUI':True,'actual_source_engine':['MarginNotebook.swift','MarginPages.swift','InkToolbarScrollView.swift','PenPresets.swift'],'preceding_PDF_canvas':True,'only_test':only_test,'background_ink_thumbnail':False,'geometry_source':'9fd1/run40402135051' if pad else 'previousPhonecontrol','Notes_portrait':[0,251.5,405,891] if pad else None,'Notes_landscape':[0,251.5,560,547] if pad else None},indent=2)+'\n')
           PY
       - name: Boot the same native runtime and accessibility size
         run: |
@@ -37,7 +42,7 @@ jobs:
       - name: Exercise one first stroke in the isolated native control
         run: |
           set -o pipefail
-          xcodebuild -project Verification/NativeInkControl/NativeInkControl.xcodeproj -scheme NativeInkControl -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeControlBuild -resultBundlePath NativeControl.xcresult -only-testing:NativeInkControlTests/ControlTests/testProductionNotesAfterDocumentInk -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test 2>&1 | tee native-control.log
+          xcodebuild -project Verification/NativeInkControl/NativeInkControl.xcodeproj -scheme NativeInkControl -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeControlBuild -resultBundlePath NativeControl.xcresult "-only-testing:NativeInkControlTests/ControlTests/$CONTROL_TEST" -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test 2>&1 | tee native-control.log
       - name: Inspect only the completed diagnostic app synthetic Notes files
         if: always()
         run: python3 Tools/capture_native_control.py
@@ -49,6 +54,17 @@ jobs:
             xcrun xcresulttool export attachments --path NativeControl.xcresult --output-path NativeControlAttachments
             ditto -c -k --keepParent NativeControl.xcresult NativeControl.xcresult.zip
           fi
+      - name: Require exactly one executed control without failures or skips
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result=json.loads(Path('native-control-summary.json').read_text())
+          assert result['result']=='Passed' and result['passedTests']==result['totalTestCount']==1,result
+          assert result['failedTests']==result['skippedTests']==result['expectedFailures']==0,result
+          print('Isolated native control:1/1 passed; no failures, skips or expected failures. Not production qualification.')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:

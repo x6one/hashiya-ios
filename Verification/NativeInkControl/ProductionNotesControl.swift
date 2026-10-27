@@ -26,10 +26,17 @@ struct ProductionNotesControl: View {
     var body: some View {
         GeometryReader { geometry in
             let landscape = geometry.size.width > geometry.size.height
-            let paper = landscape
+            let pad = ProcessInfo.processInfo.arguments.contains("--pad-recurrence")
+            // Measured original native boundary from failed9fd1, not scaled
+            // iPhone geometry. Keep the actual MarginNotebook source unchanged.
+            let paper = pad
+                ? CGRect(x: 0, y: 251.5, width: landscape ? 560 : 405, height: landscape ? 547 : 891)
+                : landscape
                 ? CGRect(x: 62, y: 235.33333333333334, width: 367.3333333333333, height: 88.66666666666666)
                 : CGRect(x: 0, y: 670.6666666666666, width: 440, height: 147.33333333333331)
-            let rail = landscape
+            let rail = pad
+                ? CGRect(x: 0, y: landscape ? 908 : 1252, width: geometry.size.width, height: 44)
+                : landscape
                 ? CGRect(x: 62, y: 324, width: 832, height: 44)
                 : CGRect(x: 0, y: 818, width: 440, height: 44)
             ZStack(alignment: .topLeading) {

@@ -97,6 +97,7 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
     private let twoCanvases = ProcessInfo.processInfo.arguments.contains("--two-canvases")
     private var notesVisible = false
     private let useProduction = ProcessInfo.processInfo.arguments.contains("--production-notes")
+    private let padRecurrence = ProcessInfo.processInfo.arguments.contains("--pad-recurrence")
     private let productionControl = MarginCanvasControl()
     private var productionStore: MarginPages?
     private var productionHost: UIHostingController<ProductionNotesControl>?
@@ -174,14 +175,17 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
             path: PKStrokePath(controlPoints: points, creationDate: Date()))])
     }
     private func configureDocument() {
+        if padRecurrence { documentCanvas.frame = CGRect(x: 0, y: 0, width: 650, height: 900) }
         documentCanvas.contentSize = documentCanvas.bounds.size
         documentCanvas.isScrollEnabled = false; documentCanvas.isOpaque = false
         documentCanvas.backgroundColor = .clear; documentCanvas.drawingPolicy = .anyInput
         documentCanvas.accessibilityIdentifier = "controlDocumentCanvas"
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
+        let pageBounds = padRecurrence ? CGRect(x: 0, y: 0, width: 650, height: 900)
+            : CGRect(x: 0, y: 0, width: 612, height: 792)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
         let bytes = renderer.pdfData { context in
             for index in 1...3 {
-                context.beginPage(); UIColor.white.setFill(); context.cgContext.fill(CGRect(x: 0, y: 0, width: 612, height: 792))
+                context.beginPage(); UIColor.white.setFill(); context.cgContext.fill(pageBounds)
                 ("Native control page \(index)" as NSString).draw(at: CGPoint(x: 40, y: 40), withAttributes: [.font: UIFont.systemFont(ofSize: 22)])
             }
         }
@@ -216,8 +220,19 @@ final class ControlController: UIViewController, UIColorPickerViewControllerDele
             : CGRect(x: 62, y: 80, width: 300, height: 44)
         status.frame = CGRect(x: 62, y: 132, width: view.bounds.width - 124, height: 32)
         count.frame = CGRect(x: 16, y: 164, width: 200, height: 20)
+        if padRecurrence {
+            // Keep diagnostic receipts in the unused sidebar, outside the
+            // measured native PDF and Notes viewports.
+            status.frame = CGRect(x: view.bounds.width - 116, y: 133.5, width: 116, height: 32)
+            count.frame = CGRect(x: view.bounds.width - 116, y: 166, width: 116, height: 20)
+        }
         if twoCanvases {
-            if !notesVisible { pdf.frame = CGRect(x: 0, y: 188, width: view.bounds.width, height: view.bounds.height - 198) }
+            if padRecurrence {
+                if !notesVisible { pdf.frame = CGRect(x: 0, y: 133.5, width: 916, height: 1118.5) }
+                else if view.bounds.width > view.bounds.height { pdf.frame = CGRect(x: 576, y: 133.5, width: 684, height: 774.5) }
+                else { pdf.frame = CGRect(x: 421, y: 133.5, width: 495, height: 1118.5) }
+            }
+            else if !notesVisible { pdf.frame = CGRect(x: 0, y: 188, width: view.bounds.width, height: view.bounds.height - 198) }
             else if view.bounds.width > view.bounds.height { pdf.frame = CGRect(x: 445.3333333333333, y: 125.33333333333333, width: 448.66666666666663, height: 198.66666666666666) }
             else { pdf.frame = CGRect(x: 0, y: 188, width: view.bounds.width, height: 466.6666666666666) }
         }

@@ -17,6 +17,23 @@ from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_store_capture_requires_an_explicit_capture_request(self):
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-store-assets.yml').read_text())
+        expression = workflow['jobs']['medium-phone']['if'].strip().removeprefix('${{').removesuffix('}}').strip()
+        for event, capture, message, allowed in [
+                ('push', False, 'ci: prepare QA tooling', False),
+                ('push', False, '[store:readiness]', False),
+                ('push', False, '[store:captures]', True),
+                ('workflow_dispatch', False, '', False),
+                ('workflow_dispatch', True, '', True)]:
+            with self.subTest(event=event, capture=capture, message=message):
+                condition = expression.replace('github.event_name', repr(event))
+                condition = condition.replace('github.event.head_commit.message', repr(message))
+                condition = condition.replace('inputs.capture', repr(capture)).replace('&&', ' and ').replace('||', ' or ')
+                condition = condition.replace('!contains', 'not contains')
+                result = eval(condition, {'__builtins__': {}}, {'contains': lambda text, needle: needle in text})
+                self.assertEqual(result, allowed, 'Readiness/tooling updates must not start native capture tests')
+
     def test_qa_artifacts_exclude_an_export_rejected_before_verification(self):
         workflow = yaml.safe_load(Path('.github/workflows/tayya-testflight-candidate.yml').read_text())
         with tempfile.TemporaryDirectory() as folder:

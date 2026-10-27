@@ -16,7 +16,7 @@ permissions:
   actions: read
 concurrency:
   group: tayya-store-assets-${{ contains(github.event.head_commit.message, '[store:readiness]') && 'readiness' || 'captures' }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   apple-readiness:
     if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[store:captures]') }}
@@ -40,7 +40,7 @@ jobs:
           path: apple-readiness.json
           retention-days: 7
   medium-phone:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.capture) || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[store:readiness]')) }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.capture) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[store:captures]')) }}
     name: Native store capture (${{ matrix.family }})
     runs-on: macos-15
     timeout-minutes: 40

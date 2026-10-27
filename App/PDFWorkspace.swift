@@ -1381,6 +1381,9 @@ struct NativePDF: UIViewRepresentable {
             }
         }
         func applyInkAction(_ action: String) {
+            #if DEBUG
+            NotesDockInputTrace.inkAction(action, destination: 2)
+            #endif
             guard let canvas = canvases[workspace.page - 1] else { return }
             if action == "undo" { canvas.undoManager?.undo(); return }
             if action == "redo" { canvas.undoManager?.redo(); return }

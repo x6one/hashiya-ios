@@ -19,6 +19,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (contains(github.event.head_commit.message, '[integration:') && !contains(github.event.head_commit.message, '[integration:release]'))
     runs-on: macos-15
     timeout-minutes: 45
+    env:
+      TAYYA_INK_INPUT_PROBE: ${{ contains(github.event.head_commit.message, '[diagnostic:ink-input-route]') && '1' || '' }}
+      TEST_RUNNER_TAYYA_INK_INPUT_PROBE: ${{ contains(github.event.head_commit.message, '[diagnostic:ink-input-route]') && '1' || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +60,9 @@ jobs:
           devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
           family = os.environ['DEVICE_FAMILY']
           matching = [(tuple(map(int, re.findall(r'\d+', runtime))), d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(family)]
+          if os.environ.get('TAYYA_INK_INPUT_PROBE') == '1':
+              matching = [row for row in matching if row[0] == (26, 2) and row[1]['name'] == 'iPad Pro 13-inch (M5)']
+              assert family == 'iPad' and len(matching) == 1, 'Preserve the original measured simulator and runtime'
           matching.sort(key=lambda row: (row[0], 'Pro Max' in row[1]['name'] if family == 'iPhone' else ('Pro' in row[1]['name'] and '13' in row[1]['name'])), reverse=True)
           if not matching:
               raise SystemExit('Required simulator family unavailable')
@@ -214,6 +220,35 @@ jobs:
             IntegrationEvidence/Screenshots/*.txt
             IntegrationEvidence/Screenshots/*.json
           if-no-files-found: error
+          retention-days: 14
+      - name: Retain the existing input recorder without GPU instrumentation
+        if: always() && contains(github.event.head_commit.message, '[diagnostic:ink-input-route]')
+        run: |
+          mkdir -p InkInputEvidence
+          cp integration-selection.json InkInputEvidence/
+          if [ -f IntegrationEvidence/summary.json ]; then cp IntegrationEvidence/summary.json InkInputEvidence/; fi
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --info --debug --predicate 'process == "Hashiya" AND (eventMessage BEGINSWITH "TayyaNotesInput" OR eventMessage BEGINSWITH "TayyaRescueRailCancel")' > InkInputEvidence/native-input.log
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          out=Path('InkInputEvidence'); log=(out/'native-input.log').read_text()
+          summary=json.loads((out/'summary.json').read_text()) if (out/'summary.json').is_file() else None
+          installed='TayyaNotesInput installed=1 version=3' in log
+          report={'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'installed_recorder':installed,'native_summary':summary,'scope':'One original iPad case with existing opt-in window recorder; no Metal trace or automatic causal/release conclusion.'}
+          (out/'proof.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          assert installed, 'Actual App did not confirm the requested input recorder'
+          assert summary and summary['totalTestCount']==1 and summary['skippedTests']==summary['expectedFailures']==0,summary
+          PY
+      - name: Upload small native input receipts
+        if: always() && contains(github.event.head_commit.message, '[diagnostic:ink-input-route]')
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-ink-input-${{ matrix.family }}
+          path: |
+            InkInputEvidence/
+            IntegrationEvidence/Screenshots/*.txt
+            IntegrationEvidence/Screenshots/*.json
           retention-days: 14
       - name: Upload focused evidence
         if: always()

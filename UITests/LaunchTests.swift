@@ -1638,6 +1638,9 @@ final class LaunchTests: XCTestCase {
         app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
             + (accessibilityType ? ["--test-accessibility-type"] : [])
             + (detailedDiagnostics ? ["--test-margin-details"] : [])
+        if ProcessInfo.processInfo.environment["TAYYA_INK_INPUT_PROBE"] == "1" {
+            app.launchArguments += ["--test-notes-dock-input"]
+        }
         if let threadMode = ProcessInfo.processInfo.environment["TAYYA_THUMBNAIL_THREAD_PROBE"],
            ["worker", "main"].contains(threadMode) {
             app.launchArguments += ["--test-thumbnail-thread-probe"]

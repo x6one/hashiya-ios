@@ -46,7 +46,7 @@ import ObjectiveC.runtime
         contacts.reserveCapacity(8)
         method_exchangeImplementations(original, observer)
         installed = true
-        NSLog("TayyaNotesInput installed=1 version=2 phase=began,moved,ended,cancelled forwarding=once")
+        NSLog("TayyaNotesInput installed=1 version=3 phase=began,moved,ended,cancelled forwarding=once")
     }
 
     private static func identity(_ object: AnyObject?) -> UInt {
@@ -55,6 +55,24 @@ import ObjectiveC.runtime
     private static func append(_ receipt: Receipt) {
         if receipts.count >= 512 { receipts.removeFirst(64); dropped += 64 }
         receipts.append(receipt)
+    }
+
+    /// kind11: a=1Undo/2Redo; b=0Button activation/1Notes destination/2PDF destination.
+    /// Contact0 remains deliberately unmatched when activation is asynchronous.
+    static func inkAction(_ action: String, destination: Int) {
+        guard enabled else { return }
+        let code: Int
+        switch action {
+        case "undo": code = 1
+        case "redo": code = 2
+        default: return
+        }
+        let current = depth > 0 && contacts.count == 1 ? (contacts.values.first ?? 0) : 0
+        var receipt = Receipt(kind: 11, contact: current, time: ProcessInfo.processInfo.systemUptime)
+        receipt.phase = depth == 0 ? -1 : current == 0 ? -2 : 0
+        receipt.a = code; receipt.b = destination
+        append(receipt)
+        if depth == 0 { requestFlush() }
     }
 
     /// kind4/5 = action before/after; kind6/7/8 = chrome appear/update/disappear.

@@ -54,6 +54,9 @@ final class MarginCanvas: PKCanvasView {
     // Native UI diagnostics are available only to the dedicated regression test.
     override var accessibilityLabel: String? {
         get {
+            #if DEBUG
+            NotesDockInputTrace.requestFlush(allowUnfinished: true)
+            #endif
             let baseLabel = super.accessibilityLabel ?? ""
             #if DEBUG
             let label = baseLabel + MarginUndoDiagnostics.labelSuffix + NativeInkOwnershipTrace.summary
@@ -185,6 +188,7 @@ final class MarginCanvas: PKCanvasView {
     weak var canvas: MarginCanvas?
     func action(_ name: String) {
         #if DEBUG
+        NotesDockInputTrace.inkAction(name, destination: 1)
         if name == "undo" || name == "redo" { MarginUndoDiagnostics.record("action=\(name) before", canvas: canvas) }
         defer {
             if name == "undo" || name == "redo" { MarginUndoDiagnostics.record("action=\(name) after", canvas: canvas) }
@@ -264,9 +268,19 @@ struct InkToolbar: View {
                         else { Text("\(Int(width))").monospacedDigit().padding(6).background(.quaternary, in: Circle()) }
                     }.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                 }.accessibilityLabel("سماكة القلم").accessibilityValue("\(Int(width))").accessibilityIdentifier("inkWidth")
-                Button { action("undo") } label: { inkTarget("تراجع", symbol: "arrow.uturn.backward") }
+                Button {
+                    #if DEBUG
+                    NotesDockInputTrace.inkAction("undo", destination: 0)
+                    #endif
+                    action("undo")
+                } label: { inkTarget("تراجع", symbol: "arrow.uturn.backward") }
                     .accessibilityIdentifier("inkUndo")
-                Button { action("redo") } label: { inkTarget("إعادة", symbol: "arrow.uturn.forward") }
+                Button {
+                    #if DEBUG
+                    NotesDockInputTrace.inkAction("redo", destination: 0)
+                    #endif
+                    action("redo")
+                } label: { inkTarget("إعادة", symbol: "arrow.uturn.forward") }
                     .accessibilityIdentifier("inkRedo")
                 Button { action("fit") } label: { inkTarget("إظهار الورقة كاملة", symbol: "arrow.up.left.and.arrow.down.right") }
                     .accessibilityIdentifier("fitMargin")

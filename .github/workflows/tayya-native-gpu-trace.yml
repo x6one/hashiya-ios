@@ -1,0 +1,122 @@
+name: One original Tayya iPad native GPU trace
+on:
+  push:
+    branches: [integration/tayya-app-store]
+    paths: [Tools/profile_native_ink.py, .github/workflows/tayya-native-gpu-trace.yml]
+permissions:
+  contents: read
+concurrency:
+  group: tayya-native-gpu-trace
+  cancel-in-progress: false
+jobs:
+  original-case:
+    if: contains(github.event.head_commit.message, '[diagnostic:native-gpu-trace]')
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require an existing native trace template before building or testing
+        run: |
+          python3 Tools/select_app_xcode.py
+          mkdir -p NativeGPUTrace
+          xcrun xctrace list templates > NativeGPUTrace/templates.txt 2>&1
+          xcrun xctrace help record > NativeGPUTrace/record-help.txt 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          assert 'Metal System Trace' in Path('NativeGPUTrace/templates.txt').read_text(), 'No native Metal template; do not run another App case'
+          PY
+      - name: Generate the existing production target and select the original simulator
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','-j'],text=True))['devices']
+          matches=[d for runtime,rows in devices.items() if runtime.endswith('iOS-26-2') for d in rows if d['name']=='iPad Pro 13-inch (M5)' and d['isAvailable']]
+          assert len(matches)==1,matches
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+            f.write('SIMULATOR_ID='+matches[0]['udid']+'\n')
+            f.write('SIMULATOR_STATE='+matches[0]['state']+'\n')
+          PY
+      - name: Boot the selected simulator and seed existing isolated fixtures
+        run: |
+          if [ "$SIMULATOR_STATE" != Booted ]; then xcrun simctl boot "$SIMULATOR_ID"; fi
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          python3 Tools/seed_files_fixtures.py
+      - name: Build the actual App without changing production sources
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeTraceBuild CODE_SIGNING_ALLOWED=NO 2>&1 | tee NativeGPUTrace/build.log
+      - name: Execute only the original case and attach the actual App once
+        run: |
+          touch "$RUNNER_TEMP/tayya-native-start"
+          python3 Tools/profile_native_ink.py xcodebuild test-without-building -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeTraceBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath NativeTraceResults.xcresult CODE_SIGNING_ALLOWED=NO
+      - name: Preserve failed synthetic drawing data independently
+        if: failure()
+        run: |
+          if [ -d NativeTraceResults.xcresult ]; then
+            python3 Tools/capture_native_ink_failure.py
+          fi
+      - name: Export original test evidence and available trace tables
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, xml.etree.ElementTree as ET
+          from pathlib import Path
+          out=Path('NativeGPUTrace'); out.mkdir(exist_ok=True)
+          report={'source':'${{ github.sha }}','test_summary':None,'trace_tables':[],'exports':[],'errors':[]}
+          result=Path('NativeTraceResults.xcresult')
+          if result.is_dir():
+            summary=subprocess.run(['xcrun','xcresulttool','get','test-results','summary','--path',str(result),'--compact'],capture_output=True,text=True)
+            (out/'test-summary.json').write_text(summary.stdout)
+            if summary.returncode==0: report['test_summary']=json.loads(summary.stdout)
+            else: report['errors'].append(summary.stderr)
+            attachments=subprocess.run(['xcrun','xcresulttool','export','attachments','--path',str(result),'--output-path',str(out/'OriginalScreenshots')],capture_output=True,text=True)
+            if attachments.returncode: report['errors'].append('Attachment export: '+attachments.stderr)
+            # The original raw xcresult is uploaded independently below, even if
+            # this extraction or native trace export fails. Do not duplicate it.
+          trace=out/'OriginalInk.trace'
+          if trace.exists():
+            toc=subprocess.run(['xcrun','xctrace','export','--input',str(trace),'--toc','--output',str(out/'trace-toc.xml')],capture_output=True,text=True,timeout=60)
+            if toc.returncode==0:
+              tables=ET.parse(out/'trace-toc.xml').findall('.//table')
+              schemas=sorted({t.get('schema','') for t in tables})
+              report['trace_tables']=schemas
+              selected=[s for s in schemas if any(word in s.lower() for word in ['metal','gpu','thread-state'])]
+              for index,schema in enumerate(selected[:12]):
+                assert '"' not in schema
+                path=out/f'trace-table-{index}.xml'
+                selector='/trace-toc/run/data/table[@schema="'+schema+'"]'
+                export=subprocess.run(['xcrun','xctrace','export','--input',str(trace),'--xpath',selector,'--output',str(path)],capture_output=True,text=True,timeout=60)
+                rows=sum(1 for _,e in ET.iterparse(path,events=('end',)) if e.tag=='row') if export.returncode==0 else 0
+                report['exports'].append({'schema':schema,'path':path.name,'exit':export.returncode,'rows':rows,'error':export.stderr})
+              report['omitted_schema_count']=max(0,len(selected)-12)
+            else: report['errors'].append(toc.stderr)
+          (out/'export-report.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-original-iPad-native-GPU-trace
+          path: |
+            NativeGPUTrace/
+            NativeTraceResults.xcresult/
+            IntegrationEvidence/NativeInkFailure/
+          retention-days: 14
+      - name: Require separate original-case and nonempty native-trace proof
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          process=json.loads(Path('NativeGPUTrace/process-report.json').read_text())
+          export=json.loads(Path('NativeGPUTrace/export-report.json').read_text())
+          assert process['app_pid'] and process['profiler_exit']==0 and not process['errors'],process
+          gpu=[row for row in export['exports'] if any(word in row['schema'].lower() for word in ['metal','gpu']) and row['exit']==0 and row['rows']>0]
+          assert gpu, 'No nonempty GPU/Metal table was exported; file existence is not native-trace coverage'
+          summary=export['test_summary']
+          assert summary and summary['totalTestCount']==1 and summary['skippedTests']==summary['expectedFailures']==0,summary
+          assert summary['result']=='Passed' and summary['passedTests']==1 and summary['failedTests']==0 and process['test_exit']==0,summary
+          print('One original case passed and native trace rows exist; root cause remains unproven unless an actual failure is captured and explained.')
+          PY

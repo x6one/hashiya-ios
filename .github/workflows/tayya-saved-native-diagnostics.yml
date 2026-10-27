@@ -1,0 +1,95 @@
+name: Read preserved native rendering diagnostics
+on:
+  push:
+    branches: [integration/tayya-app-store]
+    paths: [.github/workflows/tayya-saved-native-diagnostics.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: tayya-saved-native-diagnostics
+  cancel-in-progress: false
+jobs:
+  preserved-log:
+    if: contains(github.event.head_commit.message, '[diagnostic:saved-native-log]')
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select the existing native result reader
+        run: python3 Tools/select_app_xcode.py
+      - name: Verify and extract only the original failed result archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/x6one/hashiya-ios/actions/artifacts/12690177675 > "$RUNNER_TEMP/native-artifact-metadata.json"
+          gh api repos/x6one/hashiya-ios/actions/artifacts/12690177675/zip > "$RUNNER_TEMP/native-original.zip"
+          python3 - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          temp=Path(os.environ['RUNNER_TEMP'])
+          metadata=json.loads((temp/'native-artifact-metadata.json').read_text())
+          expected='999eb6c6087a3236683bd87145337595575f39bff27051554f58f376c35d58f2'
+          source='9fd1e6acb01bec0aa0c5a6b7a25eeaf9e5443227'
+          assert metadata['workflow_run']['id']==40402135051 and metadata['workflow_run']['head_sha']==source
+          assert metadata['id']==12690177675 and metadata['name']=='regressions-iPad'
+          archive=temp/'native-original.zip'
+          assert archive.stat().st_size==190639902
+          digest=hashlib.sha256()
+          with archive.open('rb') as f:
+              for block in iter(lambda:f.read(1024*1024),b''):digest.update(block)
+          assert digest.hexdigest()==expected
+          assert metadata.get('digest')=='sha256:'+expected
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+              inner=temp/'original-xcresult.zip'
+              inner.write_bytes(z.read('NativeResults/RegressionResults.xcresult.zip'))
+          destination=temp/'original-result'
+          destination.mkdir()
+          with zipfile.ZipFile(inner) as z:
+              assert z.testzip() is None
+              for item in z.infolist():
+                  assert (destination/item.filename).resolve().is_relative_to(destination.resolve())
+                  assert (item.external_attr>>16)&0o170000!=0o120000, 'Refuse archive symlinks'
+              z.extractall(destination)
+          evidence=Path('SavedNativeLogEvidence');evidence.mkdir()
+          (evidence/'source.json').write_text(json.dumps({'application_source':source,'original_run':40402135051,'artifact':12690177675,'artifact_sha256':expected,'artifact_bytes':190639902,'sha_crc_verified':True,'reader_source':os.environ['GITHUB_SHA'],'reader_run':os.environ['GITHUB_RUN_ID'],'scope':'Read-only saved xcresult export. NO application build, tests, signing or Apple writes.'},indent=2)+'\n')
+          print('Original failed result source, SHA256 and ZIP integrity verified.')
+          PY
+      - name: Export the preserved native diagnostics without launching a simulator
+        run: |
+          xcrun xcresulttool export diagnostics --path "$RUNNER_TEMP/original-result/RegressionResults.xcresult" --output-path "$RUNNER_TEMP/native-export"
+      - name: Read only the original failure window and verify log coverage
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, time
+          from pathlib import Path
+          os.environ['TZ']='UTC';time.tzset()
+          root=Path(os.environ['RUNNER_TEMP'])/'native-export'
+          output=Path('SavedNativeLogEvidence')
+          archives=sorted(root.rglob('*.logarchive'))
+          assert archives, 'No original unified log archive was exported'
+          assert len(archives)<=4, 'Unexpected diagnostic archive scope'
+          predicate='process CONTAINS[c] "MTL" OR process CONTAINS[c] "metal" OR process CONTAINS[c] "AGX" OR subsystem CONTAINS[c] "metal" OR subsystem CONTAINS[c] "pencil" OR subsystem CONTAINS[c] "QuartzCore" OR subsystem CONTAINS[c] "CoreAnimation" OR (process == "Hashiya" AND subsystem != "com.apple.dt.xctest" AND (eventMessage CONTAINS[c] "error" OR eventMessage CONTAINS[c] "invalid" OR eventMessage CONTAINS[c] "failed")) OR ((process == "backboardd" OR process == "SpringBoard" OR process == "runningboardd") AND (eventMessage CONTAINS[c] "14116" OR eventMessage CONTAINS[c] "Hashiya"))'
+          coverage='process == "Hashiya" AND eventMessage CONTAINS "Touches drawing"'
+          reports=[]
+          for index,archive in enumerate(archives):
+              base=['/usr/bin/log','show','--archive',str(archive),'--start','2026-10-26 21:23:35','--end','2026-10-26 21:24:05','--style','compact','--info','--debug']
+              selected=output/('failure-window-'+str(index)+'.log')
+              with selected.open('w') as f:subprocess.run(base+['--predicate',predicate],stdout=f,stderr=subprocess.STDOUT,check=True,timeout=60)
+              sample=output/('coverage-'+str(index)+'.log')
+              with sample.open('w') as f:subprocess.run(base+['--predicate',coverage],stdout=f,stderr=subprocess.STDOUT,check=True,timeout=60)
+              text=sample.read_text(errors='replace')
+              confirmed=any('Touches drawing' in line and re.match(r'2026-10-26 21:23:',line) for line in text.splitlines())
+              reports.append({'archive':str(archive.relative_to(root)),'window_start_utc':'2026-10-26T21:23:35Z','window_end_utc':'2026-10-26T21:24:05Z','original_issue_utc':'2026-10-26T21:23:57.129Z','failure_reported_ci_utc':'2026-10-26T21:23:57.532Z','coverage_confirmed':confirmed,'selected_bytes':selected.stat().st_size,'coverage_bytes':sample.stat().st_size})
+          crashes=[str(p.relative_to(root)) for p in root.rglob('*.ips') if any(s in p.name.lower() for s in ['hashiya','metal','gpu','mtl'])]
+          (output/'reader-report.json').write_text(json.dumps({'archives':reports,'relevant_crash_report_names':crashes,'timezone':time.tzname,'limits':'Logs after21:23:57.129 (original SQLite issue timestamp, before CI transport) are post-failure, not a demonstrated cause. Empty warnings are not evidence without confirmed event coverage. This is not a GPU command capture or a test result.'},indent=2)+'\n')
+          assert any(r['coverage_confirmed'] for r in reports), 'Original stroke events were not found; do not infer absence of errors from an uncovered time window'
+          print('Saved original stroke window covered. Native logs exported; no tests were executed.')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-saved-9fd1-native-log-evidence
+          path: SavedNativeLogEvidence/
+          retention-days: 30

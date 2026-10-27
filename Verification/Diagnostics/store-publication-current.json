@@ -1,5 +1,5 @@
 {
-  "status": "Both realnative menu controls PASSED2/2 withoutskips; originalFocus/Notes/thumbs/images visuallyreviewed; freezing one comprehensive152-case candidate withunchangedproductionAppc8.",
+  "status": "BLOCKED: full9fd1/run40402135051 failed actualcold iPad Notes visibility. RealApp94dcc worker/main2/2PASS is INCONCLUSIVE, not a repair or releasequalification. NoIPA or Appleupload.",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -547,7 +547,7 @@
     "ruling": "Do not patch/retry the hybridfixture again. Use original realApp+originalinteraction+alloriginalassertions for one new discriminating paired experiment. Setupfailures are not App render reproductions, fixes or exoneration."
   },
   "real_app_thumbnail_thread_experiment": {
-    "status": "prepared; actual runtime results PENDING",
+    "status": "COMPLETED2/2PASS; INCONCLUSIVE forcausality",
     "hypothesis": "ActualPadsidebar nonemptyinkthumbnail rendered BEFORE failedNotesstroke. Its worker PKDrawing.image is an active boundary omittedfromPhone controls. Test raster scheduling/thread boundary, not assumeAPIviolation or Applebug.",
     "design": "ONE paired experiment; two freshmacOS15/iPadPro13M5/iOS26.2 jobs ononeSHA. SameoriginalLaunchTests.testIndividualInkTargetsAtAccessibilityTextSize once/job; onlydiagnosticcomposeactor differs. IdenticalPDFsnapshot/drawingdecode/bytes/extent/scale1/opaquecomposition. Allnativepicker/content/livepixel5s/UndoRedo/Fit/storageassertions retained.",
     "instrumentation": "DEBUG-only realproducer receipts: variant,actualThread,monotonicstart/end,bytes,extent,duration bounded24requests; UItestgesturebegin/end timing outsidecallbacks. TEST_RUNNER_ passes mode toXCTest perAppleXcode13/WWDC22; application-process actualnonemptyink-end required.",
@@ -558,6 +558,101 @@
       "both_pass_or_any_setupfailure": "Inconclusive; no identical reruns or releaseclaim. Review newevidence before changes."
     },
     "limits": "MainActor altersserialization/timing andmaystallUI; no production-default change or publication follows a singlepassingvariant. Independent externaldevice-onlyreport notproof ofourSimulatorbug. AppleWWDC19allowedbackgroundvaluework.",
-    "next": "Run this targetedcomparison once, inspectoriginalxcresult/savedrasters/receipts. No fullgateuntilcause/repairverified."
+    "next": "Run this targetedcomparison once, inspectoriginalxcresult/savedrasters/receipts. No fullgateuntilcause/repairverified.",
+    "result": {
+      "source": "94dcc066a080543cdeb1f8db3a8ad8c5a1b12009",
+      "app_tree": "fde7213dfb192c0c072276d32a49e0945999ea30",
+      "run": 40446156528,
+      "url": "https://github.com/x6one/hashiya-ios/actions/runs/40446156528",
+      "classification": "INCONCLUSIVE: bothoriginalworkerandMainActor passed; hypothesis not established. No production-default change, fullrerun, IPA or Applewrite follows.",
+      "total_targeted_cases": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "variants": {
+        "worker": {
+          "job": 121997829725,
+          "artifact": 12709270454,
+          "artifact_sha256": "d38e34bb51ebe40b85c4b17a1e30571656799372362a4e9d6889ba6acdf35680",
+          "artifact_bytes": 91760845,
+          "sha_crc_verified": true,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "expected_failures": 0,
+          "seconds": 239.228,
+          "actual_app_thread_confirmed": true,
+          "raster_seconds": [
+            0.08647383333334346,
+            0.049992041666655496
+          ],
+          "first_notes_sample_red": 3764,
+          "first_notes_sample_seconds": 1.6019376666666858,
+          "native_frame": [
+            0,
+            251.5,
+            560,
+            547
+          ],
+          "native_count_after_stroke": 2,
+          "original_png": "D368FFBC-1BF9-418C-92A3-5F260CF12823.png",
+          "original_png_sha256": "e61b4d4f514a6ee7a14316ade6ebddc43a25064e74e2901206c1241615dcdbcf",
+          "original_png_visually_reviewed": true,
+          "local": "/workspace/Tayya-94dcc-real-thread-worker",
+          "limits": "Warm nonemptythumbnail durations here do not establish cold-open responsiveness or fix previouszero-redfailure."
+        },
+        "main": {
+          "job": 121997829616,
+          "artifact": 12709185706,
+          "artifact_sha256": "f728d6d009cb8f8b5e8c1dcde4f923fcb219aa98fd2d804cca7761879cb3816f",
+          "artifact_bytes": 87776363,
+          "sha_crc_verified": true,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "expected_failures": 0,
+          "seconds": 223.96,
+          "actual_app_thread_confirmed": true,
+          "raster_seconds": [
+            0.04313600000000406,
+            0.07129191666660972
+          ],
+          "first_notes_sample_red": 3797,
+          "first_notes_sample_seconds": 1.4578807916666392,
+          "native_frame": [
+            0,
+            251.5,
+            560,
+            547
+          ],
+          "native_count_after_stroke": 2,
+          "original_png": "E9762E42-AA12-42D8-9EAD-D37685A4CFE4.png",
+          "original_png_sha256": "26d6c0c39e12628bd9c3cad232cf111b4a206e394662126669d75cfe22ad8676",
+          "original_png_visually_reviewed": true,
+          "local": "/workspace/Tayya-94dcc-real-thread-main",
+          "limits": "Warm nonemptythumbnail durations here do not establish cold-open responsiveness or fix previouszero-redfailure."
+        }
+      }
+    }
+  },
+  "saved_native_diagnostics_review": {
+    "status": "Portable portions read; Apple unified-logarchive export PENDING native reader",
+    "original_source": "9fd1e6acb01bec0aa0c5a6b7a25eeaf9e5443227",
+    "original_run": 40402135051,
+    "method": "Read originalxcresultZIP+SQLiteActionsdiagnosticsRef and Zstandarddirectory references locally usinginstalledsystemlibzstd, no new dependency or CI test.",
+    "extracted_app_stdout_bytes": 103921391,
+    "extracted_runner_stdout_bytes": 411182,
+    "extracted_xctest_session_bytes": 24815813,
+    "observed": "No explicitGPUfault/Metalexception in decodedAppstderr. Failurewindow37..59 yielded only5nativeTrackingElementWindowControllerwarnings at21:23:58.62 AFTER originalfailure21:23:57.532; not an initiatingcause.",
+    "remaining_portion": "Originalsimctl_diagnostics/system.logarchive (Appletracev3) needs existingmacOS/usr/bin/log. One read-onlymacOSjob verifiesoriginalartifactSHA/CRC, exportsoriginaldiagnostics, queries30-secondoriginalwindowincludingcompiler/Metal/PencilKit/CA and verifiesTouchesdrawingcoverage. NO Appbuild, test, simulatorlaunch, signing or Applewrite.",
+    "native_reader_workflow": ".github/workflows/tayya-saved-native-diagnostics.yml",
+    "why_another_artifact_transfer": "Native reader runs on a different macOS machine; portableSQLite/text already inspected locally. Onlyoriginalfailedxcresult is consumed; the transfer is necessary for nativearchive decoding, not a repeatedCItest or duplicate localdownload.",
+    "failure_timestamps": {
+      "sqlite_CFreference": 814742637.129,
+      "actual_issue_utc": "2026-10-26T21:23:57.129Z",
+      "CI_error_line_utc": "2026-10-26T21:23:57.532Z",
+      "ruling": "Use earlieractualIssue forbefore/aftercausality; CItransportcanlag. Trackingwarnings58.62 areafterboth."
+    }
   }
 }

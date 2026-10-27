@@ -634,10 +634,11 @@
           "limits": "Warm nonemptythumbnail durations here do not establish cold-open responsiveness or fix previouszero-redfailure."
         }
       }
-    }
+    },
+    "input_and_timing_limits": "Each path preserves the bytes read from its ownactualsavedfile; fresh gestures/drawings differ between twofreshVMs. No byte-identicalinputclaim acrossruns. Measured durations are synchronouscompositionAPIwalltimes, NOT standaloneGPUcommandtimings or cold-openperformance."
   },
   "saved_native_diagnostics_review": {
-    "status": "Portable portions read; Apple unified-logarchive export PENDING native reader",
+    "status": "Originalsavedarchive decoded onmacOS successfully; savedhealthyreference comparison PENDING",
     "original_source": "9fd1e6acb01bec0aa0c5a6b7a25eeaf9e5443227",
     "original_run": 40402135051,
     "method": "Read originalxcresultZIP+SQLiteActionsdiagnosticsRef and Zstandarddirectory references locally usinginstalledsystemlibzstd, no new dependency or CI test.",
@@ -653,6 +654,41 @@
       "actual_issue_utc": "2026-10-26T21:23:57.129Z",
       "CI_error_line_utc": "2026-10-26T21:23:57.532Z",
       "ruling": "Use earlieractualIssue forbefore/aftercausality; CItransportcanlag. Trackingwarnings58.62 areafterboth."
+    },
+    "native_reader_result": {
+      "source": "98628cec469841a1bf62a592d99cc3f0b8f7c712",
+      "run": 40450187444,
+      "job": 122010837692,
+      "url": "https://github.com/x6one/hashiya-ios/actions/runs/40450187444",
+      "result": "SUCCESS read-only; zero tests/Appbuilds/simulatorlaunches",
+      "coverage_confirmed": true,
+      "artifact": 12709324986,
+      "artifact_bytes": 13039,
+      "artifact_sha256": "99390eed1cf21ed9b7c85ce81d8681e5d7264f0ab99bfae6df79a45fc0aa5086",
+      "sha_crc_verified": true,
+      "local": "/workspace/Tayya-9fd1-native-log-evidence",
+      "new_facts": [
+        "Native stroke touch events21:23:44.855/856 covered inoriginaldevicearchive.",
+        "MTLCompilerService parentHashiya14116 compilation BEGIN21:23:45.028 SUCCESS21:23:45.202,blit_fragment173.420791ms. This doesnot support a slowshadercompile explanation forthisfailedstroke.",
+        "CoreAnimationRender synchronize timeouts21:23:35.466 and35.749 forcontext1b9ad6d4 precededstroke44.874. SamecontextID occurs inAppkeyboardcontext.",
+        "KeyboardArbiter focus-acquisition timer elapsed38.640; noAppcrashreport.",
+        "Stroke ended45.453, recognition snapshots2strokes45.677; visibleNotesremained0red inoriginalPNGs."
+      ],
+      "interpretation": "CA/keyboard observations are NOTestablishedcause. Need compare same originalworker testpassed94dcc fromsavedarchive, without re-running anytest."
+    },
+    "healthy_comparison_pending": {
+      "application_source": "94dcc066a080543cdeb1f8db3a8ad8c5a1b12009",
+      "source_run": 40446156528,
+      "source_job": 121997829725,
+      "artifact": 12709270454,
+      "artifact_bytes": 91760845,
+      "artifact_sha256": "d38e34bb51ebe40b85c4b17a1e30571656799372362a4e9d6889ba6acdf35680",
+      "case": "OriginaltestIndividualInkTargetsAtAccessibilityTextSize passed once,worker",
+      "window_utc": [
+        "2026-10-27T03:59:45Z",
+        "2026-10-27T04:00:15Z"
+      ],
+      "purpose": "Compare savedCoreAnimation/focus/compiler statearoundnativepaletteclose/Notesstroke againstactual9fd1failure. Read-onlymacOSnativeformattool, noApp/testexecution. No repeatedoriginalarchivequery."
     }
   }
 }

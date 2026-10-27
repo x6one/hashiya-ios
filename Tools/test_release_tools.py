@@ -1,5 +1,6 @@
 """Regression checks for native release numbering and Apple's acceptance gate."""
 import json
+import glob
 import plistlib
 import subprocess
 import tempfile
@@ -15,6 +16,29 @@ from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_public_artifacts_exclude_rejected_raw_exports(self):
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-store-listing.yml').read_text())
+        step = next(step for step in workflow['jobs']['publish']['steps']
+                    if step.get('uses') == 'actions/upload-artifact@v4'
+                    and step['with']['name'] == 'Tayya-approved-App-Store-upload')
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for name in ['AppleDistribution/Export/rejected.ipa',
+                         'AppleDistribution/Verified/accepted.ipa',
+                         'AppleDistribution/Verified/Tayya.xcarchive.zip', 'private/signing-key.p8']:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'fixture')
+            selected = set()
+            for pattern in step['with']['path'].splitlines():
+                for match in glob.glob(str(root / pattern.strip())):
+                    path = Path(match)
+                    selected.update(path.rglob('*') if path.is_dir() else [path])
+            self.assertNotIn(root / 'AppleDistribution/Export/rejected.ipa', selected)
+            self.assertNotIn(root / 'private/signing-key.p8', selected)
+            self.assertIn(root / 'AppleDistribution/Verified/accepted.ipa', selected)
+            self.assertIn(root / 'AppleDistribution/Verified/Tayya.xcarchive.zip', selected)
+
     def test_privacy_manifest_declares_app_owned_preference_storage(self):
         manifest = plistlib.loads(Path("App/Resources/PrivacyInfo.xcprivacy").read_bytes())
         reasons = {item["NSPrivacyAccessedAPIType"]: item["NSPrivacyAccessedAPITypeReasons"]

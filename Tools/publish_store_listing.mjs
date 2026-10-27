@@ -1,12 +1,83 @@
-// Prepare only the authorized draft version. This never submits a review or releases an app.
+// Prepare the exact qualified release; submit review only through the separately authorized guarded mode.
 import {readFileSync,writeFileSync,realpathSync} from 'node:fs';
 import {resolve,dirname,basename,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash,sign} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {submitQualifiedReview} from './submit_store_review.mjs';
 
 const hash=(b,algorithm='sha256')=>createHash(algorithm).update(b).digest('hex');
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
+export async function prepareDraftAppInfo(api,config,metadata) {
+  if(config.app_id!=='6818288428')throw new Error('App Info target identity differs');
+  const response=await api('GET','apps/'+config.app_id+'/appInfos?include=primaryCategory,secondaryCategory&limit=200');
+  if(response.links?.next)throw new Error('App Info listing is paginated; inspect before modifying it');
+  const editable=response.data.filter(info=>(info.attributes.state||info.attributes.appStoreState)==='PREPARE_FOR_SUBMISSION');
+  if(editable.length!==1)throw new Error('Missing or ambiguous editable App Info; preserve the live listing');
+  const info=editable[0],id=encodeURIComponent(info.id);
+  if(!/^https:\/\//.test(metadata.privacy_url||''))throw new Error('A current HTTPS privacy URL is required');
+  for(const locale of ['ar-SA','en-US']){
+    const copy=metadata.localizations?.[locale];
+    if(!copy?.name||[...copy.name].length>30||!copy.subtitle||[...copy.subtitle].length>30)
+      throw new Error('App Info localization is missing or too long');
+  }
+  const age=(await api('GET',`appInfos/${id}/ageRatingDeclaration`)).data;
+  if(!age?.id||!age.attributes||!Object.keys(age.attributes).length)throw new Error('Existing age-rating record is unavailable; do not invent questionnaire answers');
+  const relationships={};
+  for(const [field,value] of [['primaryCategory',metadata.suggested_primary_category],['secondaryCategory',metadata.suggested_secondary_category]]){
+    if(value&&info.relationships?.[field]?.data?.id!==value)relationships[field]={data:{type:'appCategories',id:value}};
+  }
+  if(Object.keys(relationships).length)await api('PATCH',`appInfos/${id}`,{data:{type:'appInfos',id:info.id,relationships}});
+  const locales=await api('GET',`appInfos/${id}/appInfoLocalizations?limit=200`);
+  if(locales.links?.next)throw new Error('App Info localization listing is paginated');
+  for(const locale of ['ar-SA','en-US']){
+    const copy=metadata.localizations[locale],attrs={name:copy.name,subtitle:copy.subtitle,privacyPolicyUrl:metadata.privacy_url};
+    const existing=locales.data.find(row=>row.attributes.locale===locale);
+    if(existing){
+      if(Object.entries(attrs).some(([key,value])=>existing.attributes[key]!==value))
+        await api('PATCH','appInfoLocalizations/'+encodeURIComponent(existing.id),{data:{type:'appInfoLocalizations',id:existing.id,attributes:attrs}});
+    }else await api('POST','appInfoLocalizations',{data:{type:'appInfoLocalizations',attributes:{locale,...attrs},relationships:{appInfo:{data:{type:'appInfos',id:info.id}}}}});
+  }
+  return {editable_app_info_id:info.id,localizations_prepared:2,age_rating_record_preserved:true,live_app_info_modified:false};
+}
+
+export function validateApplicationCheckout(config,path) {
+  const root=realpathSync(path);
+  const git=(...args)=>execFileSync('git',['-C',root,...args],{encoding:'utf8'}).trim();
+  const tree=git('rev-parse','HEAD:App');
+  if(git('rev-parse','HEAD')!==config.app_source||tree!==config.app_tree)
+    throw new Error('Actual application checkout source differs from the qualified candidate');
+  if(git('diff','--name-only','HEAD')||git('ls-files','--others','--exclude-standard','App','NativeOffice'))
+    throw new Error('Actual application checkout is dirty or modified');
+  return tree;
+}
+
+// This validates a recorded source/visual review, not an exemption from the
+// exact-source native/gallery gates. Original photo hashes remain unchanged.
+export function validatePresentationCompatibility(config,proof,changedFiles) {
+  const artworkTree=config.artwork_app_tree??config.app_tree;
+  if(!/^[a-f0-9]{40}$/.test(config.app_tree||'')||!/^[a-f0-9]{40}$/.test(artworkTree||''))
+    throw new Error('Invalid photographed/qualified App tree');
+  if(artworkTree===config.app_tree)return true;
+  if(!proof||proof.mode!=='debug-only-source-delta-and-native-gallery-review'
+    ||proof.candidate_source!==config.app_source||proof.candidate_app_tree!==config.app_tree
+    ||proof.artwork_source!==config.artwork_source||proof.artwork_app_tree!==artworkTree
+    ||String(proof.native_gallery_run)!==String(config.qualified_run)
+    ||proof.native_gallery_reviewed!==true||proof.source_diff_reviewed!==true)
+    throw new Error('Exact-source native-gallery and presentation compatibility review is missing');
+  if(!Array.isArray(changedFiles)||!changedFiles.length||!Array.isArray(proof.files)
+    ||proof.files.length!==changedFiles.length||new Set(proof.files.map(r=>r.path)).size!==changedFiles.length)
+    throw new Error('Presentation review does not cover the complete App delta');
+  for(const path of changedFiles){
+    const row=proof.files.find(r=>r.path===path);
+    if(!path.startsWith('App/')||!path.endsWith('.swift')||!row||row.debug_only_delta!==true
+      ||row.literal_strings_unchanged!==true||!/^[a-f0-9]{64}$/.test(row.release_sha256||'')
+      ||row.release_sha256!==row.artwork_release_sha256)
+      throw new Error('Presentation changed or its exact release-source review is incomplete');
+  }
+  return true;
+}
+
 export function validateQualification(run,jobs,source,kind) {
   const name=kind==='release'?'iPhone and iPad preflight':kind==='render'?'Tayya Store artwork and approved publication':'Tayya Store readiness and actual medium-phone captures';
   if(run.head_sha!==source||run.name!==name||run.conclusion!=='success')throw new Error('The immutable source run did not qualify');
@@ -64,8 +135,10 @@ async function main() {
   const config=read(arg('--config','Store/publication.json'));
   const files=validateArtwork(arg('--artwork','StoreArtwork/Tayya-App-Store-Visuals'),config);
   if(args.includes('--validate-only')){console.log('Validated12 RGB files, target identity and all native source hashes');return;}
-  const appTree=execFileSync('git',['rev-parse','HEAD:App'],{encoding:'utf8'}).trim();
-  if(appTree!==config.app_tree)throw new Error('The current production App tree differs from the photographed source');
+  const appTree=validateApplicationCheckout(config,arg('--application-path','.'));
+  const artworkTree=config.artwork_app_tree??config.app_tree;
+  const changedAppFiles=artworkTree===appTree?[]:execFileSync('git',['diff','--name-only',config.artwork_source,config.app_source,'--','App'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+  validatePresentationCompatibility(config,artworkTree===appTree?null:read('Store/presentation-compatibility.json'),changedAppFiles);
   const report={app_id:config.app_id,version:config.version,build:config.build,artwork_source:config.artwork_source,
     application_tree:appTree,run:process.env.GITHUB_RUN_ID,mode:'prepare-draft-only',screenshots:[],screenshot_sets:[]};
   const reportFile=arg('--report','store-listing-report.json');
@@ -99,6 +172,23 @@ async function main() {
   }
   const payload=(type,attributes,relationships,id)=>({data:{type,...(id?{id}:{}),...(attributes?{attributes}:{}),...(relationships?{relationships}:{})}});
   const rel=(type,id)=>({data:{type,id}});
+  if(args.includes('--submit-review')){
+    const reviewFile=arg('--report','store-app-review-report.json');
+    let receipt={app_id:config.app_id,version:config.version,build:config.build,submitted_for_review:false,public_release_confirmed:false};
+    const saveReview=value=>{receipt={controller_source:process.env.GITHUB_SHA,controller_run:process.env.GITHUB_RUN_ID,...value};writeFileSync(reviewFile,JSON.stringify(receipt,null,2)+'\n');};
+    saveReview(receipt);
+    try{
+      const listing=read('StoreDraft/store-listing-report.json'),processing=read('store-processing-report.json');
+      if(processing.controller_source!==process.env.GITHUB_SHA)throw new Error('App Review: processing receipt belongs to another controller source');
+      await submitQualifiedReview(api,{config,processing,listing},saveReview);
+      if(!receipt.submitted_for_review)process.exitCode=10;
+      console.log(JSON.stringify(receipt));
+    }catch(error){
+      receipt.error=/^(App Review: |Apple API )/.test(error.message)?error.message:'App Review failed; private data withheld';
+      saveReview(receipt);throw new Error(receipt.error);
+    }
+    return;
+  }
   try {
     const app=(await api('GET','apps/'+config.app_id)).data;
     if(app.attributes.bundleId!==config.bundle_id)throw new Error('The Apple app does not match the authorized bundle');
@@ -108,6 +198,7 @@ async function main() {
     if(version&&!['PREPARE_FOR_SUBMISSION','REJECTED','METADATA_REJECTED','DEVELOPER_REJECTED'].includes(version.attributes.appStoreState))throw new Error('Preserve submitted or published version: '+version.attributes.appStoreState);
     if(!version)version=(await api('POST','appStoreVersions',payload('appStoreVersions',{platform:'IOS',versionString:config.version,releaseType:live?.attributes.releaseType||'AFTER_APPROVAL',copyright:'2026 Ahmad Alawi'},{app:rel('apps',config.app_id)}))).data;
     report.app_store_version_id=version.id;report.published_version_preserved=live?.attributes.versionString||null;save();
+    report.app_info=await prepareDraftAppInfo(api,config,metadata);save();
     const localizations=(await api('GET','appStoreVersions/'+version.id+'/appStoreVersionLocalizations?limit=200')).data;
     for(const [locale,copy] of Object.entries(metadata.localizations)){
       let localization=localizations.find(l=>l.attributes.locale===locale);

@@ -93,6 +93,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Select the separately qualified application checkout
+        run: |
+          python3 - <<'PY_SOURCE'
+          import json, os, re
+          from pathlib import Path
+          config=json.loads(Path('Store/publication.json').read_text())
+          assert re.fullmatch('[a-f0-9]{40}',config['app_source'])
+          with open(os.environ['GITHUB_ENV'],'a') as file:file.write('APP_SOURCE='+config['app_source']+'\n')
+          PY_SOURCE
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_SOURCE }}
+          path: hashiya-tools
       - name: Validate pinned qualification and native image sources
         env:
           GH_TOKEN: ${{ github.token }}
@@ -108,10 +121,15 @@ jobs:
           def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
           for key in ['app_source','artwork_source']+(['renderer_source'] if 'render_run' in config else []):
               subprocess.run(['git','fetch','--no-tags','--depth=1','origin',config[key]],check=True)
-              assert git('rev-parse',config[key]+':App')==config['app_tree'],'Production and photographed App trees differ'
-          assert git('rev-parse','HEAD:App')==config['app_tree'],'Store-content branch modified production'
-          changed=git('diff','--name-only',config['app_source'],'HEAD').splitlines()
-          store_tools={'Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','Tools/store_release.py','Tools/test_store_release.py','.github/workflows/tayya-store-listing.yml'}
+              expected=config['app_tree'] if key=='app_source' else config.get('artwork_app_tree',config['app_tree'])
+              assert git('rev-parse',config[key]+':App')==expected,'Pinned application/artwork source tree differs'
+          controller_base='bd126092c6b812c3ad2df9adecdd950e22d57b33'
+          subprocess.run(['git','fetch','--no-tags','--depth=1','origin',controller_base],check=True)
+          assert git('rev-parse','HEAD:App')==git('rev-parse',controller_base+':App'),'Store controller modified its unused App tree'
+          assert git('-C','hashiya-tools','rev-parse','HEAD')==config['app_source']
+          assert git('-C','hashiya-tools','rev-parse','HEAD:App')==config['app_tree']
+          changed=git('diff','--name-only',controller_base,'HEAD').splitlines()
+          store_tools={'Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','Tools/store_release.py','Tools/test_store_release.py','Tools/test_release_tools.py','Tools/submit_store_review.mjs','Tools/test_submit_store_review.mjs','Tools/test_store_presentation.mjs','.github/workflows/tayya-store-listing.yml'}
           assert all(path.startswith(('Store/','docs/','Verification/')) or path in store_tools for path in changed),'Only Store content and its isolated publisher may change; production/build/signing code stays frozen'
           assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','project.yml','NativeOffice'),'Photographed build configuration differs from the qualified candidate'
           checks=[('qualified_run','app_source','iPhone and iPad preflight'),('artwork_run','artwork_source','Tayya Store readiness and actual medium-phone captures')]
@@ -120,7 +138,7 @@ jobs:
               run=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{config[key]}"],text=True))
               assert run['head_sha']==config[source] and run['name']==name and run['conclusion']=='success',run['html_url']
           with open(os.environ['GITHUB_ENV'],'a') as f:f.write('ARTWORK_RUN='+str(config.get('render_run',config['artwork_run']))+'\n')
-          print('Both immutable sources qualified; current App tree matches all photographed production files')
+          print('Exact application checkout and genuine artwork source qualified; differing presentation requires the separately recorded native-gallery review')
           PY
       - uses: actions/download-artifact@v4
         with:
@@ -148,7 +166,7 @@ jobs:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: node Tools/publish_store_listing.mjs
+        run: node Tools/publish_store_listing.mjs --application-path hashiya-tools
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -194,7 +212,7 @@ jobs:
           path: StoreArtwork
       - name: Recheck every gate and consume only its exact native engine artifact
         run: |
-          node Tools/publish_store_listing.mjs --qualify-only
+          node Tools/publish_store_listing.mjs --qualify-only --application-path hashiya-tools
           python3 Tools/store_release.py source
           python3 Tools/store_release.py engine
       - name: Reuse the original device linkage and build tools
@@ -242,9 +260,46 @@ jobs:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: python3 Tools/distribute_native_app.py
+        run: python3 Tools/distribute_native_app.py --preserve-archive
       - name: Attest the actual app checkout separately from the controller commit
         run: python3 Tools/store_release.py receipt
+      - name: Retain only the verified accepted IPA and signed XCArchive
+        run: |
+          python3 - <<'PY_VERIFIED'
+          import hashlib, json, os, plistlib, shutil, subprocess, zipfile
+          from pathlib import Path
+          root=Path('AppleDistribution')
+          config=json.loads(Path('Store/publication.json').read_text())
+          report=json.loads((root/'distribution-report.json').read_text())
+          provenance=json.loads((root/'store-publication-provenance.json').read_text())
+          assert all(report.get(k) is True for k in ['code_signed','upload_accepted','archive_retained'])
+          assert provenance['application_source']==config['app_source'] and provenance['application_tree']==config['app_tree']
+          assert provenance['controller_source']==os.environ['GITHUB_SHA'] and provenance['upload_accepted'] is True
+          archive=root/'Tayya.xcarchive'
+          app=archive/'Products/Applications/Hashiya.app'
+          info=plistlib.loads((app/'Info.plist').read_bytes())
+          assert (info['CFBundleIdentifier'],info['CFBundleShortVersionString'],str(info['CFBundleVersion']))==(config['bundle_id'],config['version'],str(config['build']))
+          subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
+          subprocess.run(['xcrun','lipo','-verify_arch','arm64',str(app/info['CFBundleExecutable'])],check=True)
+          def digest(path):
+              with path.open('rb') as file:return hashlib.file_digest(file,'sha256').hexdigest()
+          ipas=list((root/'Export').glob('*.ipa'))
+          assert len(ipas)==1 and digest(ipas[0])==provenance['signed_ipa_sha256']==report['sha256']
+          verified=root/'Verified'
+          verified.mkdir()
+          ipa=verified/'Tayya.ipa'
+          shutil.copy2(ipas[0],ipa)
+          assert digest(ipa)==provenance['signed_ipa_sha256']
+          packed=verified/'Tayya.xcarchive.zip'
+          subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(archive),str(packed)],check=True)
+          with zipfile.ZipFile(packed) as zipped:
+              assert zipped.testzip() is None
+              assert 'Tayya.xcarchive/Products/Applications/Hashiya.app/Info.plist' in zipped.namelist()
+          provenance.update({'xcarchive_zip_sha256':digest(packed),'verified_artifacts':['Tayya.ipa','Tayya.xcarchive.zip']})
+          (root/'store-publication-provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          (verified/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.name+'\n' for p in [ipa,packed]))
+          (verified/'release-provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          PY_VERIFIED
       - name: Retain the small immutable upload receipt for read-only processing verification
         uses: actions/upload-artifact@v4
         with:
@@ -259,7 +314,7 @@ jobs:
         with:
           name: Tayya-approved-App-Store-upload
           path: |
-            AppleDistribution/Export/*.ipa
+            AppleDistribution/Verified/
             AppleDistribution/distribution-report.json
             AppleDistribution/store-publication-provenance.json
             store-engine-receipt.json
@@ -311,4 +366,70 @@ jobs:
           path: |
             store-after-upload.json
             store-processing-report.json
+          retention-days: 14
+  review:
+    needs: processing
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:publish-approved]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require explicit review and automatic-release authorization
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY_REVIEW_SOURCE'
+          import json, os, re, subprocess
+          from pathlib import Path
+          c=json.loads(Path('Store/publication.json').read_text())
+          assert c.get('publish_binary') is True and c.get('submit_for_review') is True and c.get('release_after_approval') is True
+          assert re.fullmatch('[a-f0-9]{40}',c['app_source'])
+          for key in ['app_source','artwork_source']:
+              subprocess.run(['git','fetch','--no-tags','--depth=1','origin',c[key]],check=True)
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('APP_SOURCE='+c['app_source']+'\n')
+              f.write('ARTWORK_RUN='+str(c.get('render_run',c['artwork_run']))+'\n')
+          PY_REVIEW_SOURCE
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_SOURCE }}
+          path: hashiya-tools
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-Apple-upload-receipt
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-Apple-processing-verification
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-App-Store-Designed-Screenshots
+          run-id: ${{ env.ARTWORK_RUN }}
+          github-token: ${{ github.token }}
+          path: StoreArtwork
+      - name: Verify immutable accepted-upload provenance before Apple credentials
+        run: python3 Tools/store_release.py processing-source
+      - name: Verify Store and App Review orchestration before Apple credentials
+        run: |
+          node Tools/test_store_listing.mjs
+          node Tools/test_store_presentation.mjs
+          node Tools/test_submit_store_review.mjs
+      - name: Submit the exact processed version and request release after approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node Tools/publish_store_listing.mjs --submit-review --application-path hashiya-tools --report store-app-review-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Apple-App-Review
+          path: |
+            store-app-review-report.json
+            store-processing-report.json
+            Store/presentation-compatibility.json
+          if-no-files-found: warn
           retention-days: 14

@@ -1,0 +1,21 @@
+{
+  "purpose": "Owner-authorized final App Store release qualification; not another diagnostic experiment",
+  "app_id": "6818288428",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "version": "0.6.0",
+  "preferred_build": "13",
+  "production_parent": "cd22c9b97f89e674f9e2be7f75abb82a2b035c25",
+  "candidate_source": "GITHUB_SHA of this marked release-request commit",
+  "application_code_changed_by_this_request": false,
+  "owner_authorized_upload": true,
+  "owner_authorized_app_review": true,
+  "owner_authorized_public_release_after_apple_approval": true,
+  "requested_release_type": "AFTER_APPROVAL",
+  "final_gate": "existing original4 cold regressions/device, all152+native/device,3Maestro/device, actual exports, gallery and Office/device packaging",
+  "gate_results": "PENDING; do not interpret owner authorization as qualification",
+  "simulator_ink_cause": "unresolved; saved valid Stroke and live visibility are separate",
+  "simulator_undo_cause": "unresolved; keep independent of live visibility",
+  "physical_device_proof": "not available; disclose limits",
+  "native_microphone_quality_and_office_runtime_on_physical_device": "not verified by CI",
+  "do_not_retry_same_failed_gate_without_new_evidence": true
+}

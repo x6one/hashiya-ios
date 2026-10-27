@@ -1,0 +1,36 @@
+{
+  "scope": "TestFlight QA Candidate \u2014 Not Production Qualified",
+  "application_source": "b11b67975576642a47de81407b363fc99601aa6b",
+  "full_gate_baseline": "c07e69eb49bea0588efb6c0f8d24c8b8e777c67c",
+  "baseline_run": 40175783379,
+  "baseline_all_required_jobs_succeeded": true,
+  "files": {
+    "App/MarginNotebook.swift": {
+      "release_whitespace_normalized_equal_to_baseline": true,
+      "release_text_sha256": "1d4c36f85e81cb60a4a24717cea8d9ed2d539b2138d25b7b2444a70c04426480",
+      "production_delta": "No non-whitespace Release delta in reviewed diff"
+    },
+    "App/MarginPane.swift": {
+      "release_whitespace_normalized_equal_to_baseline": true,
+      "release_text_sha256": "c5d42618f67e0e1df76e0c47fb2cac41c9925c9c7a4701f9f309072a2b5cefaa",
+      "production_delta": "No non-whitespace Release delta in reviewed diff"
+    },
+    "App/PDFWorkspace.swift": {
+      "release_whitespace_normalized_equal_to_baseline": false,
+      "release_text_sha256": "8bdc1d88b9c8d3f838a0ea082a6c7d658eb9bdf470398181635b7e518547832c",
+      "production_delta": "page-navigation layout/focus adaptations"
+    },
+    "App/DocumentThumbnails.swift": {
+      "release_whitespace_normalized_equal_to_baseline": true,
+      "release_text_sha256": "885400d4f5e31d46ab9abc0fc242dcdf341383d430ca34774737e8a6b1e4edd9",
+      "production_delta": "No non-whitespace Release delta in reviewed diff"
+    }
+  },
+  "method": "Source-level DEBUG preprocessing and manual diff review, not a native Release compile. Workflow independently inspects actual build settings and produces the signed device build.",
+  "recorded_stroke_data_loss_proven": false,
+  "simulator_live_ink_root_cause": "unresolved",
+  "simulator_undo_root_cause": "unresolved",
+  "physical_device_tests": "not performed",
+  "production_qualified": false,
+  "public_release_authorized": false
+}

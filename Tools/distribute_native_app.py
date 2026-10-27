@@ -72,29 +72,43 @@ def validate_resources(app):
         raise RuntimeError("Required-reason API declarations are missing")
 
 
+def cleanup_archive(archive, *, preserve=False, verified=False):
+    # Retention is explicit and never preserves an unverified partial archive.
+    if not (preserve and verified):
+        shutil.rmtree(archive, ignore_errors=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--archive-only', action='store_true',
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--archive-only', action='store_true',
                         help='Verify a signed App Store IPA without transmitting it to Apple')
+    mode.add_argument('--verify-signing-only', action='store_true',
+                      help='Verify existing distribution identity/profile without building or uploading')
+    parser.add_argument('--preserve-archive', action='store_true',
+                        help='Retain XCArchive only after exported IPA signature verification')
     args = parser.parse_args()
+    uploads = not (args.archive_only or args.verify_signing_only)
     readiness = json.loads(Path("Store/release-readiness.json").read_text())
-    for gate in ([] if args.archive_only else ["privacy_audit_complete", "encryption_classification_complete"]):
+    for gate in (["privacy_audit_complete", "encryption_classification_complete"] if uploads else []):
         if readiness.get(gate) is not True:
             raise RuntimeError(f"Release gate is incomplete: {gate}")
     required = ["APPLE_DISTRIBUTION_P12_BASE64", "APPLE_DISTRIBUTION_P12_PASSWORD",
                 "APPLE_PROVISIONING_PROFILE_BASE64"]
-    if not args.archive_only:
+    if uploads:
         required += ["ASC_PRIVATE_KEY_BASE64", "ASC_KEY_ID", "ASC_ISSUER_ID"]
     if any(not os.environ.get(name) for name in required):
         raise RuntimeError("Apple distribution secrets have not been configured")
-    if not args.archive_only and not re.fullmatch(r"[A-Z0-9]+", os.environ["ASC_KEY_ID"]):
+    if uploads and not re.fullmatch(r"[A-Z0-9]+", os.environ["ASC_KEY_ID"]):
         raise RuntimeError("Invalid App Store Connect key ID")
     unsigned_app = Path("NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app")
-    validate_resources(unsigned_app)
     canonical_spec = yaml.safe_load(Path("project.yml").read_text())
-    validate_release_version(plistlib.loads((unsigned_app / "Info.plist").read_bytes()), canonical_spec)
-    output = Path("../AppleDistribution").resolve()
+    if not args.verify_signing_only:
+        validate_resources(unsigned_app)
+        validate_release_version(plistlib.loads((unsigned_app / "Info.plist").read_bytes()), canonical_spec)
+    output = Path("../SigningPreflight" if args.verify_signing_only else "../AppleDistribution").resolve()
     output.mkdir(exist_ok=False)
+    archive_verified = False
     original_keychains = run(["security", "list-keychains", "-d", "user"],
                              "Read keychain list", capture=True).decode()
     original_keychains = re.findall(r'"([^"]+)"', original_keychains)
@@ -173,6 +187,15 @@ def main():
                              "Check matching private key", capture=True).decode()
             if identity not in identities:
                 raise RuntimeError("The certificate private key does not match the App Store profile")
+            if args.verify_signing_only:
+                (output / "signing-preflight.json").write_text(json.dumps({
+                    "identity_valid": True, "certificate_matches_profile_and_private_key": True,
+                    "profile_is_app_store_distribution": True,
+                    "profile_expiration_utc": profile_info["ExpirationDate"].isoformat() + "Z",
+                    "team": TEAM, "bundle_id": BUNDLE,
+                    "source_commit": os.environ["GITHUB_SHA"], "run": os.environ["GITHUB_RUN_ID"],
+                    "build_performed": False, "upload_performed": False}, indent=2) + "\n")
+                return
             # Command-line signing overrides affect every target, including
             # Swift package resource bundles that cannot use a provisioning
             # profile. Scope these settings to the application in the generated
@@ -225,12 +248,14 @@ def main():
                 raise RuntimeError("Exported entitlements do not match distribution")
             executable = app / info["CFBundleExecutable"]
             run(["xcrun", "lipo", str(executable), "-verify_arch", "arm64"], "Verify device architecture")
+            archive_verified = True
             with ipas[0].open("rb") as ipa_file:
                 digest = hashlib.file_digest(ipa_file, "sha256").hexdigest()
             report = {"source_commit": os.environ["GITHUB_SHA"], "run": os.environ["GITHUB_RUN_ID"],
                 "team": TEAM, "bundle_id": BUNDLE, "version": info["CFBundleShortVersionString"],
                 "build": info["CFBundleVersion"], "code_signed": True, "sha256": digest,
-                "archive_only": args.archive_only, "release_readiness": readiness,
+                "archive_only": args.archive_only, "archive_retained": args.preserve_archive,
+                "release_readiness": readiness,
                 "installation": "App Store distribution signature; installation requires Apple processing and TestFlight or App Store distribution. Not directly installable.",
                 "upload_accepted": False, "apple_processing_confirmed": False, "app_store_submitted": False}
             report_path = output / "distribution-report.json"
@@ -256,7 +281,7 @@ def main():
                 subprocess.run(["security", "delete-keychain", str(keychain)], capture_output=True)
             if profile_installed and profile_path is not None and profile_path.exists():
                 profile_path.unlink()
-            shutil.rmtree(output / "Tayya.xcarchive", ignore_errors=True)
+            cleanup_archive(output / "Tayya.xcarchive", preserve=args.preserve_archive, verified=archive_verified)
 
 
 if __name__ == "__main__":

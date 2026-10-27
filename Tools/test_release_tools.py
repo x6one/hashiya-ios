@@ -1,5 +1,6 @@
 """Regression checks for native release numbering and Apple's acceptance gate."""
 import json
+import glob
 import plistlib
 import subprocess
 import tempfile
@@ -9,12 +10,52 @@ from pathlib import Path
 from unittest.mock import patch
 
 import yaml
+import distribute_native_app
 from distribute_native_app import run_apple, validate_release_version
 from prepare_native_office_app import prepare
 from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_qa_artifacts_exclude_an_export_rejected_before_verification(self):
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-testflight-candidate.yml').read_text())
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for name in ['AppleDistribution/Export/rejected.ipa', 'AppleDistribution/Tayya-QA.xcarchive.zip',
+                         'UnsignedCandidate/rejected.ipa', 'QA/Verified/accepted.ipa',
+                         'QA/source.json', 'private/signing-key.p8']:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'fixture')
+            selected = set()
+            for step in workflow['jobs']['qa-candidate']['steps']:
+                if step.get('uses') != 'actions/upload-artifact@v4':
+                    continue
+                for pattern in step['with']['path'].splitlines():
+                    for match in glob.glob(str(root / pattern.strip())):
+                        path = Path(match)
+                        selected.update(path.rglob('*') if path.is_dir() else [path])
+            self.assertNotIn(root / 'AppleDistribution/Export/rejected.ipa', selected,
+                             'A failed codesign/resource check must not publish the raw exported IPA')
+            self.assertNotIn(root / 'AppleDistribution/Tayya-QA.xcarchive.zip', selected)
+            self.assertNotIn(root / 'private/signing-key.p8', selected)
+            self.assertNotIn(root / 'UnsignedCandidate/rejected.ipa', selected)
+            self.assertIn(root / 'QA/Verified/accepted.ipa', selected)
+
+    def test_archive_retention_requires_both_explicit_request_and_verified_output(self):
+        cleanup = getattr(distribute_native_app, "cleanup_archive", None)
+        self.assertTrue(callable(cleanup), "The distribution helper needs explicit verified archive retention")
+        for preserve, verified in [(False, False), (False, True), (True, False), (True, True)]:
+            with self.subTest(preserve=preserve, verified=verified), tempfile.TemporaryDirectory() as folder:
+                archive = Path(folder) / "Tayya.xcarchive"
+                archive.mkdir()
+                marker = archive / "verified-binary"
+                marker.write_bytes(b"original archive bytes")
+                cleanup(archive, preserve=preserve, verified=verified)
+                self.assertEqual(archive.exists(), preserve and verified)
+                if archive.exists():
+                    self.assertEqual(marker.read_bytes(), b"original archive bytes")
+
     def test_privacy_manifest_declares_app_owned_preference_storage(self):
         manifest = plistlib.loads(Path("App/Resources/PrivacyInfo.xcprivacy").read_bytes())
         reasons = {item["NSPrivacyAccessedAPIType"]: item["NSPrivacyAccessedAPITypeReasons"]

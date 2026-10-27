@@ -94,9 +94,81 @@ import SwiftUI
 private final class DocumentThumbnailRenderer: @unchecked Sendable {
     struct Result { var image: UIImage?; var error: String? }
     private let worker = DispatchQueue(label: "tayya.document.thumbnails", qos: .userInitiated)
+    #if DEBUG
+    // Diagnostic-only, accessed exclusively on this renderer's serial worker.
+    private var diagnosticRequestNumber = 0
+    private func beginWorkerInkMeasurement(extent: CGRect) -> (request: Int, started: Double) {
+        diagnosticRequestNumber += 1
+        let started = ProcessInfo.processInfo.systemUptime
+        if diagnosticRequestNumber <= 24 {
+            NSLog("TayyaThumbnailThread %@", "request=\(diagnosticRequestNumber) variant=worker phase=ink-begin actualMain=\(Thread.isMainThread) uptime=\(started) ink=nonempty extent=\(extent) scale=1")
+        }
+        return (diagnosticRequestNumber, started)
+    }
+    private func endWorkerInkMeasurement(_ measurement: (request: Int, started: Double)?) {
+        guard let measurement, measurement.request <= 24 else { return }
+        let ended = ProcessInfo.processInfo.systemUptime
+        NSLog("TayyaThumbnailThread %@", "request=\(measurement.request) variant=worker phase=ink-end actualMain=\(Thread.isMainThread) uptime=\(ended) ink=nonempty duration=\(ended - measurement.started)")
+    }
+    private func measureMainActorInk(pdf: Data, ink: URL,
+                                     continuation: CheckedContinuation<Result, Never>) {
+        diagnosticRequestNumber += 1
+        let request = diagnosticRequestNumber
+        let variant = "main"
+        func receipt(_ phase: String, _ details: String = "") {
+            guard request <= 24 else { return }
+            NSLog("TayyaThumbnailThread %@", "request=\(request) variant=\(variant) phase=\(phase) actualMain=\(Thread.isMainThread) uptime=\(ProcessInfo.processInfo.systemUptime) \(details)")
+        }
+        receipt("request")
+        do {
+            // Match the real worker's independent PDF, byte decode, extent,
+            // scale and opaque composition. Only the final composition actor
+            // differs between the two explicit diagnostic launches.
+            guard let page = PDFDocument(data: pdf)?.page(at: 0) else { throw CocoaError(.fileReadCorruptFile) }
+            let base = page.thumbnail(of: CGSize(width: 240, height: 340), for: .mediaBox)
+            guard FileManager.default.fileExists(atPath: ink.path) else {
+                receipt("skip", "reason=no-ink"); continuation.resume(returning: Result(image: base)); return
+            }
+            let data = try Data(contentsOf: ink)
+            let drawing = try PKDrawing(data: data)
+            guard !drawing.strokes.isEmpty else {
+                receipt("skip", "reason=empty-ink"); continuation.resume(returning: Result(image: base)); return
+            }
+            let extent = CGRect(origin: .zero, size: page.bounds(for: .mediaBox).size)
+            let compose = { () -> Result in
+                let started = ProcessInfo.processInfo.systemUptime
+                receipt("ink-begin", "inkBytes=\(data.count) extent=\(extent) scale=1")
+                let result: Result = autoreleasepool {
+                    let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
+                    let image = UIGraphicsImageRenderer(size: base.size, format: format).image { context in
+                        UIColor.white.setFill(); context.fill(CGRect(origin: .zero, size: base.size))
+                        base.draw(at: .zero)
+                        drawing.image(from: extent, scale: 1).draw(in: CGRect(origin: .zero, size: base.size))
+                    }
+                    return Result(image: image)
+                }
+                receipt("ink-end", "inkBytes=\(data.count) duration=\(ProcessInfo.processInfo.systemUptime - started)")
+                return result
+            }
+            // Asynchronous actor hop only; never block the main thread
+            // waiting for a worker or change the production default.
+            Task { @MainActor in continuation.resume(returning: compose()) }
+        } catch {
+            receipt("error")
+            continuation.resume(returning: Result(error: error.localizedDescription))
+        }
+    }
+    #endif
     func image(pdf: Data, ink: URL) async -> Result {
         await withCheckedContinuation { continuation in
             worker.async {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--test-thumbnail-thread-probe"),
+                   ProcessInfo.processInfo.arguments.contains("--test-thumbnail-ink-main") {
+                    self.measureMainActorInk(pdf: pdf, ink: ink, continuation: continuation)
+                    return
+                }
+                #endif
                 let result: Result = autoreleasepool {
                     do {
                         guard let page = PDFDocument(data: pdf)?.page(at: 0) else { throw CocoaError(.fileReadCorruptFile) }
@@ -104,6 +176,12 @@ private final class DocumentThumbnailRenderer: @unchecked Sendable {
                         guard FileManager.default.fileExists(atPath: ink.path) else { return Result(image: base) }
                         let drawing = try PKDrawing(data: Data(contentsOf: ink))
                         if drawing.strokes.isEmpty { return Result(image: base) }
+                        #if DEBUG
+                        // A remains on the original worker implementation,
+                        // including its original autorelease-pool lifetime.
+                        let measurement = ProcessInfo.processInfo.arguments.contains("--test-thumbnail-thread-probe")
+                            ? self.beginWorkerInkMeasurement(extent: CGRect(origin: .zero, size: page.bounds(for: .mediaBox).size)) : nil
+                        #endif
                         let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
                         let image = UIGraphicsImageRenderer(size: base.size, format: format).image { context in
                             UIColor.white.setFill(); context.fill(CGRect(origin: .zero, size: base.size))
@@ -111,6 +189,9 @@ private final class DocumentThumbnailRenderer: @unchecked Sendable {
                             let extent = CGRect(origin: .zero, size: page.bounds(for: .mediaBox).size)
                             drawing.image(from: extent, scale: 1).draw(in: CGRect(origin: .zero, size: base.size))
                         }
+                        #if DEBUG
+                        self.endWorkerInkMeasurement(measurement)
+                        #endif
                         return Result(image: image)
                     } catch { return Result(error: error.localizedDescription) }
                 }

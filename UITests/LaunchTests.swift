@@ -1373,8 +1373,14 @@ final class LaunchTests: XCTestCase {
         baseline.name = name + "-RedPixelBaseline"; baseline.lifetime = .keepAlways; add(baseline)
         let before = Int(count.value as? String ?? "") ?? 0
         recordState("BeforeStroke", expected: String(before))
+        if app.launchArguments.contains("--test-thumbnail-thread-probe") {
+            print("NativeInkThreadBoundary stage=\(name); phase=gestureBegin; uptime=\(ProcessInfo.processInfo.systemUptime)")
+        }
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.35)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.5)))
+        if app.launchArguments.contains("--test-thumbnail-thread-probe") {
+            print("NativeInkThreadBoundary stage=\(name); phase=gestureEnd; uptime=\(ProcessInfo.processInfo.systemUptime)")
+        }
         // Observe presentation before querying the native drawing hierarchy.
         // XCTest describes XCUIElement expectation objects through AX on every
         // poll, even if the predicate itself only reads the screen. Keep this
@@ -1632,6 +1638,12 @@ final class LaunchTests: XCTestCase {
         app.launchArguments = ["--test-review-entry", "--test-reset-entrance", "--test-reduce-motion", "--test-margin-viewport"]
             + (accessibilityType ? ["--test-accessibility-type"] : [])
             + (detailedDiagnostics ? ["--test-margin-details"] : [])
+        if let threadMode = ProcessInfo.processInfo.environment["TAYYA_THUMBNAIL_THREAD_PROBE"],
+           ["worker", "main"].contains(threadMode) {
+            app.launchArguments += ["--test-thumbnail-thread-probe"]
+            if threadMode == "main" { app.launchArguments += ["--test-thumbnail-ink-main"] }
+            print("NativeInkThreadProbe requested=\(threadMode); launchedMain=\(threadMode == "main")")
+        }
         app.launch()
         let demo = app.buttons["welcomeDemonstration"]
         guard demo.waitForExistence(timeout: 15) else { XCTFail("Welcome must offer the real demonstration"); return }

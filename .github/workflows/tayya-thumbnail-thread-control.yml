@@ -1,0 +1,95 @@
+name: Real Tayya thumbnail ink scheduling comparison
+on:
+  push:
+    branches: [integration/tayya-app-store]
+    paths: [App/DocumentThumbnails.swift, UITests/LaunchTests.swift, .github/workflows/tayya-thumbnail-thread-control.yml]
+permissions:
+  contents: read
+concurrency:
+  group: tayya-thumbnail-thread-control
+  cancel-in-progress: false
+jobs:
+  actual-app:
+    if: contains(github.event.head_commit.message, '[diagnostic:thumbnail-thread]')
+    runs-on: macos-15
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        actor: [worker, main]
+    env:
+      TAYYA_THUMBNAIL_THREAD_PROBE: ${{ matrix.actor }}
+      TEST_RUNNER_TAYYA_THUMBNAIL_THREAD_PROBE: ${{ matrix.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate the real production target
+        run: |
+          python3 Tools/select_app_xcode.py
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','-j'],text=True))['devices']
+          matches=[d for runtime,rows in devices.items() if runtime.endswith('iOS-26-2') for d in rows if d['name']=='iPad Pro 13-inch (M5)' and d['isAvailable']]
+          assert len(matches)==1,matches
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SIMULATOR_ID='+matches[0]['udid']+'\n')
+          PY
+      - name: Lint only the two changed Swift files
+        run: |
+          for tool in swiftlint swiftformat; do
+            command -v "$tool" >/dev/null || brew install "$tool"
+          done
+          swiftformat --lint --config .integration.swiftformat App/DocumentThumbnails.swift UITests/LaunchTests.swift
+          swiftlint lint --strict --config .integration.swiftlint.yml App/DocumentThumbnails.swift UITests/LaunchTests.swift
+      - name: Execute the original real-App failing case once
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          touch "$RUNNER_TEMP/tayya-native-start"
+          python3 Tools/seed_files_fixtures.py
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath ThreadBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath ThreadResults.xcresult CODE_SIGNING_ALLOWED=NO 2>&1 | tee thumbnail-thread-build.log
+      - name: Preserve actual failed synthetic ink without changing original evidence
+        if: failure()
+        run: python3 Tools/capture_native_ink_failure.py
+      - name: Retain app-process scheduling receipts and original test evidence
+        if: always()
+        run: |
+          xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --info --debug --predicate 'process == "Hashiya" AND eventMessage BEGINSWITH "TayyaThumbnailThread"' > thumbnail-thread-app.log
+          if [ -d ThreadResults.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path ThreadResults.xcresult --compact > thumbnail-thread-summary.json
+            xcrun xcresulttool export attachments --path ThreadResults.xcresult --output-path ThreadScreenshots
+            ditto -c -k --keepParent ThreadResults.xcresult ThreadResults.xcresult.zip
+          fi
+      - name: Require actual app variant execution and an unskipped original case
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          actor=os.environ['TAYYA_THUMBNAIL_THREAD_PROBE']
+          lines=Path('thumbnail-thread-app.log').read_text().splitlines()
+          actual='true' if actor=='main' else 'false'
+          rendered=[x for x in lines if 'variant='+actor in x and 'phase=ink-end' in x and 'actualMain='+actual in x]
+          summary=Path('thumbnail-thread-summary.json')
+          result=json.loads(summary.read_text()) if summary.is_file() else None
+          Path('thumbnail-thread-proof.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_ID'],'variant':actor,'app_execution_confirmed':bool(rendered),'completed_ink_receipts':rendered,'test_summary':result,'scope':'One original real-App case; no release qualification or automatic causal conclusion'},indent=2)+'\n')
+          assert rendered, 'The real application did not confirm nonempty ink rendering on the requested thread'
+          assert result is not None, 'Original test summary is missing'
+          assert result['totalTestCount']==1 and result['skippedTests']==result['expectedFailures']==0,result
+          assert result['result']=='Passed' and result['passedTests']==1 and result['failedTests']==0,result
+          print('One original case passed; variant receipts confirmed. This experiment is NOT release qualification or a causal conclusion.')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-real-app-thumbnail-thread-${{ matrix.actor }}
+          path: |
+            thumbnail-thread-build.log
+            thumbnail-thread-app.log
+            thumbnail-thread-summary.json
+            thumbnail-thread-proof.json
+            ThreadScreenshots/
+            ThreadResults.xcresult.zip
+            IntegrationEvidence/NativeInkFailure/
+          retention-days: 14

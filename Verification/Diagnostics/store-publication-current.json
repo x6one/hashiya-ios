@@ -350,7 +350,7 @@
         "facts": [
           "Exact original video06825263-E129-45A7-A88B-63EBF7F8266F.mp4 shows menuCLOSED and correct NotesSplit atPTS28, recordstart1793033739.460.",
           "Collection count0 returnedafter6.124917083333457s, hard5s guardcorrectlyfailed.",
-          "InternalXCTestt28.40 query\u219234.52 completion shows countitself~6.12s; outerwalllogflushlag mustnotbemisread asforegroundquerycost."
+          "InternalXCTestt28.40 query→34.52 completion shows countitself~6.12s; outerwalllogflushlag mustnotbemisread asforegroundquerycost."
         ],
         "next_hypothesis": "Third observerdesign: PUBLIC waitForNonExistence(timeout:5), retainactualelapsed<=5 andforegroundassert. ApplemetadataXcode16.3; no introducediOSversion. No fourthobserverpatchifthisfails."
       }
@@ -377,8 +377,8 @@
     },
     "facts": [
       "ExistingNativeInkFailure/native-system.log was alreadyinsideartifact; readcachedlog, no newrun needed.",
-      "Pages1/2/3/5 render13.562\u219213.611; page4 ink13.563\u219237.813 (24.25s), resultimage1/error0; viewendcancelled0.",
-      "MetalCompilingShader onthreadf14b14.035\u219237.209 correlatedwithslowfirstPencilKitraster; exactworkerinternal call notinstrumented.",
+      "Pages1/2/3/5 render13.562→13.611; page4 ink13.563→37.813 (24.25s), resultimage1/error0; viewendcancelled0.",
+      "MetalCompilingShader onthreadf14b14.035→37.209 correlatedwithslowfirstPencilKitraster; exactworkerinternal call notinstrumented.",
       "Originalvideo Editorframes15.5..19.5 shows actualpage4ProgressView, PDFgeometry/contentstable; dominantchangesaboveRGB16localizedtilesx1920,y1408/1472. Video compressionnoise nevertreated as originalPNGdifferencethreshold.",
       "LibraryDEBUGstdoutprintsnotfoundinretainednative/logs; successfulinstrumentedimportdoesnotprovecauseoffullgatefailure. Removeprobe beforequalifyingApp orreusingDDimages.",
       "Syntheticinputsunchanged=true inoriginalnativecollector."
@@ -387,7 +387,7 @@
   },
   "capture_readiness_decision": {
     "review": "Independent architecture review accepted explicit async-content readiness before unchanged5s compositor assertion. Visiblecontainers define requiredpages, includingplaceholders; nooffscreenrequests/scrolling; failonemptyvisibleinventoryorreaderror.",
-    "evidence": "Page4 inkthumbnail render17:51:13.563\u219237.813,24.25s; allother4pagesend13.611; image1/error0/cancelled0; Metalcompiler14.035\u219237.209. Actualspinnerblockedfullpixelstability.",
+    "evidence": "Page4 inkthumbnail render17:51:13.563→37.813,24.25s; allother4pagesend13.611; image1/error0/cancelled0; Metalcompiler14.035→37.209. Actualspinnerblockedfullpixelstability.",
     "new_content_allowance_seconds": 30,
     "scope": "ONEshareddeadline across ONLY sidebarpagecontainersintersecting actualsidebar/windowviewport; requirecorrespondingpagePreview-N value rendered; norequestwholePDF/nosleep/nofont/Appchanges.",
     "retained_conditions": "OriginalsettledScreenshot5s wholepixel+orientationfunctionbyteidentical; originalPNGExif/touch checksretained. Native menuwait5+realelapsed<=5+foregroundretained andSTILLUNVERIFIED. All151testcasesretained.",
@@ -487,9 +487,77 @@
     "purpose": "RequiredcomprehensivevalidationofcumulativetestfixessinceFAILED7c, notdocumentation-onlyretesting orrepeatinggreenprobes.",
     "controls_source": "65ea71d02438941c371b963ef691f7c9fdc8d487",
     "App_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
-    "app_and_tests": "ProductionAppandallunit/UItestcodeMATCHverified65eacontrolsource exactly; onlyCIminimumguardstrengthened100\u2192152 plus thisevidence entry.",
+    "app_and_tests": "ProductionAppandallunit/UItestcodeMATCHverified65eacontrolsource exactly; onlyCIminimumguardstrengthened100→152 plus thisevidence entry.",
     "required": "Cold4/device, all152/device,3Maestro/device,actualPDF/PPTXexports,nativegallery,fullOfficearm64iphoneosandunsignedIPA. SAMEcandidateSHA; fail/skipblocksalllatergates.",
     "status": "Pending current [integration:release] run; noApp/IPA/Applequalificationclaimyet. ExactcandidateSHA/runpersisted inresumledgerandCIartifacts.",
     "photos": "ReuseapprovedactualDD12compositionartifact12636063053 sinceApp/NativeOffice/projectunchangedc8. KeepgenuineDDsource/runmetadata; norelabeledpictures."
+  },
+  "current_native_blocker": {
+    "source": "9fd1e6acb01bec0aa0c5a6b7a25eeaf9e5443227",
+    "run": 40402135051,
+    "status": "FAILED; no full152/device, Maestro, gallery, Office or IPA executed downstream",
+    "cold_iPhone": "4/4PASS,0fail/skip/expected",
+    "cold_iPad": "3/4PASS,1failure,0skip/expected",
+    "test": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
+    "line": "UITests/LaunchTests.swift1421 in9fd1",
+    "stage": "AccessibilityType-CompactSplitInk",
+    "live_red": 0,
+    "native_strokes": [
+      1,
+      2
+    ],
+    "saved_bytes": 950,
+    "saved_drawing_sha256": "368ebabfceed9d442865011d805e83a6164a3da5498946faa1c730a68b34a72a",
+    "saved_raster_red": 3880,
+    "artifact": 12690177675,
+    "artifact_sha256": "999eb6c6087a3236683bd87145337595575f39bff27051554f58f376c35d58f2",
+    "sha_crc_verified": true,
+    "proof": "FailedAccessibility and passingStandard have identical ownershipphases. No PDF activation/enable/tool transition DURING Notescommit, no samepage reload. Do not blame responderphase14 or shader activity alone. Root remains unproven.",
+    "local_evidence": "/workspace/Tayya-9fd1-iPad-cold-failure/AnalysisOnly/recurrence-proof.json",
+    "Apple_writes": false
+  },
+  "ipad_control_architecture_review": {
+    "status": "STOPPED hybrid isolated fixture calibration; NO valid Notes causal measurement",
+    "attempts": [
+      {
+        "source": "00af0229955e68b7c2dafb7eb61f94d7f8a2cb61",
+        "run": 40440874223,
+        "failure": "FixtureRTL physicalx816!=required0 beforeNotesstroke; preDocnative10183redPASS",
+        "artifact": 12707035661,
+        "sha256": "2fc1ce4677eac1f6b1b87654b7233ff1301755f5d1fb083f436ae3581bf6a62d",
+        "downloaded_sha_crc": true
+      },
+      {
+        "source": "490f18589847318b3f436f1992e1c4117bde08cd",
+        "run": 40442385107,
+        "failure": "ManualUIColorPickerrootmissing5s; savedAX extraWindowempty; BEFOREanyinkstroke",
+        "artifact": 12707551637,
+        "sha256": "21c911351b37b1a5dc7f33b4bc5b9bb0bb5101f4d6c0a2421266528a200e2b48",
+        "downloaded_sha_crc": true
+      },
+      {
+        "source": "741b9bc52fe5b48f04668993c83362d5c321a5d4",
+        "run": 40443526346,
+        "failure": "OriginalAppOSservice startup condition did not hold in hybridhost: states1→3,background60.094s, BEFOREanyinkstroke",
+        "artifact": 12707558746,
+        "sha256": "713e378cb5e44c3b8f15a5271200205750c8b14dfef3da171f6527fdc0295a1f",
+        "downloaded_sha_crc": false
+      }
+    ],
+    "ruling": "Do not patch/retry the hybridfixture again. Use original realApp+originalinteraction+alloriginalassertions for one new discriminating paired experiment. Setupfailures are not App render reproductions, fixes or exoneration."
+  },
+  "real_app_thumbnail_thread_experiment": {
+    "status": "prepared; actual runtime results PENDING",
+    "hypothesis": "ActualPadsidebar nonemptyinkthumbnail rendered BEFORE failedNotesstroke. Its worker PKDrawing.image is an active boundary omittedfromPhone controls. Test raster scheduling/thread boundary, not assumeAPIviolation or Applebug.",
+    "design": "ONE paired experiment; two freshmacOS15/iPadPro13M5/iOS26.2 jobs ononeSHA. SameoriginalLaunchTests.testIndividualInkTargetsAtAccessibilityTextSize once/job; onlydiagnosticcomposeactor differs. IdenticalPDFsnapshot/drawingdecode/bytes/extent/scale1/opaquecomposition. Allnativepicker/content/livepixel5s/UndoRedo/Fit/storageassertions retained.",
+    "instrumentation": "DEBUG-only realproducer receipts: variant,actualThread,monotonicstart/end,bytes,extent,duration bounded24requests; UItestgesturebegin/end timing outsidecallbacks. TEST_RUNNER_ passes mode toXCTest perAppleXcode13/WWDC22; application-process actualnonemptyink-end required.",
+    "production_default": "unchanged originalworker path; all newAppcode #ifDEBUG; Release source tokens forDocumentThumbnails normalizedcompareexact to741b,sha256=b8c2b16b4168f5694d9b1d31e06d492f0187065d671f405e2c894333d1fc427d; this is SOURCEcomparison, not a Releasebuild/test claim.",
+    "interpretation": {
+      "A_fail_B_pass": "Supports scheduling boundary, doesNOTproveaffinityfromsingleintermittentpair; inspectmainstall/ordering beforedefaultchange.",
+      "both_sameNotes_fail": "Off-mainnotnecessary ONLYifBactualappreceipt confirmsMainActor executed.",
+      "both_pass_or_any_setupfailure": "Inconclusive; no identical reruns or releaseclaim. Review newevidence before changes."
+    },
+    "limits": "MainActor altersserialization/timing andmaystallUI; no production-default change or publication follows a singlepassingvariant. Independent externaldevice-onlyreport notproof ofourSimulatorbug. AppleWWDC19allowedbackgroundvaluework.",
+    "next": "Run this targetedcomparison once, inspectoriginalxcresult/savedrasters/receipts. No fullgateuntilcause/repairverified."
   }
 }

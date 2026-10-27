@@ -1,0 +1,94 @@
+{
+  "status": "BLOCKED: the original iPad live-ink failure is real; root cause remains unproven. No production repair or release qualification follows this comparison.",
+  "application_head": "93ec4f9a9b0ea9c665782fa20fe48ec0d4ac7ef7",
+  "method": "Read two previously retained xcresult system.logarchives using native macOS tools. Zero new App builds, tests, simulator launches, signing actions or Apple writes. Both windows cover the actual PencilKit touch events.",
+  "cases": {
+    "failed": {
+      "application_source": "9fd1e6acb01bec0aa0c5a6b7a25eeaf9e5443227",
+      "application_run": 40402135051,
+      "reader_run": 40450187444,
+      "reader_url": "https://github.com/x6one/hashiya-ios/actions/runs/40450187444",
+      "artifact": 12709324986,
+      "artifact_bytes": 13039,
+      "artifact_sha256": "99390eed1cf21ed9b7c85ce81d8681e5d7264f0ab99bfae6df79a45fc0aa5086",
+      "sha_crc_verified": true,
+      "native_report": {
+        "archives": [
+          {
+            "archive": "0_Test_iPad Pro 13-inch (M5)_Diagnostics/simctl_diagnostics/0DE52589-6E0B-47D4-B4A7-7E4E3D9C1049/system.logarchive",
+            "window_start_utc": "2026-10-26T21:23:35Z",
+            "window_end_utc": "2026-10-26T21:24:05Z",
+            "original_issue_utc": "2026-10-26T21:23:57.129Z",
+            "failure_reported_ci_utc": "2026-10-26T21:23:57.532Z",
+            "coverage_confirmed": true,
+            "selected_bytes": 60394,
+            "coverage_bytes": 234
+          }
+        ],
+        "relevant_crash_report_names": [],
+        "timezone": [
+          "UTC",
+          "UTC"
+        ],
+        "limits": "Logs after21:23:57.129 (original SQLite issue timestamp, before CI transport) are post-failure, not a demonstrated cause. Empty warnings are not evidence without confirmed event coverage. This is not a GPU command capture or a test result."
+      },
+      "app_context_id": "1b9ad6d4",
+      "counts": {
+        "ca_sync_timeouts": 2,
+        "focus_timer_expiries": 1,
+        "focus_update_warnings": 5,
+        "touch_drawing_events": 2
+      },
+      "blit_fragment_compile_ms": 173.420791,
+      "native_internal_stroke_duration_seconds": 0.037
+    },
+    "healthy": {
+      "application_source": "94dcc066a080543cdeb1f8db3a8ad8c5a1b12009",
+      "application_run": 40446156528,
+      "reader_run": 40451160063,
+      "reader_url": "https://github.com/x6one/hashiya-ios/actions/runs/40451160063",
+      "artifact": 12710691911,
+      "artifact_bytes": 6326,
+      "artifact_sha256": "126f240cd7408ab355d6e975122f3ebc043a9ede3c7759defb484571affb79eb",
+      "sha_crc_verified": true,
+      "native_report": {
+        "archives": [
+          {
+            "archive": "0_Test_iPad Pro 13-inch (M5)_Diagnostics/simctl_diagnostics/0DE52589-6E0B-47D4-B4A7-7E4E3D9C1049/system.logarchive",
+            "window_start_utc": "2026-10-27T03:59:45Z",
+            "window_end_utc": "2026-10-27T04:00:15Z",
+            "case_result": "Passed original worker case once",
+            "case_has_failure": false,
+            "coverage_confirmed": true,
+            "selected_bytes": 40019,
+            "coverage_bytes": 234
+          }
+        ],
+        "relevant_crash_report_names": [],
+        "timezone": [
+          "UTC",
+          "UTC"
+        ],
+        "limits": "This archive is the passed94dcc worker reference, not the failed9fd1 source. Compare warnings/timing with the separately retained failure; no causal conclusion follows from presence or absence alone. Empty warnings require confirmed coverage. This is not a GPU command capture or a new test."
+      },
+      "app_context_id": "fa5934d0",
+      "counts": {
+        "ca_sync_timeouts": 10,
+        "focus_timer_expiries": 2,
+        "focus_update_warnings": 4,
+        "touch_drawing_events": 2
+      },
+      "blit_fragment_compile_ms": 14.079125,
+      "native_internal_stroke_duration_seconds": 0.396
+    }
+  },
+  "ruling": [
+    "CoreAnimation synchronize timeouts occur in both the failed case (2) and healthy case (10), for each app context. They do not distinguish failure and are insufficient evidence for a compositor repair.",
+    "Keyboard focus-acquisition expiry and failed UIKit focus updates also occur in both cases; do not infer that responder or focus changes are required.",
+    "App blit_fragment compilation succeeded in 173.420791ms in the failed case and 14.079125ms in the healthy case. Neither establishes a multi-second compile stall causing the missing live ink.",
+    "PencilKit reports a Stroke Duration of 0.037s in the failed case and 0.396s in the healthy case. This internal metric is not the touch gesture duration or a proved mechanism; independent strokes differ between cases.",
+    "The worker/MainActor comparison passed both original cases (2/2). It does not establish thumbnail thread affinity as the cause. Keep the original production default and the original live-pixel assertions."
+  ],
+  "remaining": "A causal trace or reproducible minimal real-app case is needed to locate where the valid, saved Notes stroke fails to reach the live rendered surface. Existing data, geometry, ownership, color, native screenshot and unified-log evidence does not identify that boundary. Do not retry the same full gate or adopt an unproved repair.",
+  "release_boundary": "Original full qualification 40402135051 remains failed: iPhone cold4/4, iPad cold3/4. Full152/device, Maestro, gallery, Office and iphoneos packaging did not run downstream. No qualified IPA or Apple upload."
+}

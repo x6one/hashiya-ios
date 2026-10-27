@@ -1,5 +1,39 @@
 # Tayya Studio 2.0 App Store preparation
 
+## Current status — October27
+
+BLOCKED; this status supersedes historical pending-candidate notes below. Full
+qualification40402135051/source9fd1 failed the original iPad
+`testIndividualInkTargetsAtAccessibilityTextSize` at CompactSplitInk: live red
+pixels0, while two native strokes were saved in950 bytes and independently
+rasterized3880 red pixels. Cold iPhone4/4 passed; iPad3/4 passed. The downstream
+152-case/device, Maestro, exports, gallery, Office and iphoneos/IPA gates did not
+execute. No current qualified IPA or Apple upload exists.
+
+The real-app worker/MainActor comparison40446156528 passed2/2 original cases,
+without changing the production default. This is an inconclusive experiment,
+not a repair. Saved failure and healthy native archives were then read on macOS
+without building, testing or launching a simulator:40450187444 and40451160063
+both succeeded. The healthy original-worker case also has CoreAnimation
+synchronization timeouts and keyboard focus-expiry warnings. Those warnings do
+not distinguish failure. App shader compilation completed in173ms in the failed
+case, so a multi-second compilation stall is not established for this stroke.
+
+The exact evidence, checksums, event coverage and limits are recorded in
+`Verification/Diagnostics/native-ink-saved-log-comparison.json`. The actual App
+head remains93ec4f9a9b0ea9c665782fa20fe48ec0d4ac7ef7; newer App code is DEBUG-only
+diagnostic instrumentation. Release defaults are unchanged. The original5s
+live-pixel requirement is preserved. No test or log-reader process is pending.
+Do not repeat the same full gate or change rendering/responder behavior based
+only on these non-causal warnings. A causal trace or reproducible minimal
+real-app case is needed before a new production repair and frozen qualification.
+
+The12 genuine branded Store images remain available in artwork run40290027945,
+artifact12636063053, with their originalDD009 capture provenance. Publication
+remains disabled; source guards, existing signing, encryption facts, live0.4.2,
+stable branches and user data are unchanged. Physical microphone/interruption
+quality and actual-device Office conversion remain unverified.
+
 The user explicitly authorized App Store upload on October25. Qualified application source c07e69eb49bea0588efb6c0f8d24c8b8e777c67c/run40175783379 passed151 native tests and3Maestro flows per family, real PDF/PPTX bytes, native gallery, full native Office linkage and Release iphoneos packaging. These results qualify that source, not later sources.
 
 New store preparation runs on integration/tayya-app-store; the original integration/stable branches remain untouched. The only production resource change is the UserDefaults CA92.1 declaration, for the app's own pen presets, language, first-launch, library and reading preferences. Existing FileTimestamp/SystemBootTime reasons, no-tracking and no-collected-data declarations remain unchanged. A real-plist contract failed before this declaration and all35Tools tests passed after it. No storage format, behavior, version, bundle or engine changes.

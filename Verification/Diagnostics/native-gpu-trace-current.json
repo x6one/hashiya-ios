@@ -1,0 +1,217 @@
+{
+  "status": "BLOCKED; collector calibration STOPPED after diagnosed host context, interrupted save, and persistent native stop failure. No App repair, final qualification, IPA or Apple upload.",
+  "source": "615bf9e77f844c3ca11ba69a204b3e4493c9fde6",
+  "run": 40480529697,
+  "url": "https://github.com/x6one/hashiya-ios/actions/runs/40480529697",
+  "job": 122109395888,
+  "build_for_testing": "PASS",
+  "original_test": {
+    "name": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
+    "line": "UITests/LaunchTests.swift:1427",
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "expected_failures": 0,
+    "stage": "AccessibilityType-CompactSplitInk",
+    "live_red_pixels": 0,
+    "native_strokes_before": 1,
+    "native_strokes_after": 2,
+    "saved_bytes": 950,
+    "independent_raster_red_pixels": 3878,
+    "drawing_sha256": "1672db6c237fb71c947ff013579d90f36cc17b9412c6bdda36f6cd1af1e4f866",
+    "original_png": "DFF14FA3-D74C-4B57-946A-9456B9A7EB44.png",
+    "original_png_visually_reviewed": true,
+    "native_frame": [
+      0,
+      251.5,
+      560,
+      547
+    ]
+  },
+  "profiler": {
+    "actual_app_pid": 13294,
+    "device_context_correct": true,
+    "exit": -9,
+    "error": "Profiler did not finalize within60s after original-case completion",
+    "native_tail": "Recording completed. Saving output file...",
+    "native_export_error": "Trace is malformed; instrument run data is missing",
+    "partial_files": [
+      "form.template",
+      "Trace1.run/RunIssues.storedata"
+    ],
+    "partial_total_bytes": 20032657,
+    "local_salvage_result": "Parsed binary keyed-archive form.template and RunIssues SQLite. Only template/configuration and warnings survived, no instrument run/event data. No GPU-command causality claim.",
+    "lifecycle_fix": "Observe the existing Notes live-pixel result marker in original xcodebuild stdout; stop capture once before App termination, preserving the original test outcome. Never interrupt an existing native save. Keep a documented120s rolling window and independent300s archive-finalization resource ceiling; original UI5s contract unchanged.",
+    "validation": "Real-process regression test failed because capture was stopped after original cleanup; passed after stop-boundary change. Full Tools40/40 PASS. Not native proof."
+  },
+  "artifact": {
+    "id": 12722733811,
+    "bytes": 142652852,
+    "sha256": "2bf009bdfd30b2afe944a4a9b195125d8b22f2314ea290c49b17c12b4f711545",
+    "sha_crc_verified": true,
+    "local": "/workspace/Tayya-615bf-native-trace.zip"
+  },
+  "interpretation": "Actual recurrence matches original9fd1 phenotype and ownership phases. Profiling perturbs timing; this does not prove the GPU caused the defect. No App repair, full qualification, IPA or Apple upload.",
+  "next": "STOP this collector calibration and identical test/full reruns. A reliable causal measurement or reproducible minimal real-App case is still required before a production repair. Preserve original assertions, Store guards, user files and all source provenance.",
+  "publication_enabled": false,
+  "Apple_writes": false,
+  "previous_host_context_attempt": {
+    "source": "16cdbf4a296d4de2d74ef54963d9bf163b81951f",
+    "run": 40478504555,
+    "job": 122102593832,
+    "original_test": {
+      "name": "LaunchTests.testIndividualInkTargetsAtAccessibilityTextSize",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "expected_failures": 0,
+      "architecture": "arm64",
+      "device": "iPad Pro 13-inch (M5)",
+      "iOS": "26.2"
+    },
+    "profiler": {
+      "exit": 21,
+      "error": "Cannot find process for provided pid: 11148",
+      "trace_exists": false,
+      "root": "The default host device namespace was used; retained native xctrace help documents explicit Simulator device selection. Host PID validation alone does not select that device namespace.",
+      "fix": "Add --device SIMULATOR_ID to xctrace record only; no App/UITest/timeout/default change.",
+      "validation": "New external-command contract failed before the flag and passed afterward; full Tools39/39 PASS. This is CLI-contract validation, not native GPU proof."
+    },
+    "artifact": {
+      "id": 12721659713,
+      "bytes": 83580698,
+      "sha256": "a0092c78cf0ad4432f4a196961533d715447f4c203219a9f8290b7a018c162b7",
+      "sha_crc_verified": true,
+      "local": "/workspace/Tayya-16cdb-native-trace.zip"
+    }
+  },
+  "lifecycle_corrected_attempt": {
+    "source": "f6b5dd269c4c4d0aa81c1621f095b27bd9be14d7",
+    "run": 40483811224,
+    "job": 122120462664,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40483811224",
+    "native_process_report": {
+      "source": "f6b5dd269c4c4d0aa81c1621f095b27bd9be14d7",
+      "run": "40483811224",
+      "device": "0DE52589-6E0B-47D4-B4A7-7E4E3D9C1049",
+      "started_utc": "2026-10-27T09:59:12.742862+00:00",
+      "target": "HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+      "scope": "One original case; Metal System Trace in the selected simulator device context",
+      "limits": "Measurement can perturb timing. No repair, release qualification or physical-device proof.",
+      "app_pid": 16500,
+      "profiler_exit": -9,
+      "test_exit": 65,
+      "errors": [
+        "Native trace finalization exceeded its separate300s resource ceiling"
+      ],
+      "attach_requested_utc": "2026-10-27T10:00:57.536001+00:00",
+      "stop_reason": "Original Notes live-pixel observation completed",
+      "stop_requested_utc": "2026-10-27T10:03:53.346006+00:00",
+      "test_completed_utc": "2026-10-27T10:05:40.468235+00:00",
+      "completed_utc": "2026-10-27T10:10:40.752539+00:00",
+      "trace_exists": true,
+      "profiler_error_tail": "Starting recording with the Metal System Trace template. Attaching to: Hashiya (16500). Time limit: 360.0 s\nCtrl-C to stop the recording\nStopping recording...\n"
+    },
+    "native_test_summary": {
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "0DE52589-6E0B-47D4-B4A7-7E4E3D9C1049",
+            "deviceName": "iPad Pro 13-inch (M5)",
+            "modelName": "iPad Pro 13-inch (M5)",
+            "osBuildNumber": "23C54",
+            "osVersion": "26.2",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 1,
+          "passedTests": 0,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ],
+      "environmentDescription": "Hashiya \u00b7 Built with macOS 15.7.9",
+      "expectedFailures": 0,
+      "failedTests": 1,
+      "finishTime": 1793095532.149,
+      "passedTests": 0,
+      "result": "Failed",
+      "skippedTests": 0,
+      "startTime": 1793095165.967,
+      "statistics": [],
+      "testFailures": [
+        {
+          "failureText": "XCTAssertEqual failed: (\"Optional(\"2\")\") is not equal to (\"Optional(\"1\")\") - Undo edge tap must remove the actual stroke",
+          "targetName": "HashiyaUITests",
+          "testIdentifier": 1,
+          "testIdentifierString": "LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize()",
+          "testIdentifierURL": "test://com.apple.xcode/Hashiya/HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+          "testName": "testIndividualInkTargetsAtAccessibilityTextSize()"
+        }
+      ],
+      "title": "Test - Hashiya",
+      "topInsights": [],
+      "totalTestCount": 1
+    },
+    "native_export_errors": [
+      "Export failed: Document Missing Template Error\n"
+    ],
+    "artifact": {
+      "id": 12724848438,
+      "bytes": 138734023,
+      "sha256": "a150b359e3896fddd5acfad25eec2a76219b5c7fef4419b5c3f8433d6b7c25fa",
+      "sha_crc_verified": true,
+      "local": "/workspace/Tayya-f6b5-native-trace.zip"
+    },
+    "pixel_observations": {
+      "document_red": 10296,
+      "document_first_sample_seconds": 1.891476500000067,
+      "notes_red": 3748,
+      "notes_first_sample_seconds": 1.73776245833335
+    },
+    "actual_undo_failure": {
+      "stage": "AccessibilityType-CompactSplitInk",
+      "line": "UITests/LaunchTests.swift:1466",
+      "actual_count": "2",
+      "expected_count": "1",
+      "gesture_started_uptime": 891.54356425,
+      "read_started_uptime": 898.8953529583334,
+      "read_ended_uptime": 899.3495241666667,
+      "target_frame": [
+        228,
+        908.5,
+        44,
+        44
+      ],
+      "toolbar_viewport": [
+        24,
+        907.5,
+        1192,
+        45.5
+      ],
+      "native_undo_action_recorded": false,
+      "later_redo_action_recorded": true,
+      "later_redo_manager_canUndo": true,
+      "later_redo_manager_canRedo": false,
+      "interpretation": "Existing diagnostic action list is empty after Undo; later Redo records before/after and native strokes stay2. This establishes an unobserved Undo action in this instrumented attempt, not loss of native Undo history. Exact event-routing cause and profiler perturbation remain unproven. Do not reopen or rewrite the stable toolbar from this trace alone."
+    },
+    "trace_failure": {
+      "stop_requested_utc": "2026-10-27T10:03:53.346006+00:00",
+      "original_test_completed_utc": "2026-10-27T10:05:40.468235+00:00",
+      "collector_completed_utc": "2026-10-27T10:10:40.752539+00:00",
+      "native_tail": "Stopping recording...",
+      "stop_requested_before_test_end_seconds": 107.122229,
+      "finalization_after_test_end_seconds": 300.284304,
+      "usable_tables": 0,
+      "retained_trace_files": [
+        "Trace1.run/RunIssues.storedata"
+      ],
+      "interpretation": "Stop was requested while target/test still lived; despite waiting until300s after original-test completion, xctrace never finished. Only run-issue SQLite survived, no event tables or template. Do not classify this as missing GitHub permission or a general lack of Mac/Simulator support."
+    },
+    "limits": "Instrumentation can perturb UI timing. Original Notes red-pixel failure reproduced on615bf; currentf6 passed live-pixel checks and failed Undo. Neither result supplies a verified production repair."
+  }
+}

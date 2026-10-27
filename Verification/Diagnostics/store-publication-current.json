@@ -1,5 +1,5 @@
 {
-  "status": "BLOCKED: the original iPad live-ink failure is real; root cause remains unproven. No production repair or release qualification follows this comparison.",
+  "status": "BLOCKED: actual Notes live-ink recurrence on615bf and an unobserved Undo action under f6 instrumentation remain unproved at root. Native xctrace cannot finish this collector run; calibration stopped. No qualified IPA or Apple upload.",
   "target": {
     "version": "0.6.0",
     "build": "13",
@@ -76,9 +76,9 @@
     "apple_writes": false
   },
   "remaining": [
-    "Identify and verify a causal repair for the actual iPad live-ink failure; no speculative patch or unchanged rerun.",
-    "After a verified repair, qualify one frozen SHA with all152/device,3Maestro/device, byte exports, native gallery and full Office/iphoneos packaging.",
-    "Verify actual IPA contents and SHA256, then enable the reviewed Store controller for the authorized upload; processing and review attachment need real Apple evidence."
+    "Identify a causal repair for the actual live-ink failure and classify the instrumented missed Undo action; preserve original test requirements.",
+    "After a proved repair, qualify one final SHA on both families with all152/device,3Maestro/device,exports,gallery,full Office and iphoneos packaging.",
+    "Verify the actual IPA/source/resources/SHA256, then use the reviewed guarded Store workflow for authorized signing/upload and actual Apple processing verification."
   ],
   "last_full_gate": {
     "source": "dd009fff196d8ae60eb1c3d383ebf8dc2ad4ed39",
@@ -350,7 +350,7 @@
         "facts": [
           "Exact original video06825263-E129-45A7-A88B-63EBF7F8266F.mp4 shows menuCLOSED and correct NotesSplit atPTS28, recordstart1793033739.460.",
           "Collection count0 returnedafter6.124917083333457s, hard5s guardcorrectlyfailed.",
-          "InternalXCTestt28.40 query→34.52 completion shows countitself~6.12s; outerwalllogflushlag mustnotbemisread asforegroundquerycost."
+          "InternalXCTestt28.40 query\u219234.52 completion shows countitself~6.12s; outerwalllogflushlag mustnotbemisread asforegroundquerycost."
         ],
         "next_hypothesis": "Third observerdesign: PUBLIC waitForNonExistence(timeout:5), retainactualelapsed<=5 andforegroundassert. ApplemetadataXcode16.3; no introducediOSversion. No fourthobserverpatchifthisfails."
       }
@@ -377,8 +377,8 @@
     },
     "facts": [
       "ExistingNativeInkFailure/native-system.log was alreadyinsideartifact; readcachedlog, no newrun needed.",
-      "Pages1/2/3/5 render13.562→13.611; page4 ink13.563→37.813 (24.25s), resultimage1/error0; viewendcancelled0.",
-      "MetalCompilingShader onthreadf14b14.035→37.209 correlatedwithslowfirstPencilKitraster; exactworkerinternal call notinstrumented.",
+      "Pages1/2/3/5 render13.562\u219213.611; page4 ink13.563\u219237.813 (24.25s), resultimage1/error0; viewendcancelled0.",
+      "MetalCompilingShader onthreadf14b14.035\u219237.209 correlatedwithslowfirstPencilKitraster; exactworkerinternal call notinstrumented.",
       "Originalvideo Editorframes15.5..19.5 shows actualpage4ProgressView, PDFgeometry/contentstable; dominantchangesaboveRGB16localizedtilesx1920,y1408/1472. Video compressionnoise nevertreated as originalPNGdifferencethreshold.",
       "LibraryDEBUGstdoutprintsnotfoundinretainednative/logs; successfulinstrumentedimportdoesnotprovecauseoffullgatefailure. Removeprobe beforequalifyingApp orreusingDDimages.",
       "Syntheticinputsunchanged=true inoriginalnativecollector."
@@ -387,7 +387,7 @@
   },
   "capture_readiness_decision": {
     "review": "Independent architecture review accepted explicit async-content readiness before unchanged5s compositor assertion. Visiblecontainers define requiredpages, includingplaceholders; nooffscreenrequests/scrolling; failonemptyvisibleinventoryorreaderror.",
-    "evidence": "Page4 inkthumbnail render17:51:13.563→37.813,24.25s; allother4pagesend13.611; image1/error0/cancelled0; Metalcompiler14.035→37.209. Actualspinnerblockedfullpixelstability.",
+    "evidence": "Page4 inkthumbnail render17:51:13.563\u219237.813,24.25s; allother4pagesend13.611; image1/error0/cancelled0; Metalcompiler14.035\u219237.209. Actualspinnerblockedfullpixelstability.",
     "new_content_allowance_seconds": 30,
     "scope": "ONEshareddeadline across ONLY sidebarpagecontainersintersecting actualsidebar/windowviewport; requirecorrespondingpagePreview-N value rendered; norequestwholePDF/nosleep/nofont/Appchanges.",
     "retained_conditions": "OriginalsettledScreenshot5s wholepixel+orientationfunctionbyteidentical; originalPNGExif/touch checksretained. Native menuwait5+realelapsed<=5+foregroundretained andSTILLUNVERIFIED. All151testcasesretained.",
@@ -487,7 +487,7 @@
     "purpose": "RequiredcomprehensivevalidationofcumulativetestfixessinceFAILED7c, notdocumentation-onlyretesting orrepeatinggreenprobes.",
     "controls_source": "65ea71d02438941c371b963ef691f7c9fdc8d487",
     "App_tree": "c8db1ddd12d24f4ef3a15e91f187815d6c553ebd",
-    "app_and_tests": "ProductionAppandallunit/UItestcodeMATCHverified65eacontrolsource exactly; onlyCIminimumguardstrengthened100→152 plus thisevidence entry.",
+    "app_and_tests": "ProductionAppandallunit/UItestcodeMATCHverified65eacontrolsource exactly; onlyCIminimumguardstrengthened100\u2192152 plus thisevidence entry.",
     "required": "Cold4/device, all152/device,3Maestro/device,actualPDF/PPTXexports,nativegallery,fullOfficearm64iphoneosandunsignedIPA. SAMEcandidateSHA; fail/skipblocksalllatergates.",
     "status": "Pending current [integration:release] run; noApp/IPA/Applequalificationclaimyet. ExactcandidateSHA/runpersisted inresumledgerandCIartifacts.",
     "photos": "ReuseapprovedactualDD12compositionartifact12636063053 sinceApp/NativeOffice/projectunchangedc8. KeepgenuineDDsource/runmetadata; norelabeledpictures."
@@ -538,7 +538,7 @@
       {
         "source": "741b9bc52fe5b48f04668993c83362d5c321a5d4",
         "run": 40443526346,
-        "failure": "OriginalAppOSservice startup condition did not hold in hybridhost: states1→3,background60.094s, BEFOREanyinkstroke",
+        "failure": "OriginalAppOSservice startup condition did not hold in hybridhost: states1\u21923,background60.094s, BEFOREanyinkstroke",
         "artifact": 12707558746,
         "sha256": "713e378cb5e44c3b8f15a5271200205750c8b14dfef3da171f6527fdc0295a1f",
         "downloaded_sha_crc": false
@@ -716,5 +716,16 @@
       "native_internal_stroke_duration_seconds": 0.396
     },
     "comparison": "Verification/Diagnostics/native-ink-saved-log-comparison.json"
+  },
+  "native_gpu_trace_diagnostic": {
+    "report": "Verification/Diagnostics/native-gpu-trace-current.json",
+    "latest_app_head": "f6b5dd269c4c4d0aa81c1621f095b27bd9be14d7",
+    "latest_run": 40483811224,
+    "latest_run_result": "FAILED: original1case failedUndo,0skip; profiler stop/finalization also failed. Original live-pixel checks passed in this attempt.",
+    "prior_live_failure_run": 40480529697,
+    "prior_live_failure_result": "FAILED: actual Noteslive0red,2savedstrokes,950bytes,nativeindependent3878red.",
+    "local_tools": "40/40PASS including5 real-process/external-native-command boundary contracts. Mock signing/upload test output is not actual Apple activity.",
+    "production_sources": "App/UITests/NativeOffice/project and release workflow unchanged throughout16cdb\u2192615bf\u2192f6b5; only diagnostic tooling/contracts/plans/evidence changed.",
+    "decision": "Stop native collector calibration; no fourth attempt, source rollback, speculative App patch, new full qualification, signing or Apple call from these results."
   }
 }

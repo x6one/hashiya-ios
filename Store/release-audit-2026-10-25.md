@@ -2,6 +2,36 @@
 
 ## Current status — October27
 
+Latest continuation: actual integration head is
+`f6b5dd269c4c4d0aa81c1621f095b27bd9be14d7`; no application, UI-test,
+Office, project or release-workflow source changed during this diagnostic.
+Tools40/40 passed. Native build-for-testing succeeded; original targeted
+case16cdb/run40478504555 passed1/1 but the first profiler command selected
+the host namespace. Explicit simulator selection in615bf/run40480529697
+then reproduced the real Notes failure (live0red,2savedstrokes,950bytes,
+independent3878red). The collector interrupted native archive saving.
+
+After correcting its stop boundary, f6b5/run40483811224 passed the original
+live-pixel observations (document10296, Notes3748) but failed the Notes Undo
+edge-action assertion atLaunchTests1466. Existing action diagnostics contain
+no Undo invocation; later Redo is recorded with native history still
+available. This does not demonstrate lost Undo history or establish the
+event-routing cause under instrumentation. The profiler attached to actual
+App16500 and received stop107s before test completion, yet remained at
+`Stopping recording...` until its separate300s post-test finalization ceiling.
+Export failed with `Document Missing Template Error`; no GPU event data
+survived. Collector calibration is STOPPED; no fourth attempt or speculative
+App repair is justified by these records.
+
+Both new failure archives were downloaded once and SHA256/ZIP-CRC verified.
+Exact native outcomes, timing, original attachment names and hashes are in
+`Verification/Diagnostics/native-gpu-trace-current.json`. Stable branches,
+Store publication config and Apple state were not changed. No process is
+pending. Current qualification is still blocked; the older successful source
+below does not qualify this candidate. Required next evidence is a causal
+measurement or reproducible real-App case, then a verified repair and the
+unchanged full release gate.
+
 BLOCKED; this status supersedes historical pending-candidate notes below. Full
 qualification40402135051/source9fd1 failed the original iPad
 `testIndividualInkTargetsAtAccessibilityTextSize` at CompactSplitInk: live red
@@ -20,9 +50,10 @@ not distinguish failure. App shader compilation completed in173ms in the failed
 case, so a multi-second compilation stall is not established for this stroke.
 
 The exact evidence, checksums, event coverage and limits are recorded in
-`Verification/Diagnostics/native-ink-saved-log-comparison.json`. The actual App
-head remains93ec4f9a9b0ea9c665782fa20fe48ec0d4ac7ef7; newer App code is DEBUG-only
-diagnostic instrumentation. Release defaults are unchanged. The original5s
+`Verification/Diagnostics/native-ink-saved-log-comparison.json`. That archive
+comparison used93ec4f9a9b0ea9c665782fa20fe48ec0d4ac7ef7; the latest diagnostic
+head is recorded above and its App sources are identical. Newer App code since
+the original failure is DEBUG-only instrumentation. Release defaults are unchanged. The original5s
 live-pixel requirement is preserved. No test or log-reader process is pending.
 Do not repeat the same full gate or change rendering/responder behavior based
 only on these non-causal warnings. A causal trace or reproducible minimal

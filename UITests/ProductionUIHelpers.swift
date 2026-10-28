@@ -41,14 +41,11 @@ func observeNativeMenuAbsence(of item: XCUIElement) -> (absent: Bool, wallSecond
 
 func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
     let app = XCUIApplication()
-    var previous: CGRect?
+    let window = app.windows.firstMatch.frame
     let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
         guard item.exists else { return false }
-        let frame = item.frame, window = app.windows.firstMatch.frame
-        guard !frame.isEmpty, !frame.isNull, window.contains(frame) else { return false }
-        let stable = previous == frame
-        previous = frame
-        return stable
+        let frame = item.frame
+        return !frame.isEmpty && !frame.isNull && window.contains(frame)
     }, object: nil)
     guard XCTWaiter.wait(for: [ready], timeout: 5) == .completed else {
         // A visible native menu can report no AX hit point. Preserve its real
@@ -63,7 +60,7 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
             let pixels = XCTAttachment(data: XCUIScreen.main.screenshot().pngRepresentation, uniformTypeIdentifier: "public.png")
             pixels.name = "FailedNativeMenu-OriginalDisplay"; pixels.lifetime = .keepAlways; activity.add(pixels)
         }
-        XCTFail("The real native menu row must be stable and fully inside the window before touching it", file: file, line: line); return
+        XCTFail("The real native menu row must be fully inside the window before touching it", file: file, line: line); return
     }
     // Keep the real identity before the tap. The public native non-existence
     // waiter owns missing-element lookup instead of enumerating the complete

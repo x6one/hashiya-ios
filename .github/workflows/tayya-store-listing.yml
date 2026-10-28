@@ -31,6 +31,7 @@ jobs:
           from pathlib import Path
           c=json.loads(Path('Store/internal-qa.json').read_text())
           assert c['complete_export_compliance'] is True
+          assert isinstance(c.get('classification_only',False),bool)
           assert c['production_qualified'] is c['submit_for_review'] is c['public_release'] is False
           assert re.fullmatch('[a-f0-9]{40}',c['source']) and re.fullmatch('[a-f0-9]{40}',c['app_tree'])
           metadata=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{c['state_artifact_id']}"],text=True))
@@ -56,6 +57,7 @@ jobs:
           with open(os.environ['GITHUB_ENV'],'a') as f:
               f.write('TAYYA_QA_BUILD='+c['build']+'\n')
               f.write('TAYYA_QA_INTERNAL_GROUP='+c['internal_group_id']+'\n')
+              f.write('TAYYA_QA_CLASSIFICATION_ONLY='+str(c.get('classification_only',False)).lower()+'\n')
           PY
       - name: Verify QA continuation and original Store contracts before credentials
         run: |
@@ -64,13 +66,19 @@ jobs:
           node Tools/test_store_listing.mjs
           node Tools/test_store_presentation.mjs
           node Tools/test_submit_store_review.mjs
-      - name: Complete only the approved encryption classification of the existing build
+      - name: Verify or complete the approved encryption classification of the existing build
         env:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: node Tools/testflight_candidate.mjs complete InternalQA/export-compliance.json
+        run: |
+          if [ "$TAYYA_QA_CLASSIFICATION_ONLY" = true ]; then
+            node Tools/testflight_candidate.mjs classify InternalQA/export-compliance.json
+          else
+            node Tools/testflight_candidate.mjs complete InternalQA/export-compliance.json
+          fi
       - name: Read actual TestFlight readiness and attach only an existing internal group
+        if: env.TAYYA_QA_CLASSIFICATION_ONLY != 'true'
         env:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}

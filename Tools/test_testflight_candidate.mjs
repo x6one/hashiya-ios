@@ -68,6 +68,17 @@ test('compliance completion is idempotent and requires actual Apple readback', a
   await assert.rejects(qa.completeInternalQA(broken.client, broken.evidence), /QA .*readback/);
 });
 
+test('read-only classification proof never edits the accepted build or claims its compliance completed', async () => {
+  const f = complianceFixture();
+  const r = await qa.completeInternalQA(f.client, f.evidence, () => {}, {apply: false});
+  assert.equal(f.calls.length, 0);
+  assert.equal(r.classification_evidence_confirmed, true);
+  assert.equal(r.uses_non_exempt_encryption, false);
+  assert.equal(r.export_compliance_confirmed, false);
+  assert.equal(r.read_only, true);
+  assert.equal(f.build.attributes.usesNonExemptEncryption, null);
+});
+
 test('compliance receipts exclude private declaration documents and export codes', async () => {
   const f = complianceFixture();f.declaration.attributes.documentUrl = 'https://private.invalid/signed';f.declaration.attributes.codeValue = 'private-code';
   const report = await qa.completeInternalQA(f.client, f.evidence);

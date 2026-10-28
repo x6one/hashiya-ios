@@ -84,15 +84,15 @@ async function buildRows(client) {
 
 async function main() {
   const [command, output] = process.argv.slice(2);
-  if (!['select', 'status', 'assign', 'complete'].includes(command) || !output) throw new Error('QA command must be select/status/assign/complete plus a report path');
+  if (!['select', 'status', 'assign', 'complete', 'classify'].includes(command) || !output) throw new Error('QA command must be select/status/assign/complete/classify plus a report path');
   let report = {...scope, controller_source: process.env.GITHUB_SHA || null, run: process.env.GITHUB_RUN_ID || null};
   try {
     const client = createAppleClient(), rows = await buildRows(client);
-    if (command === 'complete') {
+    if (command === 'complete' || command === 'classify') {
       const read = path => JSON.parse(readFileSync(path, 'utf8'));
       const evidence = {config: read('Store/internal-qa.json'), provenance: read('InternalQA/Proof/provenance.json'),
         processing: read('InternalQA/Proof/apple-processing.json'), readiness: read('Store/release-readiness.json')};
-      await completeInternalQA(client, evidence, actual => {report = {...report, ...actual};writeFileSync(output, JSON.stringify(report, null, 2) + '\n');});
+      await completeInternalQA(client, evidence, actual => {report = {...report, ...actual};writeFileSync(output, JSON.stringify(report, null, 2) + '\n');}, {apply: command === 'complete'});
     } else if (command === 'select') report = {...report, ...selectQABuild(rows), read_only: true};
     else {
       const build = process.env.TAYYA_QA_BUILD;
@@ -132,7 +132,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   main().catch(() => {console.error('QA invocation failed; no private data logged');process.exitCode = 1;});
 }
 
-export async function completeInternalQA(client, evidence, onReceipt = () => {}) {
+export async function completeInternalQA(client, evidence, onReceipt = () => {}, options = {apply: true}) {
   const {config: c, provenance: p, processing: s, readiness: r} = evidence;
   const reject = message => {throw new Error('QA ' + message);};
   if (c.complete_export_compliance !== true || !/^[a-f0-9]{40}$/.test(c.source || '')
@@ -162,7 +162,7 @@ export async function completeInternalQA(client, evidence, onReceipt = () => {})
   const compatible = declarations.data.filter(d => d.attributes?.appEncryptionDeclarationState === 'APPROVED'
     && d.attributes.containsThirdPartyCryptography === true && d.attributes.containsProprietaryCryptography === false
     && d.attributes.availableOnFrenchStore === false && typeof d.attributes.exempt === 'boolean');
-  const report = {...scope, application_source: c.source, version: VERSION, build: c.build, apple_build_id: c.build_id,
+  const report = {...scope, read_only: options.apply === false, application_source: c.source, version: VERSION, build: c.build, apple_build_id: c.build_id,
     signed_ipa_sha256: c.ipa_sha256, export_compliance_confirmed: false,
     observed_declarations: declarations.data.map(d => ({id: d.id,
       state: d.attributes?.appEncryptionDeclarationState, exempt: d.attributes?.exempt,
@@ -199,6 +199,10 @@ export async function completeInternalQA(client, evidence, onReceipt = () => {})
   } else reject('expected one compatible approved Apple encryption declaration');
   const relation = build.relationships?.appEncryptionDeclaration?.data?.id;
   if (relation && relation !== declaration?.id) reject('preserve a different existing build encryption declaration');
+  report.uses_non_exempt_encryption = nonExempt;
+  report.classification_evidence_confirmed = true;
+  onReceipt(report);
+  if (options.apply === false) return report;
   if (build.attributes.usesNonExemptEncryption !== nonExempt || (nonExempt && relation !== declaration.id)) {
     const data = {type: 'builds', id: c.build_id, attributes: {usesNonExemptEncryption: nonExempt}};
     if (nonExempt) data.relationships = {appEncryptionDeclaration: {data: {type: 'appEncryptionDeclarations', id: declaration.id}}};

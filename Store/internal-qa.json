@@ -9,6 +9,7 @@
   "state_artifact_bytes": 2594,
   "state_artifact_sha256": "1351c6d9e3be880ecb1a3849d37760a11cf2f7e380d882e2afdfdc7137a84f0a",
   "complete_export_compliance": true,
+  "classification_only": true,
   "reuse_published_encryption_version": "0.4.2",
   "internal_group_id": "",
   "production_qualified": false,

@@ -1,0 +1,69 @@
+{
+  "application_source": "d22c9c1e46c460611e9bfcedd445a27486acc38b",
+  "app_tree": "3bfde5b48db135649378d14e42c5654cc1a0d8c6",
+  "version": "0.6.0",
+  "build": "14",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "run": 40730303387,
+  "apple_build_id": "78b9609f-fc76-4ea0-b8ca-5fd7030b2053",
+  "apple_beta_state": "READY_FOR_BETA_TESTING",
+  "internal_group": {
+    "assigned": true,
+    "group_id": "276483ae-8300-4bef-b92e-774fc7f2fe9b",
+    "build_id": "78b9609f-fc76-4ea0-b8ca-5fd7030b2053",
+    "testers_invited": false,
+    "external_testing": false
+  },
+  "signed_ipa_sha256": "4f53a4e8b8f2736e29d091c53cb735cf776bab99df9f7e7539a3f59014093c88",
+  "archive_zip_sha256": "c595630a737c43a379874fd47a35a2a5d88404edecab2bbd3082f49a91d27df1",
+  "artifact": 12835382288,
+  "artifact_expires": "2026-11-11",
+  "state_artifact": 12836746085,
+  "state_artifact_sha256": "a3607f4bb99a0e918260fef27cc3e7efc2f04e300260dbf3e8571d6b373ab443",
+  "production_qualified": false,
+  "physical_device_result": "Pending owner report",
+  "app_review_submitted": false,
+  "run_url": "https://github.com/x6one/hashiya-ios/actions/runs/40730303387",
+  "artifact_url": "https://github.com/x6one/hashiya-ios/actions/runs/40730303387/artifacts/12835382288",
+  "physical_checklist": "Store/testflight-qa.md",
+  "qualification": "Internal QA only. Remaining simulator document Undo and timely live-ink gates prevent public release. Final official candidate requires unused15+ build and all original/new tests on its exact SHA.",
+  "automated_evidence": {
+    "requested_boundaries": {
+      "source": "b69f22aaaea7731509c686fbf99ecca6a9ab30ee",
+      "run": 40714306947,
+      "iPhone": {
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0
+      },
+      "iPad": {
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "latest_iPhone": {
+      "source": "abed7dc259bc613aa146ab1ff25713745652fe8e",
+      "run": 40733595261,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Two mounted PDFKit action-route tests plus unchanged real-stroke StandardType document/split UI test"
+    },
+    "latest_iPad": {
+      "source": "d22c9c1e46c460611e9bfcedd445a27486acc38b",
+      "run": 40730303384,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "failure": "LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit:1427 document screen-only5s redpixel window failed BEFORE Undo; later original screenshot8039redpixels; saved1stroke/raster4120redpixels"
+    },
+    "official_full_gate": {
+      "source": "4952bcfe1a16e2c22c424216842cbe2d4b5416d0",
+      "run": 40720202150,
+      "conclusion": "failure",
+      "failure": "StandardType document Undo expected0actual1 on iPad; original full suites/Maestro/exports/Office skipped after cold gatefailure"
+    },
+    "limits": "Programmatically registered native operations verify routing, not PencilKit gesture history or input delivery. Physical-device quality/interruption/Office conversion not tested. No unproved production Undo repair claimed."
+  }
+}

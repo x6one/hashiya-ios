@@ -4,6 +4,15 @@
 
 The user renewed authorization for this independent QA distribution path on October28,2026. It does not qualify a public release, waive the existing simulator gates, submit an Apple review, publish a Store version, invite testers or change the current live version.
 
+## Current status — October28
+
+- The three requested boundaries passed5/5 per device on b69f22a, run40714306947, including a genuinely cold microphone grant followed by actual recording/save/playback. This does not establish the cause of the older uncommitted-Allow failure.
+- Full candidate4952bcf run40720202150 failed one StandardType document Undo assertion on iPad; original cold cases: Phone4/4, Pad3/4. Ink remained visible and saved (one stroke); no data loss proved. Full suites/Maestro/Office correctly did not proceed. No public qualification.
+- QA13 from85a973d, run40713032864, is signed, upload accepted and processedVALID, Apple build2a99e8bd-54c0-4761-9cf5-a69a09fad1d6. Missing Export Compliance blocks TestFlight; the existing key cannot PATCH this already-uploaded build (403). Do not rebuild/reupload13.
+- Read-only official classification run40727182555 verified the actual published0.4.2 build usesNonExemptEncryption=false. New binaries explicitly preserve this audited exemption Boolean, verified in the exported IPA. Standard third-party OpenSSL remains included; France excluded. See encryption-classification-2026-10-28.json. This is not a no-encryption assertion.
+- New QA uses the next unused Apple build number (at least14), and remains NOT PRODUCTION QUALIFIED. Actual-device drawing, Undo, Notes and microphone checks below are still required.
+- A uniquely existing internal TestFlight group may receive the processed build automatically; multiple/no groups leave association unresolved. No tester invitations, external beta review or public review are performed.
+
 ## Immutable candidate and source audit
 
 - Application source: the exact SHA in this run's `QA/source.json`, branch `integration/tayya-app-store`. An explicit `[testflight:internal]` push pins its own SHA; manual dispatch accepts an exact ancestor SHA. The historical input default is not the actual source receipt.
@@ -30,7 +39,7 @@ Additional unverified source-review risks: switching pages during an unfinished 
 Inputs:
 - `app_source`: exact production40-character SHA, default above.
 - `upload_to_apple`: true to upload after native/signing validation; false retains a signed archive/IPA without transmitting it.
-- `internal_group_id`: optional existing **internal** TestFlight group for your account. Empty means no tester/group modification; the processed build remains available to authorized App Store Connect users for manual internal setup. No testers are invited and no external beta review is requested.
+- `internal_group_id`: optional existing **internal** TestFlight group for your account. Empty selects a single unambiguous existing internal group; none/multiple leaves group association for explicit setup. No group or tester is created. No testers are invited and no external beta review is requested.
 
 Using a normally authenticated GitHub CLI:
 

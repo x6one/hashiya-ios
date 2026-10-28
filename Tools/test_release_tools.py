@@ -17,6 +17,22 @@ from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_exported_encryption_classification_matches_the_audited_project(self):
+        spec = {"settings": {"base": {"MARKETING_VERSION": "0.6.0", "CURRENT_PROJECT_VERSION": "14"}},
+                "targets": {"Hashiya": {"info": {"properties": {"ITSAppUsesNonExemptEncryption": False}}}}}
+        info = {"CFBundleShortVersionString": "0.6.0", "CFBundleVersion": "14",
+                "ITSAppUsesNonExemptEncryption": False}
+        validate_release_version(info, spec)
+        for replacement in [None, True, "false", 0]:
+            with self.subTest(replacement=replacement):
+                rejected = {**info}
+                if replacement is None:
+                    rejected.pop("ITSAppUsesNonExemptEncryption")
+                else:
+                    rejected["ITSAppUsesNonExemptEncryption"] = replacement
+                with self.assertRaisesRegex(RuntimeError, "ITSAppUsesNonExemptEncryption"):
+                    validate_release_version(rejected, spec)
+
     def test_nested_qa_checkout_does_not_shadow_source_on_macos(self):
         workflow = yaml.safe_load(Path('.github/workflows/tayya-testflight-candidate.yml').read_text())
         source_names = {name.casefold() for name in ['App', 'Tools', 'Tests', 'UITests', 'NativeOffice', 'Store']}
@@ -118,7 +134,8 @@ class ReleaseToolsTests(unittest.TestCase):
         valid = {"CFBundleShortVersionString": str(settings["MARKETING_VERSION"]),
                  "CFBundleVersion": str(settings["CURRENT_PROJECT_VERSION"]),
                  "CFBundleIdentifier": "com.ahmadalawi.hashiya",
-                 "CFBundleExecutable": "Hashiya", "UIDeviceFamily": [1, 2]}
+                 "CFBundleExecutable": "Hashiya", "UIDeviceFamily": [1, 2],
+                 "ITSAppUsesNonExemptEncryption": False}
         for key, wrong in [("CFBundleShortVersionString", "0.5.0"),
                            ("CFBundleVersion", "12"),
                            ("CFBundleIdentifier", "com.example.other")]:
@@ -145,7 +162,8 @@ class ReleaseToolsTests(unittest.TestCase):
                 "CFBundleShortVersionString": str(settings["MARKETING_VERSION"]),
                 "CFBundleVersion": str(settings["CURRENT_PROJECT_VERSION"]),
                 "CFBundleIdentifier": "com.ahmadalawi.hashiya",
-                "CFBundleExecutable": "Hashiya", "UIDeviceFamily": [1, 2]}))
+                "CFBundleExecutable": "Hashiya", "UIDeviceFamily": [1, 2],
+                 "ITSAppUsesNonExemptEncryption": False}))
             # The engine checkout must not decide the application release.
             (root / "project.yml").write_text("settings: {base: {MARKETING_VERSION: '9.0', CURRENT_PROJECT_VERSION: '99'}}")
             with chdir(root), patch("package_native_app.subprocess.run",

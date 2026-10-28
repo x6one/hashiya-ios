@@ -57,6 +57,11 @@ export async function attachInternalGroup(client, groupID, row) {
   return {assigned: true, group_id: groupID, build_id: row.id, testers_invited: false, external_testing: false};
 }
 
+export function chooseInternalGroup(groups) {
+  const internal = groups.filter(g => g.attributes?.isInternalGroup === true);
+  return internal.length === 1 ? internal[0].id : '';
+}
+
 async function buildRows(client) {
   const app = (await client.get('apps/' + APP)).data;
   if (app?.attributes?.bundleId !== 'com.ahmadalawi.hashiya') throw new Error('QA Apple app identity mismatch');
@@ -97,7 +102,17 @@ async function main() {
       if (detail?.expired) throw new Error('QA Apple build is expired');
       if (report.pending) process.exitCode = 10;
       else if (!report.internal_testing_ready) process.exitCode = 1;
-      else if (command === 'assign') report.internal_group = await attachInternalGroup(client, process.env.TAYYA_QA_INTERNAL_GROUP || '', row);
+      else if (command === 'assign') {
+        let groupID = process.env.TAYYA_QA_INTERNAL_GROUP || '';
+        if (!groupID) {
+          const groups = await client.get('apps/' + APP + '/betaGroups?limit=200');
+          if (groups.links?.next) throw new Error('QA internal group listing is paginated');
+          report.available_internal_groups = groups.data.filter(g => g.attributes?.isInternalGroup === true)
+            .map(g => ({id: g.id, name: g.attributes.name}));
+          groupID = chooseInternalGroup(groups.data);
+        }
+        report.internal_group = await attachInternalGroup(client, groupID, row);
+      }
     }
     writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
     console.log(JSON.stringify(report));

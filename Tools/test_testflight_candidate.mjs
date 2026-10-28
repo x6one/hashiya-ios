@@ -2,7 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
 import {createAppleClient} from './app_store_readiness.mjs';
-import {selectQABuild, candidateStatus, attachInternalGroup} from './testflight_candidate.mjs';
+import {selectQABuild, candidateStatus, attachInternalGroup, chooseInternalGroup} from './testflight_candidate.mjs';
+
+test('only an unambiguous existing internal group is selected automatically', () => {
+  const internal = {id: 'team', attributes: {isInternalGroup: true}};
+  const external = {id: 'public', attributes: {isInternalGroup: false}};
+  assert.equal(chooseInternalGroup([external, internal]), 'team');
+  assert.equal(chooseInternalGroup([external]), '');
+  assert.equal(chooseInternalGroup([internal, {...internal, id: 'other'}]), '');
+});
 
 const row = (build, version = '0.6.0', processing = 'VALID') => ({id: `build-${build}`, build, version, processing});
 

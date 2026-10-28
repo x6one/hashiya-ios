@@ -216,6 +216,7 @@ jobs:
               plists=[n for n in zipped.namelist() if n.startswith('Payload/') and n.endswith('.app/Info.plist') and n.count('/')==2]
               assert len(plists)==1
               info=plistlib.loads(zipped.read(plists[0])); assert info['CFBundleVersion']==selected['build'] and info['CFBundleShortVersionString']=='0.6.0'
+              assert info.get('ITSAppUsesNonExemptEncryption') is False, 'Export must preserve the audited exemption Boolean'
           archive=out/'Tayya.xcarchive'; archived_app=archive/'Products/Applications/Hashiya.app'
           subprocess.run(['codesign','--verify','--deep','--strict',str(archived_app)],check=True)
           build=subprocess.check_output(['xcrun','vtool','-show-build',str(archived_app/'Hashiya')],text=True)

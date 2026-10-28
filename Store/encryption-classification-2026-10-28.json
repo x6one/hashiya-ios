@@ -1,0 +1,17 @@
+{
+  "app_id": "6818288428",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "uses_non_exempt_encryption": false,
+  "cryptography": "Standard third-party OpenSSL; not a no-encryption or OS-only assertion",
+  "excluded_territories": [
+    "FRA"
+  ],
+  "previous_published_version": "0.4.2",
+  "previous_published_build_id": "1bce9a90-1e02-4523-b19b-b06a6afc28d4",
+  "observed_qa_source": "85a973dd0442a4a9114b458b85285df9f1f7c0a4",
+  "observed_app_tree": "3bfde5b48db135649378d14e42c5654cc1a0d8c6",
+  "evidence_run": "https://github.com/x6one/hashiya-ios/actions/runs/40727182555",
+  "evidence_artifact": 12833207997,
+  "evidence_artifact_sha256": "a35c10ed57aeed378a1743a37480c38df5cab88cbd5a5ca1169f7fd1ac0b4242",
+  "scope": "New binaries only. Does not edit or clear accepted QA13; its PATCH was denied403. NativeOffice and cryptography unchanged from audited production baseline. No public release qualification."
+}

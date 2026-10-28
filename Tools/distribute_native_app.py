@@ -59,6 +59,12 @@ def validate_release_version(info, spec):
                                   ("CFBundleVersion", "CURRENT_PROJECT_VERSION")]:
         if str(info.get(info_key)) != str(settings[setting_key]):
             raise RuntimeError(f"Exported {info_key} differs from project.yml")
+    properties = spec.get("targets", {}).get("Hashiya", {}).get("info", {}).get("properties", {})
+    encryption_key = "ITSAppUsesNonExemptEncryption"
+    if encryption_key in properties:
+        expected = properties[encryption_key]
+        if type(expected) is not bool or type(info.get(encryption_key)) is not bool or info[encryption_key] != expected:
+            raise RuntimeError(f"Exported {encryption_key} differs from the audited project declaration")
 
 
 def validate_resources(app):

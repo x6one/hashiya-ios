@@ -27,6 +27,8 @@ targets:
         CFBundleDisplayName: طَيّة
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Existing Apple-published classification; see Store/encryption-classification-2026-10-28.json.
+        ITSAppUsesNonExemptEncryption: false
         NSMicrophoneUsageDescription: تسجيل ملاحظاتك الصوتية وربطها بصفحات الدراسة.
         CFBundleDocumentTypes:
           - CFBundleTypeName: Study Documents

@@ -318,9 +318,19 @@ final class StudioProductionCaptureTests: XCTestCase {
         let sidebar = app.descendants(matching: .any)["documentPageSidebar"].firstMatch
         guard sidebar.exists else { return }
         let started = ProcessInfo.processInfo.systemUptime
-        let viewport = sidebar.frame.intersection(app.windows.firstMatch.frame)
+        let initial: any XCUIElementSnapshot
+        do { initial = try sidebar.snapshot() }
+        catch { XCTFail("Read the actual sidebar hierarchy: \(error)"); return }
+        let viewport = initial.frame.intersection(app.windows.firstMatch.frame)
         guard !viewport.isNull, !viewport.isEmpty else { return }
-        let cells = sidebar.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "sidebarPage-")).allElementsBoundByIndex
+        func descendants(_ root: any XCUIElementSnapshot) -> [any XCUIElementSnapshot] {
+            var pending: [any XCUIElementSnapshot] = [root], nodes: [any XCUIElementSnapshot] = []
+            while let node = pending.popLast() {
+                nodes.append(node); pending.append(contentsOf: node.children)
+            }
+            return nodes
+        }
+        let cells = descendants(initial).filter { $0.elementType == .button && $0.identifier.hasPrefix("sidebarPage-") }
         var required: [String] = []
         for cell in cells {
             let visible = cell.frame.intersection(viewport)
@@ -338,20 +348,36 @@ final class StudioProductionCaptureTests: XCTestCase {
         guard !required.isEmpty else {
             XCTFail("The visible sidebar must expose its real page containers: " + sidebar.debugDescription); return
         }
-        // The saved cold Simulator trace spent24.25s in the native ink preview
-        // while Metal compiled shaders. Wait for real async content FIRST;
-        // the separate five-second pixel/orientation check remains unchanged.
-        // One deadline covers visible placeholders only, never the whole PDF.
-        for identity in required {
+        // Inspect all visible pages in one native AX snapshot. Repeating a
+        // remote existence waiter and value query per already-rendered image
+        // consumed11–22s per capture and exhausted the240s study journey.
+        // Keep the same30s content budget and separate5s compositor check.
+        var invalidImage: String?
+        func previewsReady(_ root: any XCUIElementSnapshot) -> Bool {
+            let images = descendants(root).filter { $0.elementType == .image }
+            var missing = false
+            for identity in required {
+                let matches = images.filter { $0.identifier == identity }
+                if matches.isEmpty { missing = true; continue }
+                guard matches.count == 1, matches[0].value as? String == "rendered" else {
+                    invalidImage = identity; return true
+                }
+            }
+            return !missing
+        }
+        if !previewsReady(initial) {
             let remaining = 30 - (ProcessInfo.processInfo.systemUptime - started)
-            let image = sidebar.images[identity]
-            guard remaining > 0, image.waitForExistence(timeout: remaining) else {
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                guard let current = try? sidebar.snapshot() else { return false }
+                return previewsReady(current)
+            }, object: nil)
+            guard remaining > 0, XCTWaiter.wait(for: [ready], timeout: remaining) == .completed else {
                 let evidence = XCTAttachment(string: "required=\(required)\n" + sidebar.debugDescription)
                 evidence.name = "FailedVisiblePreviewReadiness"; evidence.lifetime = .keepAlways; add(evidence)
-                XCTFail("Visible native preview did not finish within the shared30s content budget: " + identity); return
+                XCTFail("Visible native previews did not finish within the shared30s content budget"); return
             }
-            XCTAssertEqual(image.value as? String, "rendered", "A placeholder or failed image is not a ready preview")
         }
+        XCTAssertNil(invalidImage, "A placeholder, failed or ambiguous image is not a ready preview: \(invalidImage ?? "")")
         let elapsed = ProcessInfo.processInfo.systemUptime - started
         print("NativePreviewReadiness required=\(required); elapsed=\(elapsed)")
         XCTAssertLessThanOrEqual(elapsed, 30, "All visible previews share one content-loading budget")

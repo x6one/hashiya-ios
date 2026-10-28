@@ -1,6 +1,6 @@
 // Read-only Apple readiness probe. Never persist or print private keys or JWTs.
 import {sign} from 'node:crypto';
-import {writeFileSync} from 'node:fs';
+import {readFileSync, writeFileSync} from 'node:fs';
 
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -39,6 +39,25 @@ export function createAppleClient(environment = process.env) {
     patch: (path, body) => request('PATCH', path, body)};
 }
 
+export function requestedStoreBuild(config) {
+  const build = String(config.build);
+  if (config.app_id !== '6818288428' || config.bundle_id !== 'com.ahmadalawi.hashiya'
+    || config.version !== '0.6.0' || !/^[1-9]\d{1,3}$/.test(build) || Number(build) < 13)
+    throw new Error('Only the authorized Tayya0.6.0 build13 or higher may be inspected');
+  return build;
+}
+
+export function buildReadiness(response, build) {
+  if (response.links?.next) throw new Error('Apple API exact build listing requires pagination');
+  const trains = new Map((response.included || []).filter(v => v.type === 'preReleaseVersions')
+    .map(v => [v.id, v.attributes.version]));
+  const rows = response.data.map(b => ({id: b.id, build: b.attributes.version,
+    version: trains.get(b.relationships?.preReleaseVersion?.data?.id) || null,
+    processing: b.attributes.processingState}));
+  return {target_build: build, builds: rows,
+    version_0_6_build_exists: rows.some(b => b.build === build && b.version === '0.6.0')};
+}
+
 async function main() {
   const output = process.argv[2] || 'apple-readiness.json';
   const names = ['APPLE_DISTRIBUTION_P12_BASE64', 'APPLE_DISTRIBUTION_P12_PASSWORD',
@@ -48,6 +67,7 @@ async function main() {
   const save = () => writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 
   try {
+    const target = requestedStoreBuild(JSON.parse(readFileSync('Store/publication.json', 'utf8')));
     const missing = names.filter(n => !process.env[n]);
     if (missing.length) {
       report.missing = missing; save();
@@ -62,12 +82,8 @@ async function main() {
     report.versions = versions.data.map(v => ({id: v.id, version: v.attributes.versionString,
       state: v.attributes.appStoreState, release_type: v.attributes.releaseType}));
     // Filtering/inclusion belongs to the build collection, not app's relationship endpoint.
-    const builds = await get('builds?filter[app]=' + app.id + '&filter[version]=13&include=preReleaseVersion&limit=20');
-    const trains = new Map((builds.included || []).map(v => [v.id, v.attributes.version]));
-    report.build13 = builds.data.map(b => ({id: b.id, build: b.attributes.version,
-      version: trains.get(b.relationships?.preReleaseVersion?.data?.id) || null,
-      processing: b.attributes.processingState}));
-    report.version_0_6_build_13_exists = report.build13.some(b => b.version === '0.6.0');
+    const builds = await get('builds?filter[app]=' + app.id + '&filter[version]=' + target + '&include=preReleaseVersion&limit=20');
+    Object.assign(report, buildReadiness(builds, target));
     report.ready_for_distribution_authentication = true;
     save(); console.log(JSON.stringify(report));
   } catch (error) {

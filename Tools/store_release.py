@@ -4,6 +4,7 @@ No signing credentials, Apple API calls or changes to the original build/signing
 helpers belong here. Only the explicitly authorized Store controller may run it.
 """
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -26,14 +27,44 @@ def digest(path):
 
 
 def validate_target(config):
-    if (config.get("app_id"), config.get("bundle_id"), config.get("version"), str(config.get("build"))) != (
-            "6818288428", "com.ahmadalawi.hashiya", "0.6.0", "13"):
-        raise ValueError("Only the authorized Tayya0.6.0(13) target is allowed")
+    build = str(config.get("build"))
+    if ((config.get("app_id"), config.get("bundle_id"), config.get("version")) != (
+            "6818288428", "com.ahmadalawi.hashiya", "0.6.0")
+            or not re.fullmatch(r"[1-9]\d{1,3}", build) or int(build) < 13):
+        raise ValueError("Only the authorized Tayya0.6.0 target with an integer build13 or higher is allowed")
     for key in ("app_source", "app_tree"):
         if not re.fullmatch("[a-f0-9]{40}", config.get(key, "")):
             raise ValueError("Invalid application source pin")
     if not str(config.get("qualified_run", "")).isdigit():
         raise ValueError("Invalid qualified run")
+
+
+def verify_photographed_configuration(candidate, artwork, config, encryption_evidence):
+    """Allow only nonvisual, explicitly verified release metadata differences."""
+    validate_target(config)
+    normalized = copy.deepcopy(candidate)
+    settings = normalized["settings"]["base"]
+    if (str(settings["CURRENT_PROJECT_VERSION"]) != str(config["build"])
+            or str(settings["MARKETING_VERSION"]) != config["version"]):
+        raise ValueError("Candidate version/build differs from the qualified target")
+    settings["CURRENT_PROJECT_VERSION"] = artwork["settings"]["base"]["CURRENT_PROJECT_VERSION"]
+    info = normalized["targets"]["Hashiya"]["info"]["properties"]
+    old_info = artwork["targets"]["Hashiya"]["info"]["properties"]
+    key = "ITSAppUsesNonExemptEncryption"
+    if key in info and key not in old_info:
+        proof = encryption_evidence
+        if (info[key] is not False or proof.get("uses_non_exempt_encryption") is not False
+                or proof.get("app_id") != config["app_id"] or proof.get("bundle_id") != config["bundle_id"]
+                or proof.get("observed_app_tree") != config["app_tree"]
+                or proof.get("previous_published_version") != "0.4.2"
+                or proof.get("previous_published_build_id") != "1bce9a90-1e02-4523-b19b-b06a6afc28d4"
+                or proof.get("excluded_territories") != ["FRA"]
+                or proof.get("evidence_artifact") != 12833207997
+                or proof.get("evidence_artifact_sha256") != "a35c10ed57aeed378a1743a37480c38df5cab88cbd5a5ca1169f7fd1ac0b4242"):
+            raise ValueError("Changed encryption declaration lacks exact audited Apple evidence")
+        del info[key]
+    if normalized != artwork:
+        raise ValueError("Photographed build configuration differs beyond audited nonvisual metadata")
 
 
 def verify_authorization(config, environment, event):
@@ -187,11 +218,13 @@ def verify_processing(config, apple, upload, controller):
             or apple.get("app", {}).get("id") != config["app_id"]
             or apple.get("app", {}).get("bundle_id") != config["bundle_id"]):
         raise ValueError("Unverified read-only Apple app response")
-    matches = [b for b in apple.get("build13", [])
+    if apple.get("target_build") != str(config["build"]):
+        raise ValueError("Apple response belongs to a different target build")
+    matches = [b for b in apple.get("builds", [])
                if b.get("build") == str(config["build"]) and b.get("version") == config["version"]]
     if len(matches) > 1:
         raise ValueError("Ambiguous Apple build identity")
-    if apple.get("version_0_6_build_13_exists") is not bool(matches):
+    if apple.get("version_0_6_build_exists") is not bool(matches):
         raise ValueError("Inconsistent Apple build identity")
     build = matches[0] if matches else None
     status = build.get("processing") if build else "NOT_LISTED_YET"
@@ -234,7 +267,7 @@ def main():
             }, indent=2) + "\n")
             raise
         Path("store-processing-report.json").write_text(json.dumps(receipt, indent=2) + "\n")
-        print("Apple build13 processing: " + receipt["processing_state"])
+        print("Apple build" + str(config["build"]) + " processing: " + receipt["processing_state"])
         if not receipt["apple_processing_confirmed"]:
             raise SystemExit(10)  # Pending is not success and never asks for another upload.
         return

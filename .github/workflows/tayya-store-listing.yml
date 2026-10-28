@@ -219,7 +219,13 @@ jobs:
           changed=git('diff','--name-only',controller_base,'HEAD').splitlines()
           store_tools={'Tools/testflight_candidate.mjs','Tools/test_testflight_candidate.mjs','Tools/app_store_readiness.mjs','Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','Tools/store_release.py','Tools/test_store_release.py','Tools/test_release_tools.py','Tools/submit_store_review.mjs','Tools/test_submit_store_review.mjs','Tools/test_store_presentation.mjs','.github/workflows/tayya-store-listing.yml'}
           assert all(path.startswith(('Store/','docs/','Verification/')) or path in store_tools for path in changed),'Only Store content and its isolated publisher may change; production/build/signing code stays frozen'
-          assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','project.yml','NativeOffice'),'Photographed build configuration differs from the qualified candidate'
+          assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','NativeOffice'),'Photographed native engine differs from the qualified candidate'
+          import yaml, sys
+          sys.path.insert(0,'Tools')
+          from store_release import verify_photographed_configuration
+          verify_photographed_configuration(yaml.safe_load(git('show',config['app_source']+':project.yml')),
+              yaml.safe_load(git('show',config['artwork_source']+':project.yml')),config,
+              json.loads(Path('Store/encryption-classification-2026-10-28.json').read_text()))
           checks=[('qualified_run','app_source','iPhone and iPad preflight'),('artwork_run','artwork_source','Tayya Store readiness and actual medium-phone captures')]
           if 'render_run' in config:checks.append(('render_run','renderer_source','Tayya Store artwork and approved publication'))
           for key,source,name in checks:
@@ -239,7 +245,7 @@ jobs:
           python3 -m unittest discover -s Tools -p test_store_release.py
           node Tools/test_store_listing.mjs
           node Tools/publish_store_listing.mjs --validate-only
-      - name: Read the current Apple release and build13 state
+      - name: Read the current Apple release and exact configured build state
         env:
           APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
           APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
@@ -336,8 +342,10 @@ jobs:
           import json
           from pathlib import Path
           state=json.loads(Path('store-before-upload.json').read_text())
+          config=json.loads(Path('Store/publication.json').read_text())
           assert state.get('ready_for_distribution_authentication') is True
-          assert state.get('version_0_6_build_13_exists') is False,'Build13 already exists; inspect processing instead of attempting a duplicate upload'
+          assert state.get('target_build')==str(config['build']), 'Apple response belongs to another target build'
+          assert state.get('version_0_6_build_exists') is False,'Exact build already exists; inspect processing instead of attempting a duplicate upload'
           PY
       - name: Archive validate and upload with the unchanged native distribution helper
         working-directory: hashiya-tools

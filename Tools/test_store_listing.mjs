@@ -1,3 +1,4 @@
+import {requestedStoreBuild, buildReadiness} from './app_store_readiness.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync} from 'node:fs';
@@ -30,6 +31,13 @@ function fixture() {
   return {root,config,images,save,close:()=>rmSync(root,{recursive:true,force:true})};
 }
 test('accepts the12 genuine-sized RGB files and their intact originals',()=>{const f=fixture();try{assert.equal(validateArtwork(f.root,f.config).length,12);}finally{f.close();}});
+test('uses the authorized increasing release build without changing artwork provenance',()=>{
+  const f=fixture();try{
+    assert.equal(validateArtwork(f.root,{...f.config,build:'14'}).length,12);
+    for(const build of ['12','013','14.0','10000',true])
+      assert.throws(()=>validateArtwork(f.root,{...f.config,build}),/authorized/i);
+  }finally{f.close();}
+});
 test('rejects accidentally targeting the published older version',()=>{const f=fixture();try{assert.throws(()=>validateArtwork(f.root,{...f.config,version:'0.4.2'}),/authorized/i);}finally{f.close();}});
 test('rejects a path outside the verified artwork root',()=>{const f=fixture();try{f.images[0].file='../outside.png';f.save();assert.throws(()=>validateArtwork(f.root,f.config),/path/i);}finally{f.close();}});
 test('rejects PNG alpha even when its file checksum is valid',()=>{const f=fixture();try{const row=f.images[0],b=png(row.width,row.height,true);writeFileSync(join(f.root,row.file),b);row.sha256=sha(b);f.save();assert.throws(()=>validateArtwork(f.root,f.config),/RGB|alpha/i);}finally{f.close();}});
@@ -88,4 +96,17 @@ test('accepts an actual complete render job independently of its native capture 
 test('rejects an overall green controller run which did not actually render the images',()=>{
   const run={head_sha:'b'.repeat(40),name:'Tayya Store artwork and approved publication',conclusion:'success'};
   assert.throws(()=>validateQualification(run,[{name:'artwork',status:'completed',conclusion:'skipped'}],'b'.repeat(40),'render'),/gate/i);
+});
+
+test('read-only readiness selects the exact authorized build and rejects old QA as qualification',()=>{
+  const f=fixture();try{
+    assert.equal(requestedStoreBuild({...f.config,build:'14'}),'14');
+    assert.throws(()=>requestedStoreBuild({...f.config,build:'12'}),/authorized/i);
+    const response={data:[{id:'qa13',attributes:{version:'13',processingState:'VALID'},relationships:{preReleaseVersion:{data:{id:'train'}}}}],included:[{type:'preReleaseVersions',id:'train',attributes:{version:'0.6.0'}}]};
+    assert.equal(buildReadiness(response,'14').version_0_6_build_exists,false);
+    const exact=buildReadiness(response,'13');
+    assert.equal(exact.target_build,'13');assert.equal(exact.version_0_6_build_exists,true);
+    assert.equal(exact.builds[0].id,'qa13');
+    assert.throws(()=>buildReadiness({...response,links:{next:'unexpected'}},'13'),/pagination/i);
+  }finally{f.close();}
 });

@@ -1,5 +1,6 @@
 """Exercise the real release-artifact and source-attribution boundaries."""
 import hashlib
+import copy
 import io
 import json
 import os
@@ -15,6 +16,35 @@ from store_release import extract_engine, verify_listing, write_provenance, veri
 
 
 class StoreReleaseTests(unittest.TestCase):
+    def test_photographed_configuration_allows_only_build_metadata_and_proven_encryption_declaration(self):
+        import yaml
+        prior = yaml.safe_load(Path('project.yml').read_text())
+        candidate = copy.deepcopy(prior)
+        candidate['settings']['base']['CURRENT_PROJECT_VERSION'] = '14'
+        candidate['targets']['Hashiya']['info']['properties']['ITSAppUsesNonExemptEncryption'] = False
+        config = {**self.config, 'build': '14', 'app_tree': '3bfde5b48db135649378d14e42c5654cc1a0d8c6'}
+        evidence = json.loads(Path('Store/encryption-classification-2026-10-28.json').read_text())
+        verify = getattr(store_release, 'verify_photographed_configuration', None)
+        self.assertTrue(callable(verify), 'Photographed and qualified build settings need an exact bounded comparison')
+        verify(candidate, prior, config, evidence)
+        for mutation in ['version', 'bundle', 'compiler', 'source', 'encryption', 'proof']:
+            with self.subTest(mutation=mutation):
+                changed = copy.deepcopy(candidate); proof = copy.deepcopy(evidence)
+                if mutation == 'version': changed['settings']['base']['MARKETING_VERSION'] = '0.7.0'
+                if mutation == 'bundle': changed['targets']['Hashiya']['settings']['base']['PRODUCT_BUNDLE_IDENTIFIER'] = 'other'
+                if mutation == 'compiler': changed['settings']['base']['SWIFT_VERSION'] = '6.0'
+                if mutation == 'source': changed['targets']['Hashiya']['sources'].append('DesignStudio')
+                if mutation == 'encryption': changed['targets']['Hashiya']['info']['properties']['ITSAppUsesNonExemptEncryption'] = True
+                if mutation == 'proof': proof['observed_app_tree'] = 'f' * 40
+                with self.assertRaises(ValueError): verify(changed, prior, config, proof)
+
+    def test_authorized_build_can_increase_after_internal_qa_consumes13(self):
+        for build in ("13", "14", "15", "9999"):
+            with self.subTest(build=build):
+                store_release.validate_target({**self.config, "build": build})
+        for build in ("12", "0", "013", "14.0", "10000", True, None):
+            with self.subTest(build=build), self.assertRaises(ValueError):
+                store_release.validate_target({**self.config, "build": build})
     def test_internal_completion_is_separate_from_binary_upload_and_public_review(self):
         import yaml
         workflow = yaml.safe_load(Path('.github/workflows/tayya-store-listing.yml').read_text())
@@ -134,7 +164,7 @@ class StoreReleaseTests(unittest.TestCase):
                 if mutation == "repository": env["GITHUB_REPOSITORY"] = "other/hashiya-ios"
                 if mutation == "event": env["GITHUB_EVENT_NAME"] = "pull_request"
                 if mutation == "tag": request["head_commit"]["message"] = "Documentation only"
-                if mutation == "target": c["build"] = "14"
+                if mutation == "target": c["build"] = "12"
                 with self.assertRaises(ValueError): verify_authorization(c, env, request)
 
     def distribution(self):
@@ -177,6 +207,15 @@ class StoreReleaseTests(unittest.TestCase):
 
 
 class AppleProcessingTests(unittest.TestCase):
+    def test_processing_requires_the_exact_configured_build_not_old_qa13(self):
+        self.config["build"] = "14"
+        self.apple.update(target_build="14", builds=[dict(id="official-14", build="14", version="0.6.0", processing="VALID")],
+                          version_0_6_build_exists=True)
+        self.assertEqual(self.inspect()["apple_build_id"], "official-14")
+        self.apple["target_build"] = "13"
+        with self.assertRaisesRegex(ValueError, "identity|target|build"):
+            self.inspect()
+
     def setUp(self):
         self.config = dict(app_id="6818288428", bundle_id="com.ahmadalawi.hashiya", version="0.6.0", build="13",
                            app_source="a" * 40, app_tree="b" * 40, qualified_run=42)
@@ -186,7 +225,7 @@ class AppleProcessingTests(unittest.TestCase):
                            engine=dict(application_source="a" * 40, qualified_run=42))
         self.apple = dict(read_only=True, ready_for_distribution_authentication=True,
                           app=dict(id="6818288428", bundle_id="com.ahmadalawi.hashiya"),
-                          build13=[], version_0_6_build_13_exists=False)
+                          target_build="13", builds=[], version_0_6_build_exists=False)
 
     def inspect(self):
         validator = getattr(store_release, "verify_processing", None)
@@ -194,8 +233,8 @@ class AppleProcessingTests(unittest.TestCase):
         return validator(self.config, self.apple, self.upload, "c" * 40)
 
     def build(self, status, version="0.6.0"):
-        self.apple["build13"] = [dict(id="build-13", build="13", version=version, processing=status)]
-        self.apple["version_0_6_build_13_exists"] = version == "0.6.0"
+        self.apple["builds"] = [dict(id="build-13", build="13", version=version, processing=status)]
+        self.apple["version_0_6_build_exists"] = version == "0.6.0"
 
     def test_missing_or_another_version_is_pending_not_an_upload_retry(self):
         self.assertFalse(self.inspect()["apple_processing_confirmed"])
@@ -231,10 +270,10 @@ class AppleProcessingTests(unittest.TestCase):
 
     def test_duplicate_and_inconsistent_identity_are_rejected(self):
         self.build("VALID")
-        self.apple["build13"].append(dict(self.apple["build13"][0], id="other"))
+        self.apple["builds"].append(dict(self.apple["builds"][0], id="other"))
         with self.assertRaisesRegex(ValueError, "identity|Ambiguous"):
             self.inspect()
-        self.build("VALID"); self.apple["version_0_6_build_13_exists"] = False
+        self.build("VALID"); self.apple["version_0_6_build_exists"] = False
         with self.assertRaisesRegex(ValueError, "identity|Inconsistent"):
             self.inspect()
 

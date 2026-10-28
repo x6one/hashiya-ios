@@ -30,6 +30,7 @@ export function createAppleClient(environment = process.env) {
       const error = new Error('Apple API HTTP ' + response.status + ': '
         + (body.errors || []).map(e => e.code || e.status || 'UNKNOWN').join(','));
       error.status = response.status;
+      error.operation = method + ' ' + url.pathname;
       throw error;
     }
     return body;

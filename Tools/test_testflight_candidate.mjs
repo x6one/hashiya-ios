@@ -87,7 +87,7 @@ test('explicitly audited unchanged encryption can reuse the live prior Apple cla
   const f = complianceFixture();f.evidence.config.reuse_published_encryption_version = '0.4.2';
   const original = f.client.get;
   f.client.get = async path => {
-    if (path.includes('/appEncryptionDeclarations?')) return {data: []};
+    if (path.startsWith('appEncryptionDeclarations?')) return {data: []};
     if (path.includes('/appStoreVersions?')) return {data: [{id: 'live', attributes: {versionString: '0.4.2', platform: 'IOS', appStoreState: 'READY_FOR_DISTRIBUTION'}}]};
     if (path.startsWith('appStoreVersions/')) return {data: {id: 'live', attributes: {versionString: '0.4.2', platform: 'IOS'}, relationships: {app: {data: {id: '6818288428'}}, build: {data: {id: 'old'}}}}};
     if (path.startsWith('builds/old?')) return {data: {id: 'old', attributes: {processingState: 'VALID', usesNonExemptEncryption: false}, relationships: {app: {data: {id: '6818288428'}}, preReleaseVersion: {data: {id: 'oldtrain'}}}}, included: [{id: 'oldtrain', type: 'preReleaseVersions', attributes: {version: '0.4.2'}}]};
@@ -138,6 +138,20 @@ test('Shared Apple client refuses foreign pagination origins before sending auth
     ASC_PRIVATE_KEY_BASE64: Buffer.from(privateKey.export({type: 'pkcs8', format: 'pem'})).toString('base64')});
   await assert.rejects(client.get('https://example.invalid/v1/builds'), /unexpected endpoint/);
   await assert.rejects(client.get('https://api.appstoreconnect.apple.com/not-v1/builds'), /unexpected endpoint/);
+});
+
+test('Apple routing failures identify the failed operation without credentials or query data', async () => {
+  const {privateKey} = generateKeyPairSync('ec', {namedCurve: 'prime256v1'});
+  const client = createAppleClient({ASC_KEY_ID: 'UNITTEST', ASC_ISSUER_ID: 'unit-test',
+    ASC_PRIVATE_KEY_BASE64: Buffer.from(privateKey.export({type: 'pkcs8', format: 'pem'})).toString('base64')});
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({errors: [{code: 'PATH_ERROR'}]}), {status: 404});
+  try {
+    await assert.rejects(client.get('apps/6818288428/appEncryptionDeclarations?private=query'), error => {
+      assert.equal(error.operation, 'GET /v1/apps/6818288428/appEncryptionDeclarations');
+      assert.equal(error.operation.includes('query'), false);return true;
+    });
+  } finally {globalThis.fetch = previous;}
 });
 test('No selected internal group causes no Apple writes or tester invitations', async () => {
   const client = {get() {throw new Error('No request expected');}, post() {throw new Error('No write expected');}};

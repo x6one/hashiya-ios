@@ -2,7 +2,7 @@ name: Tayya Store artwork and approved publication
 on:
   push:
     branches: [store/tayya-app-store-content]
-    paths: [Store/publication.json, Store/metadata.json, Store/internal-qa.json, 'Store/Studio2/**', .github/workflows/tayya-store-listing.yml]
+    paths: [Store/publication.json, Store/metadata.json, Store/internal-qa.json, 'Store/Studio2/**', 'Tools/*testflight*.mjs', Tools/app_store_readiness.mjs, .github/workflows/tayya-store-listing.yml]
   workflow_dispatch:
     inputs:
       prepare_draft:

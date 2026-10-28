@@ -123,8 +123,9 @@ async function main() {
     console.log(JSON.stringify(report));
   } catch (error) {
     report.error = /^(QA |Apple API )/.test(error.message) ? error.message : 'QA Apple operation failed; credentials and personal data withheld';
+    if (error.operation) report.failed_operation = error.operation;
     writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
-    console.error(report.error); process.exitCode = 1;
+    console.error(report.error, report.failed_operation || ''); process.exitCode = 1;
   }
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
@@ -156,7 +157,7 @@ export async function completeInternalQA(client, evidence, onReceipt = () => {})
     return b;
   };
   let build = await readBuild();
-  const declarations = await client.get('apps/' + APP + '/appEncryptionDeclarations?limit=200');
+  const declarations = await client.get('appEncryptionDeclarations?filter[app]=' + APP + '&limit=200');
   if (declarations.links?.next) reject('encryption declaration listing is paginated; inspect before selection');
   const compatible = declarations.data.filter(d => d.attributes?.appEncryptionDeclarationState === 'APPROVED'
     && d.attributes.containsThirdPartyCryptography === true && d.attributes.containsProprietaryCryptography === false

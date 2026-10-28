@@ -18,6 +18,23 @@ final class StudioAudioUITests: XCTestCase {
         startProductionRecording(in: app)
     }
 
+    func testFirstMicrophoneGrantStartsAndSavesAnActualClip() {
+        let application = XCUIApplication()
+        application.resetAuthorizationStatus(for: .microphone)
+        let app = openDocument()
+        XCTAssertFalse(app.buttons["openMargin"].isSelected)
+        startRecording(app)
+        let recorded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.seconds(app) >= 2 }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [recorded], timeout: 5), .completed)
+        XCTAssertFalse(app.buttons["openMargin"].isSelected, "First microphone grant must not open Notes")
+        app.buttons["recordLinkedAudio"].tap()
+        app.buttons["recordingDetails"].tap()
+        let play = app.buttons["playLinkedRecording"].firstMatch
+        XCTAssertTrue(play.waitForExistence(timeout: 5), "First-grant recording must save a real clip")
+        play.tap()
+        XCTAssertTrue(app.buttons["pauseLinkedRecording"].waitForExistence(timeout: 5), "The first granted recording must be decodable")
+    }
+
     private func seconds(_ app: XCUIApplication) -> Int {
         let value = app.staticTexts["recordingElapsed"].value as? String ?? ""
         return value.split(separator: ":").compactMap { Int($0) }.reduce(0) { $0 * 60 + $1 }

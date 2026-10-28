@@ -69,6 +69,7 @@ jobs:
           requested = os.environ.get('REQUESTED_SUITE')
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
+              'release-boundaries': ['HashiyaUITests/StudioAudioUITests/testFirstMicrophoneGrantStartsAndSavesAnActualClip', 'HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
               'picker-boundary': ['HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint', 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
               'menu-dismissal': ['HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
               'menu-boundary': ['HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
@@ -170,6 +171,25 @@ jobs:
           args += ['-only-testing:' + name for name in selection['onlyTesting']]
           raise SystemExit(subprocess.call(args))
           PY
+      - name: Verify actual simulator microphone authorization after the cold-grant contract
+        if: always() && contains(github.event.head_commit.message, '[integration:release-boundaries]')
+        run: |
+          mkdir -p MicrophonePermission
+          python3 - <<'PY'
+          import json, os, sqlite3, subprocess
+          from pathlib import Path
+          device=os.environ['SIMULATOR_ID']
+          database=Path.home()/'Library/Developer/CoreSimulator/Devices'/device/'data/Library/TCC/TCC.db'
+          report={'source':os.environ['GITHUB_SHA'],'device':device,'read_only':True,'service':'kTCCServiceMicrophone','client':'com.ahmadalawi.hashiya'}
+          if database.is_file():
+              with sqlite3.connect(database.as_uri()+'?mode=ro',uri=True) as connection:
+                  rows=connection.execute('SELECT auth_value,auth_reason,last_modified FROM access WHERE service=? AND client=?',('kTCCServiceMicrophone','com.ahmadalawi.hashiya')).fetchall()
+              report['authorization_rows']=[dict(zip(['auth_value','auth_reason','last_modified'],row)) for row in rows]
+          else: report['database_unavailable']=True
+          Path('MicrophonePermission/authorization.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report))
+          subprocess.run(['xcrun','simctl','io',device,'screenshot','MicrophonePermission/original-system-display.png'],check=True)
+          PY
       - name: Preserve failed synthetic ink and native renderer evidence
         if: failure()
         run: python3 Tools/capture_native_ink_failure.py
@@ -258,6 +278,7 @@ jobs:
           path: |
             integration-selection.json
             IntegrationEvidence/
+            MicrophonePermission/
           retention-days: 14
   production-review:
     needs: focused

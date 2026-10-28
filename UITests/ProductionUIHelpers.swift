@@ -42,10 +42,15 @@ func observeNativeMenuAbsence(of item: XCUIElement) -> (absent: Bool, wallSecond
 func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
     let app = XCUIApplication()
     let window = app.windows.firstMatch.frame
+    var visibleRow: (any XCUIElementSnapshot)?
     let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-        guard item.exists else { return false }
-        let frame = item.frame
-        return !frame.isEmpty && !frame.isNull && window.contains(frame)
+        // One remote transaction: separate exists/frame calls can consume the
+        // complete waiter budget before an already-visible row is evaluated.
+        guard let row = try? item.snapshot() else { return false }
+        let frame = row.frame
+        guard row.isEnabled, !frame.isEmpty, !frame.isNull, window.contains(frame) else { return false }
+        visibleRow = row
+        return true
     }, object: nil)
     guard XCTWaiter.wait(for: [ready], timeout: 5) == .completed else {
         // A visible native menu can report no AX hit point. Preserve its real
@@ -65,7 +70,7 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
     // Keep the real identity before the tap. The public native non-existence
     // waiter owns missing-element lookup instead of enumerating the complete
     // underlying PDF/Notes hierarchy to count matches.
-    let identity = item.identifier
+    let identity = visibleRow?.identifier ?? ""
     guard !identity.isEmpty else {
         XCTFail("The real menu row must have an identifier before selecting it", file: file, line: line); return
     }

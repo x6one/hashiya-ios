@@ -173,8 +173,18 @@ final class StudioProductionCaptureTests: XCTestCase {
     private func closeNotes(_ app: XCUIApplication) {
         action("closeNotes", in: app)
         let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            !app.buttons["openMargin"].isSelected
-                && !app.descendants(matching: .any)["splitDivider"].firstMatch.exists
+            guard let root = try? app.snapshot() else { return false }
+            var pending: [any XCUIElementSnapshot] = [root]
+            var notes: [any XCUIElementSnapshot] = []
+            var divider = false
+            while let node = pending.popLast() {
+                if node.elementType == .button, node.identifier == "openMargin" { notes.append(node) }
+                if node.identifier == "splitDivider" { divider = true }
+                pending.append(contentsOf: node.children)
+            }
+            // Retain both original state/effect requirements in the SAME AX
+            // snapshot. Repeated live queries can time out after Notes closed.
+            return notes.count == 1 && !notes[0].isSelected && !divider
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed,
                        "Closing a menu backdrop cannot substitute for closing the real Notes pane")

@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.APP_SOURCE }}
-          path: app
+          path: qa-source
           persist-credentials: false
       - name: Use the installed native app toolchain and build prerequisites
         run: |
@@ -75,21 +75,21 @@ jobs:
           import yaml
           git=lambda *a:subprocess.check_output(['git',*a],text=True).strip()
           source=os.environ['APP_SOURCE']; baseline='c07e69eb49bea0588efb6c0f8d24c8b8e777c67c'
-          assert git('-C','app','rev-parse','HEAD')==source
-          spec=yaml.safe_load(Path('app/project.yml').read_text())
+          assert git('-C','qa-source','rev-parse','HEAD')==source
+          spec=yaml.safe_load(Path('qa-source/project.yml').read_text())
           assert str(spec['settings']['base']['MARKETING_VERSION'])=='0.6.0'
           assert spec['targets']['Hashiya']['settings']['base']['PRODUCT_BUNDLE_IDENTIFIER']=='com.ahmadalawi.hashiya'
           assert str(spec['options']['deploymentTarget']['iOS'])=='17.0'
           assert not git('diff','--name-only',baseline,source,'--','NativeOffice'), 'Review native engine ABI changes before reusing its artifact'
           report={'label':'TestFlight QA Candidate — Not Production Qualified','production_qualified':False,
-            'controller_source':os.environ['GITHUB_SHA'],'application_source':source,'application_tree':git('-C','app','rev-parse','HEAD:App'),
+            'controller_source':os.environ['GITHUB_SHA'],'application_source':source,'application_tree':git('-C','qa-source','rev-parse','HEAD:App'),
             'baseline':baseline,'baseline_full_run':40175783379,'run':os.environ['GITHUB_RUN_ID'],
             'simulator_live_ink_cause':'unresolved','simulator_missed_undo_cause':'unresolved',
             'physical_device_result':'NOT TESTED','recorded_stroke_data_loss_proven':False,
             'app_store_review_submitted':False,'public_release_requested':False}
           Path('QA/source.json').write_text(json.dumps(report,indent=2)+'\n')
           Path('QA/baseline-production.diff').write_text(git('diff',baseline,source,'--','App/MarginNotebook.swift','App/MarginPane.swift','App/PDFWorkspace.swift','App/DocumentThumbnails.swift'))
-          Path('QA/canonical-project-before.sha256').write_text(hashlib.sha256(Path('app/project.yml').read_bytes()).hexdigest()+'\n')
+          Path('QA/canonical-project-before.sha256').write_text(hashlib.sha256(Path('qa-source/project.yml').read_bytes()).hexdigest()+'\n')
           PY
       - name: Read actual Apple builds and allocate an unused QA build number
         env:
@@ -104,7 +104,7 @@ jobs:
           import yaml
           selected=json.loads(Path('QA/apple-build-selection.json').read_text())
           build=selected['build']; assert re.fullmatch('[1-9][0-9]{0,3}',build)
-          project=Path('app/project.yml'); spec=yaml.safe_load(project.read_text())
+          project=Path('qa-source/project.yml'); spec=yaml.safe_load(project.read_text())
           previous=str(spec['settings']['base']['CURRENT_PROJECT_VERSION'])
           if build!=previous:
               text=project.read_text(); before="    CURRENT_PROJECT_VERSION: '"+previous+"'"
@@ -117,7 +117,7 @@ jobs:
           Path('QA/build-metadata.json').write_text(json.dumps({'source_build':previous,'qa_build':build,'marketing_version':'0.6.0','build_override':build!=previous,'selection_reason':selected['reason']},indent=2)+'\n')
           PY
       - name: Independently verify the current distribution certificate and profile
-        working-directory: app
+        working-directory: qa-source
         env:
           APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
           APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
@@ -161,8 +161,8 @@ jobs:
       - name: Link the full native engine and build the real Release iphoneos app
         run: |
           set -o pipefail
-          python3 app/Tools/link_office_engine.py OfficeEngineCandidate QA/link-probe
-          cd app
+          python3 qa-source/Tools/link_office_engine.py OfficeEngineCandidate QA/link-probe
+          cd qa-source
           python3 Tools/prepare_native_office_app.py ../OfficeEngineCandidate ../QA/link-probe project.yml
           xcodegen generate --spec NativeOfficeProject.yml
           xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -showBuildSettings -json > ../QA/release-build-settings.json
@@ -180,7 +180,7 @@ jobs:
           mkdir -p ../QA/Unsigned
           cp ../UnsignedCandidate/*.ipa ../UnsignedCandidate/*.sha256 ../UnsignedCandidate/*.json ../QA/Unsigned/
       - name: Archive sign verify and optionally upload through the existing distributor
-        working-directory: app
+        working-directory: qa-source
         env:
           APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
           APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
@@ -222,7 +222,7 @@ jobs:
           assert 'platform IOS\n' in build
           packed=out/'Tayya-QA.xcarchive.zip'
           subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(archive),str(packed)],check=True)
-          assert not subprocess.check_output(['git','-C','app','diff','--name-only','--','App','NativeOffice'],text=True).strip()
+          assert not subprocess.check_output(['git','-C','qa-source','diff','--name-only','--','App','NativeOffice'],text=True).strip()
           provenance=json.loads(Path('QA/source.json').read_text())
           provenance.update(build_metadata=json.loads(Path('QA/build-metadata.json').read_text()),engine=json.loads(Path('QA/engine.json').read_text()),distribution=result)
           verified=Path('QA/Verified'); verified.mkdir(exist_ok=False)

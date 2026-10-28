@@ -17,6 +17,16 @@ from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_nested_qa_checkout_does_not_shadow_source_on_macos(self):
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-testflight-candidate.yml').read_text())
+        source_names = {name.casefold() for name in ['App', 'Tools', 'Tests', 'UITests', 'NativeOffice', 'Store']}
+        for step in workflow['jobs']['qa-candidate']['steps']:
+            if step.get('uses') == 'actions/checkout@v4':
+                destination = step.get('with', {}).get('path')
+                if destination:
+                    self.assertNotIn(Path(destination).parts[0].casefold(), source_names,
+                                     'macOS checkout must not replace App through case-insensitive app alias')
+
     def test_internal_qa_push_requires_exact_branch_and_explicit_owner_marker(self):
         workflow = yaml.safe_load(Path('.github/workflows/tayya-testflight-candidate.yml').read_text())
         triggers = workflow.get('on', workflow.get(True))

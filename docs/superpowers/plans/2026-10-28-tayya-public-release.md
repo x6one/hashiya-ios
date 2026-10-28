@@ -5,7 +5,7 @@
 **Goal:** Qualify one fixed production source, sign/upload it, prepare truthful Store metadata and existing artwork, submit App Review with automatic release after approval, and verify actual Apple state.
 **Architecture:** Preserve native production engines/storage. Use existing opt-in release push marker to start the unchanged comprehensive gate, then consume its exact Office artifact with the existing Store/distribution controller. Manual QA workflow stays independent and unqualified; registering its sole CI file on main does not merge application code.
 **Tech Stack:** Existing macOS/Xcode/GitHub workflows, original Python native tools, Node Apple/Store tools and normal CI secrets.
-**Spec:** Owner's explicit October28,2026 Arabic message authorizes the existing app6818288428 upload, App Review and automatic public release; no repeat permission required.
+**Spec:** Owner's latest pasted Final Autonomous App Store Release (October28,2026) explicitly excludes owner manual testing as a release prerequisite and authorizes the existing app6818288428 upload, App Review and automatic public release; no repeat permission required.
 
 ## Global Constraints
 
@@ -13,6 +13,7 @@
 - Production branchintegration/tayya-app-store. Only approved workflow registration onmain; no application/stable merge or user-data modification.
 - No secrets disclosed, new paid services, GPU tracing, repeat diagnostic loops, disabled tests or altered success thresholds.
 - Explicit publication authorization supersedes prior no-review/no-publication restrictions. It does not make a failed gate successful or prove physical-device behavior.
+- Automated verification is the release gate; physical microphone quality/interruptions/Office device-runtime limits are disclosed, never made an owner manual-test prerequisite.
 - Existing12 genuine Store compositions must remain accurately attributed; review current capture compatibility rather than relabeling source commits.
 
 ## Review Focus
@@ -40,3 +41,15 @@
 - [ ] Extend only the isolated Store orchestration as needed, with meaningful regression tests for wrong-build, failed qualification, missing metadata and duplicate submission rejection.
 - [ ] Attach the exact processed build; configure AFTER_APPROVAL release; use current official App Review API to submit and read actual state.
 - [ ] Address actionable Apple rejection/information requests; never invent acceptance. If Apple is still reviewing, preserve exact pending status and resumption mechanism; only claim public0.6.0 after actual distribution state and Store link verification.
+
+### Task4: Finish remaining native release blockers from actual production paths
+
+**Files:** `Tests/StudioUndoIsolationTests.swift`, existing `.github/workflows/tayya-integration.yml`; only if reproduced, `App/InkSelection.swift` and `App/MarginNotebook.swift`. Existing production surfaces/storage and original UI tests stay intact.
+
+- [x] Resume6fc6ec8 clean remote/local; QA14 actuallyREADY_FOR_BETA_TESTING; no new signing or healthy-test rerun yet. New official candidate must use an unused15+ build.
+- [x] Compare actual0.4.2 source referenceb38b985 (version confirmed; exact published binary source attestation not available) with current `LassoCanvas`, `MarginCanvas`, `NativePDF` and Notes reload. Both versions inherit UIKit UndoManager; Notes reload clears all actions. Current standalone mounted route contracts pass, and Notes was absent during the old document-only Undo failure, so shared-owner reset is NOT yet that failure's proven cause.
+- [ ] Add `testSwitchingNotesPagePreservesDocumentUndoInActualSplit`: mount actual `NativePDF` and `MarginPane` in one real UIHosting/window; register one known document drawing operation, then use real `MarginPages.add(linkedTo:)` and await its actual `MarginNotebook.Coordinator.pageID`. Through production workspace callback, Undo must clear only the document operation and preserve Notes. No manual peer reset, fabricated hierarchy, new diagnostics or timeouts.
+- [ ] Run only this new regression/device on macOS. Expected: either genuine failure after actual Notes configure (then minimal per-canvas manager ownership fix) or PASS (hypothesis disproved; no production patch). Preserve original2 route tests and original UI assertions. This validates ownership, not native gesture registration or the old pre-Notes failure.
+- [ ] If RED, implement only the proved ownership fix and run new regression+existing actual route contracts+unchanged Standard/Accessibility real-stroke UI/device. If remaining pixel/Undo fails, analyze retained evidence once, no identical retry or GPU tracing.
+- [ ] After all targeted required contracts pass, query actual Apple maximum build, freeze source15+ and run comprehensive gate once (all original/new methods, Maestro3, actual exports, gallery, compatibility, Release/nativeOffice). Keep publicdisabled on any mandatory failure.
+- [ ] Use existing Store controller's verified12-image/evidence-bound metadata path; signed IPA/archive, actual processing, exact build attachment, review/AFTER_APPROVAL and Apple state readback. Report official state, not TestFlight readiness as publication.

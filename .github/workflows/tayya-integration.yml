@@ -70,6 +70,7 @@ jobs:
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
               'canvas-undo-isolation': ['HashiyaTests/StudioUndoIsolationTests'],
+              'split-undo-regression': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit'],
               'document-undo-route': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'document-undo-route-phone': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'release-boundaries': ['HashiyaUITests/StudioAudioUITests/testFirstMicrophoneGrantStartsAndSavesAnActualClip', 'HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],

@@ -1,0 +1,17 @@
+{
+  "source": "85a973dd0442a4a9114b458b85285df9f1f7c0a4",
+  "app_tree": "3bfde5b48db135649378d14e42c5654cc1a0d8c6",
+  "run": 40713032864,
+  "build": "13",
+  "build_id": "2a99e8bd-54c0-4761-9cf5-a69a09fad1d6",
+  "ipa_sha256": "9d848c9cc67cfd0747319c98f4eaee6720629e7dccba7ae10190ee178fdd6b41",
+  "state_artifact_id": 12827519122,
+  "state_artifact_bytes": 2594,
+  "state_artifact_sha256": "1351c6d9e3be880ecb1a3849d37760a11cf2f7e380d882e2afdfdc7137a84f0a",
+  "complete_export_compliance": true,
+  "reuse_published_encryption_version": "0.4.2",
+  "internal_group_id": "",
+  "production_qualified": false,
+  "submit_for_review": false,
+  "public_release": false
+}

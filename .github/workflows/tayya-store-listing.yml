@@ -2,7 +2,7 @@ name: Tayya Store artwork and approved publication
 on:
   push:
     branches: [store/tayya-app-store-content]
-    paths: [Store/publication.json, Store/metadata.json, 'Store/Studio2/**', .github/workflows/tayya-store-listing.yml]
+    paths: [Store/publication.json, Store/metadata.json, Store/internal-qa.json, 'Store/Studio2/**', .github/workflows/tayya-store-listing.yml]
   workflow_dispatch:
     inputs:
       prepare_draft:
@@ -16,6 +16,86 @@ concurrency:
   group: tayya-store-listing
   cancel-in-progress: false
 jobs:
+  complete-internal-qa:
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:complete-internal]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the existing accepted QA source and small immutable Apple receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess, zipfile
+          from pathlib import Path
+          c=json.loads(Path('Store/internal-qa.json').read_text())
+          assert c['complete_export_compliance'] is True
+          assert c['production_qualified'] is c['submit_for_review'] is c['public_release'] is False
+          assert re.fullmatch('[a-f0-9]{40}',c['source']) and re.fullmatch('[a-f0-9]{40}',c['app_tree'])
+          metadata=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{c['state_artifact_id']}"],text=True))
+          assert metadata['expired'] is False and metadata['name']==f"Tayya-TestFlight-QA-Apple-State-{c['run']}"
+          assert metadata['workflow_run']['id']==c['run'] and metadata['workflow_run']['head_sha']==c['source']
+          assert metadata['size_in_bytes']==c['state_artifact_bytes']<1024*1024
+          assert metadata['digest']=='sha256:'+c['state_artifact_sha256']
+          root=Path('InternalQA');root.mkdir();proof=root/'Proof';proof.mkdir()
+          packed=root/'accepted-qa-receipt.zip'
+          with packed.open('wb') as f:subprocess.run(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{c['state_artifact_id']}/zip"],stdout=f,check=True)
+          assert packed.stat().st_size==c['state_artifact_bytes']
+          assert hashlib.sha256(packed.read_bytes()).hexdigest()==c['state_artifact_sha256']
+          with zipfile.ZipFile(packed) as z:
+              assert z.testzip() is None and sum(e.file_size for e in z.infolist())<1024*1024
+              for e in z.infolist():
+                  assert e.filename in ['apple-build-selection.json','apple-processing.json','internal-testing.json','provenance.json']
+                  (proof/e.filename).write_bytes(z.read(e))
+          baseline='c07e69eb49bea0588efb6c0f8d24c8b8e777c67c'
+          subprocess.run(['git','fetch','--no-tags','--depth=1','origin',c['source'],baseline],check=True)
+          git=lambda *a:subprocess.check_output(['git',*a],text=True).strip()
+          assert git('rev-parse',c['source']+':App')==c['app_tree']
+          assert not git('diff','--name-only',baseline,c['source'],'--','NativeOffice')
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('TAYYA_QA_BUILD='+c['build']+'\n')
+              f.write('TAYYA_QA_INTERNAL_GROUP='+c['internal_group_id']+'\n')
+          PY
+      - name: Verify QA continuation and original Store contracts before credentials
+        run: |
+          python3 -m unittest discover -s Tools -p 'test_*.py'
+          node Tools/test_testflight_candidate.mjs
+          node Tools/test_store_listing.mjs
+          node Tools/test_store_presentation.mjs
+          node Tools/test_submit_store_review.mjs
+      - name: Complete only the approved encryption classification of the existing build
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: node Tools/testflight_candidate.mjs complete InternalQA/export-compliance.json
+      - name: Read actual TestFlight readiness and attach only an existing internal group
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, time
+          from pathlib import Path
+          deadline=time.monotonic()+300
+          while time.monotonic()<deadline:
+              check=subprocess.run(['node','Tools/testflight_candidate.mjs','status','InternalQA/apple-state.json'],timeout=90)
+              state=json.loads(Path('InternalQA/apple-state.json').read_text())
+              if check.returncode==0:break
+              if not state.get('pending') and state.get('state')!='MISSING_EXPORT_COMPLIANCE':check.check_returncode()
+              time.sleep(min(20,max(0,deadline-time.monotonic())))
+          else:raise SystemExit('Keep the accepted build; actual beta availability is still pending, do not upload again')
+          subprocess.run(['node','Tools/testflight_candidate.mjs','assign','InternalQA/internal-testing.json'],check=True,timeout=90)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Internal-TestFlight-Availability
+          path: InternalQA/
+          if-no-files-found: warn
+          retention-days: 14
   artwork:
     if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[store:artwork]') }}
     runs-on: ubuntu-latest
@@ -129,7 +209,7 @@ jobs:
           assert git('-C','hashiya-tools','rev-parse','HEAD')==config['app_source']
           assert git('-C','hashiya-tools','rev-parse','HEAD:App')==config['app_tree']
           changed=git('diff','--name-only',controller_base,'HEAD').splitlines()
-          store_tools={'Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','Tools/store_release.py','Tools/test_store_release.py','Tools/test_release_tools.py','Tools/submit_store_review.mjs','Tools/test_submit_store_review.mjs','Tools/test_store_presentation.mjs','.github/workflows/tayya-store-listing.yml'}
+          store_tools={'Tools/testflight_candidate.mjs','Tools/test_testflight_candidate.mjs','Tools/app_store_readiness.mjs','Tools/publish_store_listing.mjs','Tools/test_store_listing.mjs','Tools/store_release.py','Tools/test_store_release.py','Tools/test_release_tools.py','Tools/submit_store_review.mjs','Tools/test_submit_store_review.mjs','Tools/test_store_presentation.mjs','.github/workflows/tayya-store-listing.yml'}
           assert all(path.startswith(('Store/','docs/','Verification/')) or path in store_tools for path in changed),'Only Store content and its isolated publisher may change; production/build/signing code stays frozen'
           assert not git('diff','--name-only',config['app_source'],config['artwork_source'],'--','project.yml','NativeOffice'),'Photographed build configuration differs from the qualified candidate'
           checks=[('qualified_run','app_source','iPhone and iPad preflight'),('artwork_run','artwork_source','Tayya Store readiness and actual medium-phone captures')]

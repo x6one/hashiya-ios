@@ -15,6 +15,26 @@ from store_release import extract_engine, verify_listing, write_provenance, veri
 
 
 class StoreReleaseTests(unittest.TestCase):
+    def test_internal_completion_is_separate_from_binary_upload_and_public_review(self):
+        import yaml
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-store-listing.yml').read_text())
+        self.assertIn('complete-internal-qa', list(workflow['jobs']))
+        job = workflow['jobs']['complete-internal-qa']
+        expression = job['if'].strip().removeprefix('${{').removesuffix('}}').strip()
+        for repository, branch, message, expected in [
+                ('x6one/hashiya-ios', 'store/tayya-app-store-content', '[store:complete-internal]', True),
+                ('x6one/hashiya-ios', 'store/tayya-app-store-content', '[store:publish-approved]', False),
+                ('x6one/hashiya-ios', 'integration/tayya-app-store', '[store:complete-internal]', False),
+                ('someone/else', 'store/tayya-app-store-content', '[store:complete-internal]', False)]:
+            condition = expression.replace('github.repository', repr(repository)).replace('github.ref', repr('refs/heads/' + branch))
+            condition = condition.replace('github.event_name', repr('push')).replace('github.event.head_commit.message', repr(message))
+            condition = condition.replace('&&', ' and ').replace('||', ' or ')
+            self.assertEqual(eval(condition, {'__builtins__': {}}, {'contains': lambda s, t: t in s}), expected)
+        self.assertEqual(job['runs-on'], 'ubuntu-latest')
+        commands = '\n'.join(s.get('run', '') for s in job['steps'])
+        for forbidden in ['python3 Tools/distribute_native_app.py', 'xcodebuild ', 'node Tools/submit_store_review.mjs']:
+            self.assertNotIn(forbidden, commands)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

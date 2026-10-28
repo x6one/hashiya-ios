@@ -1,6 +1,8 @@
 name: Tayya TestFlight QA Candidate — Not Production Qualified
-run-name: Internal QA of ${{ inputs.app_source }} — no public qualification
+run-name: Internal QA of ${{ inputs.app_source || github.sha }} — no public qualification
 on:
+  push:
+    branches: ['integration/tayya-app-store']
   workflow_dispatch:
     inputs:
       app_source:
@@ -26,11 +28,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   qa-candidate:
-    if: github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/integration/tayya-app-store'
+    if: github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/integration/tayya-app-store' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight:internal]')))
     runs-on: macos-15
     timeout-minutes: 120
     env:
-      APP_SOURCE: ${{ inputs.app_source }}
+      APP_SOURCE: ${{ inputs.app_source || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,7 +48,7 @@ jobs:
           PY
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.app_source }}
+          ref: ${{ env.APP_SOURCE }}
           path: app
           persist-credentials: false
       - name: Use the installed native app toolchain and build prerequisites
@@ -186,7 +188,7 @@ jobs:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          QA_UPLOAD: ${{ inputs.upload_to_apple }}
+          QA_UPLOAD: ${{ github.event_name == 'push' || inputs.upload_to_apple }}
         run: |
           args=(--preserve-archive)
           if [ "$QA_UPLOAD" != true ]; then args+=(--archive-only); fi
@@ -246,7 +248,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Confirm the accepted upload and actual Apple processing independently
-        if: success() && inputs.upload_to_apple
+        if: success() && (github.event_name == 'push' || inputs.upload_to_apple)
         timeout-minutes: 25
         env:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}

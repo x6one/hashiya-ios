@@ -2,11 +2,11 @@
 
 **TestFlight QA Candidate — Not Production Qualified**
 
-The user explicitly authorized this independent QA distribution path on October27,2026. It does not qualify a public release, waive the existing simulator gates, submit an Apple review, publish a Store version, invite testers or change the current live version.
+The user renewed authorization for this independent QA distribution path on October28,2026. It does not qualify a public release, waive the existing simulator gates, submit an Apple review, publish a Store version, invite testers or change the current live version.
 
 ## Immutable candidate and source audit
 
-- Application source: `b11b67975576642a47de81407b363fc99601aa6b`, branch `integration/tayya-app-store`.
+- Application source: the exact SHA in this run's `QA/source.json`, branch `integration/tayya-app-store`. An explicit `[testflight:internal]` push pins its own SHA; manual dispatch accepts an exact ancestor SHA. The historical input default is not the actual source receipt.
 - Source comparison baseline: `c07e69eb49bea0588efb6c0f8d24c8b8e777c67c`; actual comprehensive workflow [40175783379](https://github.com/x6one/hashiya-ios/actions/runs/40175783379) passed tools, both regressions, both full native/exports/Maestro jobs, gallery and native Office/device packaging. The alternative focused diagnosis job was intentionally skipped.
 - Office artifact:12593749685, original full run40175783379, SHA256 `4332a7be70855cd447384c8356c18a4429549bac1650a4b7c0b7f93a7ab89933`, upstream `124ecf55b0f0969b7859d2f803f0bc3a0049a4dc`. Reuse is verified and does not qualify the current app.
 - Version0.6.0, bundle`com.ahmadalawi.hashiya`, iOS17+, iPhone+iPad.
@@ -14,6 +14,8 @@ The user explicitly authorized this independent QA distribution path on October2
 - `App/MarginPane.swift` has no baseline source changes. Release-preprocessed changes to MarginNotebook and DocumentThumbnails are formatting only; diagnostics there are DEBUG only. PDFWorkspace also contains previously retained page-navigation layout/focus changes. Runtime Release build settings must independently show no DEBUG and the native Office condition enabled.
 
 ## Unresolved issues — do not label them physical-device failures
+
+Latest focused run [40678413054](https://github.com/x6one/hashiya-ios/actions/runs/40678413054), source `43d435bc7d61d55aff2d987a2ac19a2757d67da9`, passed6/8 per device with0skips. The iPhone saved-pen row exists on screen but test readiness expires before touch. The iPad Notes-close AX assertion expires although saved video shows the pane closed. Both first-microphone captures remain waiting for system permission after an automated Allow touch; completed OS grant and recorder start were not proved. These are not proven physical-device defects or an exemption from production gates. Test first-grant, denial, recording duration, stop/save and M4A playback on both real devices.
 
 [40402135051](https://github.com/x6one/hashiya-ios/actions/runs/40402135051) failed the original iPad accessibility-size split handwriting live-pixel check: saved Drawing gained a valid stroke, but native screenshot did not show it in the original window. A separate instrumented run [40483811224](https://github.com/x6one/hashiya-ios/actions/runs/40483811224) showed ink and then missed Notes Undo, without recorded Notes action entry. The causes are unproved and must remain separate.
 
@@ -23,7 +25,7 @@ Additional unverified source-review risks: switching pages during an unfinished 
 
 ## Manual workflow
 
-`.github/workflows/tayya-testflight-candidate.yml` accepts manual dispatch only, on the integration branch. It does not run simulator tests or Metal tracing and does not modify `ios-check.yml` or its gates.
+`.github/workflows/tayya-testflight-candidate.yml` accepts manual dispatch or an explicit `[testflight:internal]` push, on the integration branch. It does not run simulator tests or Metal tracing and does not modify `ios-check.yml` or its gates.
 
 Inputs:
 - `app_source`: exact production40-character SHA, default above.
@@ -74,4 +76,4 @@ If live ink is missing, record whether saved/reopened ink also disappears; do no
 
 ## Before public App Store approval
 
-Resolve confirmed production defects; retain and explain the simulator failures or obtain separately reviewed evidence-based exceptions. Complete the original and new native suites (at least152/device), three Maestro flows/device, byte exports, compatibility, audio, Office, screenshots and accessibility on a final frozen source. Reuse the existing12 genuine Store compositions when still accurate, verify ar/en metadata/privacy/encryption, and obtain the user's separate approval before App Review/public publication.
+Resolve confirmed production defects; retain and explain the simulator failures or obtain separately reviewed evidence-based exceptions. Complete the original and new native suites (at least152/device), three Maestro flows/device, byte exports, compatibility, audio, Office, screenshots and accessibility on a final frozen source. Reuse the existing12 genuine Store compositions when still accurate, verify ar/en metadata/privacy/encryption, before App Review/public publication. The owner already authorized App Review and automatic public release on October28; do not request that permission again. Qualification remains mandatory.

@@ -17,6 +17,28 @@ from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_internal_qa_push_requires_exact_branch_and_explicit_owner_marker(self):
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-testflight-candidate.yml').read_text())
+        triggers = workflow.get('on', workflow.get(True))
+        self.assertEqual(triggers.get('push', {}).get('branches'), ['integration/tayya-app-store'])
+        job = workflow['jobs']['qa-candidate']
+        expression = job['if'].strip().removeprefix('${{').removesuffix('}}').strip()
+        for event, ref, message, allowed in [
+                ('push', 'integration/tayya-app-store', '[testflight:internal]', True),
+                ('push', 'integration/tayya-app-store', 'test: repair UI helper', False),
+                ('push', 'main', '[testflight:internal]', False),
+                ('push', 'integration/other', '[testflight:internal]', False),
+                ('workflow_dispatch', 'integration/tayya-app-store', '', True),
+                ('pull_request', 'integration/tayya-app-store', '[testflight:internal]', False)]:
+            with self.subTest(event=event, ref=ref, message=message):
+                condition = expression.replace('github.repository', repr('x6one/hashiya-ios'))
+                condition = condition.replace('github.ref', repr('refs/heads/' + ref))
+                condition = condition.replace('github.event_name', repr(event))
+                condition = condition.replace('github.event.head_commit.message', repr(message))
+                condition = condition.replace('&&', ' and ').replace('||', ' or ')
+                self.assertEqual(eval(condition, {'__builtins__': {}}, {'contains': lambda s, t: t in s}), allowed)
+        self.assertEqual(job['env']['APP_SOURCE'], '${{ inputs.app_source || github.sha }}')
+
     def test_store_capture_requires_an_explicit_capture_request(self):
         workflow = yaml.safe_load(Path('.github/workflows/tayya-store-assets.yml').read_text())
         expression = workflow['jobs']['medium-phone']['if'].strip().removeprefix('${{').removesuffix('}}').strip()

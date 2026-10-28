@@ -40,14 +40,22 @@ func observeNativeMenuAbsence(of item: XCUIElement) -> (absent: Bool, wallSecond
 }
 
 func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
-    let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in item.exists && item.isHittable }, object: nil)
+    let app = XCUIApplication()
+    var previous: CGRect?
+    let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+        guard item.exists else { return false }
+        let frame = item.frame, window = app.windows.firstMatch.frame
+        guard !frame.isEmpty, !frame.isNull, window.contains(frame) else { return false }
+        let stable = previous == frame
+        previous = frame
+        return stable
+    }, object: nil)
     guard XCTWaiter.wait(for: [ready], timeout: 5) == .completed else {
         // A visible native menu can report no AX hit point. Preserve its real
         // geometry and original pixels before deciding whether a touch is valid.
-        let app = XCUIApplication()
         let exists = item.exists
         let identity = exists ? item.identifier : "unresolved"
-        let geometry = exists ? "frame=\(item.frame); hittable=\(item.isHittable); label=\(item.label)" : "absent"
+        let geometry = exists ? "frame=\(item.frame); label=\(item.label)" : "absent"
         let details = XCTAttachment(string: "target=\(identity); exists=\(exists); \(geometry); window=\(app.windows.firstMatch.frame)\n"
             + String(item.debugDescription.prefix(30000)))
         details.name = "FailedNativeMenu-" + identity; details.lifetime = .keepAlways; XCTContext.runActivity(named: "Preserve failed native menu") { activity in
@@ -55,7 +63,7 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
             let pixels = XCTAttachment(data: XCUIScreen.main.screenshot().pngRepresentation, uniformTypeIdentifier: "public.png")
             pixels.name = "FailedNativeMenu-OriginalDisplay"; pixels.lifetime = .keepAlways; activity.add(pixels)
         }
-        XCTFail("The real native menu item must be visible and hittable before tapping", file: file, line: line); return
+        XCTFail("The real native menu row must be stable and fully inside the window before touching it", file: file, line: line); return
     }
     // Keep the real identity before the tap. The public native non-existence
     // waiter owns missing-element lookup instead of enumerating the complete
@@ -64,7 +72,9 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
     guard !identity.isEmpty else {
         XCTFail("The real menu row must have an identifier before selecting it", file: file, line: line); return
     }
-    item.tap()
+    // A visible iPad native row can throw while resolving its AX activation
+    // point. Touch its verified visible center; retain actual menu removal.
+    item.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     let observation = observeNativeMenuAbsence(of: item)
     let details = "target=\(identity); frameworkTimeout=5; nativeAbsent=\(observation.absent); observerWallSeconds=\(observation.wallSeconds); foreground=\(observation.foreground)"
     let receipt = XCTAttachment(string: details)
@@ -77,4 +87,17 @@ func tapCompletedNativeMenuItem(_ item: XCUIElement, file: StaticString = #fileP
     // AX request/response overhead is measured above, not an additional UI SLO.
     // The open-menu negative control separately proves absence is mandatory.
     XCTAssertTrue(observation.foreground, "A background application is not proof of native menu removal", file: file, line: line)
+}
+
+/// Use the original recording regression's5s permission interaction before
+/// its unchanged15s authorized-recorder assertion. Never simulate recording.
+func startProductionRecording(in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+    let record = app.buttons["recordLinkedAudio"]
+    record.tap()
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let allow = springboard.alerts.buttons.matching(NSPredicate(format: "label IN %@", ["Allow", "OK", "السماح", "موافق"])).firstMatch
+    if allow.waitForExistence(timeout: 5) { allow.tap() }
+    let started = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)
+    XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 15), .completed,
+                   "The actual recorder must start after microphone authorization", file: file, line: line)
 }

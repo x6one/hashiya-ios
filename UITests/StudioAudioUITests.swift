@@ -15,16 +15,7 @@ final class StudioAudioUITests: XCTestCase {
     }
 
     private func startRecording(_ app: XCUIApplication) {
-        app.buttons["recordLinkedAudio"].tap()
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let started = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            for name in ["Allow", "OK", "السماح", "موافق"] {
-                let permission = springboard.alerts.buttons[name]
-                if permission.exists { permission.tap() }
-            }
-            return app.buttons["recordLinkedAudio"].value as? String == "جارٍ التسجيل"
-        }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 15), .completed)
+        startProductionRecording(in: app)
     }
 
     private func seconds(_ app: XCUIApplication) -> Int {

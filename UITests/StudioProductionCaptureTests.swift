@@ -96,13 +96,29 @@ final class StudioProductionCaptureTests: XCTestCase {
     private func exerciseAccessiblePageNavigation(_ app: XCUIApplication) {
         assertAccessibleNavigation(app)
         let number = app.textFields["pageNumber"]
-        number.tap(); number.typeText("3"); app.buttons["goToPage"].tap()
+        func go(to page: Int) {
+            number.tap(); number.typeText(String(page))
+            let go = app.buttons["goToPage"]
+            let frame = go.frame
+            XCTAssertFalse(frame.isEmpty)
+            XCTAssertTrue(app.windows.firstMatch.frame.contains(frame))
+            go.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            // Typed text is already the requested number before Go is pressed.
+            // It cannot prove navigation; require the production model too.
+            let moved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                number.value as? String == String(page)
+                    && (app.otherElements["pdfCanvas"].value as? String ?? "").contains("page=\(page)/")
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 5), .completed,
+                           "Go must change the real document, not only its editable page field")
+        }
+        go(to: 3)
         XCTAssertEqual(number.value as? String, "3", "The fully visible field must perform actual direct navigation")
         app.buttons["previousDocumentPage"].tap()
         XCTAssertEqual(number.value as? String, "2")
         app.buttons["nextDocumentPage"].tap()
         XCTAssertEqual(number.value as? String, "3")
-        number.tap(); number.typeText("1"); app.buttons["goToPage"].tap()
+        go(to: 1)
         XCTAssertEqual(number.value as? String, "1", "Return to the same reading page for the actual comparison capture")
     }
     private func action(_ name: String, in app: XCUIApplication) {
@@ -154,7 +170,15 @@ final class StudioProductionCaptureTests: XCTestCase {
         control.buttons[arguments.contains("--test-english") ? "Handwriting" : "خط اليد"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["marginInkCanvas"].firstMatch.waitForExistence(timeout: 10))
     }
-    private func closeNotes(_ app: XCUIApplication) { action("closeNotes", in: app) }
+    private func closeNotes(_ app: XCUIApplication) {
+        action("closeNotes", in: app)
+        let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            !app.buttons["openMargin"].isSelected
+                && !app.descendants(matching: .any)["splitDivider"].firstMatch.exists
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed,
+                       "Closing a menu backdrop cannot substitute for closing the real Notes pane")
+    }
     private func thumbnails(_ app: XCUIApplication) {
         app.buttons["documentPages"].tap()
         let pageList = app.scrollViews["documentPageList"]
@@ -288,16 +312,7 @@ final class StudioProductionCaptureTests: XCTestCase {
     }
     func testRealRecordingAndPageMarkers() {
         let app = library(); openDocument(app)
-        app.buttons["recordLinkedAudio"].tap()
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let started = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            for title in ["Allow", "OK", "السماح", "موافق"] {
-                let button = springboard.alerts.buttons[title]
-                if button.exists { button.tap() }
-            }
-            return app.buttons["recordLinkedAudio"].value as? String == "جارٍ التسجيل"
-        }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 15), .completed)
+        startProductionRecording(in: app)
         app.buttons["nextDocumentPage"].tap()
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
         app.buttons["inkTool"].tap(); draw(app, page: 2)

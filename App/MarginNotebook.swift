@@ -431,12 +431,16 @@ struct MarginNotebook: UIViewRepresentable {
         configure(canvas, context: context)
         MarginRenderDiagnostics.recordCanvas("updateUIView return page=\(page.id); control=\(ObjectIdentifier(control))", canvas: canvas)
     }
-    static func dismantleUIView(_ canvas: MarginCanvas, coordinator: Coordinator) {
-        MarginRenderDiagnostics.recordCanvas("dismantleUIView page=\(coordinator.pageID?.uuidString ?? "missing")", canvas: canvas)
-    }
     #else
     func updateUIView(_ canvas: MarginCanvas, context: Context) { configure(canvas, context: context) }
     #endif
+    static func dismantleUIView(_ canvas: MarginCanvas, coordinator: Coordinator) {
+        #if DEBUG
+        MarginRenderDiagnostics.recordCanvas("dismantleUIView page=\(coordinator.pageID?.uuidString ?? "missing")", canvas: canvas)
+        #endif
+        coordinator.flushPendingInk(canvas)
+        canvas.delegate = nil
+    }
     private func configure(_ canvas: MarginCanvas, context: Context) {
         let coordinator = context.coordinator
         #if DEBUG
@@ -544,6 +548,12 @@ struct MarginNotebook: UIViewRepresentable {
             #if DEBUG
             traceCommitPhase(6)
             #endif
+        }
+        func flushPendingInk(_ canvas: PKCanvasView) {
+            guard !loading else { return }
+            isStroking = false
+            hasUncommittedStroke = false
+            persist(canvas)
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             #if DEBUG

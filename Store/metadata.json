@@ -1,5 +1,5 @@
 {
-  "status": "0.6.0_15_hold_on_proven_iPad_live_Notes_presentation_failure",
+  "status": "0.6.0_15_qualification_held_one_iPad_navigation_observer_failure",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
@@ -42,7 +42,7 @@
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption in addition to Apple OS encryption; unchanged OpenSSL engine. Standard-encryption questionnaire completed on 2026-10-08; France excluded.",
   "privacy_manifest": "App-owned UserDefaults reason CA92.1 added for actual local preferences; existing file metadata and elapsed timers declarations retained. No tracking or collected-data categories introduced. See Store/release-audit-2026-10-25.md.",
-  "apple_session": "Read-only Apple inspection40846693542 on2026-10-29 observed0.6.0 builds13 and14VALID and15 unused (not reserved). Existing internal14 remains unchanged; official15 not uploaded or qualified yet.",
+  "apple_session": "No new build uploaded or review submitted. Signed internal14 preserved. Official15 remains disabled after one failing mandatory iPad native capture assertion.",
   "app_store_app_id": "6818288428",
   "testflight_uploaded": false,
   "app_store_submitted": false,
@@ -111,25 +111,76 @@
   },
   "validation": {
     "all_passed": false,
-    "status": "failed-mandatory-iPad-cold-regression-full-suite-not-started",
-    "source_sha": "061ca1574e8024b2965db2b19de5d24e921b2258",
-    "app_tree": "95dba188ae389f4abc621cf640eb2bed271e114c",
-    "run": 40857633203,
-    "required_tests_per_family": 160,
+    "status": "held-at-one-iPad-production-capture-navigation-check",
+    "source_sha": "7980d8ddd62ac2996d305a40427aa7ed287c500d",
+    "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "run": 40928381699,
+    "required_tests_per_family": 161,
+    "unit_tests_per_family": 107,
+    "ui_tests_per_family": 54,
     "maestro_per_family": 3,
-    "targeted_run": 40855920579,
-    "targeted_result": "19/19each0failure0skip; independent native owner, Notes lifecycle, data/backup contracts",
+    "targeted_run": 40926031496,
+    "targeted_result": "20/20Phone,21/21Pad incl unchanged failedAXUI,0failed0skip",
+    "infrastructure_event": {
+      "job": 123640038045,
+      "stage": "cold iPhone regression",
+      "conclusion": "cancelled before runner acquisition",
+      "executed_steps": 0,
+      "github_annotation": "The job was not acquired by Runner of type hosted even after multiple attempts",
+      "capacity_notice": "macOS arm64 capacity constraints",
+      "next": "Preserve runningPad; ifPad passes, retry only this zero-executedPhonejob after parent run completes.",
+      "recovery": "Completed:Phonecold4/4 after zero-stepcapacitycancel; Pad4/4 retainedwithoutreexecution. Full161/device nowrunning.",
+      "phone_job": 123656268820,
+      "retained_pad_job": 123656270855
+    },
     "cold_regressions": {
       "iPhone": {
         "passed": 4,
-        "failed": 0
+        "failed": 0,
+        "job": 123656268820
       },
       "iPad": {
-        "passed": 3,
-        "failed": 1
+        "passed": 4,
+        "failed": 0,
+        "retained_job": 123656270855,
+        "original_executed_job": 123640038061
       }
     },
-    "evidence": "Store/release-verification-2026-10-29.json"
+    "full_native_jobs": {
+      "iPhone": 123667262707,
+      "iPad": 123667262890
+    },
+    "full_native_results": {
+      "iPhone": {
+        "job": 123667262707,
+        "passed": 161,
+        "failed": 0,
+        "skipped": 0,
+        "unit_passed": 107,
+        "ui_passed": 54,
+        "maestro_passed": 3,
+        "external_byte_exports": "both verified"
+      },
+      "iPad": {
+        "job": 123667262890,
+        "passed": 160,
+        "failed": 1,
+        "unit_passed": 107,
+        "ui_passed": 53,
+        "failed_test": "StudioProductionCaptureTests/testArabicLightProductionStudyScreens",
+        "failure": "UITests/StudioProductionCaptureTests.swift:94 Next-page state waiter expired; subsequent original receipt shows field2 and native page2/5",
+        "maestro": "not run after failed native prerequisite",
+        "external_byte_exports": "both verified"
+      }
+    },
+    "current_blocker": "Compare retained native screenshot/video and AX timing before changing production or the observer; no unchanged retry",
+    "evidence_retrieval": {
+      "artifact": 12928804667,
+      "bytes": 484181618,
+      "sha256": "a2e99ef4ec2b6f9266bb96007fdb57ee3c4c013e0cb3dfca7291d554f256fdde",
+      "mcp_download": "two request timeouts; no file received",
+      "recovery": "Ubuntu-only extraction of existing failed-case attachments and summaries; no build or test execution"
+    }
   },
   "latest_store_rejection": {
     "version": "0.4.1",
@@ -141,11 +192,13 @@
     "response": "No account exists. Add explicit first-launch choice for real local demonstration, visible labeled toolbars, exact reviewer paths."
   },
   "screenshots_current_candidate": {
-    "source": "061ca1574e8024b2965db2b19de5d24e921b2258",
-    "run": 40857633195,
-    "artifact": 12890987639,
+    "source": "7980d8ddd62ac2996d305a40427aa7ed287c500d",
+    "run": 40928381567,
+    "artifact": 12922962122,
     "images": 12,
     "native_tests": "3/3each0failure0skip",
+    "installed_app": "com.ahmadalawi.hashiya0.6.0(15),verifiedfromnativeInfo.plist",
+    "rgb_and_original_hashes_validated": true,
     "reviewed": true
   },
   "pending_repair": {
@@ -154,8 +207,9 @@
     "native_callback_baseline_run": 40924490531,
     "baseline": "New mounted production test failed both for inline Observable and parent effects; synchronous durable stroke and callback count checks passed.",
     "change": "One production file: normal Notes commits reuse existing immediate atomic persistence and deferred presentation callback. No visual/data-schema/test-assertion change.",
-    "verification": "Pending20unit/device and unchanged failedPadAX UI. Live-render causal resolution not claimed.",
+    "verification": "20/20Phone,21/21Pad targeted; cold4/4both; full161/161Phone and160/161Pad. All native drawing/Undo cases pass. Separate iPadNextobserver failure blocks qualification.",
     "public_release_qualified": false,
-    "owner_manual_testing_required": false
+    "owner_manual_testing_required": false,
+    "review": "Fresh whole-production review found noCritical/Important; no rendering-causality claim beyond native results"
   }
 }

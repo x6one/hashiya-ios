@@ -71,6 +71,7 @@ jobs:
           selections = {
               'canvas-undo-isolation': ['HashiyaTests/StudioUndoIsolationTests'],
               'split-undo-regression': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit'],
+              'ink-commit-boundaries': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit', 'HashiyaTests/MarginInkLifecycleTests/testSwitchingNotesToTextFlushesUnfinishedInkToItsOriginalFile'],
               'document-undo-route': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'document-undo-route-phone': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'release-boundaries': ['HashiyaUITests/StudioAudioUITests/testFirstMicrophoneGrantStartsAndSavesAnActualClip', 'HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],

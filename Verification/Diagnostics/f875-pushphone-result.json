@@ -1,0 +1,47 @@
+{
+  "source": "f8751c831eccd3948c9c93dc6502ce15eb2e53b7",
+  "run": 39071291808,
+  "job": 117509285928,
+  "artifact": 12116352063,
+  "artifact_sha256": "a7c3df00d31ebb417c1015c5bb24b9058d2a888eb706100fc3d2aa9a781d35d8",
+  "xcresult_zip_sha256": "b67d2cc507bb0187aa9948aef142e0840196e783ba3793c6d65dfa251480be1a",
+  "independently_hashed": true,
+  "xctest_passed": 67,
+  "xcuitest_passed": 31,
+  "xcuitest_failed": 0,
+  "maestro_xml": "<?xml version='1.0' encoding='UTF-8'?>\n<testsuites>\n  <testsuite name=\"Test Suite\" device=\"iPhone 17 Pro Max - iOS 26.2 - 4C675116-265D-488F-BFFA-836A4545674C\" tests=\"3\" failures=\"0\" time=\"460.484\" timestamp=\"2026-10-17T22:02:56\">\n    <testcase id=\"Linked recording create delete and microphone denial\" name=\"Linked recording create delete and microphone denial\" classname=\"Linked recording create delete and microphone denial\" file=\".maestro/audio-lifecycle.yaml\" time=\"82.75\" timestamp=\"2026-10-17T22:02:56\" status=\"SUCCESS\"/>\n    <testcase id=\"Library create move rename trash restore and delete\" name=\"Library create move rename trash restore and delete\" classname=\"Library create move rename trash restore and delete\" file=\".maestro/library-lifecycle.yaml\" time=\"233.895\" timestamp=\"2026-10-17T22:04:19\" status=\"SUCCESS\"/>\n    <testcase id=\"Flashcard create edit persist reveal and delete\" name=\"Flashcard create edit persist reveal and delete\" classname=\"Flashcard create edit persist reveal and delete\" file=\".maestro/cards-lifecycle.yaml\" time=\"143.721\" timestamp=\"2026-10-17T22:08:13\" status=\"SUCCESS\"/>\n  </testsuite>\n</testsuites>\n",
+  "entrance": {
+    "commit": "f8751c831eccd3948c9c93dc6502ce15eb2e53b7",
+    "family": "iPhone",
+    "simulator": "4C675116-265D-488F-BFFA-836A4545674C",
+    "captures": [
+      {
+        "name": "normal",
+        "movie": "EntranceCaptures/normal.mov",
+        "status": "recorded-pending-visual-review",
+        "arguments": [
+          "--test-review-entry",
+          "--test-reset-entrance",
+          "--test-motion-enabled"
+        ],
+        "recorder_exit": 0,
+        "bytes": 1956492
+      },
+      {
+        "name": "reduce-motion",
+        "movie": "EntranceCaptures/reduce-motion.mov",
+        "status": "recorded-pending-visual-review",
+        "arguments": [
+          "--test-review-entry",
+          "--test-reset-entrance",
+          "--test-reduce-motion"
+        ],
+        "recorder_exit": 0,
+        "bytes": 1867175
+      }
+    ]
+  },
+  "whole_job": "success",
+  "candidate_acceptance": false,
+  "reason": "iPad preflight still fails; no native Office package accepted"
+}

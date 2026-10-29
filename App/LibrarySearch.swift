@@ -48,6 +48,11 @@ enum LibrarySearch {
         }
         return hits
     }
+    static func supportedRecognitionLanguages() throws -> [String] {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        return try request.supportedRecognitionLanguages().sorted()
+    }
     /// Vision language support is queried on the actual OS, never assumed.
     static func recognize(file: URL, cache: URL, language: String) throws -> Int {
         let request = VNRecognizeTextRequest(); request.recognitionLevel = .accurate

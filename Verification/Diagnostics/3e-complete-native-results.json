@@ -1,0 +1,77 @@
+{
+  "source": "3e56636c1483d0fee0bbd912b2cf148bfeb17f50",
+  "push": 39085878795,
+  "pr": 39085882683,
+  "status": "failed; no IPA accepted",
+  "jobs": [
+    {
+      "id": 117552210150,
+      "assertion_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1165: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Redo edge tap must restore the actual stroke",
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:931: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : Failed to get matching snapshot: No matches found for first query match sequence: `Descendants matching type ScrollView` -> `Elements matching predicate '\"inkToolbar\" IN identifiers'`, given input App element pid: 44360"
+      ],
+      "unit_and_ui_totals": [
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 8.509 (8.776) seconds",
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 8.509 (8.779) seconds",
+        "\t Executed 31 tests, with 2 failures (0 unexpected) in 1498.176 (1498.223) seconds",
+        "\t Executed 31 tests, with 2 failures (0 unexpected) in 1498.176 (1498.224) seconds",
+        "\t Executed 31 tests, with 2 failures (0 unexpected) in 1498.176 (1498.225) seconds"
+      ],
+      "original_ink_results": [
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize]' failed (238.864 seconds).",
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit]' passed (191.815 seconds)."
+      ]
+    },
+    {
+      "id": 117552210096,
+      "assertion_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:1302: error: -[HashiyaUITests.LaunchTests testMarginHandwritingMountsAfterDocumentFit] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\") - Handwriting must mount without requiring earlier text editing"
+      ],
+      "unit_and_ui_totals": [
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 7.019 (7.792) seconds",
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 7.019 (7.793) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 1963.635 (1963.717) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 1963.635 (1963.718) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 1963.635 (1963.719) seconds"
+      ],
+      "original_ink_results": [
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize]' passed (261.138 seconds).",
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit]' passed (265.204 seconds)."
+      ]
+    },
+    {
+      "id": 117552222248,
+      "assertion_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:931: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize] : Failed to get matching snapshot: No matches found for first query match sequence: `Descendants matching type ScrollView` -> `Elements matching predicate '\"inkToolbar\" IN identifiers'`, given input App element pid: 41900"
+      ],
+      "unit_and_ui_totals": [
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 8.737 (9.667) seconds",
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 8.737 (9.668) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 1490.585 (1490.611) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 1490.585 (1490.613) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 1490.585 (1490.615) seconds"
+      ],
+      "original_ink_results": [
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize]' failed (177.829 seconds).",
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit]' passed (219.113 seconds)."
+      ]
+    },
+    {
+      "id": 117552222394,
+      "assertion_errors": [
+        "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:791: error: -[HashiyaUITests.LaunchTests testPaperStudioLightVisualCaptureJourney] : XCTAssertEqual failed: (\"XCTWaiterResult(rawValue: 2)\") is not equal to (\"XCTWaiterResult(rawValue: 1)\")"
+      ],
+      "unit_and_ui_totals": [
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 11.937 (13.436) seconds",
+        "\t Executed 67 tests, with 0 failures (0 unexpected) in 11.937 (13.437) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 2247.892 (2247.929) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 2247.892 (2247.930) seconds",
+        "\t Executed 31 tests, with 1 failure (0 unexpected) in 2247.892 (2247.934) seconds"
+      ],
+      "original_ink_results": [
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsAtAccessibilityTextSize]' passed (256.531 seconds).",
+        "Test Case '-[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit]' passed (332.056 seconds)."
+      ]
+    }
+  ]
+}

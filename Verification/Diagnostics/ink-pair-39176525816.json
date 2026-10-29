@@ -1,0 +1,114 @@
+{
+  "source": "c7d1071568340990e6ad2fa01e99e579884ac32b",
+  "run": 39176525816,
+  "result": "failed; no full preflight, IPA, merge or Apple upload",
+  "artifacts": [
+    {
+      "id": 12155431299,
+      "family": "iPad",
+      "sha256": "8e6c4120d2e2ca2f9abfcc2fc9ae7b85c4431d76f94df73560f342aea0e16235",
+      "size_in_bytes": 39801877
+    },
+    {
+      "id": 12154996337,
+      "family": "iPhone",
+      "sha256": "60bcdf38a73923d55c815c952f238485f410afadb8ca42b159f210a84efe5a5e",
+      "size_in_bytes": 34379836
+    }
+  ],
+  "per_family": {
+    "iPhone": {
+      "navigation_iterations_passed": 3,
+      "navigation_iterations": 3,
+      "ink_passed": 1,
+      "ink_total": 2,
+      "failed_test": "testIndividualInkTargetsAtAccessibilityTextSize",
+      "failure_line": 1151,
+      "failure": "Native drawing count1→2 but visible red pixel delta0 in compact landscape margin",
+      "actual_picker_imports_passed": 2,
+      "actual_picker_imports_total": 2,
+      "exported_bytes": "PDF3063/PPTX54684 verified"
+    },
+    "iPad": {
+      "navigation_iterations_passed": 3,
+      "navigation_iterations": 3,
+      "ink_passed": 1,
+      "ink_total": 2,
+      "failed_test": "testIndividualInkTargetsAtAccessibilityTextSize",
+      "failure_line": 1096,
+      "failure": "Original two-query picker dismissal waiter failed",
+      "actual_picker_imports_passed": 2,
+      "actual_picker_imports_total": 2,
+      "exported_bytes": "PDF3063/PPTX54684 verified"
+    }
+  },
+  "iPhone_failure": {
+    "test": "testIndividualInkTargetsAtAccessibilityTextSize",
+    "line": 1151,
+    "expected": "Visible native surface gains >40 red-dominant pixels after stroke",
+    "actual": {
+      "native_count_before": 1,
+      "native_count_after": 2,
+      "red_pixels_before": 0,
+      "red_pixels_after": 0,
+      "rgba": "0.5137,0.0667,0,1",
+      "frame": [
+        62,
+        375.66666666666663,
+        367.3333333333333,
+        44.333333333333314
+      ],
+      "zoom": 0.565128205128205,
+      "ink_bounds": [
+        67,
+        25,
+        416,
+        123
+      ]
+    },
+    "screenshot": "TestResults-attachments/D387E31C-7FE5-4B54-BF50-253C17A547EA.png",
+    "screenshot_reviewed": true,
+    "comparison": {
+      "passing_run": 39174774309,
+      "geometry_zoom_offset_ink_bounds_equal": true,
+      "private_tiled_hidden_flag_equal": true
+    },
+    "root_cause": "Unproven. Native data loss is not established; small viewport/hidden flag alone do not explain pass/fail."
+  },
+  "iPad_failure": {
+    "test": "testIndividualInkTargetsAtAccessibilityTextSize",
+    "line": 1096,
+    "expected": "Both picker and close button absent within original5s waiter",
+    "native_scene": "785D04F2-6C79-4159-8906-B737E2725791",
+    "timeline": {
+      "run": 39176525816,
+      "native_scene_invalidation_utc": "2026-10-18T23:42:45.381Z",
+      "native_scene_record_cleared_utc": "2026-10-18T23:42:45.394Z",
+      "first_disappearance_query_utc": "2026-10-18T23:42:45.910Z",
+      "second_negative_query_retries_utc": [
+        "2026-10-18T23:42:49.488Z",
+        "2026-10-18T23:42:50.170Z",
+        "2026-10-18T23:42:50.186Z"
+      ],
+      "failure_utc": "2026-10-18T23:43:05.736Z",
+      "native_service_scene_closed_before_first_query": true,
+      "outer_host_absence_not_directly_captured": true
+    },
+    "root_cause": "Remote scene closed before test query. Serial negative AX lookups overrun the observation window; complete outer-host disappearance is not directly captured."
+  },
+  "related_checks": {
+    "navigation_iterations": "3/3 each family",
+    "standard_ink": "passed each family",
+    "native_pdf_powerpoint": "2/2 each family",
+    "actual_exported_bytes": "PDF3063 and PPTX54684 each family"
+  },
+  "next": {
+    "issue": "Native picker dismissal observation",
+    "source": "d3db4b063fa4664f0580f5d2d5f621deb37c890d",
+    "run": 39178692188,
+    "change": "Equivalent single query checks both identifiers absent; all assertions/five-second deadline retained",
+    "app_code_unchanged": true,
+    "diagnostic": "Read-only saved temporary review drawing capture after UI tests; full xcresult retained",
+    "status": "Stage A passed; native pending"
+  }
+}

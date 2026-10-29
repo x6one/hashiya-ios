@@ -1,0 +1,29 @@
+{
+  "source": "25e15f7edd7b8251bfc4e15c89d0cefcd3b66a3b",
+  "branch": "diag/tayya-ax-observation",
+  "run": 39127831209,
+  "job": 117676589017,
+  "result": "failure",
+  "units_passed": 67,
+  "ui_passed": 8,
+  "ui_total": 9,
+  "failed_case": "testMarginHandwritingMountsAfterTextFocus",
+  "failure": "5-second joint native mount expectation timed out; other state assertions did not fail",
+  "original_ink_cases": {
+    "testIndividualInkTargetsAtAccessibilityTextSize": {
+      "result": "passed",
+      "seconds": 341.132
+    },
+    "testIndividualInkTargetsInDocumentAndCompactSplit": {
+      "result": "passed",
+      "seconds": 272.106
+    }
+  },
+  "direct_mount_cases": "4/5 passed; AfterTextFocus failed62.392s",
+  "visual_journeys": "light130.084s and dark126.732s passed",
+  "artifact": 12137159248,
+  "artifact_digest": "4dd18eec8918e3b30594be81e3007a4df8b4223f41c1864c35bee7f29503e807",
+  "digest_provenance": "GitHub metadata; not yet independently downloaded/hashed",
+  "candidate_integration": "not adopted; five unused-object substitutions remain on diagnostic branch only",
+  "acceptance": "not full preflight; no IPA acceptance or general performance-fix claim"
+}

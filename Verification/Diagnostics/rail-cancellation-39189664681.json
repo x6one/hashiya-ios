@@ -1,0 +1,202 @@
+{
+  "problem": "testIndividualInkTargetsAtAccessibilityTextSize: delayed tool-button tracking can prevent native rail dragging",
+  "source": "756ddd773c9881319adbf22eba664e64650b4b6d",
+  "run": 39189664681,
+  "root_cause": {
+    "confirmed": "Owned override was invoked on the actual tested rail while HostingUIButton tracked the touch; inherited UIScrollView decision false, owned decision true; rail then moved50pt.",
+    "supported_inference": "Original inherited cancellation policy / UIControl touch-handoff race explains original intermittent reset. Exact original callback was not logged; hosting-layout effects are not fully isolated."
+  },
+  "fix": {
+    "files": [
+      "App/InkToolbarScrollView.swift",
+      "App/MarginNotebook.swift"
+    ],
+    "scope": "Replace only InkToolbar scroll holder with owned native UIScrollView cancellation. HStack/actions/picker/style remain identical; normal touch delivery, navigation, PencilKit and persistence unchanged."
+  },
+  "tests": {
+    "status": "passed",
+    "run": 39189664681,
+    "iPhone": {
+      "accessibility_iterations_passed": 3,
+      "accessibility_durations_seconds": [
+        179.593,
+        144.866,
+        124.808
+      ],
+      "standard_passed": true,
+      "standard_seconds": 166.064,
+      "navigation_passed": true,
+      "navigation_seconds": 33.569
+    },
+    "iPad": {
+      "accessibility_passed": true,
+      "accessibility_seconds": 170.391,
+      "standard_passed": true,
+      "standard_seconds": 166.143,
+      "navigation_passed": true,
+      "navigation_seconds": 40.326
+    },
+    "total_executions": 8,
+    "failures": 0
+  },
+  "evidence": {
+    "source": "756ddd773c9881319adbf22eba664e64650b4b6d",
+    "run": 39189664681,
+    "phone_artifact_id": 12159913551,
+    "phone_full_sha256_verified": false,
+    "phone_entry_crc_verified": true,
+    "phone_archive_note": "Only downloaded prefix and exact tail used for selected ZIP entries; sparse archive is not a verified complete ZIP.",
+    "matched_callbacks": [
+      {
+        "attachment": "CEBEA76D-F068-4089-A6E2-AA1E6D5E3031.txt",
+        "sha256": "099afdf7db63652f347cb3f13de7bb209a4a4e0943f6fa7209b503b94cb3783d",
+        "drag": [
+          1121.3494693333334,
+          1122.5396164583335
+        ],
+        "rail_before": "scroll=RailScrollView id=ObjectIdentifier(0x0000000105a52e00) frame=(62.0, 329.0, 367.3333333333333, 49.666666666666686) visible=(62.0, 329.0, 367.3333333333333, 49.666666666666686) size=(417.3333333333333, 49.666666666666664) offset=(0.0, 0.0) bounds=(0.0, 0.0, 367.3333333333333, 49.666666666666664) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounce=true:true adjustment=0 cancelPolicyAvailable=true inheritedBaseCancellation=false control=HostingUIButton:ObjectIdentifier(0x000000010939e7d0) tracking=false inside=false highlighted=false panDelaysBegan=false delaysTouches=true cancelsTouches=true pan=ObjectIdentifier(0x0000000127e23d10):0:true touchRange=1...4294967295 touchTypes=[0, 2, 3] point=(245.66666666666666, 353.83333333333337)",
+        "rail_after": "scroll=RailScrollView id=ObjectIdentifier(0x0000000105a52e00) frame=(62.0, 329.0, 367.3333333333333, 49.666666666666686) visible=(62.0, 329.0, 367.3333333333333, 49.666666666666686) size=(417.3333333333333, 49.666666666666664) offset=(50.0, 0.0) bounds=(50.0, 0.0, 367.3333333333333, 49.666666666666664) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounce=true:true adjustment=0 cancelPolicyAvailable=true inheritedBaseCancellation=false control=nil panDelaysBegan=false delaysTouches=true cancelsTouches=true pan=ObjectIdentifier(0x0000000127e23d10):0:true touchRange=1...4294967295 touchTypes=[0, 2, 3] point=(245.66666666666666, 353.83333333333337)",
+        "matching_callbacks": [
+          "2026-10-19 02:38:17.497 Df Hashiya[31028:1526e] (Foundation) TayyaRescueRailCancel uptime=1121.850945 scroll=ObjectIdentifier(0x0000000105a52e00) pan=ObjectIdentifier(0x0000000127e23d10) view=HostingUIButton:ObjectIdentifier(0x000000010939e7d0) inherited=0 cancel=1 controlTracking=1 scrollTracking=1 dragging=0"
+        ],
+        "capture_counters": [
+          "captureSeconds=0.0013054166668098333 observations=66 events=4 omittedEvents=0 omittedObservations=0 samples=326 omittedSamples=0 sampleTicks=6369 sampledIDs=24 sampleDeadline=1122.846246",
+          "captureSeconds=0.0014602083333556948 observations=66 events=6 omittedEvents=0 omittedObservations=0 samples=371 omittedSamples=0 sampleTicks=6853 sampledIDs=18 sampleDeadline=1124.4899352916668"
+        ]
+      },
+      {
+        "attachment": "1AFEC8FF-456C-4E86-864F-E33EEE8152E0.txt",
+        "sha256": "180fe824cee9a787ea39a479639405285a36ff8cd817000a92d3cc5b30b9c1f7",
+        "drag": [
+          850.503494875,
+          851.8085172083333
+        ],
+        "rail_before": "scroll=RailScrollView id=ObjectIdentifier(0x0000000105a98000) frame=(62.0, 329.0, 367.3333333333333, 49.666666666666686) visible=(62.0, 329.0, 367.3333333333333, 49.666666666666686) size=(417.3333333333333, 49.666666666666664) offset=(0.0, 0.0) bounds=(0.0, 0.0, 367.3333333333333, 49.666666666666664) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounce=true:true adjustment=0 cancelPolicyAvailable=true inheritedBaseCancellation=false control=HostingUIButton:ObjectIdentifier(0x00000001217f7cb0) tracking=false inside=false highlighted=false panDelaysBegan=false delaysTouches=true cancelsTouches=true pan=ObjectIdentifier(0x0000000123cb30d0):0:true touchRange=1...4294967295 touchTypes=[0, 2, 3] point=(245.66666666666666, 353.83333333333337)",
+        "rail_after": "scroll=RailScrollView id=ObjectIdentifier(0x0000000105a98000) frame=(62.0, 329.0, 367.3333333333333, 49.666666666666686) visible=(62.0, 329.0, 367.3333333333333, 49.666666666666686) size=(417.3333333333333, 49.666666666666664) offset=(50.0, 0.0) bounds=(50.0, 0.0, 367.3333333333333, 49.666666666666664) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounce=true:true adjustment=0 cancelPolicyAvailable=true inheritedBaseCancellation=false control=nil panDelaysBegan=false delaysTouches=true cancelsTouches=true pan=ObjectIdentifier(0x0000000123cb30d0):0:true touchRange=1...4294967295 touchTypes=[0, 2, 3] point=(245.66666666666666, 353.83333333333337)",
+        "matching_callbacks": [
+          "2026-10-19 02:33:46.764 Df Hashiya[15586:bdd2] (Foundation) TayyaRescueRailCancel uptime=851.117969 scroll=ObjectIdentifier(0x0000000105a98000) pan=ObjectIdentifier(0x0000000123cb30d0) view=HostingUIButton:ObjectIdentifier(0x00000001217f7cb0) inherited=0 cancel=1 controlTracking=1 scrollTracking=1 dragging=0"
+        ],
+        "capture_counters": [
+          "captureSeconds=0.003507666666678233 observations=66 events=4 omittedEvents=0 omittedObservations=0 samples=302 omittedSamples=0 sampleTicks=4984 sampledIDs=24 sampleDeadline=851.9945149166667",
+          "captureSeconds=0.002574333333427603 observations=66 events=6 omittedEvents=0 omittedObservations=0 samples=347 omittedSamples=0 sampleTicks=5475 sampledIDs=18 sampleDeadline=853.8387252916667"
+        ]
+      },
+      {
+        "attachment": "91B115B2-85C6-4EB9-B01B-D5F0C929E1E6.txt",
+        "sha256": "c2766bdd9c0326ffd3728b5e700993a3140c45aa79a02b5f63b7b973a6553c65",
+        "drag": [
+          995.9329236666667,
+          997.1807590000001
+        ],
+        "rail_before": "scroll=RailScrollView id=ObjectIdentifier(0x00000001046ca600) frame=(62.0, 329.0, 367.3333333333333, 49.666666666666686) visible=(62.0, 329.0, 367.3333333333333, 49.666666666666686) size=(417.3333333333333, 49.666666666666664) offset=(0.0, 0.0) bounds=(0.0, 0.0, 367.3333333333333, 49.666666666666664) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounce=true:true adjustment=0 cancelPolicyAvailable=true inheritedBaseCancellation=false control=HostingUIButton:ObjectIdentifier(0x0000000126e82490) tracking=false inside=false highlighted=false panDelaysBegan=false delaysTouches=true cancelsTouches=true pan=ObjectIdentifier(0x0000000126e743c0):0:true touchRange=1...4294967295 touchTypes=[0, 2, 3] point=(245.66666666666666, 353.83333333333337)",
+        "rail_after": "scroll=RailScrollView id=ObjectIdentifier(0x00000001046ca600) frame=(62.0, 329.0, 367.3333333333333, 49.666666666666686) visible=(62.0, 329.0, 367.3333333333333, 49.666666666666686) size=(417.3333333333333, 49.666666666666664) offset=(50.0, 0.0) bounds=(50.0, 0.0, 367.3333333333333, 49.666666666666664) inset=UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0) enabled=true bounce=true:true adjustment=0 cancelPolicyAvailable=true inheritedBaseCancellation=false control=nil panDelaysBegan=false delaysTouches=true cancelsTouches=true pan=ObjectIdentifier(0x0000000126e743c0):0:true touchRange=1...4294967295 touchTypes=[0, 2, 3] point=(245.66666666666666, 353.83333333333337)",
+        "matching_callbacks": [],
+        "capture_counters": [
+          "captureSeconds=0.0013271249999888823 observations=66 events=4 omittedEvents=0 omittedObservations=0 samples=328 omittedSamples=0 sampleTicks=5591 sampledIDs=24 sampleDeadline=997.4293480416667",
+          "captureSeconds=0.0020036666666101155 observations=66 events=6 omittedEvents=0 omittedObservations=0 samples=370 omittedSamples=0 sampleTicks=6016 sampledIDs=18 sampleDeadline=999.272355875"
+        ]
+      }
+    ],
+    "pad_provenance": {
+      "artifact_id": 12160915818,
+      "artifact_size": 165611643,
+      "downloaded_bytes": 1425939,
+      "full_archive_sha256_verified": false,
+      "verification_scope": "Selected entries: HTTPS exact ranges, original ZIP entry CRC and local SHA256",
+      "retained": [
+        {
+          "path": "RailResults-attachments/manifest.json",
+          "bytes": 19968,
+          "sha256": "bac4ff6f14705a7ffd21b3492d15dffab264beaa4a2045755d9c9c9cab7ae48b",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RailResults-attachments/84C5F546-A0C3-4A1A-A4D5-9D9A3E117D8F.png",
+          "bytes": 515535,
+          "sha256": "886fbdeb4165453e0b5469bead7adb95de25b45871d0236e23ac0a01d8f8e159",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RailResults-attachments/A6961B2C-C1F3-4C0A-BED9-B2E69B04DA85.txt",
+          "bytes": 2538,
+          "sha256": "bfb62afb8568c3485fa52d22c4bf5aa303ee67d8cad8c94f3102f319e81cce2f",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RailResults-attachments/F472E2A3-CE40-4228-AE6C-E884F06E73FA.txt",
+          "bytes": 2572,
+          "sha256": "af4b6b5917cbcfa336fa434d00fdbbd5e785db3a39b4436e9250e1092282d862",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RailResults-summary.json",
+          "bytes": 982,
+          "sha256": "82f41e71b0eff463ed78a80f0cab59cc7d3eaf237f69bca856eaf7ec63e33847",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RelatedResults-attachments/manifest.json",
+          "bytes": 19831,
+          "sha256": "298c9e75fcb7c0ee0d4a42556310fb6739f657bc5e0ae6ad17845737ee06cc91",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RelatedResults-attachments/3F59EBCC-75A2-418E-B521-9FAEC06C6D94.png",
+          "bytes": 477825,
+          "sha256": "ce8093c5c02c3a3e1fba7975b2c036374ff0339b81a56f240d3fd3e7d3f50d7d",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RelatedResults-attachments/6E14219C-52AF-4B7E-8CE1-54E34758C1B4.txt",
+          "bytes": 2538,
+          "sha256": "a54090f80c22841ae1d643f463d3cb71bf8af7ad9440bd7d8c70694c734a3286",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RelatedResults-attachments/492808DA-0CCB-496B-B332-2D2F96147D3B.txt",
+          "bytes": 2578,
+          "sha256": "25ef79627e74780f065c00fd6a8058ea26d1297aa51eb42a9fd72bf3a7d76f53",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "RelatedResults-summary.json",
+          "bytes": 982,
+          "sha256": "0035551d511296e713a24525ea3ef1cfdc3a4e8022f9372b94ec3df66211cd76",
+          "zip_entry_crc": "passed"
+        },
+        {
+          "path": "rail-cancellation-policy.log",
+          "bytes": 44,
+          "sha256": "9f56fca152030dba9e8ee76dee4fc8967ab667507b5878f0f9ab819d55b6b9a6",
+          "zip_entry_crc": "passed"
+        }
+      ]
+    }
+  },
+  "visual_review": {
+    "phone_compact": "Actual red stroke visible, native palette displayed, all controls reachable.",
+    "pad_compact": "Actual document/margin ink visible; native bar controls fit and are reachable.",
+    "final_source_review_pending": true
+  },
+  "layout": {
+    "matched_tested_rail_callbacks": 2,
+    "inherited_decision": 0,
+    "owned_decision": 1,
+    "control_tracking": true,
+    "callback_inside_actual_drag": true,
+    "phone_offsets_before_after": [
+      0,
+      50
+    ],
+    "effective_width": 367.3333333333333,
+    "content_width": 417.3333333333333,
+    "accessibility_height": {
+      "baseline": 48,
+      "candidate": 49.666666666666686,
+      "review": "Natural intrinsic Dynamic Type measurement; no concrete clipping/reachability regression observed. Do not force smaller height."
+    },
+    "causality_limit": "New callback proves intervention on tested rail; prior inherited policy race strongly supported, hosting-layout effects not fully isolated."
+  },
+  "regression": "Targeted original Standard ink/navigation pass each family; full32/68/Maestro final source still required.",
+  "next_problem_only": "Final-source integration qualification, including fresh post-reopen Undo/Redo coverage."
+}

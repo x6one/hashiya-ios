@@ -27,19 +27,15 @@ enum MarginError: LocalizedError {
 @MainActor final class MarginPages: ObservableObject {
     @Published private var publishedPages: [MarginPage] = []
     private(set) var pages: [MarginPage] {
-        get {
-            guard !pendingCanvasInk.isEmpty else { return publishedPages }
-            return publishedPages.map { page in
-                guard let ink = pendingCanvasInk[page.id] else { return page }
-                var updated = page; updated.ink = ink.data
-                updated.width = max(updated.width, ink.width); updated.height = max(updated.height, ink.height)
-                return updated
-            }
-        }
+        get { applyingPendingInk(to: publishedPages) }
         set { publishedPages = newValue }
     }
     @Published private(set) var currentID: UUID?
-    @Published private(set) var deletedPages: [MarginPage] = []
+    @Published private var publishedDeletedPages: [MarginPage] = []
+    private(set) var deletedPages: [MarginPage] {
+        get { applyingPendingInk(to: publishedDeletedPages) }
+        set { publishedDeletedPages = newValue }
+    }
     @Published var error: String?
     @Published private(set) var saved = true
     let editor = MarginEditorState()
@@ -56,6 +52,15 @@ enum MarginError: LocalizedError {
     private var inkRevision: UInt64 = 0
     private var inkPublicationScheduled = false
     private var deferredInkError: String?
+    private func applyingPendingInk(to pages: [MarginPage]) -> [MarginPage] {
+        guard !pendingCanvasInk.isEmpty else { return pages }
+        return pages.map { page in
+            guard let ink = pendingCanvasInk[page.id] else { return page }
+            var updated = page; updated.ink = ink.data
+            updated.width = max(updated.width, ink.width); updated.height = max(updated.height, ink.height)
+            return updated
+        }
+    }
     var current: MarginPage? { pages.first { $0.id == currentID } }
     var position: Int { pages.firstIndex { $0.id == currentID } ?? 0 }
     init(root: URL, notebook: UUID) {
@@ -108,7 +113,7 @@ enum MarginError: LocalizedError {
     }
     @discardableResult func flush() -> Bool {
         do {
-            for page in pages where pending.contains(page.id) { try write(page); pending.remove(page.id) }
+            for page in pages + deletedPages where pending.contains(page.id) { try write(page); pending.remove(page.id) }
             saved = pending.isEmpty; return true
         } catch { saved = false; self.error = error.localizedDescription; return false }
     }
@@ -129,7 +134,9 @@ enum MarginError: LocalizedError {
         persistInk(drawing, page: id, duringViewUpdate: true)
     }
     private func persistInk(_ drawing: PKDrawing, page id: UUID, duringViewUpdate: Bool) -> Bool {
-        guard var page = pages.first(where: { $0.id == id }) else { return false }
+        // A page can already be archived when SwiftUI retires its old canvas.
+        // Preserve that final stroke under the same UUID so restore is lossless.
+        guard var page = pages.first(where: { $0.id == id }) ?? deletedPages.first(where: { $0.id == id }) else { return false }
         page.ink = drawing.dataRepresentation()
         if !drawing.strokes.isEmpty {
             page.width = max(page.width, drawing.bounds.maxX + 24)
@@ -156,6 +163,7 @@ enum MarginError: LocalizedError {
             self.inkPublicationScheduled = false
             let captured = self.pendingCanvasInk
             self.publishedPages = self.pages
+            self.publishedDeletedPages = self.deletedPages
             for (id, ink) in captured where self.pendingCanvasInk[id]?.revision == ink.revision {
                 self.pendingCanvasInk.removeValue(forKey: id)
             }

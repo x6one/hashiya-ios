@@ -561,6 +561,7 @@ struct MarginNotebook: UIViewRepresentable {
             isStroking = false
             hasUncommittedStroke = false
             persist(canvas, duringViewUpdate: true)
+            (canvas as? MarginCanvas)?.finishedUsingTool()
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             #if DEBUG

@@ -1,0 +1,140 @@
+{
+  "app_id": "6818288428",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "version": "0.6.0",
+  "candidate_build": "15",
+  "app_source": "061ca1574e8024b2965db2b19de5d24e921b2258",
+  "app_tree": "95dba188ae389f4abc621cf640eb2bed271e114c",
+  "production_fixes": [
+    "fc01abf3e989e91d7aeefcffc39cfbc8580a00a5: independent native document/Notes UndoManager ownership",
+    "d9587b9ad56cf06b1b53d6dca8b087fa54f20e8c: immediate durable Notes ink, deferred SwiftUI notification, old-page callback preserved",
+    "10b0038fb2ca4467104c1df4185f06d46f3d1173: interrupted archive/restore ink retained and native tool boundary completed"
+  ],
+  "targeted": {
+    "run": 40855920579,
+    "source": "10b0038fb2ca4467104c1df4185f06d46f3d1173",
+    "iPhone": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    "iPad": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    "original_real_split_undo_test_unchanged": true
+  },
+  "qualification": {
+    "id": 40857633203,
+    "head_sha": "061ca1574e8024b2965db2b19de5d24e921b2258",
+    "name": "iPhone and iPad preflight",
+    "path": ".github/workflows/ios-check.yml",
+    "status": "completed",
+    "conclusion": "failure",
+    "html_url": "https://github.com/x6one/hashiya-ios/actions/runs/40857633203",
+    "jobs": [
+      {
+        "id": 123392488661,
+        "name": "tools",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 123392581589,
+        "name": "regression (iPad)",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "id": 123392581646,
+        "name": "regression (iPhone)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 123392584354,
+        "name": "Focused ${{ (inputs.diagnostic || (((contains(github.event.head_commit.message, '[diagnostic:color]') && 'color') || (contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin') || 'maestro'))) }} (${{ matrix.family }})",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 123403524322,
+        "name": "test",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 123403532069,
+        "name": "production-review",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 123403533381,
+        "name": "device-package",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "cold_regressions": {
+    "iPhone": {
+      "passed": 4,
+      "failed": 0
+    },
+    "iPad": {
+      "passed": 3,
+      "failed": 1
+    }
+  },
+  "remaining_blocker": {
+    "test": "LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize",
+    "device": "iPad Pro 13-inch (M5)",
+    "context": "Arabic Accessibility text, landscape, actual compact split Notes canvas",
+    "assertion": "UITests/LaunchTests.swift:1427; >40 added red-dominant screen pixels within unchanged5s",
+    "screen_pixels": 0,
+    "live_stroke_count_before": 1,
+    "live_stroke_count_after": 2,
+    "original_failure_png": "BCF7EC8C-15A2-4035-BAE1-7F43DFCA93BA.png",
+    "original_failure_png_sha256": "657a716836d267d375b47405efb8a42b194606414c7865a3f5cdaacbdbce1db6",
+    "saved_drawing": {
+      "path": "ReviewEntry-9A5DAC05-A69C-47AA-99D2-95E3C6FD0CB9/3B3C4685-05C4-49EB-8BA7-EBF27045B0DA-margins/9F5F5652-0956-4A07-9315-DF0E34562EDC.json",
+      "stroke_count": 2,
+      "red_pixels": 3905,
+      "last_stroke_red_pixels": 3905,
+      "drawing_sha256": "69134d39becd4e29df4727cca6e78c5545f0c85af9dcbaebdb7e176b1253d307",
+      "source_sha256": "9038f9a3aaf483feaf4af8d90f5529b5bd7fa1209f2ca71214ac4c73a7b24c7a"
+    },
+    "native_same_page_drawing_reloads": 0,
+    "classification": "Live presentation failure: correct ink was received, committed and retained on disk. This failure occurs before Notes Undo; it does not demonstrate loss of that Undo history.",
+    "responsible_path": "MarginCanvas/PKCanvasView live PencilKit presentation under the mounted MarginNotebook split surface. Exact cause of missing live tile update not proved.",
+    "code_review": "No late drawing reload, wrong page UUID, missing saved stroke, changed geometry or invalid color established by current receipts. Do not assign blame to Apple/GPU or add forced reloads/longer waits. Existing native source was reviewed; no further safe causal production patch was proved.",
+    "further_runs": "No unchanged retry or new diagnostic instrumentation was made. Another run requires a new testable causal hypothesis or a justified production fix."
+  },
+  "evidence_artifact": {
+    "id": 12891356526,
+    "run": 40857633203,
+    "bytes": 198169769,
+    "sha256": "778b3085a60f00151e387d19d2acb1fd735125761b8dd6bea0054d19325bd83d",
+    "local": "/workspace/Tayya-061ca1-iPad-regressions.zip"
+  },
+  "store_visuals": {
+    "run": 40857633195,
+    "source": "061ca1574e8024b2965db2b19de5d24e921b2258",
+    "iPhone_passed": 3,
+    "iPad_passed": 3,
+    "image_count": 12,
+    "artifact_id": 12890987639,
+    "artifact_sha256": "1c3936a81abc171d05392a4d03dcc8e6f846f189db56645886740d3cca3e0ec5",
+    "originals_preserved": true,
+    "all_rgb_sizes_and_source_hashes_validated": true,
+    "contact_sheets_reviewed": true
+  },
+  "full160_per_device_maestro_exports_gallery_and_office": "NOT RUN: cold regression prerequisite failed, existing mandatory downstream gates correctly skipped",
+  "signed_candidate_ipa_archive": "NOT CREATED; no official15 upload, review submission or public release attempted",
+  "existing_internal14": "Preserved unchanged; do not upload or promote its old source as this repaired candidate",
+  "publish_binary": false,
+  "manual_owner_test_required": false,
+  "physical_device_limits": "Microphone acoustic quality/phone interruptions and native Office physical runtime are not demonstrated by simulator CI."
+}

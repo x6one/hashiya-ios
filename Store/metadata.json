@@ -1,12 +1,12 @@
 {
-  "status": "0.6.0_13_store_preparation_pending_same_source_gate",
+  "status": "0.6.0_15_hold_on_proven_iPad_live_Notes_presentation_failure",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
     "IOS"
   ],
   "version": "0.6.0",
-  "build": "13",
+  "build": "15",
   "primary_locale": "ar-SA",
   "suggested_primary_category": "EDUCATION",
   "suggested_secondary_category": "PRODUCTIVITY",
@@ -42,7 +42,7 @@
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption in addition to Apple OS encryption; unchanged OpenSSL engine. Standard-encryption questionnaire completed on 2026-10-08; France excluded.",
   "privacy_manifest": "App-owned UserDefaults reason CA92.1 added for actual local preferences; existing file metadata and elapsed timers declarations retained. No tracking or collected-data categories introduced. See Store/release-audit-2026-10-25.md.",
-  "apple_session": "Read-only API verified 2026-10-25: live App Store version0.4.2 READY_FOR_SALE; new0.6.0(13) absent. Publication and new-source qualification remain pending.",
+  "apple_session": "Read-only Apple inspection40846693542 on2026-10-29 observed0.6.0 builds13 and14VALID and15 unused (not reserved). Existing internal14 remains unchanged; official15 not uploaded or qualified yet.",
   "app_store_app_id": "6818288428",
   "testflight_uploaded": false,
   "app_store_submitted": false,
@@ -78,18 +78,17 @@
     "automatically_release_after_approval": true
   },
   "testflight": {
-    "build_id": "9eb1e731-d398-485e-a3a3-50cff8cc3efe",
-    "group": "Tayya Beta",
-    "public_link": "https://testflight.apple.com/join/bBwnghMX",
-    "status": "Waiting for Review",
-    "automatically_notify_testers": true,
-    "verified_date": "2026-10-08",
-    "version": "0.4.1",
-    "build": "9",
-    "groups": [
-      "Tayya Beta",
-      "Tayya Internal"
-    ]
+    "version": "0.6.0",
+    "build": "14",
+    "build_id": "78b9609f-fc76-4ea0-b8ca-5fd7030b2053",
+    "group": "Tayya Internal",
+    "group_id": "276483ae-8300-4bef-b92e-774fc7f2fe9b",
+    "status": "READY_FOR_BETA_TESTING",
+    "source_sha": "d22c9c1e46c460611e9bfcedd445a27486acc38b",
+    "run": 40730303387,
+    "preserve_existing_build": true,
+    "public_release_qualified": false,
+    "verified_date": "2026-10-29"
   },
   "previous_store_rejection": {
     "version": "0.3.0",
@@ -112,9 +111,25 @@
   },
   "validation": {
     "all_passed": false,
-    "status": "current-store-source-pending; qualified-parent-c07e69e-is-not-evidence-for-new-source",
-    "qualified_parent": "c07e69eb49bea0588efb6c0f8d24c8b8e777c67c",
-    "parent_run": 40175783379
+    "status": "failed-mandatory-iPad-cold-regression-full-suite-not-started",
+    "source_sha": "061ca1574e8024b2965db2b19de5d24e921b2258",
+    "app_tree": "95dba188ae389f4abc621cf640eb2bed271e114c",
+    "run": 40857633203,
+    "required_tests_per_family": 160,
+    "maestro_per_family": 3,
+    "targeted_run": 40855920579,
+    "targeted_result": "19/19each0failure0skip; independent native owner, Notes lifecycle, data/backup contracts",
+    "cold_regressions": {
+      "iPhone": {
+        "passed": 4,
+        "failed": 0
+      },
+      "iPad": {
+        "passed": 3,
+        "failed": 1
+      }
+    },
+    "evidence": "Store/release-verification-2026-10-29.json"
   },
   "latest_store_rejection": {
     "version": "0.4.1",
@@ -124,5 +139,13 @@
     "device": "iPad Air 11-inch (M3)",
     "reason": "Reviewer unable to access all or part of app; requests access to all features for all account types. No specific feature identified.",
     "response": "No account exists. Add explicit first-launch choice for real local demonstration, visible labeled toolbars, exact reviewer paths."
+  },
+  "screenshots_current_candidate": {
+    "source": "061ca1574e8024b2965db2b19de5d24e921b2258",
+    "run": 40857633195,
+    "artifact": 12890987639,
+    "images": 12,
+    "native_tests": "3/3each0failure0skip",
+    "reviewed": true
   }
 }

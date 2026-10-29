@@ -251,7 +251,9 @@ jobs:
           if 'render_run' in config:checks.append(('render_run','renderer_source','Tayya Store artwork and approved publication'))
           for key,source,name in checks:
               run=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{config[key]}"],text=True))
-              assert run['head_sha']==config[source] and run['name']==name and run['conclusion']=='success',run['html_url']
+              source_named_capture=(key=='artwork_run' and run.get('path')=='.github/workflows/tayya-store-assets.yml'
+                  and run['name']==f"Store originals from {config[source]} — same-source release evidence")
+              assert run['head_sha']==config[source] and (run['name']==name or source_named_capture) and run['conclusion']=='success',run['html_url']
           with open(os.environ['GITHUB_ENV'],'a') as f:f.write('ARTWORK_RUN='+str(config.get('render_run',config['artwork_run']))+'\n')
           print('Exact application checkout and genuine artwork source qualified; differing presentation requires the separately recorded native-gallery review')
           PY

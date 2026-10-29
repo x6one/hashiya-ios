@@ -80,7 +80,9 @@ export function validatePresentationCompatibility(config,proof,changedFiles) {
 
 export function validateQualification(run,jobs,source,kind) {
   const name=kind==='release'?'iPhone and iPad preflight':kind==='render'?'Tayya Store artwork and approved publication':'Tayya Store readiness and actual medium-phone captures';
-  if(run.head_sha!==source||run.name!==name||run.conclusion!=='success')throw new Error('The immutable source run did not qualify');
+  const sourceNamedCapture=kind==='artwork'&&run.path==='.github/workflows/tayya-store-assets.yml'
+    &&run.name===`Store originals from ${source} — same-source release evidence`;
+  if(run.head_sha!==source||(run.name!==name&&!sourceNamedCapture)||run.conclusion!=='success')throw new Error('The immutable source run did not qualify');
   const required=kind==='release'
     ? ['tools','regression (iPhone)','regression (iPad)','test (iPhone)','test (iPad)','production-review / gallery','device-package / ios-engine']
     : kind==='render'?['artwork']:['Native store capture (iPhone)','Native store capture (iPad)','artwork'];

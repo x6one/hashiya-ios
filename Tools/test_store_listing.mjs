@@ -110,3 +110,13 @@ test('read-only readiness selects the exact authorized build and rejects old QA 
     assert.throws(()=>buildReadiness({...response,links:{next:'unexpected'}},'13'),/pagination/i);
   }finally{f.close();}
 });
+
+test('accepts the exact-source named native capture workflow without relaxing its path or gates',()=>{
+  const source='a'.repeat(40);
+  const run={head_sha:source,name:`Store originals from ${source} — same-source release evidence`,path:'.github/workflows/tayya-store-assets.yml',conclusion:'success'};
+  const jobs=['Native store capture (iPhone)','Native store capture (iPad)','artwork'].map(name=>({name,status:'completed',conclusion:'success'}));
+  assert.equal(validateQualification(run,jobs,source,'artwork'),true);
+  for(const altered of [{...run,path:'.github/workflows/other.yml'},{...run,head_sha:'b'.repeat(40)},{...run,name:`Store originals from ${'b'.repeat(40)} — same-source release evidence`}])
+    assert.throws(()=>validateQualification(altered,jobs,source,'artwork'),/qualify/i);
+  assert.throws(()=>validateQualification(run,jobs.map(j=>j.name==='artwork'?{...j,conclusion:'skipped'}:j),source,'artwork'),/gate/i);
+});

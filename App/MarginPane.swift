@@ -110,16 +110,16 @@ private struct MarginPaneContent: View {
                     #if DEBUG
                     let _ = traceMarginRender("notebook branch page=\(page.id) live=\(editor.handwriting)")
                     #endif
-                    MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
-                                   saved: { ink in
-                        store.saveInk(ink, page: page.id)
-                        if store.saved { inkSaved(ink.strokes.count, page.id) }
-                    }, failed: { store.error = $0 }, savedDuringViewUpdate: { ink in
+                    // Keep native tool handoff free of SwiftUI/parent updates.
+                    // Both commit paths write bytes now and publish afterward.
+                    let commitInk: (PKDrawing) -> Void = { ink in
                         if store.saveInkDuringViewUpdate(ink, page: page.id) {
                             let count = ink.strokes.count, id = page.id
                             DispatchQueue.main.async { inkSaved(count, id) }
                         }
-                    })
+                    }
+                    MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
+                                   saved: commitInk, failed: { store.error = $0 }, savedDuringViewUpdate: commitInk)
                 } else {
                     #if DEBUG
                     let _ = traceMarginRender("text branch page=\(page.id) live=\(editor.handwriting)")

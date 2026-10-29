@@ -5,6 +5,14 @@ import PencilKit
 
 final class MarginInkLifecycleTests: XCTestCase {
     @MainActor func testSwitchingNotesToTextFlushesUnfinishedInkToItsOriginalFile() throws {
+        try verifyUnfinishedInk(changePage: false)
+    }
+
+    @MainActor func testSwitchingNotesPageFlushesUnfinishedInkToItsOriginalFile() throws {
+        try verifyUnfinishedInk(changePage: true)
+    }
+
+    @MainActor private func verifyUnfinishedInk(changePage: Bool) throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         let notebook = UUID()
@@ -46,23 +54,38 @@ final class MarginInkLifecycleTests: XCTestCase {
         coordinator.canvasViewDrawingDidChange(canvas)
         XCTAssertTrue(coordinator.isStroking)
         XCTAssertEqual(notes.current?.ink, originalInk, "Live frames remain buffered until a commit boundary")
-        notes.editor.handwriting = false
-        host.view.setNeedsLayout(); host.view.layoutIfNeeded()
-        let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in canvas.window == nil }, object: nil)
-        guard XCTWaiter.wait(for: [removed], timeout: 3) == .completed else {
-            XCTFail("The actual mode transition must dismantle the old handwriting view"); return
+        if changePage {
+            XCTAssertTrue(notes.add(linkedTo: 2))
+            let reloaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                coordinator.pageID == notes.currentID && coordinator.pageID != originalPage
+            }, object: nil)
+            guard XCTWaiter.wait(for: [reloaded], timeout: 3) == .completed else {
+                XCTFail("The actual Notes page transition must load its new page"); return
+            }
+        } else {
+            notes.editor.handwriting = false
+            host.view.setNeedsLayout(); host.view.layoutIfNeeded()
+            let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in canvas.window == nil }, object: nil)
+            guard XCTWaiter.wait(for: [removed], timeout: 3) == .completed else {
+                XCTFail("The actual mode transition must dismantle the old handwriting view"); return
+            }
         }
-        // Do not synthesize a later end callback: teardown itself must preserve
+        // Do not synthesize a later end callback: the transition itself must preserve
         // the last available PKDrawing, including an interrupted final stroke.
         let reopened = MarginPages(root: root, notebook: notebook)
         let data = try XCTUnwrap(reopened.pages.first { $0.id == originalPage }?.ink)
         let restored = data.isEmpty ? PKDrawing() : try PKDrawing(data: data)
         let pageFile = notes.folder.appendingPathComponent(originalPage.uuidString + ".json")
         let evidence = XCTAttachment(data: try Data(contentsOf: pageFile), uniformTypeIdentifier: "public.json")
-        evidence.name = "ActualNotesPageAfterModeTeardown"; evidence.lifetime = .keepAlways; add(evidence)
-        XCTAssertEqual(restored.strokes.count, 1, "Changing Notes mode must save unfinished ink before removing its canvas")
+        evidence.name = changePage ? "ActualNotesPageAfterPageReload" : "ActualNotesPageAfterModeTeardown"; evidence.lifetime = .keepAlways; add(evidence)
+        XCTAssertEqual(restored.strokes.count, 1, "Changing Notes mode or page must save unfinished ink to its original page")
         XCTAssertEqual(restored.bounds, ink.bounds)
-        XCTAssertEqual(reopened.currentID, originalPage)
+        XCTAssertEqual(reopened.currentID, changePage ? notes.currentID : originalPage)
+        if changePage {
+            let currentInk = try XCTUnwrap(reopened.current?.ink)
+            let newDrawing = currentInk.isEmpty ? PKDrawing() : try PKDrawing(data: currentInk)
+            XCTAssertEqual(newDrawing.strokes.count, 0, "Pending old-page ink must never be assigned to the new Notes page")
+        }
         XCTAssertNil(reopened.error)
     }
 }

@@ -5,6 +5,77 @@ import Combine
 @testable import Hashiya
 
 final class MarginInkLifecycleTests: XCTestCase {
+    @MainActor func testNotesStrokeCommitsBeforePublishingIntoSwiftUI() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let notes = MarginPages(root: root, notebook: UUID())
+        let pageID = try XCTUnwrap(notes.currentID)
+        notes.editor.handwriting = true
+        let control = MarginCanvasControl()
+        var insideNativeCallback = false
+        var inlinePublications = 0, inlinePresentationEffects = 0, savedEffects = 0
+        let pane = MarginPane(store: notes, editor: notes.editor, sourcePage: 1,
+                              expanded: true, toggleExpanded: {}, jump: { _ in },
+                              inkSaved: { _, id in
+                                  XCTAssertEqual(id, pageID)
+                                  savedEffects += 1
+                                  if insideNativeCallback { inlinePresentationEffects += 1 }
+                              }, textSaved: { _, _ in },
+                              externalCanvasControl: control, showsInkToolbar: false)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousWindow = scene.windows.first { $0.isKeyWindow }
+        let window = UIWindow(windowScene: scene); window.frame = scene.coordinateSpace.bounds
+        let host = UIHostingController(rootView: pane)
+        window.rootViewController = host; window.makeKeyAndVisible(); host.view.layoutIfNeeded()
+        defer { window.isHidden = true; window.rootViewController = nil; previousWindow?.makeKeyAndVisible() }
+        let mounted = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            control.canvas?.window === window
+                && (control.canvas?.delegate as? MarginNotebook.Coordinator)?.pageID == pageID
+        }, object: nil)
+        guard XCTWaiter.wait(for: [mounted], timeout: 3) == .completed else {
+            XCTFail("The production Notes canvas must mount before committing a stroke"); return
+        }
+        let canvas = try XCTUnwrap(control.canvas)
+        let coordinator = try XCTUnwrap(canvas.delegate as? MarginNotebook.Coordinator)
+        let observer = notes.objectWillChange.sink { if insideNativeCallback { inlinePublications += 1 } }
+        defer { observer.cancel() }
+        let points = [CGPoint(x: 20, y: 30), CGPoint(x: 120, y: 70)].map {
+            PKStrokePoint(location: $0, timeOffset: 0, size: CGSize(width: 4, height: 4),
+                          opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2)
+        }
+        let stroke = PKStroke(ink: PKInk(.pen, color: .red),
+                              path: PKStrokePath(controlPoints: points, creationDate: Date()))
+        // PencilKit can end its tool before delivering the final drawing change.
+        // Both real delegate orders must commit bytes before notifying SwiftUI
+        // or the parent workspace that consumes the saved-ink callback.
+        for (index, changeAfterEnd) in [false, true].enumerated() {
+            let beforeEffects = savedEffects
+            let ink = PKDrawing(strokes: Array(repeating: stroke, count: index + 1))
+            insideNativeCallback = true
+            coordinator.canvasViewDidBeginUsingTool(canvas)
+            if changeAfterEnd { coordinator.canvasViewDidEndUsingTool(canvas) }
+            canvas.drawing = ink
+            coordinator.canvasViewDrawingDidChange(canvas)
+            if !changeAfterEnd { coordinator.canvasViewDidEndUsingTool(canvas) }
+            insideNativeCallback = false
+            XCTAssertEqual(inlinePublications, 0, "Do not recompose a live PencilKit host inside its final delegate callback")
+            XCTAssertEqual(inlinePresentationEffects, 0, "Parent workspace updates must wait until native handoff returns")
+            let file = notes.folder.appendingPathComponent(pageID.uuidString + ".json")
+            let saved = try JSONDecoder().decode(MarginPage.self, from: Data(contentsOf: file))
+            XCTAssertEqual(try PKDrawing(data: saved.ink).strokes.count, index + 1, "Durability must remain synchronous")
+            XCTAssertEqual(try PKDrawing(data: try XCTUnwrap(notes.current?.ink)).strokes.count, index + 1)
+            let notified = expectation(description: "Saved ink presentation effects have been delivered")
+            DispatchQueue.main.async { notified.fulfill() }
+            XCTAssertEqual(XCTWaiter.wait(for: [notified], timeout: 3), .completed)
+            XCTAssertEqual(savedEffects, beforeEffects + 1)
+            XCTAssertEqual(canvas.drawing.strokes.count, index + 1)
+            XCTAssertEqual(coordinator.pageID, pageID)
+            XCTAssertTrue(canvas.window === window)
+            XCTAssertFalse(coordinator.isStroking)
+        }
+        XCTAssertNil(notes.error)
+    }
+
     @MainActor func testTransitionSaveIsDurableBeforePublicationAndCannotRollbackLaterEdits() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

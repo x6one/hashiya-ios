@@ -74,6 +74,7 @@ jobs:
               'ink-commit-boundaries': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit', 'HashiyaTests/MarginInkLifecycleTests/testSwitchingNotesToTextFlushesUnfinishedInkToItsOriginalFile'],
               'ink-owner-and-gesture': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],
               'ink-storage-ownership': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests'],
+              'ink-atomic-publication': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/MarginPageTests'],
               'document-undo-route': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'document-undo-route-phone': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'release-boundaries': ['HashiyaUITests/StudioAudioUITests/testFirstMicrophoneGrantStartsAndSavesAnActualClip', 'HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
@@ -138,6 +139,8 @@ jobs:
               # RED runs isolate the new failing contracts, not adjacent green suites.
               names = ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'] if requested_suite == 'navigation-red' else ['HashiyaUITests/StudioIntegrationTests'] if requested_suite == 'workspace-red' else ['HashiyaTests/StudioAudioIntegrationTests'] if requested_suite == 'audio-red' else selections[suite]
               selected += [name for name in names if name not in selected]
+          if 'ink-atomic-publication' in suites and family == 'iPad':
+              selected.append('HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize')
           if not selected:
               raise SystemExit('No production tests selected')
           with open('integration-selection.json', 'w') as out:

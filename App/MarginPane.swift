@@ -114,7 +114,12 @@ private struct MarginPaneContent: View {
                                    saved: { ink in
                         store.saveInk(ink, page: page.id)
                         if store.saved { inkSaved(ink.strokes.count, page.id) }
-                    }, failed: { store.error = $0 })
+                    }, failed: { store.error = $0 }, savedDuringViewUpdate: { ink in
+                        if store.saveInkDuringViewUpdate(ink, page: page.id) {
+                            let count = ink.strokes.count, id = page.id
+                            DispatchQueue.main.async { inkSaved(count, id) }
+                        }
+                    })
                 } else {
                     #if DEBUG
                     let _ = traceMarginRender("text branch page=\(page.id) live=\(editor.handwriting)")

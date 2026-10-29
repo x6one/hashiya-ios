@@ -394,7 +394,8 @@ struct MarginNotebook: UIViewRepresentable {
     let control: MarginCanvasControl
     let saved: (PKDrawing) -> Void
     let failed: (String) -> Void
-    func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed) }
+    let savedDuringViewUpdate: (PKDrawing) -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed, savedDuringViewUpdate: savedDuringViewUpdate) }
     func makeUIView(context: Context) -> MarginCanvas {
         #if DEBUG
         MarginRenderDiagnostics.record("makeUIView enter page=\(page.id); control=\(ObjectIdentifier(control))")
@@ -446,7 +447,9 @@ struct MarginNotebook: UIViewRepresentable {
         #if DEBUG
         coordinator.traceCommitPhase(7)
         #endif
-        coordinator.saved = saved; coordinator.failed = failed; control.canvas = canvas
+        if coordinator.pageID != nil && coordinator.pageID != page.id { coordinator.flushPendingInk(canvas) }
+        coordinator.saved = saved; coordinator.failed = failed
+        coordinator.savedDuringViewUpdate = savedDuringViewUpdate; control.canvas = canvas
         // Keep PencilKit's live strokes authoritative until the active gesture ends.
         // A SwiftUI re-render must not reload stale bytes over an in-flight stroke.
         if coordinator.pageID != page.id || (!coordinator.isStroking && coordinator.lastInk != page.ink) {
@@ -511,8 +514,12 @@ struct MarginNotebook: UIViewRepresentable {
         }
         #endif
         var saved: (PKDrawing) -> Void
+        var savedDuringViewUpdate: (PKDrawing) -> Void
         var failed: (String) -> Void
-        init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void) { self.saved = saved; self.failed = failed }
+        init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void,
+             savedDuringViewUpdate: ((PKDrawing) -> Void)? = nil) {
+            self.saved = saved; self.failed = failed; self.savedDuringViewUpdate = savedDuringViewUpdate ?? saved
+        }
         func applyTool(to canvas: PKCanvasView, brush: InkBrush, color: Color, width: Double) {
             // Saving a stroke publishes a new page and updates this representable.
             // Do not replace PencilKit's tool while that same stroke is committing.
@@ -523,7 +530,7 @@ struct MarginNotebook: UIViewRepresentable {
             canvas.tool = brush.tool(color: UIColor(color), width: width)
             appliedBrush = brush; appliedColor = color; appliedWidth = width
         }
-        private func persist(_ canvas: PKCanvasView) {
+        private func persist(_ canvas: PKCanvasView, duringViewUpdate: Bool = false) {
             let data = canvas.drawing.dataRepresentation()
             #if DEBUG
             traceCommitPhase(4)
@@ -541,7 +548,7 @@ struct MarginNotebook: UIViewRepresentable {
             #if DEBUG
             NativeInkOwnershipTrace.record(4)
             #endif
-            saved(canvas.drawing)
+            if duringViewUpdate { savedDuringViewUpdate(canvas.drawing) } else { saved(canvas.drawing) }
             #if DEBUG
             NativeInkOwnershipTrace.record(5)
             #endif
@@ -550,10 +557,10 @@ struct MarginNotebook: UIViewRepresentable {
             #endif
         }
         func flushPendingInk(_ canvas: PKCanvasView) {
-            guard !loading else { return }
+            guard !loading, isStroking || hasUncommittedStroke else { return }
             isStroking = false
             hasUncommittedStroke = false
-            persist(canvas)
+            persist(canvas, duringViewUpdate: true)
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             #if DEBUG

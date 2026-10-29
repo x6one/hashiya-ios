@@ -1,9 +1,45 @@
 import XCTest
 import SwiftUI
 import PencilKit
+import Combine
 @testable import Hashiya
 
 final class MarginInkLifecycleTests: XCTestCase {
+    @MainActor func testTransitionSaveIsDurableBeforePublicationAndCannotRollbackLaterEdits() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let notes = MarginPages(root: root, notebook: UUID())
+        let id = try XCTUnwrap(notes.currentID)
+        let points = [CGPoint(x: 20, y: 30), CGPoint(x: 120, y: 70)].map {
+            PKStrokePoint(location: $0, timeOffset: 0, size: CGSize(width: 4, height: 4),
+                          opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2)
+        }
+        let first = PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: .red),
+            path: PKStrokePath(controlPoints: points, creationDate: Date()))])
+        let second = PKDrawing(strokes: first.strokes + first.transformed(using: CGAffineTransform(translationX: 30, y: 0)).strokes)
+        var publications = 0
+        let observer = notes.objectWillChange.sink { publications += 1 }
+        defer { observer.cancel() }
+        XCTAssertTrue(notes.saveInkDuringViewUpdate(first, page: id))
+        XCTAssertEqual(publications, 0, "A representable transition must not publish into SwiftUI's active graph update")
+        let file = notes.folder.appendingPathComponent(id.uuidString + ".json")
+        let immediate = try JSONDecoder().decode(MarginPage.self, from: Data(contentsOf: file))
+        XCTAssertEqual(try PKDrawing(data: immediate.ink).strokes.count, 1, "Disk persistence must not wait for an async notification")
+        XCTAssertEqual(try PKDrawing(data: try XCTUnwrap(notes.current?.ink)).strokes.count, 1)
+        notes.editText("Later text", page: id)
+        notes.saveInk(second, page: id)
+        let drained = expectation(description: "The queued publication has completed")
+        DispatchQueue.main.async { drained.fulfill() }
+        XCTAssertEqual(XCTWaiter.wait(for: [drained], timeout: 3), .completed)
+        let final = try JSONDecoder().decode(MarginPage.self, from: Data(contentsOf: file))
+        XCTAssertEqual(try PKDrawing(data: final.ink).strokes.count, 2)
+        XCTAssertEqual(final.text, "Later text")
+        XCTAssertEqual(try PKDrawing(data: try XCTUnwrap(notes.current?.ink)).strokes.count, 2)
+        XCTAssertEqual(notes.current?.text, "Later text")
+        XCTAssertTrue(notes.saved)
+        XCTAssertNil(notes.error)
+    }
+
     @MainActor func testSwitchingNotesToTextFlushesUnfinishedInkToItsOriginalFile() throws {
         try verifyUnfinishedInk(changePage: false)
     }
@@ -12,7 +48,11 @@ final class MarginInkLifecycleTests: XCTestCase {
         try verifyUnfinishedInk(changePage: true)
     }
 
-    @MainActor private func verifyUnfinishedInk(changePage: Bool) throws {
+    @MainActor func testDeletingAndRestoringNotesPageKeepsItsUnfinishedInkAndFinishesTool() throws {
+        try verifyUnfinishedInk(changePage: true, deleting: true)
+    }
+
+    @MainActor private func verifyUnfinishedInk(changePage: Bool, deleting: Bool = false) throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         let notebook = UUID()
@@ -46,6 +86,16 @@ final class MarginInkLifecycleTests: XCTestCase {
         }
         let ink = PKDrawing(strokes: [PKStroke(ink: PKInk(.pen, color: .red),
             path: PKStrokePath(controlPoints: points, creationDate: Date()))])
+        var retainedPageID: UUID?
+        var retainedInk: PKDrawing?
+        if deleting {
+            XCTAssertTrue(notes.add(linkedTo: 2))
+            let otherID = try XCTUnwrap(notes.currentID)
+            let otherInk = ink.transformed(using: CGAffineTransform(translationX: 0, y: 1200))
+            notes.saveInk(otherInk, page: otherID)
+            retainedPageID = otherID; retainedInk = otherInk
+            XCTAssertTrue(notes.select(originalPage))
+        }
         // A second interaction can remove the handwriting subtree before
         // PencilKit delivers its final tool-end callback. Exercise that order
         // through the real delegate, representable and atomic Notes store.
@@ -55,7 +105,8 @@ final class MarginInkLifecycleTests: XCTestCase {
         XCTAssertTrue(coordinator.isStroking)
         XCTAssertEqual(notes.current?.ink, originalInk, "Live frames remain buffered until a commit boundary")
         if changePage {
-            XCTAssertTrue(notes.add(linkedTo: 2))
+            if deleting { XCTAssertTrue(notes.delete(originalPage)) }
+            else { XCTAssertTrue(notes.add(linkedTo: 2)) }
             let reloaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
                 coordinator.pageID == notes.currentID && coordinator.pageID != originalPage
             }, object: nil)
@@ -70,6 +121,12 @@ final class MarginInkLifecycleTests: XCTestCase {
                 XCTFail("The actual mode transition must dismantle the old handwriting view"); return
             }
         }
+        if deleting {
+            XCTAssertFalse(canvas.usingTool, "The retired gesture must not keep the next page's extent deferred")
+            let next = try XCTUnwrap(notes.current)
+            XCTAssertEqual(canvas.sheetSize, CGSize(width: next.width, height: next.height))
+            XCTAssertTrue(notes.restore(originalPage))
+        }
         // Do not synthesize a later end callback: the transition itself must preserve
         // the last available PKDrawing, including an interrupted final stroke.
         let reopened = MarginPages(root: root, notebook: notebook)
@@ -81,7 +138,11 @@ final class MarginInkLifecycleTests: XCTestCase {
         XCTAssertEqual(restored.strokes.count, 1, "Changing Notes mode or page must save unfinished ink to its original page")
         XCTAssertEqual(restored.bounds, ink.bounds)
         XCTAssertEqual(reopened.currentID, changePage ? notes.currentID : originalPage)
-        if changePage {
+        if deleting {
+            let otherID = try XCTUnwrap(retainedPageID), otherInk = try XCTUnwrap(retainedInk)
+            let other = try XCTUnwrap(reopened.pages.first { $0.id == otherID })
+            XCTAssertEqual(try PKDrawing(data: other.ink).bounds, otherInk.bounds, "The surviving page must retain its own distinct ink")
+        } else if changePage {
             let currentInk = try XCTUnwrap(reopened.current?.ink)
             let newDrawing = currentInk.isEmpty ? PKDrawing() : try PKDrawing(data: currentInk)
             XCTAssertEqual(newDrawing.strokes.count, 0, "Pending old-page ink must never be assigned to the new Notes page")

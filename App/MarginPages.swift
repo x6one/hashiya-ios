@@ -25,7 +25,19 @@ enum MarginError: LocalizedError {
 /// Each page is an atomic file. The index is published only after a new page
 /// exists; the pre-0.4.1 files are retained unchanged after migration.
 @MainActor final class MarginPages: ObservableObject {
-    @Published private(set) var pages: [MarginPage] = []
+    @Published private var publishedPages: [MarginPage] = []
+    private(set) var pages: [MarginPage] {
+        get {
+            guard !pendingCanvasInk.isEmpty else { return publishedPages }
+            return publishedPages.map { page in
+                guard let ink = pendingCanvasInk[page.id] else { return page }
+                var updated = page; updated.ink = ink.data
+                updated.width = max(updated.width, ink.width); updated.height = max(updated.height, ink.height)
+                return updated
+            }
+        }
+        set { publishedPages = newValue }
+    }
     @Published private(set) var currentID: UUID?
     @Published private(set) var deletedPages: [MarginPage] = []
     @Published var error: String?
@@ -34,6 +46,16 @@ enum MarginError: LocalizedError {
     let folder: URL
     private let notebookID: UUID
     private var pending = Set<UUID>()
+    private struct PendingCanvasInk {
+        let data: Data
+        let width: Double
+        let height: Double
+        let revision: UInt64
+    }
+    private var pendingCanvasInk: [UUID: PendingCanvasInk] = [:]
+    private var inkRevision: UInt64 = 0
+    private var inkPublicationScheduled = false
+    private var deferredInkError: String?
     var current: MarginPage? { pages.first { $0.id == currentID } }
     var position: Int { pages.firstIndex { $0.id == currentID } ?? 0 }
     init(root: URL, notebook: UUID) {
@@ -101,13 +123,45 @@ enum MarginError: LocalizedError {
         pages[index].title = value; pending.insert(id); saved = false; _ = flush()
     }
     func saveInk(_ drawing: PKDrawing, page id: UUID) {
-        guard let index = pages.firstIndex(where: { $0.id == id }) else { return }
-        pages[index].ink = drawing.dataRepresentation()
+        _ = persistInk(drawing, page: id, duringViewUpdate: false)
+    }
+    @discardableResult func saveInkDuringViewUpdate(_ drawing: PKDrawing, page id: UUID) -> Bool {
+        persistInk(drawing, page: id, duringViewUpdate: true)
+    }
+    private func persistInk(_ drawing: PKDrawing, page id: UUID, duringViewUpdate: Bool) -> Bool {
+        guard var page = pages.first(where: { $0.id == id }) else { return false }
+        page.ink = drawing.dataRepresentation()
         if !drawing.strokes.isEmpty {
-            pages[index].width = max(pages[index].width, drawing.bounds.maxX + 24)
-            pages[index].height = max(pages[index].height, drawing.bounds.maxY + 24)
+            page.width = max(page.width, drawing.bounds.maxX + 24)
+            page.height = max(page.height, drawing.bounds.maxY + 24)
         }
-        pending.insert(id); saved = false; _ = flush()
+        inkRevision &+= 1
+        pendingCanvasInk[id] = PendingCanvasInk(data: page.ink, width: page.width, height: page.height, revision: inkRevision)
+        pending.insert(id)
+        do { try write(page); pending.remove(id) }
+        catch {
+            if duringViewUpdate { deferredInkError = error.localizedDescription }
+            else { self.error = error.localizedDescription }
+        }
+        // The bytes and read-after-write model are current synchronously. Only
+        // publication waits until SwiftUI has left update/dismantleUIView.
+        if !duringViewUpdate { saved = pending.isEmpty }
+        scheduleInkPublication()
+        return pending.isEmpty
+    }
+    private func scheduleInkPublication() {
+        guard !inkPublicationScheduled else { return }
+        inkPublicationScheduled = true
+        DispatchQueue.main.async {
+            self.inkPublicationScheduled = false
+            let captured = self.pendingCanvasInk
+            self.publishedPages = self.pages
+            for (id, ink) in captured where self.pendingCanvasInk[id]?.revision == ink.revision {
+                self.pendingCanvasInk.removeValue(forKey: id)
+            }
+            self.saved = self.pending.isEmpty
+            if let message = self.deferredInkError { self.deferredInkError = nil; self.error = message }
+        }
     }
     @discardableResult func select(_ id: UUID) -> Bool {
         guard pages.contains(where: { $0.id == id }), flush() else { return false }

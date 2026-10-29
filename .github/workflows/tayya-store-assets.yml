@@ -1,4 +1,5 @@
 name: Tayya Store readiness and actual medium-phone captures
+run-name: Store originals from ${{ github.sha }} — same-source release evidence
 on:
   workflow_dispatch:
     inputs:
@@ -205,9 +206,11 @@ jobs:
           print('Verified12 RGB store compositions and every original source hash')
           PY
           python3 - <<'PY'
-          import json, os
+          import json, os, re
           from pathlib import Path
-          Path('store-artwork-validation.json').write_text(json.dumps({'app_id':'6818288428','bundle_id':'com.ahmadalawi.hashiya','version':'0.6.0','build':'13','artwork_source':os.environ['GITHUB_SHA'],'artwork_run':os.environ['GITHUB_RUN_ID']}))
+          match=re.search(r"^    CURRENT_PROJECT_VERSION: '([1-9]\d*)'$",Path('project.yml').read_text(),re.MULTILINE)
+          assert match, 'Capture source must declare its actual build'
+          Path('store-artwork-validation.json').write_text(json.dumps({'app_id':'6818288428','bundle_id':'com.ahmadalawi.hashiya','version':'0.6.0','build':match.group(1),'artwork_source':os.environ['GITHUB_SHA'],'artwork_run':os.environ['GITHUB_RUN_ID']}))
           PY
           node Tools/publish_store_listing.mjs --config store-artwork-validation.json --artwork Tayya-App-Store-Visuals --validate-only
       - uses: actions/upload-artifact@v4

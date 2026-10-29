@@ -23,8 +23,9 @@ export function reusableScreenshot(existing,name,checksum) {
     && !s.attributes.assetDeliveryState?.errors?.length);
 }
 export function validateArtwork(root,config) {
-  if(config.app_id!=='6818288428'||config.bundle_id!=='com.ahmadalawi.hashiya'||config.version!=='0.6.0'||String(config.build)!=='13')
-    throw new Error('Only the authorized Tayya0.6.0(13) draft may be changed');
+  if(config.app_id!=='6818288428'||config.bundle_id!=='com.ahmadalawi.hashiya'||config.version!=='0.6.0'
+    ||!(/^[1-9]\d{1,3}$/).test(String(config.build))||Number(config.build)<13)
+    throw new Error('Only the authorized Tayya0.6.0 draft with an integer build13 or higher may be changed');
   const base=realpathSync(root),manifest=read(resolve(base,'manifest.json'));
   if(!/^[a-f0-9]{40}$/.test(config.artwork_source)||manifest.source!==config.artwork_source)
     throw new Error('Artwork source revision differs from the approved native capture');

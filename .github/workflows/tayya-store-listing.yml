@@ -16,6 +16,27 @@ concurrency:
   group: tayya-store-listing
   cancel-in-progress: false
 jobs:
+  inspect-build-number:
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:inspect-build]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the existing build allocation contracts
+        run: node Tools/test_testflight_candidate.mjs
+      - name: Read current Apple build numbers without reserving or uploading a build
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: node Tools/testflight_candidate.mjs select OfficialBuildSelection.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Official-Build-Selection-${{ github.run_id }}
+          path: OfficialBuildSelection.json
+          retention-days: 14
+          if-no-files-found: warn
   complete-internal-qa:
     if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:complete-internal]') }}
     runs-on: ubuntu-latest

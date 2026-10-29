@@ -16,6 +16,26 @@ from store_release import extract_engine, verify_listing, write_provenance, veri
 
 
 class StoreReleaseTests(unittest.TestCase):
+    def test_official_build_inspection_is_read_only_and_separate_from_upload(self):
+        import yaml
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-store-listing.yml').read_text())
+        self.assertIn('inspect-build-number', list(workflow['jobs']))
+        job = workflow['jobs']['inspect-build-number']
+        expression = job['if'].strip().removeprefix('${{').removesuffix('}}').strip()
+        for branch, marker, permitted in [
+                ('store/tayya-app-store-content', '[store:inspect-build]', True),
+                ('main', '[store:inspect-build]', False),
+                ('store/tayya-app-store-content', '[store:publish-approved]', False)]:
+            condition = expression.replace('github.repository', repr('x6one/hashiya-ios'))
+            condition = condition.replace('github.ref', repr('refs/heads/' + branch))
+            condition = condition.replace('github.event_name', repr('push'))
+            condition = condition.replace('github.event.head_commit.message', repr(marker)).replace('&&', ' and ').replace('||', ' or ')
+            self.assertEqual(eval(condition, {'__builtins__': {}}, {'contains': lambda s, t: t in s}), permitted)
+        commands = '\n'.join(s.get('run', '') for s in job['steps'])
+        self.assertIn('node Tools/testflight_candidate.mjs select OfficialBuildSelection.json', commands)
+        for forbidden in ['xcodebuild ', 'distribute_native_app.py', 'submit_store_review.mjs', 'testflight_candidate.mjs assign', 'testflight_candidate.mjs complete']:
+            self.assertNotIn(forbidden, commands)
+
     def test_photographed_configuration_allows_only_build_metadata_and_proven_encryption_declaration(self):
         import yaml
         prior = yaml.safe_load(Path('project.yml').read_text())

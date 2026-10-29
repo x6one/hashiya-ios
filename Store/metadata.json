@@ -147,5 +147,15 @@
     "images": 12,
     "native_tests": "3/3each0failure0skip",
     "reviewed": true
+  },
+  "pending_repair": {
+    "source": "b4d4c1540b46fec3ce4963e6bb3b997dc79f9461",
+    "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "native_callback_baseline_run": 40924490531,
+    "baseline": "New mounted production test failed both for inline Observable and parent effects; synchronous durable stroke and callback count checks passed.",
+    "change": "One production file: normal Notes commits reuse existing immediate atomic persistence and deferred presentation callback. No visual/data-schema/test-assertion change.",
+    "verification": "Pending20unit/device and unchanged failedPadAX UI. Live-render causal resolution not claimed.",
+    "public_release_qualified": false,
+    "owner_manual_testing_required": false
   }
 }

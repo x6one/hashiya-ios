@@ -96,24 +96,30 @@ final class StudioProductionCaptureTests: XCTestCase {
         app.textFields.matching(identifier: "pageNumber")
             .matching(NSPredicate(format: "value == %@", String(page))).firstMatch
     }
+    private func pageJumpDestination(_ page: Int, in app: XCUIApplication) -> XCUIElement {
+        let field = NSPredicate(format: "elementType == %@ AND identifier == %@ AND value == %@",
+                                NSNumber(value: XCUIElement.ElementType.textField.rawValue), "pageNumber", String(page))
+        let document = NSPredicate(format: "elementType == %@ AND identifier == %@ AND value CONTAINS %@",
+                                   NSNumber(value: XCUIElement.ElementType.other.rawValue), "pdfCanvas", "page=\(page)/")
+        // Both original conditions must match in one native window query.
+        // A typed number alone cannot prove that Go changed the document model.
+        return app.windows.containing(field).containing(document).firstMatch
+    }
+    private func submitPageJump(to page: Int, in app: XCUIApplication) {
+        let go = app.buttons["goToPage"]
+        let frame = go.frame
+        XCTAssertFalse(frame.isEmpty)
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(frame))
+        go.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(pageJumpDestination(page, in: app).waitForExistence(timeout: 5),
+                      "Go must change the real document, not only its editable page field")
+    }
     private func exerciseAccessiblePageNavigation(_ app: XCUIApplication) {
         assertAccessibleNavigation(app)
         let number = app.textFields["pageNumber"]
         func go(to page: Int) {
             number.tap(); number.typeText(String(page))
-            let go = app.buttons["goToPage"]
-            let frame = go.frame
-            XCTAssertFalse(frame.isEmpty)
-            XCTAssertTrue(app.windows.firstMatch.frame.contains(frame))
-            go.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-            // Typed text is already the requested number before Go is pressed.
-            // It cannot prove navigation; require the production model too.
-            let moved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                number.value as? String == String(page)
-                    && (app.otherElements["pdfCanvas"].value as? String ?? "").contains("page=\(page)/")
-            }, object: nil)
-            XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 5), .completed,
-                           "Go must change the real document, not only its editable page field")
+            submitPageJump(to: page, in: app)
         }
         go(to: 3)
         XCTAssertEqual(number.value as? String, "3", "The fully visible field must perform actual direct navigation")
@@ -257,6 +263,25 @@ final class StudioProductionCaptureTests: XCTestCase {
         assertNextPageTouch(app.buttons["nextDocumentPage"], in: app)
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1",
                        "The positive control must also restore the original reading page")
+    }
+    func testPageJumpReadinessRejectsAnUnsubmittedNumber() {
+        let app = library(english: true, dark: true, large: true); openDocument(app)
+        let number = app.textFields["pageNumber"]
+        let previous = app.buttons["previousDocumentPage"]
+        XCTAssertTrue(pageJumpDestination(1, in: app).exists)
+        XCTAssertFalse(previous.isEnabled)
+        number.tap(); number.typeText("3")
+        XCTAssertTrue(displayedPage(3, in: app).exists)
+        XCTAssertFalse(previous.isEnabled, "Typing a number must not navigate the document")
+        XCTAssertFalse(pageJumpDestination(3, in: app).waitForExistence(timeout: 5),
+                       "A typed page number cannot satisfy the field and document-model conjunction")
+        XCTAssertTrue(displayedPage(3, in: app).exists)
+        XCTAssertFalse(previous.isEnabled)
+        submitPageJump(to: 3, in: app)
+        XCTAssertTrue(previous.isEnabled)
+        number.tap(); number.typeText("1")
+        submitPageJump(to: 1, in: app)
+        XCTAssertFalse(previous.isEnabled, "The same native query must prove return to the first document page")
     }
     func testArabicLandscapeProductionSplitAndInk() {
         let app = library(); openDocument(app)

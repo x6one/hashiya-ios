@@ -78,20 +78,23 @@ final class StudioProductionCaptureTests: XCTestCase {
         // A physical center touch inside the already-verified44pt rectangle is
         // a valid user interaction even when AX reports no preferred hit point.
         target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        let changed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            Int(number.value as? String ?? "") == initial + 1
-        }, object: nil)
-        let result = XCTWaiter.wait(for: [changed], timeout: 5)
-        print("NativeNextTouch changed=\(result.rawValue) expected=\(initial + 1)")
-        if !reportedBefore || result != .completed { evidence("After") }
-        if result == .completed {
+        // Match the value in XCTest's native query. A synchronous .value read
+        // inside a client-side predicate can occupy the waiter's deadline even
+        // after the recorded screen already shows the correct destination.
+        let changed = displayedPage(initial + 1, in: app).waitForExistence(timeout: 5)
+        print("NativeNextTouch changed=\(changed) expected=\(initial + 1)")
+        if !reportedBefore || !changed { evidence("After") }
+        if changed {
+            XCTAssertTrue((app.otherElements["pdfCanvas"].value as? String ?? "").contains("page=\(initial + 1)/"),
+                          "The displayed page number must also identify the actual PDF destination")
             app.buttons["previousDocumentPage"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-            let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                Int(number.value as? String ?? "") == initial
-            }, object: nil)
-            XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed)
+            XCTAssertTrue(displayedPage(initial, in: app).waitForExistence(timeout: 5))
         }
-        XCTAssertEqual(result, .completed, "Prove the actual Next-page touch independently of the AX boolean")
+        XCTAssertTrue(changed, "Prove the actual Next-page touch independently of the AX boolean")
+    }
+    private func displayedPage(_ page: Int, in app: XCUIApplication) -> XCUIElement {
+        app.textFields.matching(identifier: "pageNumber")
+            .matching(NSPredicate(format: "value == %@", String(page))).firstMatch
     }
     private func exerciseAccessiblePageNavigation(_ app: XCUIApplication) {
         assertAccessibleNavigation(app)
@@ -246,6 +249,17 @@ final class StudioProductionCaptureTests: XCTestCase {
         closeNotes(app)
         focus(app); snapshot("Focus")
         revealTools(app); thumbnails(app)
+    }
+    func testNextPageReadinessRejectsAnUnchangedDocument() {
+        let app = library(); openDocument(app)
+        XCTAssertTrue(displayedPage(1, in: app).exists)
+        XCTAssertFalse(displayedPage(2, in: app).waitForExistence(timeout: 5),
+                       "The navigation oracle must reject a document that has not received Next")
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1")
+        XCTAssertTrue((app.otherElements["pdfCanvas"].value as? String ?? "").contains("page=1/"))
+        assertNextPageTouch(app.buttons["nextDocumentPage"], in: app)
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, "1",
+                       "The positive control must also restore the original reading page")
     }
     func testArabicLandscapeProductionSplitAndInk() {
         let app = library(); openDocument(app)

@@ -71,6 +71,7 @@ jobs:
           selections = {
               'canvas-undo-isolation': ['HashiyaTests/StudioUndoIsolationTests'],
               'split-undo-regression': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit'],
+              'page-transition': ['HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNextPageReadinessRejectsAnUnchangedDocument'],
               'ink-callback-boundary': ['HashiyaTests/MarginInkLifecycleTests/testNotesStrokeCommitsBeforePublishingIntoSwiftUI'],
               'ink-commit-boundaries': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit', 'HashiyaTests/MarginInkLifecycleTests/testSwitchingNotesToTextFlushesUnfinishedInkToItsOriginalFile'],
               'ink-owner-and-gesture': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize'],

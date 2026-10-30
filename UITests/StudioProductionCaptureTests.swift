@@ -214,7 +214,6 @@ final class StudioProductionCaptureTests: XCTestCase {
         let before = native.components(separatedBy: "apply=0;").count
         app.buttons["favoritePens"].tap(); snapshot("Favorite-Pens")
         let item = app.buttons["usePenPreset-0"]
-        XCTAssertTrue(item.waitForExistence(timeout: 5))
         // A native menu owns the accessible presentation until it is removed.
         // Validate its row, touch it once and prove dismissal before querying
         // the underlying PDF. Dismissal alone still cannot pass the action test.

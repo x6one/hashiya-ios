@@ -86,7 +86,7 @@ final class StudioProductionCaptureTests: XCTestCase {
         if !reportedBefore || !changed { evidence("After") }
         if changed {
             XCTAssertTrue((app.otherElements["pdfCanvas"].value as? String ?? "").contains("page=\(initial + 1)/"),
-                          "The displayed page number must also identify the actual PDF destination")
+                          "The displayed page number must also match the production document page model")
             app.buttons["previousDocumentPage"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             XCTAssertTrue(displayedPage(initial, in: app).waitForExistence(timeout: 5))
         }
@@ -205,20 +205,20 @@ final class StudioProductionCaptureTests: XCTestCase {
     }
 
     private func applyFirstFavoritePen(_ app: XCUIApplication) {
+        let canvas = app.otherElements["pdfCanvas"]
+        guard let native = canvas.value as? String, !native.isEmpty,
+              let page = app.textFields["pageNumber"].value as? String, !page.isEmpty,
+              let strokes = app.buttons["inkTool"].value as? String, Int(strokes) != nil else {
+            XCTFail("Read the actual document state before opening the native pen menu"); return
+        }
+        let before = native.components(separatedBy: "apply=0;").count
+        app.buttons["favoritePens"].tap(); snapshot("Favorite-Pens")
         let item = app.buttons["usePenPreset-0"]
         XCTAssertTrue(item.waitForExistence(timeout: 5))
-        let frame = item.frame, window = app.windows.firstMatch.frame
-        guard !frame.isEmpty, window.contains(frame) else {
-            XCTFail("The actual favorite pen must be entirely inside the display before touching it"); return
-        }
-        let canvas = app.otherElements["pdfCanvas"]
-        let before = (canvas.value as? String ?? "").components(separatedBy: "apply=0;").count
-        let page = app.textFields["pageNumber"].value as? String
-        let strokes = app.buttons["inkTool"].value as? String
-        // The saved iPad failure has a visible native row and a hittable=true
-        // AX receipt after the readiness waiter expired. A real center touch
-        // avoids treating AX preferred-hit-point latency as pen functionality.
-        item.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // A native menu owns the accessible presentation until it is removed.
+        // Validate its row, touch it once and prove dismissal before querying
+        // the underlying PDF. Dismissal alone still cannot pass the action test.
+        tapCompletedNativeMenuItem(item)
         let applied = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             (canvas.value as? String ?? "").components(separatedBy: "apply=0;").count > before
                 && app.buttons["inkBrush"].value as? String == "قلم"
@@ -226,7 +226,6 @@ final class StudioProductionCaptureTests: XCTestCase {
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [applied], timeout: 5), .completed,
                        "The actual favorite-pen action must commit; dismissing a backdrop cannot pass")
-        waitForNativeDismissal(of: item)
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, page)
         XCTAssertEqual(app.buttons["inkTool"].value as? String, strokes)
     }
@@ -235,7 +234,6 @@ final class StudioProductionCaptureTests: XCTestCase {
         let app = library()
         snapshot("Library"); openDocument(app); assertAccessibleNavigation(app); snapshot("Editor")
         app.buttons["inkTool"].tap(); draw(app, page: 1); snapshot("Pen-Tools")
-        app.buttons["favoritePens"].tap(); snapshot("Favorite-Pens")
         applyFirstFavoritePen(app)
         app.buttons["textTool"].tap()
         app.otherElements["pdfCanvas"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap()

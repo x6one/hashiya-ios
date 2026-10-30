@@ -16,52 +16,6 @@ concurrency:
   group: tayya-store-listing
   cancel-in-progress: false
 jobs:
-  recover-saved-evidence:
-    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:recover-evidence]') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Recover only existing failed-case evidence after connector download timeouts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<'PY_EVIDENCE'
-          import hashlib, json, os, subprocess, zipfile
-          from pathlib import Path
-          artifact=12928804667
-          expected='a2e99ef4ec2b6f9266bb96007fdb57ee3c4c013e0cb3dfca7291d554f256fdde'
-          api=f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{artifact}"
-          meta=json.loads(subprocess.check_output(['gh','api',api],text=True))
-          assert meta['expired'] is False and meta['name']=='diagnostics-iPad'
-          assert meta['workflow_run']['id']==40928381699
-          assert meta['workflow_run']['head_sha']=='7980d8ddd62ac2996d305a40427aa7ed287c500d'
-          assert meta['digest']=='sha256:'+expected and meta['size_in_bytes']==484181618
-          packed=Path(os.environ['RUNNER_TEMP'])/'saved-iPad-evidence.zip'
-          with packed.open('wb') as f:subprocess.run(['gh','api',api+'/zip'],stdout=f,check=True)
-          with packed.open('rb') as f:assert hashlib.file_digest(f,'sha256').hexdigest()==expected
-          selected={'12EBF3F1-060D-4D3A-BB24-18F9DC95D767.png','9F469FC1-8477-4EA3-9BFA-93E7931CE2D4','54244FE3-6F23-4B6F-A1E7-F43B905BC498','6B566BDC-AA96-4903-AC20-BD8CEEC66B92.json','B414C11D-865F-4924-8207-72A93C6D0346.png','4BDF5841-E90B-44B4-A30C-0C63F970884D.mp4'}
-          out=Path('RecoveredEvidence');out.mkdir();rows=[];found=set()
-          with zipfile.ZipFile(packed) as z:
-              assert z.testzip() is None
-              for entry in z.infolist():
-                  name=Path(entry.filename)
-                  summary=name.name.endswith('-summary.json')
-                  include=name.name in selected or summary or (name.name=='manifest.json' and 'Screenshots' in name.parts) or name.name=='build.log'
-                  if not include:continue
-                  assert not name.is_absolute() and '..' not in name.parts and entry.file_size<50*1024*1024
-                  data=z.read(entry);target=out/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
-                  if name.name in selected:found.add(name.name)
-                  rows.append({'path':entry.filename,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
-          assert found==selected and any(r['path'].endswith('-summary.json') for r in rows)
-          (out/'provenance.json').write_text(json.dumps({'original_artifact':meta,'original_zip_sha256':expected,'unaltered_selected_files':rows,'builds_run':0,'tests_run':0},indent=2)+'\n')
-          print(json.dumps({'recovered':len(rows),'bytes':sum(r['bytes'] for r in rows),'builds_run':0,'tests_run':0}))
-          PY_EVIDENCE
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Tayya-7980-iPad-Existing-Failure-Evidence
-          path: RecoveredEvidence/
-          if-no-files-found: error
-          retention-days: 14
   inspect-build-number:
     if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:inspect-build]') }}
     runs-on: ubuntu-latest

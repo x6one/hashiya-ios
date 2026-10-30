@@ -42,7 +42,7 @@
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption in addition to Apple OS encryption; unchanged OpenSSL engine. Standard-encryption questionnaire completed on 2026-10-08; France excluded.",
   "privacy_manifest": "App-owned UserDefaults reason CA92.1 added for actual local preferences; existing file metadata and elapsed timers declarations retained. No tracking or collected-data categories introduced. See Store/release-audit-2026-10-25.md.",
-  "apple_session": "No new build uploaded or review submitted. Signed internal14 preserved. Official15 remains disabled after one failing mandatory iPad native capture assertion.",
+  "apple_session": "Refresh actual Apple build allocation after overnight pause before freezing candidate; do not reserve/upload or modify internal14. Publication remains disabled until allmandatory exact-source gates pass.",
   "app_store_app_id": "6818288428",
   "testflight_uploaded": false,
   "app_store_submitted": false,
@@ -179,7 +179,9 @@
       "bytes": 484181618,
       "sha256": "a2e99ef4ec2b6f9266bb96007fdb57ee3c4c013e0cb3dfca7291d554f256fdde",
       "mcp_download": "two request timeouts; no file received",
-      "recovery": "Ubuntu-only extraction of existing failed-case attachments and summaries; no build or test execution"
+      "recovery": "Completed40949495050:9unalteredfiles,0builds0tests; original archive digest and selected hashes verified",
+      "subset_artifact": 12929744183,
+      "subset_sha256": "402fe6f334b439668115d75e4413cc50428d2bcdd89f1d49715852c3e4bc4b11"
     }
   },
   "latest_store_rejection": {
@@ -211,5 +213,16 @@
     "public_release_qualified": false,
     "owner_manual_testing_required": false,
     "review": "Fresh whole-production review found noCritical/Important; no rendering-causality claim beyond native results"
+  },
+  "page_observer_repair": {
+    "source": "0df43331bf4e8c56b172cba5392464da54e61b0c",
+    "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "production_changed": false,
+    "test_change": "Native pageNumber value query keeps5s,realNexttouch,increment1andPreviousrestore; adds independent document model check and unchanged-page negative control",
+    "evidence": "OriginalMP4frame41.64s visiblyshowsfield2/table2 before waiter firstAXread42.53s; originalAfterPNG+modelalso2/5",
+    "targeted_run": 41036303306,
+    "targeted_status": "running2UI/device",
+    "review": "NoCritical/Important; nativePDFAXvaluechecksmodel,visiblepageproofcomesfromoriginalvideo",
+    "publish_qualified": false
   }
 }

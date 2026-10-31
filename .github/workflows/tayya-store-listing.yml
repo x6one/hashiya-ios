@@ -16,6 +16,27 @@ concurrency:
   group: tayya-store-listing
   cancel-in-progress: false
 jobs:
+  continue-office-checkpoint:
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:continue-office-cache]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require the preserved native qualification before continuing Office
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          endpoint='repos/x6one/hashiya-ios/actions/runs/41181915781'
+          run=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          assert run['head_sha']=='d45457bdd216265b11d58ba844fcda22fb6297d9'
+          jobs=json.loads(subprocess.check_output(['gh','api',endpoint+'/jobs?per_page=100'],text=True))['jobs']
+          required=['tools','regression (iPhone)','regression (iPad)','test (iPhone)','test (iPad)','production-review / gallery']
+          for name in required:
+              matching=[j for j in jobs if j['name']==name]
+              assert len(matching)==1 and matching[0]['conclusion']=='success',name
+          print('All six existing native/Maestro/gallery jobs remain successful; continue only the Office cache repair.')
+          PY
   inspect-build-number:
     if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:inspect-build]') }}
     runs-on: ubuntu-latest

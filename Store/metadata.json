@@ -419,14 +419,27 @@
     }
   },
   "office_cache_repair": {
-    "status": "staged-actual-archiver-red-green-before-cache-repair",
+    "status": "cause-proved-continue-original-make-with-portable-config",
     "failed_job": 124499616174,
     "failed_run": 41181915781,
     "failed_artifact": 13038345001,
     "failed_artifact_sha256": "417efc6adba88b3184f1e5ff119747122aa5323816fb10d622b2d064ada511a2",
-    "proved": "restoredconfigTEMP_DIRECTORYpointsatmissingpreviousrunnerpath",
-    "hypothesis": "AppleARfailedbecauseitusesmissingTMPDIR;mustobserveactualREDwithsameobjectbeforepatch",
+    "proved": "SameAppleAR+samecachedobject fails missingTMPDIR exit1 and succeeds/tmp exit0; immutable nativearchive hasAppleTOCplusbyte-identicalobject",
     "qualification_source_retained": "d45457bdd216265b11d58ba844fcda22fb6297d9",
-    "successful_native_tests_will_not_be_repeated": true
+    "successful_native_tests_will_not_be_repeated": true,
+    "red_green_run": 41189643913,
+    "red_green_artifact": 13038686137,
+    "red_green_artifact_sha256": "143ad738f938de4f272b1fde744a63cf107e27f68f601e02c15d07bd172a757e",
+    "continuation": "Reuse immutable proof, normalize only generatedTMPDIR, originalmake-j4 andpostcheckconfigs, saveportabledefaultcache; noarchiverexperiment/native test repetition"
+  },
+  "build_availability_current": {
+    "run": 41189629372,
+    "next_unused": "15",
+    "existing_valid": [
+      "13",
+      "14"
+    ],
+    "read_only": true,
+    "artifact": 13038222211
   }
 }

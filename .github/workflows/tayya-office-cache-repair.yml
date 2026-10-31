@@ -1,0 +1,127 @@
+name: Tayya portable Office checkpoint repair
+on:
+  workflow_run:
+    workflows: [Tayya Store artwork and approved publication]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: tayya-office-checkpoint-repair
+  cancel-in-progress: false
+jobs:
+  repair-office-cache:
+    if: ${{ github.repository == 'x6one/hashiya-ios' && github.event.workflow_run.head_branch == 'store/tayya-app-store-content' && github.event.workflow_run.head_sha == '9999a363a3d21f13cae4234ee6274bb150aad7e5' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out the unchanged pinned Office source
+        uses: actions/checkout@v4
+        with:
+          repository: CollaboraOnline/online.mirror
+          ref: 124ecf55b0f0969b7859d2f803f0bc3a0049a4dc
+          persist-credentials: false
+      - name: Install the original Office build prerequisites
+        run: |
+          brew install autoconf automake libtool pkg-config bison gperf nasm make llvm xcodegen
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/office-python"
+          "$RUNNER_TEMP/office-python/bin/pip" install polib lxml pyyaml
+          echo "$RUNNER_TEMP/office-python/bin" >> "$GITHUB_PATH"
+      - name: Use the existing exact toolchain checkpoint namespace
+        id: checkpoint
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          mkdir -p CacheRepair
+          xcodebuild -version | tee CacheRepair/xcode.txt
+          SDK_ID=$(xcodebuild -version | shasum -a 256 | cut -c1-12)
+          test "$SDK_ID" = a8be4f9af0a2
+          echo "prefix=native-ios-124ecf55b0f0969b-v2-$SDK_ID-" >> "$GITHUB_OUTPUT"
+      - name: Restore the failed build's existing checkpoint
+        uses: actions/cache/restore@v4
+        with:
+          path: engine
+          key: ${{ steps.checkpoint.outputs.prefix }}${{ github.run_id }}-portable-tmp
+          restore-keys: ${{ steps.checkpoint.outputs.prefix }}
+      - name: Prove the real archiver failure before correcting cached runtime configuration
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess
+          from pathlib import Path
+          root=Path('engine'); out=Path('CacheRepair')
+          config=root/'config_host.mk'
+          text=config.read_text()
+          def setting(name):
+              matches=re.findall(r'^export '+re.escape(name)+r'=(.+)$',text,re.M)
+              assert len(matches)==1,(name,matches)
+              return matches[0].strip().strip("'\"")
+          obsolete=setting('TMPDIR'); ar=Path(setting('AR'))
+          assert obsolete=='/var/folders/nj/vtw8zd2j31d1gdrtntc5y4600000gn/T/', obsolete
+          assert not Path(obsolete).exists(), 'The baseline must retain the actual missing directory'
+          assert ar.is_file(), ar
+          objects=list((root/'workdir/GenCObject/CustomTarget/i18npool/breakiterator').glob('OpenOffice_dat.o'))
+          assert len(objects)==1, objects
+          obj=objects[0].resolve(); before=hashlib.sha256(obj.read_bytes()).hexdigest()
+          def archive(name,tmp):
+              path=(out/name).resolve()
+              result=subprocess.run([str(ar),'-rsu',str(path),str(obj)],env=dict(os.environ,TMPDIR=tmp),text=True,capture_output=True)
+              (out/(name+'.stdout.txt')).write_text(result.stdout)
+              (out/(name+'.stderr.txt')).write_text(result.stderr)
+              return result,path
+          baseline,baseline_path=archive('missing-temp.a',obsolete)
+          report={'failed_qualification_run':41181915781,'app_source':'d45457bdd216265b11d58ba844fcda22fb6297d9','upstream':'124ecf55b0f0969b7859d2f803f0bc3a0049a4dc','ar':str(ar),'object_sha256':before,'obsolete_tmpdir':obsolete,'baseline_exit':baseline.returncode,'baseline_stderr':baseline.stderr,'production_application_changed':False,'signing_or_upload_performed':False}
+          (out/'repair.json').write_text(json.dumps(report,indent=2)+'\n')
+          assert baseline.returncode!=0 and 'No such file or directory' in baseline.stderr, 'Missing-temp archiver hypothesis not proved; do not patch or replace the cache'
+          normalized=[]
+          for candidate in [config,root/'CONF-FOR-BUILD/config_host.mk']:
+              if not candidate.is_file():continue
+              original=candidate.read_text(); stat=candidate.stat()
+              changed,count=re.subn(r'^export TMPDIR=.+$', 'export TMPDIR=/tmp', original, flags=re.M)
+              assert count==1,(str(candidate),count)
+              candidate.write_text(changed)
+              os.utime(candidate,ns=(stat.st_atime_ns,stat.st_mtime_ns))
+              normalized.append(str(candidate))
+          fixed,fixed_path=archive('portable-temp.a','/tmp')
+          assert fixed.returncode==0,(fixed.returncode,fixed.stderr)
+          members=subprocess.check_output([str(ar),'-t',str(fixed_path)],text=True).splitlines()
+          assert members==[obj.name],members
+          assert hashlib.sha256(obj.read_bytes()).hexdigest()==before
+          report.update(fixed_exit=fixed.returncode,fixed_members=members,normalized_configurations=normalized,new_tmpdir='/tmp',red_green_verified=True)
+          (out/'repair.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Complete the original arm64 engine build with the portable cached configuration
+        working-directory: engine
+        run: |
+          set -o pipefail
+          make -j4 2>&1 | tee ../CacheRepair/engine-build.log
+          test -s workdir/CustomTarget/ios/ios-all-static-libs.list
+          touch .hashiya-engine-complete
+          python3 - <<'PY_CONFIG'
+          import json, re
+          from pathlib import Path
+          proof=Path('../CacheRepair/repair.json')
+          report=json.loads(proof.read_text())
+          for name in report['normalized_configurations']:
+              configuration=Path('..')/name
+              assert re.findall(r'^export TMPDIR=(.+)$', configuration.read_text(), re.M)==['/tmp'], str(configuration)
+          report['full_original_make_passed']=True
+          report['portable_configuration_verified_after_make']=True
+          proof.write_text(json.dumps(report,indent=2)+'\n')
+          PY_CONFIG
+          test "$(du -sk . | cut -f1)" -lt 8388608
+      - name: Save a new portable checkpoint without deleting the original cache
+        uses: actions/cache/save@v4
+        with:
+          path: engine
+          key: ${{ steps.checkpoint.outputs.prefix }}${{ github.run_id }}-portable-tmp
+      - name: Preserve actual repair results without credentials or an IPA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Office-Cache-Repair-${{ github.run_id }}
+          path: CacheRepair/
+          retention-days: 14
+          if-no-files-found: warn

@@ -1,7 +1,7 @@
 name: Tayya portable Office checkpoint repair
 on:
   workflow_run:
-    workflows: [Tayya Store artwork and approved publication, pages build and deployment]
+    workflows: [Tayya Store artwork and approved publication]
     types: [completed]
 permissions:
   contents: read
@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   repair-office-cache:
-    if: ${{ github.repository == 'x6one/hashiya-ios' && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.head_branch == 'store/tayya-app-store-content' && github.event.workflow_run.head_sha == '9999a363a3d21f13cae4234ee6274bb150aad7e5') || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.name == 'pages build and deployment' && contains(github.event.workflow_run.head_commit.message, '[office-cache:portable-temp]'))) }}
+    if: ${{ github.repository == 'x6one/hashiya-ios' && github.event.workflow_run.head_branch == 'store/tayya-app-store-content' && github.event.workflow_run.head_sha == '113eab72a5cb7bf5eb6b11490e823365d6833581' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: macos-15
     timeout-minutes: 45
     steps:

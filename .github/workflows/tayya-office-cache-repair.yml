@@ -1,7 +1,7 @@
 name: Tayya portable Office checkpoint repair
 on:
   workflow_run:
-    workflows: [Tayya Store artwork and approved publication]
+    workflows: [Tayya Store artwork and approved publication, pages build and deployment]
     types: [completed]
 permissions:
   contents: read
@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   repair-office-cache:
-    if: ${{ github.repository == 'x6one/hashiya-ios' && github.event.workflow_run.head_branch == 'store/tayya-app-store-content' && github.event.workflow_run.head_sha == '9999a363a3d21f13cae4234ee6274bb150aad7e5' && github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.repository == 'x6one/hashiya-ios' && github.event.workflow_run.conclusion == 'success' && ((github.event.workflow_run.head_branch == 'store/tayya-app-store-content' && github.event.workflow_run.head_sha == '9999a363a3d21f13cae4234ee6274bb150aad7e5') || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.name == 'pages build and deployment' && contains(github.event.workflow_run.head_commit.message, '[office-cache:portable-temp]'))) }}
     runs-on: macos-15
     timeout-minutes: 45
     steps:
@@ -45,50 +45,58 @@ jobs:
           path: engine
           key: ${{ steps.checkpoint.outputs.prefix }}${{ github.run_id }}-portable-tmp
           restore-keys: ${{ steps.checkpoint.outputs.prefix }}
-      - name: Prove the real archiver failure before correcting cached runtime configuration
+      - name: Consume the saved real archiver proof and correct cached runtime configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, re, subprocess
+          import hashlib, json, os, re, subprocess, zipfile
           from pathlib import Path
           root=Path('engine'); out=Path('CacheRepair')
-          config=root/'config_host.mk'
-          text=config.read_text()
+          artifact='13038686137'
+          endpoint='repos/x6one/hashiya-ios/actions/artifacts/'+artifact
+          metadata=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          assert metadata['expired'] is False and metadata['size_in_bytes']==2347
+          assert metadata['digest']=='sha256:143ad738f938de4f272b1fde744a63cf107e27f68f601e02c15d07bd172a757e'
+          assert metadata['workflow_run']['id']==41189643913 and metadata['workflow_run']['head_sha']=='19d5faf042e148291fd195e69c006f98974cf00a'
+          packed=out/'original-archiver-proof.zip'
+          with packed.open('wb') as target:subprocess.run(['gh','api',endpoint+'/zip'],stdout=target,check=True)
+          assert packed.stat().st_size==2347 and hashlib.sha256(packed.read_bytes()).hexdigest()==metadata['digest'].split(':')[1]
+          with zipfile.ZipFile(packed) as archive:
+              assert archive.testzip() is None
+              report=json.loads(archive.read('repair.json'))
+              fixed=out/'original-portable-temp.a';fixed.write_bytes(archive.read('portable-temp.a'))
+          assert report['app_source']=='d45457bdd216265b11d58ba844fcda22fb6297d9'
+          assert report['upstream']=='124ecf55b0f0969b7859d2f803f0bc3a0049a4dc'
+          assert report['baseline_exit']==1 and 'ar: temporary file: No such file or directory' in report['baseline_stderr']
+          assert report['production_application_changed'] is report['signing_or_upload_performed'] is False
+          config=root/'config_host.mk';text=config.read_text()
           def setting(name):
               matches=re.findall(r'^export '+re.escape(name)+r'=(.+)$',text,re.M)
               assert len(matches)==1,(name,matches)
               return matches[0].strip().strip("'\"")
-          obsolete=setting('TMPDIR'); ar=Path(setting('AR'))
-          assert obsolete=='/var/folders/nj/vtw8zd2j31d1gdrtntc5y4600000gn/T/', obsolete
-          assert not Path(obsolete).exists(), 'The baseline must retain the actual missing directory'
-          assert ar.is_file(), ar
-          objects=list((root/'workdir/GenCObject/CustomTarget/i18npool/breakiterator').glob('OpenOffice_dat.o'))
-          assert len(objects)==1, objects
-          obj=objects[0].resolve(); before=hashlib.sha256(obj.read_bytes()).hexdigest()
-          def archive(name,tmp):
-              path=(out/name).resolve()
-              result=subprocess.run([str(ar),'-rsu',str(path),str(obj)],env=dict(os.environ,TMPDIR=tmp),text=True,capture_output=True)
-              (out/(name+'.stdout.txt')).write_text(result.stdout)
-              (out/(name+'.stderr.txt')).write_text(result.stderr)
-              return result,path
-          baseline,baseline_path=archive('missing-temp.a',obsolete)
-          report={'failed_qualification_run':41181915781,'app_source':'d45457bdd216265b11d58ba844fcda22fb6297d9','upstream':'124ecf55b0f0969b7859d2f803f0bc3a0049a4dc','ar':str(ar),'object_sha256':before,'obsolete_tmpdir':obsolete,'baseline_exit':baseline.returncode,'baseline_stderr':baseline.stderr,'production_application_changed':False,'signing_or_upload_performed':False}
-          (out/'repair.json').write_text(json.dumps(report,indent=2)+'\n')
-          assert baseline.returncode!=0 and 'No such file or directory' in baseline.stderr, 'Missing-temp archiver hypothesis not proved; do not patch or replace the cache'
+          obsolete=setting('TMPDIR');ar=Path(setting('AR'))
+          assert obsolete==report['obsolete_tmpdir']=='/var/folders/nj/vtw8zd2j31d1gdrtntc5y4600000gn/T/'
+          assert not Path(obsolete).exists() and ar.is_file()
+          obj=root/'workdir/GenCObject/CustomTarget/i18npool/breakiterator/OpenOffice_dat.o'
+          expected='712c206c84be917ea14b64c13ef878156454960862d0645b8dcc469cba4b4679'
+          assert report['object_sha256']==hashlib.sha256(obj.read_bytes()).hexdigest()==expected
+          # Validate the already-created native archive, including Apple's real
+          # symbol-index member. Do not repeat the successful RED/GREEN experiment.
+          members=subprocess.check_output([str(ar),'-t',str(fixed)],text=True).splitlines()
+          assert members==['__.SYMDEF SORTED',obj.name],members
+          extracted=subprocess.check_output([str(ar),'-p',str(fixed),obj.name])
+          assert hashlib.sha256(extracted).hexdigest()==expected
           normalized=[]
           for candidate in [config,root/'CONF-FOR-BUILD/config_host.mk']:
               if not candidate.is_file():continue
-              original=candidate.read_text(); stat=candidate.stat()
+              original=candidate.read_text();stat=candidate.stat()
               changed,count=re.subn(r'^export TMPDIR=.+$', 'export TMPDIR=/tmp', original, flags=re.M)
               assert count==1,(str(candidate),count)
               candidate.write_text(changed)
               os.utime(candidate,ns=(stat.st_atime_ns,stat.st_mtime_ns))
               normalized.append(str(candidate))
-          fixed,fixed_path=archive('portable-temp.a','/tmp')
-          assert fixed.returncode==0,(fixed.returncode,fixed.stderr)
-          members=subprocess.check_output([str(ar),'-t',str(fixed_path)],text=True).splitlines()
-          assert members==[obj.name],members
-          assert hashlib.sha256(obj.read_bytes()).hexdigest()==before
-          report.update(fixed_exit=fixed.returncode,fixed_members=members,normalized_configurations=normalized,new_tmpdir='/tmp',red_green_verified=True)
+          report.update(original_proof_run=41189643913,original_proof_artifact=int(artifact),fixed_members=members,normalized_configurations=normalized,new_tmpdir='/tmp',red_green_verified_from_immutable_evidence=True,original_object_and_archive_bytes_equal=True)
           (out/'repair.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY

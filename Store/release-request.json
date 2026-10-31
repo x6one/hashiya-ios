@@ -18,8 +18,8 @@
   "physical_device_proof": "not available; disclose limits",
   "native_microphone_quality_and_office_runtime_on_physical_device": "not verified by CI",
   "do_not_retry_same_failed_gate_without_new_evidence": true,
-  "targeted_run": 41056991444,
-  "targeted_result": "iPhone2/2PASS,iPad2/2PASS,0fail0skip:originalfailedlargestEnglishDarkfulljourney+unsubmitted-page-numbernegative; sourcebec4f09d20ebd103c40a9417fa7c302b777b5f03",
+  "targeted_run": 41180691163,
+  "targeted_result": "iPhone3/3PASS,iPad3/3PASS,0fail0skip0expected:originalthreepreviously240s-timedoutcapturejourneys; source48f3fad8bdc67dda3c6da170e83870c819d5990e",
   "qa_source": "d22c9c1e46c460611e9bfcedd445a27486acc38b",
   "qa_run": 40730303387,
   "qa_build": "14",
@@ -28,7 +28,7 @@
   "build_increment_reason": "FreshApple read-only41037591386 onOctober30 observed13/14VALID and15unused; preserveinternal14 and recheckexact15 immediatelybeforeupload.",
   "build_availability_run": 41037591386,
   "store_capture_reason": "Reuse12approved genuinecompositions from7980d8ddd62ac2996d305a40427aa7ed287c500d/run40928381567. App tree2eb2a2ac53b5678768ed9d9cf6926295163d0acd, NativeOffice and project.yml are identical; installedapp wasverified0.6.0(15). Onlytests/request/docschanged, no newcapture needed.",
-  "test_parent": "bec4f09d20ebd103c40a9417fa7c302b777b5f03",
+  "test_parent": "48f3fad8bdc67dda3c6da170e83870c819d5990e",
   "production_targeted_run": 40926031496,
   "production_targeted_result": "20/20Phone,21/21Pad including originalfailedAXrealstroke/UndoRedo; productionApp remains2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
   "next_page_observer_targeted_run": 41036303306,
@@ -40,11 +40,13 @@
   "preset_menu_targeted_result": "originalLight+existingNativeMenuOpenNegative2/2each; alsopassedboth in41041917352",
   "go_observer_repair": "One nativewindow query retains originaltypedfield/value AND typedpdfCanvas/model-page conditions, one5s wait afteroriginalGo centertouch/bounds. Originalvideo showedpage1beforefirstfailedclientread. Newnegative proves typed3alone cannotpass; actualGo3/Go1 bothpass. NoApppatch, no extraobservationbudget/fallback/retry/instrumentation.",
   "previous_qualification": {
-    "run": 41041917352,
-    "source": "eabefe851a8da83d2c75880fa56f49cb51d484a8",
-    "iPad": "162/162plusMaestro3andexportsPASS",
-    "iPhone": "161/162;onlyGoobserverat115,alloriginaldrawing/UndoandothercasesPASS",
-    "classification": "actualpage1alreadyvisiblebeforelocal2querywaiter; repairednativeconjunction verified41056991444",
+    "run": 41059282531,
+    "source": "9c58901a6485ab55e7cbdb07b0ee42c1b0f63f9b",
+    "iPhone": "163/163plusMaestro3andactualPDF3063B/PPTX54684BexportsPASS",
+    "iPad": "160/163;onlythreecapture240sexecutionallowancetimeouts;everyoriginalink/Undo/107unitpassed",
+    "classification": "sameunchangedcaptureassertions nowpassbothwithboundedactualwindowgeometryobservations41180691163",
     "unchanged_retry_performed": false
-  }
+  },
+  "capture_layout_repair": "NoAppchange. Read actualwindowgeometry/existence/enabled from one snapshot, refresh immediatelyafterrealNext/Previous; retainunique typedIDs,44pt/window/PDF/readoutbounds, livehittability, everyoriginalscene/testmethod andalltimeouts. Same240swholecasebudget. TargetPhone156.016/136.580/110.539s,Pad153.272/135.998/110.021s.",
+  "previous_go_targeted_run": 41056991444
 }

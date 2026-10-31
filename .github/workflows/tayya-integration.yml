@@ -73,6 +73,7 @@ jobs:
               'split-undo-regression': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit'],
               'page-transition': ['HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNextPageReadinessRejectsAnUnchangedDocument'],
               'preset-menu-commit': ['HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
+              'capture-layout': ['HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
               'page-jump': ['HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations', 'HashiyaUITests/StudioProductionCaptureTests/testPageJumpReadinessRejectsAnUnsubmittedNumber'],
               'ink-callback-boundary': ['HashiyaTests/MarginInkLifecycleTests/testNotesStrokeCommitsBeforePublishingIntoSwiftUI'],
               'ink-commit-boundaries': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit', 'HashiyaTests/MarginInkLifecycleTests/testSwitchingNotesToTextFlushesUnfinishedInkToItsOriginalFile'],

@@ -18,9 +18,12 @@ final class StudioProductionCaptureTests: XCTestCase {
         let app = XCUIApplication(); app.launchArguments = arguments; app.launch()
         XCTAssertTrue(app.buttons["openNotebook-Tayya Study"].waitForExistence(timeout: 15))
         if large {
+            guard let window = try? app.windows.firstMatch.snapshot() else {
+                XCTFail("Read the real library layout at largest text"); return app
+            }
             for name in ["libraryHome", "librarySections", "libraryReview", "librarySettings"] {
-                let control = app.buttons[name]
-                XCTAssertTrue(control.exists && control.isHittable, "Largest text must retain direct access to every real library destination")
+                guard let control = identified(name, type: .button, in: window) else { return app }
+                XCTAssertTrue(app.buttons[name].isHittable, "Largest text must retain direct access to every real library destination")
                 XCTAssertGreaterThanOrEqual(control.frame.width, 44)
                 XCTAssertGreaterThanOrEqual(control.frame.height, 44)
             }
@@ -31,15 +34,35 @@ final class StudioProductionCaptureTests: XCTestCase {
         app.buttons["openNotebook-Tayya Study"].tap()
         XCTAssertTrue(app.buttons["inkTool"].waitForExistence(timeout: 10))
     }
+    private func identified(_ identifier: String, type: XCUIElement.ElementType,
+                            in root: any XCUIElementSnapshot) -> (any XCUIElementSnapshot)? {
+        var pending: [any XCUIElementSnapshot] = [root]
+        var matches: [any XCUIElementSnapshot] = []
+        while let node = pending.popLast() {
+            if node.identifier == identifier && node.elementType == type { matches.append(node) }
+            pending.append(contentsOf: node.children)
+        }
+        guard matches.count == 1 else {
+            XCTFail("Require one real \(type) with identifier \(identifier), found \(matches.count)"); return nil
+        }
+        return matches[0]
+    }
     private func assertAccessibleNavigation(_ app: XCUIApplication) {
-        let window = app.windows.firstMatch.frame
-        let pdfFrame = app.otherElements["pdfCanvas"].frame
-        var targets = [app.textFields["pageNumber"]]
-        targets += ["previousDocumentPage", "nextDocumentPage", "goToPage", "fitDocumentPage", "recordLinkedAudio", "recordingDetails"].map { app.buttons[$0] }
-        for target in targets {
-            XCTAssertTrue(target.exists)
+        // Read geometry/existence/enabled state atomically. Each separate live
+        // property used to resolve the entire remote hierarchy again, exhausting
+        // the unchanged240s case allowance without any failed UI assertion.
+        // Hittability and real Next/Previous interactions remain live checks.
+        guard var layout = try? app.windows.firstMatch.snapshot(),
+              let pdf = identified("pdfCanvas", type: .other, in: layout) else {
+            XCTFail("Read the actual document navigation layout"); return
+        }
+        let window = layout.frame, pdfFrame = pdf.frame
+        let targets: [(String, XCUIElement.ElementType)] = [("pageNumber", .textField)]
+            + ["previousDocumentPage", "nextDocumentPage", "goToPage", "fitDocumentPage", "recordLinkedAudio", "recordingDetails"].map { ($0, .button) }
+        for (identifier, type) in targets {
+            guard let target = identified(identifier, type: type, in: layout) else { return }
             let frame = target.frame
-            print("NativeNavigation target=\(target.identifier) frame=\(frame) window=\(window)")
+            print("NativeNavigation target=\(identifier) frame=\(frame) window=\(window)")
             XCTAssertGreaterThanOrEqual(frame.width + 1e-6, 44)
             XCTAssertGreaterThanOrEqual(frame.height + 1e-6, 44)
             XCTAssertGreaterThanOrEqual(frame.minX, window.minX - 0.5, "Core navigation must not begin outside the display")
@@ -48,18 +71,23 @@ final class StudioProductionCaptureTests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxY, pdfFrame.minY + 0.5,
                                      "Navigation must occupy its own area above the PDF")
             if target.isEnabled {
-                if target.identifier == "nextDocumentPage" {
-                    assertNextPageTouch(target, in: app)
-                } else { XCTAssertTrue(target.isHittable) }
+                let live = type == .textField ? app.textFields[identifier] : app.buttons[identifier]
+                if identifier == "nextDocumentPage" {
+                    assertNextPageTouch(live, in: app)
+                    // The round trip mutates the live interface. Later controls
+                    // retain the original post-navigation observation order.
+                    guard let returnedLayout = try? app.windows.firstMatch.snapshot() else {
+                        XCTFail("Read the real layout after Next/Previous"); return
+                    }
+                    layout = returnedLayout
+                } else { XCTAssertTrue(live.isHittable) }
             }
         }
-        let total = app.staticTexts["documentPageCount"]
-        XCTAssertTrue(total.exists)
+        guard let total = identified("documentPageCount", type: .staticText, in: layout),
+              let readout = identified("recordingElapsed", type: .staticText, in: layout) else { return }
         let totalFrame = total.frame
         XCTAssertGreaterThanOrEqual(totalFrame.minX, window.minX)
         XCTAssertLessThanOrEqual(totalFrame.maxX, window.maxX)
-        let readout = app.staticTexts["recordingElapsed"]
-        XCTAssertTrue(readout.exists)
         let readoutFrame = readout.frame
         XCTAssertGreaterThanOrEqual(readoutFrame.minX, window.minX)
         XCTAssertLessThanOrEqual(readoutFrame.maxX, window.maxX)

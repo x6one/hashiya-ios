@@ -55,7 +55,8 @@
     "verification_run": "41303592178",
     "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
     "store_listing_ready": false,
-    "new_upload_performed": false
+    "new_upload_performed": false,
+    "latest_authority_readback_run": 41308054842
   },
   "download_signed_deliverables": {
     "id": 13082356894,
@@ -93,15 +94,19 @@
     "operation": "POST /v1/appStoreVersions",
     "http_status": 403,
     "code": "FORBIDDEN_ERROR",
-    "evidence_run": 41300923215,
-    "evidence_artifact": 13081745558,
+    "evidence_run": 41308054842,
+    "evidence_artifact": 13084395807,
     "existing_live_version": "0.4.2",
     "new_version_record_exists": false,
     "app_review_submitted": false,
     "automatic_release_for0_6_configured_in_Apple": false,
-    "action_needed": "App-version creation/review permission in the existing App Store Connect API credentials; all binary/source tests and signing/upload are complete. Do not request owner manual app tests or repeat binaries."
+    "action_needed": "Replace the current GitHub Actions App Store Connect publishing credentials with a new Team API key assigned App Manager; keep automation least-privileged and never paste private key material into chat/repository/logs.",
+    "title": "This request is forbidden for security reasons",
+    "detail": "The API key in use does not allow this request",
+    "evidence_document": "Store/authorization-2026-11-01.json",
+    "key_role_not_inferred_from_user_roles": true
   },
-  "all_available_authorized_work_completed": true,
+  "all_available_authorized_work_completed": false,
   "owner_upload_review_release_authorization_preserved": true,
   "stable_app_not_merged": true,
   "Build14_unchanged": true,
@@ -113,5 +118,6 @@
   "minor_visual_findings": [
     "At AX5 on iPhone, English Notes Handwriting segment label is partially clipped; this is visual truncation in the existing production layout, not evidence of lost ink/data. Native actions and full regression gate pass; no production redesign in this release."
   ],
-  "resume": "Supply the required App Store Connect app-version/review permissions through existing GitHubSecrets, then finalize Store assets/metadata andsubmit alreadyaccepted Build15 withAFTER_APPROVAL. Do not rebuild/reupload15 or repeat passing native tests."
+  "resume": "Recheck only Store-version creation with the replacement authority. Prepare approved metadata and 12 genuine artwork images in both locales, attach existing accepted15, verify compliance/privacy, submit AppReview with AFTER_APPROVAL. Do not rerun native tests or upload/build15 again.",
+  "execution_state": "Blocked on indispensable owner credential provisioning; existing accepted15 preserved, no new native test/build/upload performed."
 }

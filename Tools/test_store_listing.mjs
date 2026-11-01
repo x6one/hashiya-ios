@@ -1,11 +1,11 @@
-import {requestedStoreBuild, buildReadiness} from './app_store_readiness.mjs';
+import {requestedStoreBuild, buildReadiness, createAppleClient} from './app_store_readiness.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {deflateSync} from 'node:zlib';
-import {createHash} from 'node:crypto';
+import {createHash,generateKeyPairSync} from 'node:crypto';
 import {validateArtwork,reusableScreenshot,validateQualification} from './publish_store_listing.mjs';
 
 const sha = b => createHash('sha256').update(b).digest('hex');
@@ -119,4 +119,35 @@ test('accepts the exact-source named native capture workflow without relaxing it
   for(const altered of [{...run,path:'.github/workflows/other.yml'},{...run,head_sha:'b'.repeat(40)},{...run,name:`Store originals from ${'b'.repeat(40)} — same-source release evidence`}])
     assert.throws(()=>validateQualification(altered,jobs,source,'artwork'),/qualify/i);
   assert.throws(()=>validateQualification(run,jobs.map(j=>j.name==='artwork'?{...j,conclusion:'skipped'}:j),source,'artwork'),/gate/i);
+});
+
+// Catch the loss of Apple's actionable explanation, independently of status/code.
+const appleTestCredentials=()=>({ASC_KEY_ID:'TEST_KEY_IDENTIFIER',ASC_ISSUER_ID:'TEST_ISSUER_IDENTIFIER',
+  ASC_PRIVATE_KEY_BASE64:Buffer.from(generateKeyPairSync('ec',{namedCurve:'prime256v1'}).privateKey.export({type:'pkcs8',format:'pem'})).toString('base64')});
+test('retains the official Apple denial explanation and source without response headers',async()=>{
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async()=>new Response(JSON.stringify({errors:[{id:'request-1',status:'403',code:'FORBIDDEN_ERROR',
+    title:'This request is forbidden for security reasons',detail:'The API key in use does not allow this request.',
+    source:{pointer:'/data/attributes/versionString'},ignored:'not part of the official diagnostic'}]}),{status:403});
+  try{
+    await assert.rejects(createAppleClient(appleTestCredentials()).post('appStoreVersions',{data:{}}),e=>{
+      assert.equal(e.status,403);
+      assert.equal(e.operation,'POST /v1/appStoreVersions');
+      assert.deepEqual(e.apple_errors,[{id:'request-1',status:'403',code:'FORBIDDEN_ERROR',
+        title:'This request is forbidden for security reasons',detail:'The API key in use does not allow this request.',
+        source:{pointer:'/data/attributes/versionString'}}]);return true;
+    });
+  }finally{globalThis.fetch=originalFetch;}
+});
+test('redacts credentials even when an Apple error reflects a request token or private material',async()=>{
+  const originalFetch=globalThis.fetch,credentials=appleTestCredentials();
+  globalThis.fetch=async(url,options)=>new Response(JSON.stringify({errors:[{status:'403',code:'FORBIDDEN_ERROR',
+    detail:[options.headers.Authorization.slice(7),credentials.ASC_PRIVATE_KEY_BASE64,
+      credentials.ASC_KEY_ID,credentials.ASC_ISSUER_ID,
+      Buffer.from(credentials.ASC_PRIVATE_KEY_BASE64,'base64').toString()].join(' ')}]}),{status:403});
+  try{
+    await assert.rejects(createAppleClient(credentials).get('users?limit=1'),e=>{
+      assert.equal(e.apple_errors?.[0]?.detail,'[REDACTED] [REDACTED] [REDACTED] [REDACTED] [REDACTED]');return true;
+    });
+  }finally{globalThis.fetch=originalFetch;}
 });

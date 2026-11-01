@@ -31,6 +31,23 @@ export function createAppleClient(environment = process.env) {
         + (body.errors || []).map(e => e.code || e.status || 'UNKNOWN').join(','));
       error.status = response.status;
       error.operation = method + ' ' + url.pathname;
+      // Preserve Apple's explanation, never credentials/headers or arbitrary response fields.
+      const secrets = [token, environment.ASC_PRIVATE_KEY_BASE64,
+        Buffer.from(environment.ASC_PRIVATE_KEY_BASE64, 'base64').toString(),
+        environment.ASC_KEY_ID, environment.ASC_ISSUER_ID].filter(Boolean);
+      const redact = value => secrets.reduce((text, secret) => text.split(secret).join('[REDACTED]'), value)
+        .replace(/-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g, '[REDACTED]');
+      error.apple_errors = (body.errors || []).slice(0, 20).map(row => {
+        const safe = {};
+        for (const field of ['id', 'status', 'code', 'title', 'detail']) {
+          if (typeof row[field] === 'string') safe[field] = redact(row[field]).slice(0, 8000);
+        }
+        if (row.source && typeof row.source === 'object') {
+          safe.source = Object.fromEntries(['pointer', 'parameter'].filter(k => typeof row.source[k] === 'string')
+            .map(k => [k, redact(row.source[k]).slice(0, 1000)]));
+        }
+        return safe;
+      });
       throw error;
     }
     return body;

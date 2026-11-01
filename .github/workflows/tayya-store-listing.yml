@@ -16,6 +16,73 @@ concurrency:
   group: tayya-store-listing
   cancel-in-progress: false
 jobs:
+  authorize-existing-build:
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:authorize]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify safe Apple error handling before access to credentials
+        run: node Tools/test_store_listing.mjs
+      - name: Inspect actual authority and create only the already accepted version if authorized
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import {createAppleClient} from './Tools/app_store_readiness.mjs';
+          const c=JSON.parse(readFileSync('Store/publication.json','utf8'));
+          assert.equal(c.app_id,'6818288428');assert.equal(c.version,'0.6.0');assert.equal(c.build,'15');
+          assert.equal(c.app_source,'d45457bdd216265b11d58ba844fcda22fb6297d9');
+          assert.equal(c.existing_accepted_build.id,'f708ce7c-681a-4d88-aa82-2b01fc9c5274');
+          assert.equal(c.existing_accepted_build.do_not_upload_again,true);
+          assert.equal(c.publish_binary,false);assert.equal(c.upload_qualified_binary,false);assert.equal(c.recover_signed_artifacts,false);
+          const api=createAppleClient(),report={controller:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,
+            app_id:c.app_id,version:c.version,build:c.build,application_source:c.app_source,
+            new_upload_performed:false,binary_build_performed:false,submitted_for_review:false,operations:[]};
+          async function attempt(name,call,project){
+            try{const result=await call();report.operations.push({operation:name,success:true,...project(result)});return result;}
+            catch(e){report.operations.push({operation:name,success:false,status:e.status||null,
+              apple_errors:e.apple_errors||[],safe_failure:e.status?'Official Apple API rejection':'Network/credential failure; internals omitted'});return null;}
+          }
+          try{
+            const app=(await api.get('apps/'+c.app_id)).data;
+            assert.equal(app.attributes.bundleId,'com.ahmadalawi.hashiya');
+            const b=await api.get('builds/'+c.existing_accepted_build.id+'?include=app,preReleaseVersion');
+            assert.equal(b.data.attributes.version,'15');assert.equal(b.data.attributes.processingState,'VALID');
+            assert.equal(b.data.relationships.app.data.id,c.app_id);
+            assert.equal(b.included.find(x=>x.type==='preReleaseVersions').attributes.version,'0.6.0');
+            report.apple_build={id:b.data.id,processing_state:b.data.attributes.processingState,version:'0.6.0',build:'15'};
+            const versions=await api.get('apps/'+c.app_id+'/appStoreVersions?filter[platform]=IOS&limit=200');
+            assert.ok(!versions.links?.next,'Refuse an incomplete version list');
+            report.existing_versions=versions.data.map(x=>({id:x.id,version:x.attributes.versionString,state:x.attributes.appVersionState||x.attributes.appStoreState}));
+            let target=versions.data.find(x=>x.attributes.versionString==='0.6.0');
+            if(!target){
+              const created=await attempt('POST /v1/appStoreVersions',()=>api.post('appStoreVersions',{data:{type:'appStoreVersions',
+                attributes:{platform:'IOS',versionString:'0.6.0',releaseType:'AFTER_APPROVAL',copyright:'2026 Ahmad Alawi'},
+                relationships:{app:{data:{type:'apps',id:c.app_id}}}}}),r=>({version_id:r.data.id}));
+              target=created?.data;
+            }
+            report.version_created_or_existing=Boolean(target);report.app_store_version_id=target?.id||null;
+            // Documented official users endpoint. Only role attributes are requested; no personal details retained.
+            await attempt('GET /v1/users?fields[users]=roles,allAppsVisible&limit=200',
+              ()=>api.get('users?fields[users]=roles,allAppsVisible&limit=200'),r=>({users:r.data.map(u=>({roles:u.attributes.roles,all_apps_visible:u.attributes.allAppsVisible})),
+                paginated:Boolean(r.links?.next),note:'User roles do not establish the independent role of a team API key.'}));
+            if(!target)process.exitCode=1;
+          }catch(e){report.safe_failure=e.status?{status:e.status,operation:e.operation,apple_errors:e.apple_errors||[]}
+            :'Identity, pagination, credential or network guard failed; no private internals retained';process.exitCode=1;}
+          finally{writeFileSync('store-authorization-report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Apple-Authorization-${{ github.run_id }}
+          path: store-authorization-report.json
+          retention-days: 14
+          if-no-files-found: error
   inspect-build-number:
     if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:inspect-build]') }}
     runs-on: ubuntu-latest

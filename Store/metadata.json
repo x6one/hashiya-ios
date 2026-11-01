@@ -1,5 +1,5 @@
 {
-  "status": "native-qualified-binary-upload-continuation-store-version-creation-forbidden",
+  "status": "Build15-upload-accepted-Storeversion403-artifact-rebuild-without-upload-pending",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
@@ -516,12 +516,18 @@
     "build": "15",
     "source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
     "gate_qualified": true,
-    "signed": false,
-    "uploaded": false,
+    "signed": true,
+    "uploaded": true,
     "app_review_submitted": false,
     "requested_release_type": "AFTER_APPROVAL",
     "existing_internal14_preserved": true,
-    "store_listing_ready": false
+    "store_listing_ready": false,
+    "upload_accepted": true,
+    "accepted_upload_run": 41302205282,
+    "accepted_upload_controller": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
+    "uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "processing_state": "not-yet-read-back",
+    "signed_deliverables": "OriginalacceptedIPAnotretainedbecausepostuploadlipoargumentorderfailed; rebuildingfromsameAppsourcewithoutupload;rebuildSHAwillbelabeledseparately."
   },
   "apple_store_blocker": {
     "run": 41300923215,

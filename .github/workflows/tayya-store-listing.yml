@@ -399,7 +399,7 @@ jobs:
           info=plistlib.loads((app/'Info.plist').read_bytes())
           assert (info['CFBundleIdentifier'],info['CFBundleShortVersionString'],str(info['CFBundleVersion']))==(config['bundle_id'],config['version'],str(config['build']))
           subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
-          subprocess.run(['xcrun','lipo','-verify_arch','arm64',str(app/info['CFBundleExecutable'])],check=True)
+          subprocess.run(['xcrun','lipo',str(app/info['CFBundleExecutable']),'-verify_arch','arm64'],check=True)
           def digest(path):
               with path.open('rb') as file:return hashlib.file_digest(file,'sha256').hexdigest()
           ipas=list((root/'Export').glob('*.ipa'))
@@ -671,7 +671,7 @@ jobs:
           info=plistlib.loads((app/'Info.plist').read_bytes())
           assert (info['CFBundleIdentifier'],info['CFBundleShortVersionString'],str(info['CFBundleVersion']))==(config['bundle_id'],config['version'],str(config['build']))
           subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
-          subprocess.run(['xcrun','lipo','-verify_arch','arm64',str(app/info['CFBundleExecutable'])],check=True)
+          subprocess.run(['xcrun','lipo',str(app/info['CFBundleExecutable']),'-verify_arch','arm64'],check=True)
           def digest(path):
               with path.open('rb') as file:return hashlib.file_digest(file,'sha256').hexdigest()
           ipas=list((root/'Export').glob('*.ipa'))
@@ -761,4 +761,212 @@ jobs:
           path: |
             store-after-upload.json
             store-processing-report.json
+          retention-days: 14
+  recover-signed-artifacts:
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:recover-signed-artifacts]') }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the separately authorized immutable release
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          c=json.loads(Path('Store/publication.json').read_text())
+          assert c.get('publish_binary') is True,'Binary publication is not enabled'
+          assert re.fullmatch('[a-f0-9]{40}',c['app_source'])
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('APP_SOURCE='+c['app_source']+'\n')
+              f.write('ARTWORK_RUN='+str(c.get('render_run',c['artwork_run']))+'\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_SOURCE }}
+          path: hashiya-tools
+      - name: Verify the immutable accepted Build15 receipt without uploading it again
+        run: |
+          python3 - <<'PY_RECOVERY'
+          import hashlib,json,os,re,subprocess,zipfile
+          from pathlib import Path
+          from Tools.store_release import validate_target,verify_checkout,verify_upload_receipt
+          c=json.loads(Path('Store/publication.json').read_text());validate_target(c)
+          assert c.get('recover_signed_artifacts') is True and c.get('upload_qualified_binary') is False
+          assert os.environ['GITHUB_REPOSITORY']=='x6one/hashiya-ios' and os.environ['GITHUB_REF']=='refs/heads/store/tayya-app-store-content'
+          event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          assert os.environ['GITHUB_EVENT_NAME']=='push' and '[store:recover-signed-artifacts]' in event['head_commit']['message']
+          verify_checkout(c,Path('hashiya-tools'))
+          expected=c['accepted_upload']
+          assert isinstance(expected['artifact'],int) and re.fullmatch('[a-f0-9]{64}',expected['artifact_sha256'])
+          endpoint=f"repos/x6one/hashiya-ios/actions/artifacts/{expected['artifact']}"
+          metadata=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          assert metadata['expired'] is False and metadata['name']=='Tayya-Qualified-Signed-Build'
+          assert metadata['workflow_run']['id']==expected['run'] and metadata['workflow_run']['head_sha']==expected['controller']
+          assert metadata['size_in_bytes']==expected['bytes']<65536 and metadata['digest']=='sha256:'+expected['artifact_sha256']
+          packed=Path('accepted-upload-proof.zip')
+          with packed.open('xb') as out:subprocess.run(['gh','api',endpoint+'/zip'],stdout=out,check=True)
+          assert packed.stat().st_size==expected['bytes'] and hashlib.sha256(packed.read_bytes()).hexdigest()==expected['artifact_sha256']
+          root=Path('AcceptedUpload');root.mkdir()
+          allowed={'AppleDistribution/distribution-report.json','AppleDistribution/store-publication-provenance.json','store-engine-receipt.json','store-before-upload.json','diagnostics/link-probe/link-report.json'}
+          with zipfile.ZipFile(packed) as z:
+              assert len(z.namelist())==len(allowed) and set(z.namelist())==allowed and z.testzip() is None
+              assert sum(n.file_size for n in z.infolist())<65536
+              for name in z.namelist():target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(z.read(name))
+          upload=json.loads((root/'AppleDistribution/store-publication-provenance.json').read_text())
+          signer=json.loads((root/'AppleDistribution/distribution-report.json').read_text())
+          verify_upload_receipt(c,upload,expected['controller'])
+          assert hashlib.sha256((root/'AppleDistribution/distribution-report.json').read_bytes()).hexdigest()==upload['signer_receipt_sha256']
+          assert upload['signed_ipa_sha256']==signer['sha256']==expected['ipa_sha256']
+          assert signer['source_commit']==expected['controller'] and signer['team']=='ZUB6SJFQA3'
+          assert all(signer[k] is True for k in ['code_signed','upload_accepted','archive_retained']) and signer['archive_only'] is False
+          assert all(str(signer[k])==str(c[k]) for k in ['bundle_id','version','build'])
+          Path('accepted-upload-verification.json').write_text(json.dumps(dict(application_source=c['app_source'],original_upload_controller=expected['controller'],original_upload_run=expected['run'],original_uploaded_ipa_sha256=expected['ipa_sha256'],upload_accepted=True,new_upload_permitted=False,app_store_submitted=False),indent=2)+'\n')
+          print('Original Build15 upload is genuinely accepted; this recovery may rebuild artifacts but must never upload again')
+          PY_RECOVERY
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-App-Store-Designed-Screenshots
+          run-id: ${{ env.ARTWORK_RUN }}
+          github-token: ${{ github.token }}
+          path: StoreArtwork
+      - name: Recheck all qualified sources and reuse only their native engine
+        run: |
+          node Tools/publish_store_listing.mjs --qualify-only --application-path hashiya-tools
+          python3 - <<'PY_ENGINE'
+          import json,subprocess
+          from pathlib import Path
+          from Tools.store_release import extract_engine,verify_checkout,ARTIFACT
+          c=json.loads(Path('Store/publication.json').read_text());verify_checkout(c,Path('hashiya-tools'))
+          metadata=json.loads(subprocess.check_output(['gh','api',f"repos/x6one/hashiya-ios/actions/runs/{c['qualified_run']}/artifacts?per_page=100"],text=True))
+          matches=[a for a in metadata['artifacts'] if a['name']==ARTIFACT and not a['expired']];assert len(matches)==1
+          a=matches[0];assert 0<a['size_in_bytes']<2*1024**3
+          archive=Path('qualified-engine.zip')
+          with archive.open('xb') as out:subprocess.run(['gh','api',f"repos/x6one/hashiya-ios/actions/artifacts/{a['id']}/zip"],stdout=out,check=True)
+          receipt=extract_engine(archive,a,c,Path('OfficeEngineCandidate'))
+          Path('store-engine-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY_ENGINE
+      - name: Read the accepted Build15 actual Apple processing state
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node Tools/app_store_readiness.mjs store-after-upload.json
+          python3 - <<'PY_STATE'
+          import json,os
+          from pathlib import Path
+          from Tools.store_release import verify_processing
+          c=json.loads(Path('Store/publication.json').read_text())
+          upload=json.loads(Path('AcceptedUpload/AppleDistribution/store-publication-provenance.json').read_text())
+          apple=json.loads(Path('store-after-upload.json').read_text())
+          state=verify_processing(c,apple,upload,c['accepted_upload']['controller'])
+          state.update(verification_controller_source=os.environ['GITHUB_SHA'],verification_run=os.environ['GITHUB_RUN_ID'],original_uploaded_ipa_sha256=c['accepted_upload']['ipa_sha256'],store_listing_ready=False,app_store_submitted=False,new_upload_performed=False)
+          Path('store-processing-report.json').write_text(json.dumps(state,indent=2)+'\n')
+          print('Actual accepted Apple Build15 processing: '+state['processing_state'])
+          assert state['apple_processing_confirmed'] is True, 'Apple processing is not VALID; keep the evidence and do not upload again'
+          PY_STATE
+      - name: Reuse the original device linkage and build tools
+        run: |
+          set -o pipefail
+          command -v xcodegen >/dev/null || brew install xcodegen
+          test -x "$(brew --prefix openssl@3)/bin/openssl" || brew install openssl@3
+          if ! python3 -c 'import yaml'; then
+            python3 -m venv "$RUNNER_TEMP/tayya-store-python"
+            "$RUNNER_TEMP/tayya-store-python/bin/python" -m pip install PyYAML
+            echo "$RUNNER_TEMP/tayya-store-python/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/tayya-store-python/bin:$PATH"
+          fi
+          python3 hashiya-tools/Tools/select_app_xcode.py
+          python3 hashiya-tools/Tools/link_office_engine.py OfficeEngineCandidate diagnostics/link-probe
+          cd hashiya-tools
+          python3 Tools/prepare_native_office_app.py ../OfficeEngineCandidate ../diagnostics/link-probe project.yml
+          xcodegen generate --spec NativeOfficeProject.yml
+          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath NativeDeviceBuild CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../diagnostics/native-app-build.log
+      - name: Rebuild a signed archive only; never upload the accepted build again
+        working-directory: hashiya-tools
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: python3 Tools/distribute_native_app.py --archive-only --preserve-archive
+      - name: Retain the verified signed IPA and XCArchive with the actual upload state
+        if: always()
+        run: |
+          python3 - <<'PY_VERIFIED'
+          import hashlib, json, os, plistlib, shutil, subprocess, zipfile
+          from pathlib import Path
+          root=Path('AppleDistribution')
+          config=json.loads(Path('Store/publication.json').read_text())
+          report_path=root/'distribution-report.json'
+          report=json.loads(report_path.read_text()) if report_path.is_file() else {}
+          from Tools.store_release import verify_checkout, write_provenance
+          verify_checkout(config,Path('hashiya-tools'))
+          if not (root/'distribution-report.json').is_file():
+              print('No verified signed archive was produced'); raise SystemExit(0)
+          if not all(report.get(k) is True for k in ['code_signed','archive_retained']):
+              print('No verified signed archive was produced'); raise SystemExit(0)
+          assert report.get('archive_only') is True and report.get('upload_accepted') is False
+          engine=json.loads(Path('store-engine-receipt.json').read_text())
+          if report.get('upload_accepted') is True:
+              provenance=write_provenance(config,Path('hashiya-tools'),root,engine,os.environ['GITHUB_SHA'])
+          else:
+              assert report['source_commit']==os.environ['GITHUB_SHA'] and report['team']=='ZUB6SJFQA3'
+              provenance=dict(application_source=config['app_source'],application_tree=config['app_tree'],
+                  controller_source=os.environ['GITHUB_SHA'],qualified_run=config['qualified_run'],engine=engine,
+                  signed_ipa_sha256=report['sha256'],upload_accepted=False,apple_processing_confirmed=False,app_store_submitted=False)
+          provenance.update(archive_only=True,new_upload_performed=False,original_upload_accepted=True,original_upload_controller=config['accepted_upload']['controller'],original_upload_run=config['accepted_upload']['run'],original_uploaded_ipa_sha256=config['accepted_upload']['ipa_sha256'],rebuilt_signed_ipa_sha256=report['sha256'],matches_uploaded_ipa_bytes=report['sha256']==config['accepted_upload']['ipa_sha256'],application_source_matches_uploaded_build=True,store_listing_ready=False,app_store_submitted=False)
+          assert provenance['application_source']==config['app_source'] and provenance['application_tree']==config['app_tree']
+          assert provenance['controller_source']==os.environ['GITHUB_SHA'] and isinstance(provenance['upload_accepted'],bool)
+          archive=root/'Tayya.xcarchive'
+          app=archive/'Products/Applications/Hashiya.app'
+          info=plistlib.loads((app/'Info.plist').read_bytes())
+          assert (info['CFBundleIdentifier'],info['CFBundleShortVersionString'],str(info['CFBundleVersion']))==(config['bundle_id'],config['version'],str(config['build']))
+          subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
+          subprocess.run(['xcrun','lipo',str(app/info['CFBundleExecutable']),'-verify_arch','arm64'],check=True)
+          def digest(path):
+              with path.open('rb') as file:return hashlib.file_digest(file,'sha256').hexdigest()
+          ipas=list((root/'Export').glob('*.ipa'))
+          assert len(ipas)==1 and digest(ipas[0])==provenance['signed_ipa_sha256']==report['sha256']
+          verified=root/'PendingVerified'
+          verified.mkdir()
+          ipa=verified/'Tayya.ipa'
+          shutil.copy2(ipas[0],ipa)
+          assert digest(ipa)==provenance['signed_ipa_sha256']
+          packed=verified/'Tayya.xcarchive.zip'
+          subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(archive),str(packed)],check=True)
+          with zipfile.ZipFile(packed) as zipped:
+              assert zipped.testzip() is None
+              assert 'Tayya.xcarchive/Products/Applications/Hashiya.app/Info.plist' in zipped.namelist()
+          assert provenance['signed_ipa_sha256']==report['sha256']
+          provenance.update({'xcarchive_zip_sha256':digest(packed),'verified_artifacts':['Tayya.ipa','Tayya.xcarchive.zip']})
+          (root/'store-publication-provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          (verified/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.name+'\n' for p in [ipa,packed]))
+          (verified/'release-provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          # Expose binaries to the always-upload step only after every check
+          # and manifest write completes; a failed pack leaves no Verified path.
+          verified.rename(root/'Verified')
+          PY_VERIFIED
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Rebuilt-Signed-Distribution
+          path: |
+            AppleDistribution/Verified/
+            AcceptedUpload/
+            accepted-upload-verification.json
+            store-after-upload.json
+            store-processing-report.json
+            AppleDistribution/distribution-report.json
+            AppleDistribution/store-publication-provenance.json
+            store-engine-receipt.json
+            store-before-upload.json
+            diagnostics/link-probe/link-report.json
           retention-days: 14

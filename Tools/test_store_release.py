@@ -431,9 +431,12 @@ class SignedArtifactRetentionTests(unittest.TestCase):
             (distribution/'distribution-report.json').write_text(json.dumps(report))
             Path('store-engine-receipt.json').write_text(json.dumps(dict(application_source=config['app_source'],qualified_run=42)))
             def platform(command, *args, **kwargs):
-                if command[0] in ['codesign','xcrun']:
-                    # Native signature verification belongs to macOS CI. Keep
-                    # real filesystem/ZIP/digest/source logic under test here.
+                if command[0]=='xcrun':
+                    # Apple's actual lipo parser requires the input before
+                    # -verify_arch; preserve this observed workflow boundary.
+                    self.assertEqual(command,['xcrun','lipo',str(archive_app/'Hashiya'),'-verify_arch','arm64'])
+                    return subprocess.CompletedProcess(command,0)
+                if command[0]=='codesign':
                     return subprocess.CompletedProcess(command,0)
                 if command[0]=='ditto':
                     target=Path(command[-1])

@@ -11,7 +11,7 @@
   "publish_binary": true,
   "submit_for_review": true,
   "release_after_approval": true,
-  "upload_qualified_binary": true,
+  "upload_qualified_binary": false,
   "store_listing_blocker": {
     "run": 41300923215,
     "controller": "319d506f39eee6927808562c10e268044bef0cd1",
@@ -20,5 +20,14 @@
     "sha256": "37692d3aa1a0a9a7c107dcb6d9ebe64b2ffe8c9aae91423cf8f76c141fead6e0",
     "operation": "POST appStoreVersions",
     "http_status": 403
+  },
+  "recover_signed_artifacts": true,
+  "accepted_upload": {
+    "run": 41302205282,
+    "controller": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
+    "artifact": 13081338319,
+    "bytes": 3457,
+    "artifact_sha256": "577b677cdf4a2ebf37c54e549688a902fd4b60a8f30d24a6d8687a89a3cb7e67",
+    "ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa"
   }
 }

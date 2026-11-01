@@ -241,7 +241,7 @@
     "no_binary_upload_or_review_performed": true
   },
   "qualified_binary_continuation": {
-    "status": "requested-not-yet-executed",
+    "status": "actualApplevalidation-and-upload-accepted-postupload-retention-failed",
     "all_seven_release_gates_preserved": true,
     "new_authorization_and403_boundary_tests": "REDthenGREEN,originalpubliclistinggatecontinuesrejecting403",
     "original_signer_and_secrets_unchanged": true,
@@ -251,5 +251,36 @@
     "publisher_python_tests_passed": 63,
     "review": "NoCritical; ImportantpartialartifactpathfixedbyatomicPendingVerified-to-Verifiedrename, actualworkflowfailure/successfilesystemregressionsREDthenGREEN; public/reviewguardsunchanged",
     "artifact_rule": "No signedbinaryappearsinuploadedVerifieddirectoryuntilcopy/hash/ZIPCRC/provenance/SHA256SUMSwritescomplete."
+  },
+  "accepted_binary_upload": {
+    "app_id": "6818288428",
+    "bundle_id": "com.ahmadalawi.hashiya",
+    "version": "0.6.0",
+    "build": "15",
+    "application_source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+    "application_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "qualified_run": 41181915781,
+    "accepted_upload_run": 41302205282,
+    "accepted_upload_controller": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
+    "code_signed": true,
+    "apple_validation_confirmed": true,
+    "upload_accepted": true,
+    "uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "receipt_artifact": 13081338319,
+    "receipt_artifact_sha256": "577b677cdf4a2ebf37c54e549688a902fd4b60a8f30d24a6d8687a89a3cb7e67",
+    "processing_confirmed": false,
+    "app_store_submitted": false,
+    "store_listing_ready": false,
+    "store_version_blocker": "POSTappStoreVersions403FORBIDDEN_ERROR",
+    "original_signed_files_retained": false,
+    "retention_failure": "lipo inputfilemustprecede-verify_arch; postuploadpackagingfailedafteractualAppleacceptance",
+    "recovery": "RebuildsignedIPA/XCArchivefromidenticalAppsourceusingoriginal--archive-only;nonewupload;labelnewhashseparatelyfromactualuploadedIPAhash"
+  },
+  "signed_artifact_recovery": {
+    "status": "prepared-not-yet-executed",
+    "mode": "archive-only-no-upload",
+    "same_application_source": true,
+    "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "rebuild_byte_equivalence": "not claimed; report actual new digest"
   }
 }

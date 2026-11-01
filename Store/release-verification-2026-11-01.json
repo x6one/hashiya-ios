@@ -1,0 +1,233 @@
+{
+  "recorded": "2026-11-01",
+  "app_id": "6818288428",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "version": "0.6.0",
+  "build": "15",
+  "application_source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+  "application_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+  "qualification": {
+    "id": 41181915781,
+    "name": "iPhone and iPad preflight",
+    "path": ".github/workflows/ios-check.yml",
+    "head_sha": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+    "head_branch": "integration/tayya-app-store",
+    "run_attempt": 2,
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/x6one/hashiya-ios/actions/runs/41181915781",
+    "updated_at": "2026-11-01T11:08:19Z"
+  },
+  "validation": {
+    "all_passed": true,
+    "status": "all-seven-required-release-jobs-success",
+    "source_sha": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+    "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "run": 41181915781,
+    "required_tests_per_family": 163,
+    "unit_tests_per_family": 107,
+    "ui_tests_per_family": 56,
+    "maestro_per_family": 3,
+    "targeted_run": 41180691163,
+    "targeted_results": "3/3Phone,3/3Pad,0fail0skip0expected;exactthreepreviously240s-timedoutjourneys;unchanged240slimit",
+    "production_native_targeted_run": 40926031496,
+    "production_native_results": "20/20Phone,21/21Pad; App2ebunchanged; alloriginalwriting/Undopassedbothfull41059282531",
+    "cold_regressions": {
+      "iPhone": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "job": 124480921489
+      },
+      "iPad": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "job": 124480921412
+      }
+    },
+    "full_native_jobs": {
+      "iPhone": 124485218242,
+      "iPad": 124485218304
+    },
+    "results": {
+      "iPad": {
+        "passed": 163,
+        "failed": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "maestro_passed": 3,
+        "maestro_failed": 0,
+        "pdf_bytes": 3063,
+        "pptx_bytes": 54684,
+        "job": 124485218304,
+        "capture_artifact": 13037412055
+      },
+      "iPhone": {
+        "passed": 163,
+        "failed": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "maestro_passed": 3,
+        "maestro_failed": 0,
+        "pdf_bytes": 3063,
+        "pptx_bytes": 54684,
+        "job": 124485218242
+      }
+    },
+    "gallery_job": 124499556333,
+    "gallery_status": "success-64-current-captures-visually-reviewed",
+    "office_device_job": 124828906488,
+    "office_device_status": "success-complete-native-engine-iphoneos-and-verified-unsigned-IPA",
+    "gallery_artifact": {
+      "id": 13037308637,
+      "size": 55554062,
+      "sha256": "4a821d675259fd89cac2988963c5c9bf6110631245e2f8769539450a090e37a1",
+      "current_captures": 64,
+      "original_pngs_unchanged": true
+    },
+    "visual_review": {
+      "reviewed": "2026-10-31",
+      "source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+      "critical_or_important_findings": [],
+      "minor_deferred": [
+        "At AX5 on iPhone, English Notes Handwriting segment label is partially clipped; this is visual truncation in the existing production layout, not evidence of lost ink/data. Native actions and full regression gate pass; no production redesign in this release."
+      ],
+      "orientation": "Original landscape PNGs have nativeEXIF8 and correct orientedwindowaspect; originalbytes not rotated/cropped/edited. Analysiscontactsheet honors EXIF forinspection only.",
+      "visible_ink": "Actual PDF and Notes gestures/retainedstroke visible in actualcaptures; automated liveink/Undo/Redo and durablePKDrawing tests pass."
+    },
+    "qualification_attempt": 2,
+    "required_job_results": [
+      {
+        "name": "tools",
+        "id": 124828906013,
+        "conclusion": "success"
+      },
+      {
+        "name": "regression (iPhone)",
+        "id": 124828906612,
+        "conclusion": "success"
+      },
+      {
+        "name": "regression (iPad)",
+        "id": 124828906731,
+        "conclusion": "success"
+      },
+      {
+        "name": "test (iPhone)",
+        "id": 124828906835,
+        "conclusion": "success"
+      },
+      {
+        "name": "test (iPad)",
+        "id": 124828906994,
+        "conclusion": "success"
+      },
+      {
+        "name": "production-review / gallery",
+        "id": 124828907021,
+        "conclusion": "success"
+      },
+      {
+        "name": "device-package / ios-engine",
+        "id": 124828906488,
+        "conclusion": "success"
+      }
+    ],
+    "retained_successes_not_rerun": true,
+    "only_retried_job": "device-package / ios-engine after proved corrected Office checkpoint",
+    "engine_artifact": {
+      "id": 13080813474,
+      "sha256": "42f462205aed991a63e1cab4e128906191d8f81482ac09c0c32c77fddf87eef1",
+      "bytes": 265995124
+    },
+    "verified_unsigned_ipa": {
+      "artifact": 13080589840,
+      "artifact_sha256": "212a0a9bb8758d68a3f3d9224c692638866ba1d93805ff975347874f7fef78bb",
+      "ipa_sha256": "bac4f669dcd6a79ff50295c10a00bab86b541d1e1b38a50e6dcd8fbc8f95451b",
+      "source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+      "version": "0.6.0",
+      "build": "15",
+      "bundle_identifier": "com.ahmadalawi.hashiya",
+      "architecture": "arm64",
+      "platform": "iphoneos",
+      "zip_crc_verified": true,
+      "native_office_resources_verified": true,
+      "privacy_manifest_verified": true,
+      "signed": false
+    }
+  },
+  "office_cache_repair": {
+    "status": "verified-original-qualification-office-job-success",
+    "failed_job": 124499616174,
+    "failed_run": 41181915781,
+    "failed_artifact": 13038345001,
+    "failed_artifact_sha256": "417efc6adba88b3184f1e5ff119747122aa5323816fb10d622b2d064ada511a2",
+    "proved": "SameAppleAR+samecachedobject fails missingTMPDIR exit1 and succeeds/tmp exit0; immutable nativearchive hasAppleTOCplusbyte-identicalobject",
+    "qualification_source_retained": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+    "successful_native_tests_will_not_be_repeated": true,
+    "red_green_run": 41189643913,
+    "red_green_artifact": 13038686137,
+    "red_green_artifact_sha256": "143ad738f938de4f272b1fde744a63cf107e27f68f601e02c15d07bd172a757e",
+    "continuation": "Reuse immutable proof, normalize only generatedTMPDIR, originalmake-j4 andpostcheckconfigs, saveportabledefaultcache; noarchiverexperiment/native test repetition",
+    "cache_repair_run": 41190591221,
+    "cache_repair_artifact": 13038384673,
+    "cache_repair_sha256": "31797428fe8b45f1b9e49823ddaeec4215e125db92fd842acdf84bc9e23c0ee2",
+    "full_original_make_passed": true,
+    "portable_configuration_verified_after_make": true,
+    "cache_key": "native-ios-124ecf55b0f0969b-v2-a8be4f9af0a2-41190591221-portable-tmp",
+    "qualification_office_job": 124828906488,
+    "qualification_attempt": 2,
+    "restored_cache_verified": "native-ios-124ecf55b0f0969b-v2-a8be4f9af0a2-41190591221-portable-tmp"
+  },
+  "original_tests_retained": {
+    "XCTest": 68,
+    "XCUITest": 32,
+    "all_current_XCTest": 107,
+    "all_current_XCUITest": 56,
+    "real_split_undo_regression_byte_identical_to_9da6430": true
+  },
+  "store_artwork": {
+    "source": "7980d8ddd62ac2996d305a40427aa7ed287c500d",
+    "run": 40928381567,
+    "artifact": 12922962122,
+    "sha256": "38676788a8623952676641977a0b53ab737bf725147aa71246e4efb69c2b405d",
+    "images": 12,
+    "actual_app_tree_identical_to_candidate": true,
+    "original_native_screenshots_preserved": true
+  },
+  "signing_and_apple_status": "Not yet executed; this evidence enables the existing owner-authorized pipeline. Do not treat an unsigned IPA as App Store acceptance.",
+  "owner_authorization": {
+    "upload": true,
+    "app_review": true,
+    "automatic_public_release_after_approval": true
+  },
+  "physical_device_limits": [
+    "Microphone acoustic quality and phone-call interruptions are not demonstrated by simulator CI.",
+    "Native Office-to-PDF execution on a physical iOS device is not proved by native build/link/packaging.",
+    "Physical Apple Pencil hardware is not exercised by simulator gestures."
+  ],
+  "minor_visual_findings": [
+    "At AX5 on iPhone, English Notes Handwriting segment label is partially clipped; this is visual truncation in the existing production layout, not evidence of lost ink/data. Native actions and full regression gate pass; no production redesign in this release."
+  ],
+  "historical_reports_superseded": [
+    "Store/release-verification-2026-10-29.json"
+  ],
+  "stable_application_not_merged": true,
+  "existing_internal14_not_reuploaded": true,
+  "publisher_contracts": {
+    "Python": {
+      "passed": 59,
+      "failed": 0
+    },
+    "Node": {
+      "listing_passed": 19,
+      "presentation_passed": 5,
+      "review_passed": 8,
+      "build_allocation_passed": 18,
+      "failed": 0
+    },
+    "actionlint": "passed",
+    "note": "Presentation initially blocked by local sandbox subprocessEPERM; same5tests passed with subprocesspermission, no code/test change or iOS rerun."
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "status": "candidate15-native-qualified-office-cache-repair-pending",
+  "status": "release-gates-qualified-authorized-sign-upload-review-requested",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
@@ -47,9 +47,9 @@
   "testflight_uploaded": false,
   "app_store_submitted": false,
   "required_before_submission": [
-    "Both original and integration native suites, Maestro and byte exports on the exact store candidate",
-    "Signed native Office archive, Apple validation/upload and completed build processing",
-    "Validated designed screenshots, current review instructions, truthful encryption answers and build attachment before review submission"
+    "Signed archive and IPA validation, accepted Apple upload and completed processing of the exact new build",
+    "Actual Store metadata and 24 localized screenshot resources accepted by Apple; exact processed build attached to 0.6.0",
+    "Official App Review submission and AFTER_APPROVAL readback"
   ],
   "apple_team_id": "ZUB6SJFQA3",
   "age_rating": "4+",
@@ -110,8 +110,8 @@
     "merge_sha": "90dff347b0c460faafd77a31605e7502a7ffb40f"
   },
   "validation": {
-    "all_passed": false,
-    "status": "native-Maestro-exports-gallery-pass-office-failed",
+    "all_passed": true,
+    "status": "all-seven-required-release-jobs-success",
     "source_sha": "d45457bdd216265b11d58ba844fcda22fb6297d9",
     "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
     "run": 41181915781,
@@ -168,8 +168,8 @@
     },
     "gallery_job": 124499556333,
     "gallery_status": "success-64-current-captures-visually-reviewed",
-    "office_device_job": 124499616174,
-    "office_device_status": "failed-static-archive-after-restoring-machine-specific-TMPDIR",
+    "office_device_job": 124828906488,
+    "office_device_status": "success-complete-native-engine-iphoneos-and-verified-unsigned-IPA",
     "gallery_artifact": {
       "id": 13037308637,
       "size": 55554062,
@@ -186,6 +186,66 @@
       ],
       "orientation": "Original landscape PNGs have nativeEXIF8 and correct orientedwindowaspect; originalbytes not rotated/cropped/edited. Analysiscontactsheet honors EXIF forinspection only.",
       "visible_ink": "Actual PDF and Notes gestures/retainedstroke visible in actualcaptures; automated liveink/Undo/Redo and durablePKDrawing tests pass."
+    },
+    "qualification_attempt": 2,
+    "required_job_results": [
+      {
+        "name": "tools",
+        "id": 124828906013,
+        "conclusion": "success"
+      },
+      {
+        "name": "regression (iPhone)",
+        "id": 124828906612,
+        "conclusion": "success"
+      },
+      {
+        "name": "regression (iPad)",
+        "id": 124828906731,
+        "conclusion": "success"
+      },
+      {
+        "name": "test (iPhone)",
+        "id": 124828906835,
+        "conclusion": "success"
+      },
+      {
+        "name": "test (iPad)",
+        "id": 124828906994,
+        "conclusion": "success"
+      },
+      {
+        "name": "production-review / gallery",
+        "id": 124828907021,
+        "conclusion": "success"
+      },
+      {
+        "name": "device-package / ios-engine",
+        "id": 124828906488,
+        "conclusion": "success"
+      }
+    ],
+    "retained_successes_not_rerun": true,
+    "only_retried_job": "device-package / ios-engine after proved corrected Office checkpoint",
+    "engine_artifact": {
+      "id": 13080813474,
+      "sha256": "42f462205aed991a63e1cab4e128906191d8f81482ac09c0c32c77fddf87eef1",
+      "bytes": 265995124
+    },
+    "verified_unsigned_ipa": {
+      "artifact": 13080589840,
+      "artifact_sha256": "212a0a9bb8758d68a3f3d9224c692638866ba1d93805ff975347874f7fef78bb",
+      "ipa_sha256": "bac4f669dcd6a79ff50295c10a00bab86b541d1e1b38a50e6dcd8fbc8f95451b",
+      "source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+      "version": "0.6.0",
+      "build": "15",
+      "bundle_identifier": "com.ahmadalawi.hashiya",
+      "architecture": "arm64",
+      "platform": "iphoneos",
+      "zip_crc_verified": true,
+      "native_office_resources_verified": true,
+      "privacy_manifest_verified": true,
+      "signed": false
     }
   },
   "latest_store_rejection": {
@@ -208,17 +268,6 @@
     "reviewed": true,
     "specification_audit": "Read-onlyreview:12actualPNGs8bitRGBnoalpha, iPhone1206x2622APP_IPHONE_61 andiPad2064x2752APP_IPAD_PRO_3GEN_129 validofficialAPI4.5.1; meetcurrentofficialheadline mediumDynamicIsland+iPad13requirements. Lowerlarge-slotwordingconflicts, no confirmedsize/APIdefect. Preserveapproved12andrequireactualAppleprocessing/submissionvalidation; artwork-onlyfallbackifAppleactuallyrequiresLarge."
   },
-  "pending_repair": {
-    "source": "b4d4c1540b46fec3ce4963e6bb3b997dc79f9461",
-    "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
-    "native_callback_baseline_run": 40924490531,
-    "baseline": "New mounted production test failed both for inline Observable and parent effects; synchronous durable stroke and callback count checks passed.",
-    "change": "One production file: normal Notes commits reuse existing immediate atomic persistence and deferred presentation callback. No visual/data-schema/test-assertion change.",
-    "verification": "20/20Phone,21/21Pad targeted; cold4/4both; full161/161Phone and160/161Pad. All native drawing/Undo cases pass. Separate iPadNextobserver failure blocks qualification.",
-    "public_release_qualified": false,
-    "owner_manual_testing_required": false,
-    "review": "Fresh whole-production review found noCritical/Important; no rendering-causality claim beyond native results"
-  },
   "page_observer_repair": {
     "source": "0df43331bf4e8c56b172cba5392464da54e61b0c",
     "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
@@ -228,7 +277,7 @@
     "targeted_run": 41036303306,
     "targeted_status": "Next/Previous+negativepassedboth41036303306; completeoriginalLightpassedboth41039501898 afternativeMenupreconditionfix",
     "review": "NoCritical/Important; nativePDFAXvaluechecksmodel,visiblepageproofcomesfromoriginalvideo",
-    "publish_qualified": false
+    "verified_in_qualified_run": 41181915781
   },
   "previous_qualification": {
     "all_passed": false,
@@ -419,7 +468,7 @@
     }
   },
   "office_cache_repair": {
-    "status": "cause-proved-continue-original-make-with-portable-config",
+    "status": "verified-original-qualification-office-job-success",
     "failed_job": 124499616174,
     "failed_run": 41181915781,
     "failed_artifact": 13038345001,
@@ -430,7 +479,16 @@
     "red_green_run": 41189643913,
     "red_green_artifact": 13038686137,
     "red_green_artifact_sha256": "143ad738f938de4f272b1fde744a63cf107e27f68f601e02c15d07bd172a757e",
-    "continuation": "Reuse immutable proof, normalize only generatedTMPDIR, originalmake-j4 andpostcheckconfigs, saveportabledefaultcache; noarchiverexperiment/native test repetition"
+    "continuation": "Reuse immutable proof, normalize only generatedTMPDIR, originalmake-j4 andpostcheckconfigs, saveportabledefaultcache; noarchiverexperiment/native test repetition",
+    "cache_repair_run": 41190591221,
+    "cache_repair_artifact": 13038384673,
+    "cache_repair_sha256": "31797428fe8b45f1b9e49823ddaeec4215e125db92fd842acdf84bc9e23c0ee2",
+    "full_original_make_passed": true,
+    "portable_configuration_verified_after_make": true,
+    "cache_key": "native-ios-124ecf55b0f0969b-v2-a8be4f9af0a2-41190591221-portable-tmp",
+    "qualification_office_job": 124828906488,
+    "qualification_attempt": 2,
+    "restored_cache_verified": "native-ios-124ecf55b0f0969b-v2-a8be4f9af0a2-41190591221-portable-tmp"
   },
   "build_availability_current": {
     "run": 41189629372,
@@ -441,5 +499,27 @@
     ],
     "read_only": true,
     "artifact": 13038222211
+  },
+  "production_ink_repair": {
+    "source": "b4d4c1540b46fec3ce4963e6bb3b997dc79f9461",
+    "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "native_callback_baseline_run": 40924490531,
+    "baseline": "New mounted production test failed both for inline Observable and parent effects; synchronous durable stroke and callback count checks passed.",
+    "change": "One production file: normal Notes commits reuse existing immediate atomic persistence and deferred presentation callback. No visual/data-schema/test-assertion change.",
+    "verification": "Verified finald454 source in41181915781:107unit56UI=163each,0fail0skip0expected plusoriginalcold4each andMaestro3each; same-sourceOfficeiphoneos andIPAverified.",
+    "owner_manual_testing_required": false,
+    "review": "Fresh whole-production review found noCritical/Important; no rendering-causality claim beyond native results",
+    "status": "production-repair-verified-in-final-release-gate"
+  },
+  "official_candidate": {
+    "version": "0.6.0",
+    "build": "15",
+    "source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+    "gate_qualified": true,
+    "signed": false,
+    "uploaded": false,
+    "app_review_submitted": false,
+    "requested_release_type": "AFTER_APPROVAL",
+    "existing_internal14_preserved": true
   }
 }

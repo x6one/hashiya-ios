@@ -8,5 +8,7 @@
   "qualified_run": 41181915781,
   "artwork_source": "7980d8ddd62ac2996d305a40427aa7ed287c500d",
   "artwork_run": 40928381567,
-  "publish_binary": false
+  "publish_binary": true,
+  "submit_for_review": true,
+  "release_after_approval": true
 }

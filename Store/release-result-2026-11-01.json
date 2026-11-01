@@ -1,0 +1,117 @@
+{
+  "recorded_date_Asia_Qatar": "2026-11-01",
+  "version": "0.6.0",
+  "build": "15",
+  "app_id": "6818288428",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "application_source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+  "application_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+  "qualification_run": 41181915781,
+  "qualification_url": "https://github.com/x6one/hashiya-ios/actions/runs/41181915781",
+  "tests_per_device": {
+    "XCTest": 107,
+    "XCUITest": 56,
+    "total": 163,
+    "failed": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "cold_regressions": 4,
+    "Maestro": 3
+  },
+  "original_cases_preserved": {
+    "XCTest": 68,
+    "XCUITest": 32
+  },
+  "actual_exported_bytes_per_device": {
+    "PDF": 3063,
+    "PPTX": 54684
+  },
+  "office_iphoneos_release_gate": "SUCCESS124828906488; exactsource andcompletepinnedlocalengine; no newnative testsreexecutedaftercachefix",
+  "upload": {
+    "run": 41302205282,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/41302205282",
+    "controller": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
+    "Apple_validation_confirmed": true,
+    "Apple_upload_accepted": true,
+    "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "original_IPA_and_archive_bytes_not_retained": true
+  },
+  "apple_processing": {
+    "application_source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+    "application_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+    "controller_source": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
+    "qualified_run": 41181915781,
+    "version": "0.6.0",
+    "build": "15",
+    "apple_build_id": "f708ce7c-681a-4d88-aa82-2b01fc9c5274",
+    "processing_state": "VALID",
+    "signed_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "upload_accepted": true,
+    "apple_processing_confirmed": true,
+    "app_store_submitted": false,
+    "read_only": true,
+    "scope": "Apple build processing only; export compliance, attachment and review are separate.",
+    "verification_controller_source": "f04fb49a7b3cd3f53cf1b5a761620105670f061f",
+    "verification_run": "41303592178",
+    "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "store_listing_ready": false,
+    "new_upload_performed": false
+  },
+  "download_signed_deliverables": {
+    "id": 13082356894,
+    "run": 41303592178,
+    "controller": "f04fb49a7b3cd3f53cf1b5a761620105670f061f",
+    "bytes": 273134766,
+    "sha256": "049b9efd8582b8306db4de4a7bcc956baca76f458aa05ac10bc5fe4fdbd16460",
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/41303592178/artifacts/13082356894",
+    "ipa_sha256": "b8572fdd5c47e4f78ea449e16ad857ae65e064245eac74b101058440563eaa73",
+    "xcarchive_sha256": "32dcdddab2ed17d5f97bdec6b69cff6cc8204537d93859ed724eae6a5139ab13",
+    "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "same_application_source": true,
+    "same_uploaded_bytes": false,
+    "new_upload_performed": false,
+    "signature_verification": "codesign --verify --deep --strict passed on native runner; arm64 and full Office resources verified",
+    "local_size_hash_zip_crc_Info_MachO_profile_and_resource_verification": true
+  },
+  "store_images": {
+    "prepared_images": 12,
+    "uploaded_to0_6_store_version": 0,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/40928381567/artifacts/12922962122",
+    "application_tree_equal_to_candidate": true,
+    "designed_from_actual_native_screenshots": true
+  },
+  "actual_application_gallery": {
+    "current_captures": 64,
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/41181915781/artifacts/13037308637"
+  },
+  "public_store": {
+    "url": "https://apps.apple.com/app/id6818288428",
+    "actual_current_version": "0.4.2",
+    "new0_6publicly_released": false
+  },
+  "remaining_blocker": {
+    "operation": "POST /v1/appStoreVersions",
+    "http_status": 403,
+    "code": "FORBIDDEN_ERROR",
+    "evidence_run": 41300923215,
+    "evidence_artifact": 13081745558,
+    "existing_live_version": "0.4.2",
+    "new_version_record_exists": false,
+    "app_review_submitted": false,
+    "automatic_release_for0_6_configured_in_Apple": false,
+    "action_needed": "App-version creation/review permission in the existing App Store Connect API credentials; all binary/source tests and signing/upload are complete. Do not request owner manual app tests or repeat binaries."
+  },
+  "all_available_authorized_work_completed": true,
+  "owner_upload_review_release_authorization_preserved": true,
+  "stable_app_not_merged": true,
+  "Build14_unchanged": true,
+  "physical_device_limits": [
+    "Microphone acoustic quality and phone-call interruptions are not demonstrated by simulator CI.",
+    "Native Office-to-PDF execution on a physical iOS device is not proved by native build/link/packaging.",
+    "Physical Apple Pencil hardware is not exercised by simulator gestures."
+  ],
+  "minor_visual_findings": [
+    "At AX5 on iPhone, English Notes Handwriting segment label is partially clipped; this is visual truncation in the existing production layout, not evidence of lost ink/data. Native actions and full regression gate pass; no production redesign in this release."
+  ],
+  "resume": "Supply the required App Store Connect app-version/review permissions through existing GitHubSecrets, then finalize Store assets/metadata andsubmit alreadyaccepted Build15 withAFTER_APPROVAL. Do not rebuild/reupload15 or repeat passing native tests."
+}

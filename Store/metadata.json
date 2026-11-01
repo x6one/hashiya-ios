@@ -1,5 +1,5 @@
 {
-  "status": "Build15-upload-accepted-Storeversion403-artifact-rebuild-without-upload-pending",
+  "status": "Build15-accepted-VALID-signed-deliverables-ready-AppReview-blocked-by-StoreVersion403",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
@@ -47,9 +47,9 @@
   "testflight_uploaded": false,
   "app_store_submitted": false,
   "required_before_submission": [
-    "Apple authorization to create and manage the existing app new0.6StoreVersion (POST appStoreVersions currently403)",
-    "Validated Store metadata and24COMPLETElocalizedscreenshotresources, processed exactbuildattachment",
-    "Actual official App Review submission and AFTER_APPROVAL readback"
+    "Provide an App Store Connect API credential authorized to create/manage App Store versions and submit App Review for existing app6818288428 (for example App Manager/Admin), using existing GitHubSecrets; never paste keys into chat",
+    "Create0.6StoreVersion, upload the approved12images as24localizedresources, complete metadata/privacy/review contact and attach alreadyaccepted Build15 f708ce7c-681a-4d88-aa82-2b01fc9c5274",
+    "Submit official AppReview and verify AFTER_APPROVAL; never reupload14 or15 or rerun native suites without new production changes"
   ],
   "apple_team_id": "ZUB6SJFQA3",
   "age_rating": "4+",
@@ -74,8 +74,10 @@
     "status": "READY_FOR_SALE",
     "app_store_version_id": "042f6036-ab32-44fb-b270-1586f406bc18",
     "verified": "2026-11-01",
-    "read_only_run": 41300923215,
-    "automatically_release_after_approval": true
+    "read_only_run": 41303592178,
+    "automatically_release_after_approval": true,
+    "public_store_lookup_version": "0.4.2",
+    "public_store_url": "https://apps.apple.com/app/id6818288428"
   },
   "testflight": {
     "version": "0.6.0",
@@ -526,8 +528,26 @@
     "accepted_upload_run": 41302205282,
     "accepted_upload_controller": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
     "uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
-    "processing_state": "not-yet-read-back",
-    "signed_deliverables": "OriginalacceptedIPAnotretainedbecausepostuploadlipoargumentorderfailed; rebuildingfromsameAppsourcewithoutupload;rebuildSHAwillbelabeledseparately."
+    "processing_state": "VALID",
+    "signed_deliverables": {
+      "id": 13082356894,
+      "run": 41303592178,
+      "controller": "f04fb49a7b3cd3f53cf1b5a761620105670f061f",
+      "bytes": 273134766,
+      "sha256": "049b9efd8582b8306db4de4a7bcc956baca76f458aa05ac10bc5fe4fdbd16460",
+      "url": "https://github.com/x6one/hashiya-ios/actions/runs/41303592178/artifacts/13082356894",
+      "ipa_sha256": "b8572fdd5c47e4f78ea449e16ad857ae65e064245eac74b101058440563eaa73",
+      "xcarchive_sha256": "32dcdddab2ed17d5f97bdec6b69cff6cc8204537d93859ed724eae6a5139ab13",
+      "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+      "same_application_source": true,
+      "same_uploaded_bytes": false,
+      "new_upload_performed": false,
+      "signature_verification": "codesign --verify --deep --strict passed on native runner; arm64 and full Office resources verified",
+      "local_size_hash_zip_crc_Info_MachO_profile_and_resource_verification": true
+    },
+    "apple_processing_confirmed": true,
+    "apple_build_id": "f708ce7c-681a-4d88-aa82-2b01fc9c5274",
+    "public_release_confirmed": false
   },
   "apple_store_blocker": {
     "run": 41300923215,
@@ -540,6 +560,8 @@
     "signed_or_uploaded_by_failed_prepare": false,
     "evidence_artifact": 13081745558,
     "evidence_sha256": "37692d3aa1a0a9a7c107dcb6d9ebe64b2ffe8c9aae91423cf8f76c141fead6e0",
-    "scope": "Current API credentials can read the app/builds; create0.6StoreVersion is forbidden. Binary upload is independently authorized and retains all native/signature gates; no App Review readiness is claimed."
+    "scope": "POSTappStoreVersions403 blocks creation of0.6StoreVersion and therefore Store metadata/screenshots/build attachment/AppReview. Exact accepted binary upload andVALID processing succeeded independently; no new upload is required.",
+    "status": "still-unresolved-no0.6StoreVersion-in-latest-Apple-readback",
+    "latest_readback_run": 41303592178
   }
 }

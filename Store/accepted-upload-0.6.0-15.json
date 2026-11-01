@@ -14,11 +14,30 @@
   "uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
   "receipt_artifact": 13081338319,
   "receipt_artifact_sha256": "577b677cdf4a2ebf37c54e549688a902fd4b60a8f30d24a6d8687a89a3cb7e67",
-  "processing_confirmed": false,
+  "processing_confirmed": true,
   "app_store_submitted": false,
   "store_listing_ready": false,
   "store_version_blocker": "POSTappStoreVersions403FORBIDDEN_ERROR",
   "original_signed_files_retained": false,
   "retention_failure": "lipo inputfilemustprecede-verify_arch; postuploadpackagingfailedafteractualAppleacceptance",
-  "recovery": "RebuildsignedIPA/XCArchivefromidenticalAppsourceusingoriginal--archive-only;nonewupload;labelnewhashseparatelyfromactualuploadedIPAhash"
+  "recovery": "RebuildsignedIPA/XCArchivefromidenticalAppsourceusingoriginal--archive-only;nonewupload;labelnewhashseparatelyfromactualuploadedIPAhash",
+  "processing_state": "VALID",
+  "apple_build_id": "f708ce7c-681a-4d88-aa82-2b01fc9c5274",
+  "processing_verification_run": 41303592178,
+  "signed_artifact_recovery": {
+    "id": 13082356894,
+    "run": 41303592178,
+    "controller": "f04fb49a7b3cd3f53cf1b5a761620105670f061f",
+    "bytes": 273134766,
+    "sha256": "049b9efd8582b8306db4de4a7bcc956baca76f458aa05ac10bc5fe4fdbd16460",
+    "url": "https://github.com/x6one/hashiya-ios/actions/runs/41303592178/artifacts/13082356894",
+    "ipa_sha256": "b8572fdd5c47e4f78ea449e16ad857ae65e064245eac74b101058440563eaa73",
+    "xcarchive_sha256": "32dcdddab2ed17d5f97bdec6b69cff6cc8204537d93859ed724eae6a5139ab13",
+    "original_uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "same_application_source": true,
+    "same_uploaded_bytes": false,
+    "new_upload_performed": false,
+    "signature_verification": "codesign --verify --deep --strict passed on native runner; arm64 and full Office resources verified",
+    "local_size_hash_zip_crc_Info_MachO_profile_and_resource_verification": true
+  }
 }

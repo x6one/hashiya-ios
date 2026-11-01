@@ -8,7 +8,7 @@
   "qualified_run": 41181915781,
   "artwork_source": "7980d8ddd62ac2996d305a40427aa7ed287c500d",
   "artwork_run": 40928381567,
-  "publish_binary": true,
+  "publish_binary": false,
   "submit_for_review": true,
   "release_after_approval": true,
   "upload_qualified_binary": false,
@@ -21,7 +21,7 @@
     "operation": "POST appStoreVersions",
     "http_status": 403
   },
-  "recover_signed_artifacts": true,
+  "recover_signed_artifacts": false,
   "accepted_upload": {
     "run": 41302205282,
     "controller": "7f3bdaad659f34d4d6fd00d434b0458009b33b78",
@@ -29,5 +29,13 @@
     "bytes": 3457,
     "artifact_sha256": "577b677cdf4a2ebf37c54e549688a902fd4b60a8f30d24a6d8687a89a3cb7e67",
     "ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa"
+  },
+  "existing_accepted_build": {
+    "id": "f708ce7c-681a-4d88-aa82-2b01fc9c5274",
+    "version": "0.6.0",
+    "build": "15",
+    "processing_state": "VALID",
+    "uploaded_ipa_sha256": "2844ff75ba6b6b0f9d04aa8ef0e4781cd775c336e9c1da20b77849a7500cc5fa",
+    "do_not_upload_again": true
   }
 }

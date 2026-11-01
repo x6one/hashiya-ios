@@ -552,3 +552,213 @@ jobs:
             Store/presentation-compatibility.json
           if-no-files-found: warn
           retention-days: 14
+  qualified-binary:
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:upload-qualified-binary]') }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the separately authorized immutable release
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          c=json.loads(Path('Store/publication.json').read_text())
+          assert c.get('publish_binary') is True,'Binary publication is not enabled'
+          assert re.fullmatch('[a-f0-9]{40}',c['app_source'])
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('APP_SOURCE='+c['app_source']+'\n')
+              f.write('ARTWORK_RUN='+str(c.get('render_run',c['artwork_run']))+'\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_SOURCE }}
+          path: hashiya-tools
+      - name: Require the exact preserved Apple metadata403 before binary-only continuation
+        run: python3 Tools/store_release.py binary-proof
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-App-Store-Designed-Screenshots
+          run-id: ${{ env.ARTWORK_RUN }}
+          github-token: ${{ github.token }}
+          path: StoreArtwork
+      - name: Recheck every gate and consume only its exact native engine artifact
+        run: |
+          node Tools/publish_store_listing.mjs --qualify-only --application-path hashiya-tools
+          python3 Tools/store_release.py binary-source
+          python3 Tools/store_release.py binary-engine
+      - name: Reuse the original device linkage and build tools
+        run: |
+          set -o pipefail
+          command -v xcodegen >/dev/null || brew install xcodegen
+          test -x "$(brew --prefix openssl@3)/bin/openssl" || brew install openssl@3
+          if ! python3 -c 'import yaml'; then
+            python3 -m venv "$RUNNER_TEMP/tayya-store-python"
+            "$RUNNER_TEMP/tayya-store-python/bin/python" -m pip install PyYAML
+            echo "$RUNNER_TEMP/tayya-store-python/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/tayya-store-python/bin:$PATH"
+          fi
+          python3 hashiya-tools/Tools/select_app_xcode.py
+          python3 hashiya-tools/Tools/link_office_engine.py OfficeEngineCandidate diagnostics/link-probe
+          cd hashiya-tools
+          python3 Tools/prepare_native_office_app.py ../OfficeEngineCandidate ../diagnostics/link-probe project.yml
+          xcodegen generate --spec NativeOfficeProject.yml
+          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath NativeDeviceBuild CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../diagnostics/native-app-build.log
+      - name: Verify the built source before credentials are provided
+        run: python3 Tools/store_release.py binary-source
+      - name: Verify current Apple state before any binary upload
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node Tools/app_store_readiness.mjs store-before-upload.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          state=json.loads(Path('store-before-upload.json').read_text())
+          config=json.loads(Path('Store/publication.json').read_text())
+          assert state.get('ready_for_distribution_authentication') is True
+          assert state.get('target_build')==str(config['build']), 'Apple response belongs to another target build'
+          assert state.get('version_0_6_build_exists') is False,'Exact build already exists; inspect processing instead of attempting a duplicate upload'
+          PY
+      - name: Archive validate and upload with the unchanged native distribution helper
+        working-directory: hashiya-tools
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: python3 Tools/distribute_native_app.py --preserve-archive
+      - name: Attest the actual app checkout separately from the controller commit
+        run: python3 Tools/store_release.py binary-receipt
+      - name: Retain the verified signed IPA and XCArchive with the actual upload state
+        if: always()
+        run: |
+          python3 - <<'PY_VERIFIED'
+          import hashlib, json, os, plistlib, shutil, subprocess, zipfile
+          from pathlib import Path
+          root=Path('AppleDistribution')
+          config=json.loads(Path('Store/publication.json').read_text())
+          report_path=root/'distribution-report.json'
+          report=json.loads(report_path.read_text()) if report_path.is_file() else {}
+          from Tools.store_release import verify_checkout, write_provenance
+          verify_checkout(config,Path('hashiya-tools'))
+          if not (root/'distribution-report.json').is_file():
+              print('No verified signed archive was produced'); raise SystemExit(0)
+          if not all(report.get(k) is True for k in ['code_signed','archive_retained']):
+              print('No verified signed archive was produced'); raise SystemExit(0)
+          engine=json.loads(Path('store-engine-receipt.json').read_text())
+          if report.get('upload_accepted') is True:
+              provenance=write_provenance(config,Path('hashiya-tools'),root,engine,os.environ['GITHUB_SHA'])
+          else:
+              assert report['source_commit']==os.environ['GITHUB_SHA'] and report['team']=='ZUB6SJFQA3'
+              provenance=dict(application_source=config['app_source'],application_tree=config['app_tree'],
+                  controller_source=os.environ['GITHUB_SHA'],qualified_run=config['qualified_run'],engine=engine,
+                  signed_ipa_sha256=report['sha256'],upload_accepted=False,apple_processing_confirmed=False,app_store_submitted=False)
+          provenance.update(upload_only=True,store_listing_ready=False,store_listing_blocker=config['store_listing_blocker'])
+          assert provenance['application_source']==config['app_source'] and provenance['application_tree']==config['app_tree']
+          assert provenance['controller_source']==os.environ['GITHUB_SHA'] and isinstance(provenance['upload_accepted'],bool)
+          archive=root/'Tayya.xcarchive'
+          app=archive/'Products/Applications/Hashiya.app'
+          info=plistlib.loads((app/'Info.plist').read_bytes())
+          assert (info['CFBundleIdentifier'],info['CFBundleShortVersionString'],str(info['CFBundleVersion']))==(config['bundle_id'],config['version'],str(config['build']))
+          subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
+          subprocess.run(['xcrun','lipo','-verify_arch','arm64',str(app/info['CFBundleExecutable'])],check=True)
+          def digest(path):
+              with path.open('rb') as file:return hashlib.file_digest(file,'sha256').hexdigest()
+          ipas=list((root/'Export').glob('*.ipa'))
+          assert len(ipas)==1 and digest(ipas[0])==provenance['signed_ipa_sha256']==report['sha256']
+          verified=root/'PendingVerified'
+          verified.mkdir()
+          ipa=verified/'Tayya.ipa'
+          shutil.copy2(ipas[0],ipa)
+          assert digest(ipa)==provenance['signed_ipa_sha256']
+          packed=verified/'Tayya.xcarchive.zip'
+          subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(archive),str(packed)],check=True)
+          with zipfile.ZipFile(packed) as zipped:
+              assert zipped.testzip() is None
+              assert 'Tayya.xcarchive/Products/Applications/Hashiya.app/Info.plist' in zipped.namelist()
+          assert provenance['signed_ipa_sha256']==report['sha256']
+          provenance.update({'xcarchive_zip_sha256':digest(packed),'verified_artifacts':['Tayya.ipa','Tayya.xcarchive.zip']})
+          (root/'store-publication-provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          (verified/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.name+'\n' for p in [ipa,packed]))
+          (verified/'release-provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+          # Expose binaries to the always-upload step only after every check
+          # and manifest write completes; a failed pack leaves no Verified path.
+          verified.rename(root/'Verified')
+          PY_VERIFIED
+      - name: Retain the small immutable upload receipt for read-only processing verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Qualified-Upload-Receipt
+          path: |
+            AppleDistribution/store-publication-provenance.json
+            StoreDraft/store-listing-report.json
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Qualified-Signed-Build
+          path: |
+            AppleDistribution/Verified/
+            AppleDistribution/distribution-report.json
+            AppleDistribution/store-publication-provenance.json
+            store-engine-receipt.json
+            store-before-upload.json
+            diagnostics/link-probe/link-report.json
+          retention-days: 14
+  qualified-binary-processing:
+    needs: qualified-binary
+    if: ${{ github.event_name == 'push' && github.repository == 'x6one/hashiya-ios' && github.ref == 'refs/heads/store/tayya-app-store-content' && contains(github.event.head_commit.message, '[store:upload-qualified-binary]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tayya-Qualified-Upload-Receipt
+          path: .
+      - name: Verify the same-run accepted upload before using Apple credentials
+        run: python3 Tools/store_release.py binary-processing-source
+      - name: Confirm actual Apple processing without repeating the binary upload
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 - <<'PY_PROCESSING'
+          import subprocess, time
+          deadline = time.monotonic() + 1200
+          while True:
+              remaining = deadline - time.monotonic()
+              if remaining <= 0:
+                  raise SystemExit('Apple build processing is still pending after20min; retain evidence, do not upload again')
+              subprocess.run(['node', 'Tools/app_store_readiness.mjs', 'store-after-upload.json'],
+                             check=True, timeout=min(100, remaining))
+              check = subprocess.run(['python3', 'Tools/store_release.py', 'binary-processing'])
+              if check.returncode == 0:
+                  break
+              if check.returncode != 10:
+                  check.check_returncode()
+              time.sleep(min(20, max(0, deadline - time.monotonic())))
+          PY_PROCESSING
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tayya-Qualified-Apple-Processing
+          path: |
+            store-after-upload.json
+            store-processing-report.json
+          retention-days: 14

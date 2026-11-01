@@ -229,5 +229,27 @@
     },
     "actionlint": "passed",
     "note": "Presentation initially blocked by local sandbox subprocessEPERM; same5tests passed with subprocesspermission, no code/test change or iOS rerun."
+  },
+  "apple_store_preparation": {
+    "run": 41300923215,
+    "controller": "319d506f39eee6927808562c10e268044bef0cd1",
+    "status": "failed-403-before-creating-0.6-version",
+    "operation": "POST appStoreVersions",
+    "http_status": 403,
+    "artifact": 13081745558,
+    "artifact_sha256": "37692d3aa1a0a9a7c107dcb6d9ebe64b2ffe8c9aae91423cf8f76c141fead6e0",
+    "no_binary_upload_or_review_performed": true
+  },
+  "qualified_binary_continuation": {
+    "status": "requested-not-yet-executed",
+    "all_seven_release_gates_preserved": true,
+    "new_authorization_and403_boundary_tests": "REDthenGREEN,originalpubliclistinggatecontinuesrejecting403",
+    "original_signer_and_secrets_unchanged": true,
+    "no_native_tests_repeated": true,
+    "store_listing_ready": false,
+    "app_review_submitted": false,
+    "publisher_python_tests_passed": 63,
+    "review": "NoCritical; ImportantpartialartifactpathfixedbyatomicPendingVerified-to-Verifiedrename, actualworkflowfailure/successfilesystemregressionsREDthenGREEN; public/reviewguardsunchanged",
+    "artifact_rule": "No signedbinaryappearsinuploadedVerifieddirectoryuntilcopy/hash/ZIPCRC/provenance/SHA256SUMSwritescomplete."
   }
 }

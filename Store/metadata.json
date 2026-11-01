@@ -1,5 +1,5 @@
 {
-  "status": "release-gates-qualified-authorized-sign-upload-review-requested",
+  "status": "native-qualified-binary-upload-continuation-store-version-creation-forbidden",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
@@ -47,9 +47,9 @@
   "testflight_uploaded": false,
   "app_store_submitted": false,
   "required_before_submission": [
-    "Signed archive and IPA validation, accepted Apple upload and completed processing of the exact new build",
-    "Actual Store metadata and 24 localized screenshot resources accepted by Apple; exact processed build attached to 0.6.0",
-    "Official App Review submission and AFTER_APPROVAL readback"
+    "Apple authorization to create and manage the existing app new0.6StoreVersion (POST appStoreVersions currently403)",
+    "Validated Store metadata and24COMPLETElocalizedscreenshotresources, processed exactbuildattachment",
+    "Actual official App Review submission and AFTER_APPROVAL readback"
   ],
   "apple_team_id": "ZUB6SJFQA3",
   "age_rating": "4+",
@@ -73,8 +73,8 @@
     "version": "0.4.2",
     "status": "READY_FOR_SALE",
     "app_store_version_id": "042f6036-ab32-44fb-b270-1586f406bc18",
-    "verified": "2026-10-25",
-    "read_only_run": 40190287201,
+    "verified": "2026-11-01",
+    "read_only_run": 41300923215,
     "automatically_release_after_approval": true
   },
   "testflight": {
@@ -520,6 +520,20 @@
     "uploaded": false,
     "app_review_submitted": false,
     "requested_release_type": "AFTER_APPROVAL",
-    "existing_internal14_preserved": true
+    "existing_internal14_preserved": true,
+    "store_listing_ready": false
+  },
+  "apple_store_blocker": {
+    "run": 41300923215,
+    "job": 124831465170,
+    "operation": "POST /v1/appStoreVersions",
+    "http_status": 403,
+    "code": "FORBIDDEN_ERROR",
+    "version_record_0_6_exists": false,
+    "screenshots_uploaded": 0,
+    "signed_or_uploaded_by_failed_prepare": false,
+    "evidence_artifact": 13081745558,
+    "evidence_sha256": "37692d3aa1a0a9a7c107dcb6d9ebe64b2ffe8c9aae91423cf8f76c141fead6e0",
+    "scope": "Current API credentials can read the app/builds; create0.6StoreVersion is forbidden. Binary upload is independently authorized and retains all native/signature gates; no App Review readiness is claimed."
   }
 }

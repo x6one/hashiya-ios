@@ -76,6 +76,70 @@ def verify_authorization(config, environment, event):
         raise ValueError("Explicit authorized Store publication request is absent")
 
 
+def verify_binary_scope(config, environment, event):
+    validate_target(config)
+    if (config.get("publish_binary") is not True or config.get("upload_qualified_binary") is not True
+            or environment.get("GITHUB_EVENT_NAME") != "push"
+            or environment.get("GITHUB_REPOSITORY") != "x6one/hashiya-ios"
+            or environment.get("GITHUB_REF") != "refs/heads/store/tayya-app-store-content"
+            or "[store:upload-qualified-binary]" not in event.get("head_commit", {}).get("message", "")):
+        raise ValueError("Explicit qualified binary-only upload authorization is absent")
+
+
+def verify_binary_listing_authorization(config, environment, event, listing):
+    """A proved Store403 permits an authorized binary upload, never App Review."""
+    verify_binary_scope(config, environment, event)
+    blocker = config.get("store_listing_blocker", {})
+    if (not str(blocker.get("run", "")).isdigit()
+            or not re.fullmatch("[a-f0-9]{40}", blocker.get("controller", ""))
+            or any(str(listing.get(key)) != str(config[key]) for key in ("app_id", "version", "build"))
+            or listing.get("application_tree") != config["app_tree"]
+            or listing.get("artwork_source") != config["artwork_source"]
+            or listing.get("run") != str(blocker["run"])
+            or listing.get("mode") != "prepare-draft-only"
+            or listing.get("error") != "Apple API POST appStoreVersions HTTP 403: FORBIDDEN_ERROR"
+            or listing.get("screenshots") != [] or listing.get("screenshot_sets") != []):
+        raise ValueError("Binary-only upload requires this exact preserved Apple metadata403")
+    return {"upload_only": True, "store_listing_ready": False, "app_review_submitted": False}
+
+
+def fetch_binary_listing_proof(config, environment, event):
+    verify_binary_scope(config, environment, event)
+    blocker = config.get("store_listing_blocker", {})
+    if (not str(blocker.get("artifact", "")).isdigit()
+            or not re.fullmatch("[a-f0-9]{64}", blocker.get("sha256", ""))
+            or not isinstance(blocker.get("bytes"), int) or not 0 < blocker["bytes"] < 65536):
+        raise ValueError("Invalid preserved Store403 artifact identity")
+    endpoint = f"repos/x6one/hashiya-ios/actions/artifacts/{blocker['artifact']}"
+    metadata = json.loads(subprocess.check_output(["gh", "api", endpoint], text=True))
+    if (metadata.get("expired") is not False or metadata.get("name") != "Tayya-Store-draft-receipt"
+            or metadata.get("workflow_run", {}).get("id") != blocker.get("run")
+            or metadata.get("workflow_run", {}).get("head_sha") != blocker.get("controller")
+            or metadata.get("size_in_bytes") != blocker["bytes"]
+            or metadata.get("digest") != "sha256:" + blocker["sha256"]):
+        raise ValueError("Preserved Store403 artifact source/run/digest differs")
+    archive = Path("preserved-store403.zip")
+    with archive.open("xb") as output:
+        subprocess.run(["gh", "api", endpoint + "/zip"], stdout=output, check=True)
+    if archive.stat().st_size != blocker["bytes"] or digest(archive) != blocker["sha256"]:
+        raise ValueError("Preserved Store403 ZIP bytes differ")
+    with zipfile.ZipFile(archive) as zipped:
+        if (sorted(zipped.namelist()) != ["store-apple-readiness.json", "store-listing-report.json"]
+                or sum(row.file_size for row in zipped.infolist()) > 65536 or zipped.testzip() is not None):
+            raise ValueError("Invalid preserved Store403 ZIP structure")
+        listing = json.loads(zipped.read("store-listing-report.json"))
+        readiness = json.loads(zipped.read("store-apple-readiness.json"))
+        verify_binary_listing_authorization(config, environment, event, listing)
+        if (readiness.get("source") != blocker["controller"] or readiness.get("read_only") is not True
+                or readiness.get("app", {}).get("id") != config["app_id"]
+                or readiness.get("app", {}).get("bundle_id") != config["bundle_id"]):
+            raise ValueError("Store403 read-only Apple identity is not verified")
+        root = Path("StoreDraft")
+        root.mkdir(exist_ok=False)
+        for name in zipped.namelist():
+            (root / name).write_bytes(zipped.read(name))
+
+
 def verify_listing(report, config):
     validate_target(config)
     if any(str(report.get(key)) != str(config[key]) for key in ("app_id", "version", "build")):
@@ -243,16 +307,26 @@ def verify_processing(config, apple, upload, controller):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=["engine", "source", "receipt", "processing", "processing-source"])
+    parser.add_argument("operation", choices=["engine", "source", "receipt", "processing", "processing-source", "binary-proof", "binary-engine", "binary-source", "binary-receipt", "binary-processing", "binary-processing-source"])
     args = parser.parse_args()
     config = json.loads(Path("Store/publication.json").read_text())
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-    verify_authorization(config, os.environ, event)
-    verify_listing(json.loads(Path("StoreDraft/store-listing-report.json").read_text()), config)
-    if args.operation in ("processing", "processing-source"):
+    binary = args.operation.startswith("binary-")
+    operation = args.operation.removeprefix("binary-")
+    if binary:
+        if operation == "proof":
+            fetch_binary_listing_proof(config, os.environ, event)
+            print("Exact preserved Apple403 verified; this authorizes no metadata writes or review submission")
+            return
+        boundary = verify_binary_listing_authorization(config, os.environ, event,
+            json.loads(Path("StoreDraft/store-listing-report.json").read_text()))
+    else:
+        verify_authorization(config, os.environ, event)
+        verify_listing(json.loads(Path("StoreDraft/store-listing-report.json").read_text()), config)
+    if operation in ("processing", "processing-source"):
         upload = json.loads(Path("AppleDistribution/store-publication-provenance.json").read_text())
         verify_upload_receipt(config, upload, os.environ["GITHUB_SHA"])
-        if args.operation == "processing-source":
+        if operation == "processing-source":
             print("Current trusted upload receipt is qualified; no Apple credential has been used")
             return
         try:
@@ -266,16 +340,19 @@ def main():
                 "read_only": True, "error": str(error)
             }, indent=2) + "\n")
             raise
+        if binary:
+            receipt.update(boundary)
+            receipt["store_listing_blocker"] = config["store_listing_blocker"]
         Path("store-processing-report.json").write_text(json.dumps(receipt, indent=2) + "\n")
         print("Apple build" + str(config["build"]) + " processing: " + receipt["processing_state"])
         if not receipt["apple_processing_confirmed"]:
             raise SystemExit(10)  # Pending is not success and never asks for another upload.
         return
-    if args.operation == "source":
+    if operation == "source":
         verify_checkout(config, Path("hashiya-tools"))
         print("Actual application checkout is still the clean qualified source")
         return
-    if args.operation == "engine":
+    if operation == "engine":
         endpoint = f"repos/x6one/hashiya-ios/actions/runs/{config['qualified_run']}/artifacts?per_page=100"
         artifacts = json.loads(subprocess.check_output(["gh", "api", endpoint], text=True))["artifacts"]
         matches = [a for a in artifacts if a["name"] == ARTIFACT and not a["expired"]]
@@ -292,6 +369,9 @@ def main():
     else:
         receipt = write_provenance(config, Path("hashiya-tools"), Path("AppleDistribution"),
                                    json.loads(Path("store-engine-receipt.json").read_text()), os.environ["GITHUB_SHA"])
+        if binary:
+            receipt.update(boundary)
+            receipt["store_listing_blocker"] = config["store_listing_blocker"]
         Path("AppleDistribution/store-publication-provenance.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print("Verified the qualified artifact/source boundary; no credential material logged")
 

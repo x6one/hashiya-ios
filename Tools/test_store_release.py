@@ -354,4 +354,115 @@ class AppleProcessingTests(unittest.TestCase):
             self.assertIn("failed", report["error"])
 
 
+class QualifiedBinaryBoundaryTests(unittest.TestCase):
+    def setUp(self):
+        self.config = dict(app_id="6818288428", bundle_id="com.ahmadalawi.hashiya", version="0.6.0", build="15",
+                           app_source="a" * 40, app_tree="b" * 40, qualified_run=42, artwork_source="d" * 40,
+                           publish_binary=True, upload_qualified_binary=True,
+                           store_listing_blocker=dict(run=43, controller="c" * 40))
+        self.environment = dict(GITHUB_EVENT_NAME="push", GITHUB_REPOSITORY="x6one/hashiya-ios",
+                                GITHUB_REF="refs/heads/store/tayya-app-store-content")
+        self.event = dict(head_commit=dict(message="[store:upload-qualified-binary]"))
+        self.blocked = dict(app_id="6818288428", version="0.6.0", build="15", application_tree="b" * 40,
+                            artwork_source="d" * 40, run="43", mode="prepare-draft-only", screenshots=[], screenshot_sets=[],
+                            error="Apple API POST appStoreVersions HTTP 403: FORBIDDEN_ERROR")
+
+    def verify(self, config=None, environment=None, event=None, listing=None):
+        check = getattr(store_release, "verify_binary_listing_authorization", None)
+        self.assertTrue(callable(check), "A metadata403 cannot silently satisfy the public Store gate; explicit upload-only authorization is required")
+        return check(config or self.config, environment or self.environment, event or self.event, listing or self.blocked)
+
+    def test_explicit_qualified_binary_upload_does_not_attest_store_readiness(self):
+        self.assertEqual(self.verify(), dict(upload_only=True, store_listing_ready=False, app_review_submitted=False))
+        with self.assertRaises(ValueError):
+            verify_listing(self.blocked, self.config)
+        with self.assertRaises(ValueError):
+            verify_authorization(self.config, self.environment, self.event)
+
+    def test_wrong_scope_or_other_failure_cannot_enable_binary_only_upload(self):
+        for key,value in [("publish_binary",False),("upload_qualified_binary",False),("app_id","another"),("build","14")]:
+            with self.subTest(config=key):
+                changed=copy.deepcopy(self.config);changed[key]=value
+                with self.assertRaises(ValueError):self.verify(config=changed)
+        for key,value in [("GITHUB_EVENT_NAME","pull_request"),("GITHUB_REPOSITORY","other/repo"),("GITHUB_REF","refs/heads/main")]:
+            with self.subTest(scope=key):
+                changed=dict(self.environment);changed[key]=value
+                with self.assertRaises(ValueError):self.verify(environment=changed)
+        with self.assertRaises(ValueError):self.verify(event=dict(head_commit=dict(message="[store:publish-approved]")))
+        for key,value in [("error","Apple API POST appStoreVersions HTTP 500: SERVER_ERROR"),("run","44"),
+                          ("application_tree","e"*40),("version","0.4.2"),("screenshots",[{"state":"FAILED"}])]:
+            with self.subTest(proof=key):
+                changed=copy.deepcopy(self.blocked);changed[key]=value
+                with self.assertRaises(ValueError):self.verify(listing=changed)
+
+
+class SignedArtifactRetentionTests(unittest.TestCase):
+    def exercise_retention(self, fail_archive):
+        from contextlib import chdir
+        from unittest.mock import patch
+        import plistlib
+        import sys
+        import yaml
+        repository = Path.cwd()
+        workflow = yaml.safe_load(Path('.github/workflows/tayya-store-listing.yml').read_text())
+        step = next(s for s in workflow['jobs']['qualified-binary']['steps'] if s.get('name','').startswith('Retain the verified signed IPA'))
+        script = step['run'].split("python3 - <<'PY_VERIFIED'\n", 1)[1].split('\nPY_VERIFIED', 1)[0]
+        actual_run = subprocess.run
+        with tempfile.TemporaryDirectory() as folder, chdir(folder):
+            root = Path(folder)
+            app_source = root / 'hashiya-tools'
+            (app_source / 'App').mkdir(parents=True)
+            (app_source / 'App/main.swift').write_text('// isolated source fixture')
+            for command in [['git','init','-q',str(app_source)], ['git','-C',str(app_source),'add','.'],
+                            ['git','-C',str(app_source),'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','fixture']]:
+                actual_run(command,check=True)
+            git = lambda value: subprocess.check_output(['git','-C',str(app_source),'rev-parse',value],text=True).strip()
+            config = dict(app_id='6818288428',bundle_id='com.ahmadalawi.hashiya',version='0.6.0',build='15',
+                          app_source=git('HEAD'),app_tree=git('HEAD:App'),qualified_run=42,store_listing_blocker=dict(http_status=403))
+            Path('Store').mkdir();Path('Store/publication.json').write_text(json.dumps(config))
+            distribution = Path('AppleDistribution');(distribution/'Export').mkdir(parents=True)
+            archive_app=distribution/'Tayya.xcarchive/Products/Applications/Hashiya.app';archive_app.mkdir(parents=True)
+            (archive_app/'Info.plist').write_bytes(plistlib.dumps(dict(CFBundleIdentifier='com.ahmadalawi.hashiya',CFBundleShortVersionString='0.6.0',CFBundleVersion='15',CFBundleExecutable='Hashiya')))
+            (archive_app/'Hashiya').write_bytes(b'platform-signature-boundary-fixture')
+            ipa=distribution/'Export/fixture.ipa'
+            with zipfile.ZipFile(ipa,'w') as packed:packed.writestr('Payload/Hashiya.app/fixture',b'isolated IPA bytes')
+            report=dict(source_commit='c'*40,team='ZUB6SJFQA3',code_signed=True,archive_retained=True,upload_accepted=False,
+                        sha256=hashlib.sha256(ipa.read_bytes()).hexdigest())
+            (distribution/'distribution-report.json').write_text(json.dumps(report))
+            Path('store-engine-receipt.json').write_text(json.dumps(dict(application_source=config['app_source'],qualified_run=42)))
+            def platform(command, *args, **kwargs):
+                if command[0] in ['codesign','xcrun']:
+                    # Native signature verification belongs to macOS CI. Keep
+                    # real filesystem/ZIP/digest/source logic under test here.
+                    return subprocess.CompletedProcess(command,0)
+                if command[0]=='ditto':
+                    target=Path(command[-1])
+                    if fail_archive:
+                        target.write_bytes(b'interrupted partial archive')
+                        raise subprocess.CalledProcessError(1,command)
+                    with zipfile.ZipFile(target,'w') as packed:
+                        packed.writestr('Tayya.xcarchive/Products/Applications/Hashiya.app/Info.plist',(archive_app/'Info.plist').read_bytes())
+                    return subprocess.CompletedProcess(command,0)
+                return actual_run(command,*args,**kwargs)
+            with patch.dict(os.environ,{'GITHUB_SHA':'c'*40}), patch.object(sys,'path',[str(repository),*sys.path]), patch('subprocess.run',side_effect=platform):
+                if fail_archive:
+                    with self.assertRaises(subprocess.CalledProcessError):exec(compile(script,'actual-retention-workflow','exec'),{})
+                else:exec(compile(script,'actual-retention-workflow','exec'),{})
+            if fail_archive:
+                self.assertFalse((distribution/'Verified').exists(),'An always-uploaded path must not expose any partial IPA/archive after packaging fails')
+            else:
+                self.assertTrue((distribution/'Verified/SHA256SUMS').is_file())
+                proof=json.loads((distribution/'Verified/release-provenance.json').read_text())
+                self.assertFalse(proof['upload_accepted'])
+                self.assertFalse(proof['store_listing_ready'])
+                self.assertEqual(hashlib.sha256((distribution/'Verified/Tayya.ipa').read_bytes()).hexdigest(),report['sha256'])
+
+    def test_interrupted_packaging_never_exposes_partial_signed_artifacts(self):
+        self.exercise_retention(True)
+
+    def test_complete_packaging_exposes_a_digest_verified_pair_without_claiming_upload(self):
+        self.exercise_retention(False)
+
+
+
 if __name__ == "__main__": unittest.main()

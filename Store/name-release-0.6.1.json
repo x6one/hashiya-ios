@@ -1,0 +1,49 @@
+{
+  "date_Asia_Qatar": "2026-11-02",
+  "app_id": "6818288428",
+  "bundle_id": "com.ahmadalawi.hashiya",
+  "version": "0.6.1",
+  "build": "16",
+  "release_scope": "Name and store metadata only; functional application and Office sources unchanged",
+  "baseline_source": "d45457bdd216265b11d58ba844fcda22fb6297d9",
+  "build_source": "761a09378aa9b25b6417b47aea79410668021e5d",
+  "app_tree": "2eb2a2ac53b5678768ed9d9cf6926295163d0acd",
+  "native_office_tree": "5c9ad407e1af0baf7cf94a7e07e836109363c8ed",
+  "store_metadata": {
+    "name": "طية",
+    "ar": {
+      "subtitle": "ملاحظات وكتابة على ملفات PDF",
+      "keywords": "طيه,Tayya,دفتر,قلم,تسجيل,صوت,دراسة,بطاقات,تعليقات,قراءة"
+    },
+    "en": {
+      "subtitle": "PDF notes, handwriting & audio",
+      "keywords": "Tayya,طيه,study,notebook,annotation,flashcards,recording,stylus,reader,lecture,Arabic"
+    }
+  },
+  "screenshots": {
+    "ar_iPhone": 6,
+    "ar_iPad": 6,
+    "en_iPhone": 6,
+    "en_iPad": 6,
+    "retained_from_published_0_6_0": true
+  },
+  "privacy_unchanged": true,
+  "encryption_unchanged": true,
+  "excluded_territories": [
+    "FRA"
+  ],
+  "upload": {
+    "workflow_run": 41452450641,
+    "job": 125300726651,
+    "accepted_by_Apple": true,
+    "artifact": 13144748704,
+    "artifact_sha256": "3693dbe4840a8d3b12d1aae4e9c07ad9a5ad20e48f17f85ca307bd5701dfbe97"
+  },
+  "apple_build_id": "56eb87b2-c6b1-4347-9bf9-a93152e2f2b2",
+  "processing": "PROCESSING",
+  "submitted_for_review": false,
+  "automatic_release_selected": true,
+  "publicly_released": false,
+  "native_test_suites_rerun": false,
+  "verification": "Exact published App/NativeOffice trees; only project version/build/display name changed; native compile, package metadata/privacy, original signature, Apple validation and upload all succeeded."
+}

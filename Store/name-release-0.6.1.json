@@ -37,13 +37,25 @@
     "job": 125300726651,
     "accepted_by_Apple": true,
     "artifact": 13144748704,
-    "artifact_sha256": "3693dbe4840a8d3b12d1aae4e9c07ad9a5ad20e48f17f85ca307bd5701dfbe97"
+    "artifact_sha256": "3693dbe4840a8d3b12d1aae4e9c07ad9a5ad20e48f17f85ca307bd5701dfbe97",
+    "workflow_conclusion": "success"
   },
   "apple_build_id": "56eb87b2-c6b1-4347-9bf9-a93152e2f2b2",
-  "processing": "PROCESSING",
-  "submitted_for_review": false,
+  "processing": "VALID",
+  "submitted_for_review": true,
   "automatic_release_selected": true,
   "publicly_released": false,
   "native_test_suites_rerun": false,
-  "verification": "Exact published App/NativeOffice trees; only project version/build/display name changed; native compile, package metadata/privacy, original signature, Apple validation and upload all succeeded."
+  "verification": "Exact published App/NativeOffice trees; only project version/build/display name changed; native compile, package metadata/privacy, original signature, Apple validation and upload all succeeded. Apple UI confirmed Validated build 16, attached 0.6.1 (16), automatic release after approval, and successful submission in Waiting for Review.",
+  "binary_state": "Validated",
+  "review_state": "WAITING_FOR_REVIEW",
+  "release_type": "AFTER_APPROVAL",
+  "submission": {
+    "id": "cf03ac61-ac4d-4039-85eb-324fcb21e07f",
+    "submitted_at_Apple_display": "Nov 2, 2026 at 4:44 PM",
+    "url": "https://appstoreconnect.apple.com/apps/6818288428/distribution/reviewsubmissions/details/cf03ac61-ac4d-4039-85eb-324fcb21e07f"
+  },
+  "build_attached": true,
+  "both_localized_names_verified": "طية",
+  "owner_action_required": false
 }

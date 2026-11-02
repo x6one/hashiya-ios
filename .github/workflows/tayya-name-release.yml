@@ -1,0 +1,165 @@
+name: Tayya 0.6.1 name update
+on:
+  push:
+    branches: [store/tayya-name-0.6.1]
+    paths: [project.yml, .github/workflows/tayya-name-release.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: tayya-name-release-0.6.1
+  cancel-in-progress: false
+jobs:
+  release:
+    if: ${{ github.repository == 'x6one/hashiya-ios' && contains(github.event.head_commit.message, '[name-release:upload]') }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: hashiya-tools
+          persist-credentials: false
+      - name: Verify the published source and metadata-only delta
+        working-directory: hashiya-tools
+        run: |
+          git fetch --no-tags --depth=1 origin d45457bdd216265b11d58ba844fcda22fb6297d9
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          git=lambda *args: subprocess.check_output(['git',*args],text=True).strip()
+          baseline='d45457bdd216265b11d58ba844fcda22fb6297d9'
+          assert git('rev-parse','HEAD:App')=='2eb2a2ac53b5678768ed9d9cf6926295163d0acd'
+          assert git('rev-parse','HEAD:NativeOffice')=='5c9ad407e1af0baf7cf94a7e07e836109363c8ed'
+          allowed={'project.yml','.github/workflows/tayya-name-release.yml','docs/superpowers/plans/2026-11-02-tayya-name-release.md'}
+          assert set(git('diff','--name-only',baseline,'HEAD').splitlines())<=allowed
+          old=git('show',baseline+':project.yml')+'\n'
+          expected=old.replace("MARKETING_VERSION: '0.6.0'","MARKETING_VERSION: '0.6.1'").replace("CURRENT_PROJECT_VERSION: '15'","CURRENT_PROJECT_VERSION: '16'").replace('CFBundleDisplayName: طَيّة','CFBundleDisplayName: طية')
+          assert Path('project.yml').read_text()==expected
+          assert not git('diff','--name-only','HEAD')
+          Path('../diagnostics').mkdir(exist_ok=True)
+          Path('../diagnostics/source-proof.json').write_text(json.dumps({'baseline':baseline,'source':git('rev-parse','HEAD'),'app_tree':git('rev-parse','HEAD:App'),'native_office_tree':git('rev-parse','HEAD:NativeOffice'),'changes':sorted(allowed),'version':'0.6.1','build':'16','display_name':'طية','functional_source_unchanged':True},ensure_ascii=False,indent=2)+'\n')
+          print('Verified: only version, build and display name changed; published App and Office sources are unchanged.')
+          PY
+      - name: Require an unused Apple build number before building
+        working-directory: hashiya-tools
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createAppleClient} from './Tools/app_store_readiness.mjs';
+          const api=createAppleClient();
+          const app=(await api.get('apps/6818288428')).data;
+          assert.equal(app.attributes.bundleId,'com.ahmadalawi.hashiya');
+          const builds=await api.get('builds?filter[app]=6818288428&filter[version]=16&limit=200');
+          assert.ok(!builds.links?.next);
+          assert.equal(builds.data.length,0,'Build16 already exists; inspect it and do not upload again');
+          console.log('Apple confirms build16 is unused.');
+          JS
+      - name: Reuse only the verified engine from the published release gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,subprocess,tarfile,zipfile,shutil
+          from pathlib import Path,PurePosixPath
+          endpoint='repos/x6one/hashiya-ios/actions/artifacts/13080813474'
+          meta=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          expected='42f462205aed991a63e1cab4e128906191d8f81482ac09c0c32c77fddf87eef1'
+          assert meta['expired'] is False
+          assert meta['name']=='office-engine-arm64-linking-candidate'
+          assert meta['workflow_run']['id']==41181915781
+          assert meta['workflow_run']['head_sha']=='d45457bdd216265b11d58ba844fcda22fb6297d9'
+          assert meta['size_in_bytes']==265995124 and meta['digest']=='sha256:'+expected
+          archive=Path('qualified-engine.zip')
+          with archive.open('xb') as out: subprocess.run(['gh','api',endpoint+'/zip'],stdout=out,check=True)
+          assert archive.stat().st_size==265995124
+          with archive.open('rb') as f: assert hashlib.file_digest(f,'sha256').hexdigest()==expected
+          packed=Path('OfficeEngineCandidate.tar.gz')
+          with zipfile.ZipFile(archive) as z:
+              assert z.namelist()==['OfficeEngineCandidate.tar.gz']
+              assert z.infolist()[0].file_size<2*1024**3
+              with z.open(z.namelist()[0]) as source,packed.open('xb') as out: shutil.copyfileobj(source,out)
+          with tarfile.open(packed,'r:gz') as tar:
+              members=tar.getmembers()
+              assert len(members)<100000 and sum(m.size for m in members)<16*1024**3
+              names=set()
+              for m in members:
+                  p=PurePosixPath(m.name)
+                  assert not p.is_absolute() and '..' not in p.parts and '\\' not in m.name
+                  assert p.parts[0]=='OfficeEngineCandidate' and (m.isfile() or m.isdir())
+                  assert p.as_posix() not in names
+                  names.add(p.as_posix())
+              manifest=json.load(tar.extractfile('OfficeEngineCandidate/manifest.json'))
+              assert manifest['source']=='124ecf55b0f0969b7859d2f803f0bc3a0049a4dc'
+              assert manifest['platform']=='iphoneos' and manifest['architecture']=='arm64'
+              for m in members:
+                  target=Path(m.name)
+                  if m.isdir(): target.mkdir(parents=True,exist_ok=True)
+                  else:
+                      target.parent.mkdir(parents=True,exist_ok=True)
+                      with tar.extractfile(m) as source,target.open('xb') as out: shutil.copyfileobj(source,out)
+                      target.chmod(m.mode & 0o755)
+          Path('diagnostics/engine-proof.json').write_text(json.dumps({'artifact':meta['id'],'sha256':expected,'qualified_run':41181915781,'source':manifest['source'],'reused_without_recompilation':True},indent=2)+'\n')
+          PY
+      - name: Prepare the existing native app build tools
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          test -x "$(brew --prefix openssl@3)/bin/openssl" || brew install openssl@3
+          python3 -m venv "$RUNNER_TEMP/tayya-name-python"
+          "$RUNNER_TEMP/tayya-name-python/bin/pip" install PyYAML
+          echo "$RUNNER_TEMP/tayya-name-python/bin" >> "$GITHUB_PATH"
+      - name: Compile and verify the metadata-only application update
+        run: |
+          set -o pipefail
+          python3 hashiya-tools/Tools/select_app_xcode.py
+          python3 hashiya-tools/Tools/link_office_engine.py OfficeEngineCandidate diagnostics/link-probe
+          cd hashiya-tools
+          python3 Tools/prepare_native_office_app.py ../OfficeEngineCandidate ../diagnostics/link-probe project.yml
+          xcodegen generate --spec NativeOfficeProject.yml
+          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath NativeDeviceBuild CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../diagnostics/native-app-build.log
+          python3 - <<'PY'
+          import plistlib
+          from pathlib import Path
+          p=Path('NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app')
+          info=plistlib.loads((p/'Info.plist').read_bytes())
+          assert info['CFBundleShortVersionString']=='0.6.1' and info['CFBundleVersion']=='16'
+          assert info['CFBundleDisplayName']=='طية' and info['CFBundleIdentifier']=='com.ahmadalawi.hashiya'
+          assert info['ITSAppUsesNonExemptEncryption'] is False
+          assert plistlib.loads((p/'PrivacyInfo.xcprivacy').read_bytes())==plistlib.loads(Path('App/Resources/PrivacyInfo.xcprivacy').read_bytes())
+          print('Built app has the exact new name/version/build and unchanged privacy declaration.')
+          PY
+      - name: Sign validate and upload build16 exactly once
+        working-directory: hashiya-tools
+        env:
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createAppleClient} from './Tools/app_store_readiness.mjs';
+          const result=await createAppleClient().get('builds?filter[app]=6818288428&filter[version]=16&limit=200');
+          assert.ok(!result.links?.next);
+          assert.equal(result.data.length,0,'Build16 already exists; refuse duplicate upload');
+          JS
+          python3 Tools/distribute_native_app.py
+      - name: Retain the verified IPA and non-secret release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-0.6.1-16-name-release
+          path: |
+            AppleDistribution/Export/*.ipa
+            AppleDistribution/distribution-report.json
+            diagnostics/source-proof.json
+            diagnostics/engine-proof.json
+            diagnostics/link-probe/
+            diagnostics/native-app-build.log
+          if-no-files-found: warn
+          retention-days: 14

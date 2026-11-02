@@ -8,8 +8,8 @@ settings:
   base:
     SWIFT_VERSION: '5.0'
     TARGETED_DEVICE_FAMILY: '1,2'
-    MARKETING_VERSION: '0.6.0'
-    CURRENT_PROJECT_VERSION: '15'
+    MARKETING_VERSION: '0.6.1'
+    CURRENT_PROJECT_VERSION: '16'
 packages:
   ZIPFoundation:
     url: https://github.com/weichsel/ZIPFoundation.git
@@ -24,7 +24,7 @@ targets:
     info:
       path: Generated/Info.plist
       properties:
-        CFBundleDisplayName: طَيّة
+        CFBundleDisplayName: طية
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Existing Apple-published classification; see Store/encryption-classification-2026-10-28.json.

@@ -1,0 +1,111 @@
+name: Tayya genuine iPad feature photography
+on:
+  push:
+    branches: [integration/tayya-ipad-captures]
+    paths: [UITests/StudioProductionCaptureTests.swift, Tools/build_ipad_feature_gallery.py, .github/workflows/tayya-ipad-photography.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: tayya-ipad-photography
+  cancel-in-progress: false
+jobs:
+  capture:
+    name: Native iPad (${{ matrix.appearance }})
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        appearance: [light, dark]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify unchanged qualified application and generate the real project
+        run: |
+          test "$(git rev-parse HEAD:App)" = 2eb2a2ac53b5678768ed9d9cf6926295163d0acd
+          python3 Tools/select_app_xcode.py
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+      - name: Boot full-resolution iPad Pro and prepare isolated demo content
+        run: |
+          python3 - <<'PY'
+          import json,re,subprocess,os
+          available=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','--json']))['devices']
+          candidates=[(tuple(map(int,re.findall(r'\d+',runtime))),runtime,d) for runtime,devices in available.items() if 'iOS' in runtime for d in devices if d['name']=='iPad Pro 13-inch (M5)']
+          if not candidates:raise SystemExit('Required genuine iPad Pro13 simulator is unavailable; do not relabel a different device')
+          _,runtime,device=max(candidates,key=lambda x:x[0])
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SIMULATOR_ID='+device['udid']+'\n')
+          with open('ipad-device.json','w') as f:json.dump({'device':device,'runtime':runtime,'application_source':'d45457bdd216265b11d58ba844fcda22fb6297d9','app_tree':subprocess.check_output(['git','rev-parse','HEAD:App'],text=True).strip()},f,indent=2)
+          PY
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+          python3 Tools/seed_files_fixtures.py
+      - name: Photograph only iPad features in both orientations
+        env:
+          APPEARANCE: ${{ matrix.appearance }}
+        run: |
+          set -o pipefail
+          color=Light
+          if [ "$APPEARANCE" = dark ]; then color=Dark; fi
+          selected=()
+          for orientation in Portrait Landscape; do
+            for feature in Library Document Notes Audio Cards; do
+              selected+=("-only-testing:HashiyaUITests/StudioProductionCaptureTests/testIPad${color}${orientation}${feature}")
+            done
+          done
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath PhotoBuild "${selected[@]}" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath PhotoResults.xcresult CODE_SIGNING_ALLOWED=NO | tee ipad-photo.log
+      - name: Retain native evidence even on a failed scene
+        if: always()
+        run: |
+          mkdir -p PhotoEvidence
+          cp ipad-device.json PhotoEvidence/
+          if [ -d PhotoResults.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path PhotoResults.xcresult > PhotoEvidence/summary.json
+            xcrun xcresulttool get test-results tests --path PhotoResults.xcresult > PhotoEvidence/tests.json
+            xcrun xcresulttool export attachments --path PhotoResults.xcresult --output-path PhotoEvidence/Screenshots
+          fi
+      - name: Stage original PNG bytes with actual native metadata
+        if: success()
+        run: |
+          python3 -m Tools.stage_integration_captures --summary PhotoEvidence/summary.json --attachments PhotoEvidence/Screenshots --output OriginalCaptures --source "$GITHUB_SHA" --family iPad --run "$GITHUB_RUN_ID"
+          cp ipad-device.json OriginalCaptures/
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ipad-feature-${{ matrix.appearance }}
+          path: OriginalCaptures/
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ipad-feature-failure-${{ matrix.appearance }}
+          path: |
+            PhotoEvidence/
+            ipad-photo.log
+          retention-days: 14
+  gallery:
+    needs: capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ipad-feature-*
+          path: NativePhotos
+      - name: Verify originals and assemble the named full-resolution ZIP and HTML
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" > photo-jobs.json
+          python3 -m Tools.build_ipad_feature_gallery --captures NativePhotos --jobs photo-jobs.json --source "$GITHUB_SHA" --run "$GITHUB_RUN_ID" --output Tayya-iPad-Feature-Photos
+          sha256sum Tayya-iPad-Feature-Photos.zip > Tayya-iPad-Feature-Photos.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-iPad-All-Features-Originals
+          path: |
+            Tayya-iPad-Feature-Photos/
+            Tayya-iPad-Feature-Photos.zip
+            Tayya-iPad-Feature-Photos.zip.sha256
+          retention-days: 30

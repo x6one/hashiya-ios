@@ -403,6 +403,126 @@ final class StudioProductionCaptureTests: XCTestCase {
         snapshot("Recording-Playback", movingContent: true)
     }
 
+    // Dedicated feature photography. All gestures use production views and the
+    // existing isolated review library; no user files or Store build is changed.
+    private func iPadPhotoApp(dark: Bool, landscape: Bool) -> XCUIApplication {
+        XCTAssertEqual(UIDevice.current.userInterfaceIdiom, .pad)
+        let app = library(dark: dark)
+        if landscape { rotate(.landscapeLeft, in: app) }
+        return app
+    }
+    private func photoLibrary(dark: Bool, landscape: Bool) {
+        let app = iPadPhotoApp(dark: dark, landscape: landscape)
+        snapshot("Library")
+        app.buttons["librarySections"].tap()
+        XCTAssertTrue(app.textFields["sectionName"].waitForExistence(timeout: 5)); snapshot("Sections")
+        app.buttons["libraryReview"].tap()
+        XCTAssertTrue(app.navigationBars["المراجعة"].waitForExistence(timeout: 5)); snapshot("Library-Review")
+        app.buttons["librarySettings"].tap()
+        XCTAssertTrue(app.buttons["libraryBackup"].waitForExistence(timeout: 5)); snapshot("Settings")
+        app.buttons["libraryBackup"].tap()
+        XCTAssertTrue(app.navigationBars["النسخ الاحتياطي"].waitForExistence(timeout: 5)); snapshot("Backup-Restore")
+        app.buttons["تم"].firstMatch.tap()
+        waitForNativeDismissal(of: app.navigationBars["النسخ الاحتياطي"])
+        app.buttons["settingsTrash"].tap(); snapshot("Library-Trash")
+        app.buttons["libraryHome"].tap()
+        XCTAssertTrue(app.buttons["createNotebook"].waitForExistence(timeout: 5))
+        app.buttons["createNotebook"].tap()
+        XCTAssertTrue(app.textFields["notebookTitle"].waitForExistence(timeout: 5)); snapshot("New-Notebook")
+        app.buttons["إلغاء"].firstMatch.tap()
+        waitForNativeDismissal(of: app.textFields["notebookTitle"])
+        app.buttons["openNotebook-عرض تقديمي للتجربة"].tap()
+        XCTAssertTrue(app.buttons["convertOfficePDF"].waitForExistence(timeout: 10)); snapshot("Office-Preview")
+    }
+    private func photoDocument(dark: Bool, landscape: Bool) {
+        let app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)
+        snapshot("Editor")
+        app.buttons["inkTool"].tap(); draw(app, page: 1); snapshot("Pen-Tools")
+        applyFirstFavoritePen(app)
+        app.buttons["textTool"].tap()
+        app.otherElements["pdfCanvas"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap()
+        XCTAssertTrue(app.textViews["annotationText"].waitForExistence(timeout: 5))
+        app.textViews["annotationText"].tap(); app.textViews["annotationText"].typeText("Assets = Liabilities + Equity")
+        snapshot("Text-Editor", movingContent: true)
+        app.buttons["saveAnnotation"].tap(); waitForNativeDismissal(of: app.textViews["annotationText"])
+        app.buttons["selectTool"].tap(); snapshot("Selection")
+        for (page, scene) in [(2, "PDF-Table"), (3, "PDF-Illustration-Ink"), (5, "PDF-Blank")] {
+            app.textFields["pageNumber"].tap(); app.textFields["pageNumber"].typeText(String(page))
+            submitPageJump(to: page, in: app); snapshot(scene)
+        }
+        app.textFields["pageNumber"].tap(); app.textFields["pageNumber"].typeText("1")
+        submitPageJump(to: 1, in: app)
+        thumbnails(app)
+        focus(app); snapshot("Focus"); revealTools(app)
+        app.buttons["workspaceActions"].tap(); snapshot("Document-Actions")
+        tapCompletedNativeMenuItem(app.buttons["addWritingPaper"])
+        XCTAssertTrue(app.navigationBars["إضافة ورقة للكتابة"].waitForExistence(timeout: 5)); snapshot("Paper-Templates")
+    }
+    private func photoNotes(dark: Bool, landscape: Bool) {
+        let app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)
+        notes(app, split: false); snapshot("Notes-Expanded")
+        handwriting(app); snapshot("Notes-Ink")
+        app.buttons["marginPages"].tap()
+        XCTAssertTrue(app.navigationBars["صفحات الملاحظات"].waitForExistence(timeout: 5)); snapshot("Notes-Pages")
+        app.buttons["تم"].firstMatch.tap(); waitForNativeDismissal(of: app.navigationBars["صفحات الملاحظات"])
+        app.segmentedControls["marginMode"].buttons["نص"].tap()
+        closeNotes(app)
+        notes(app, split: true)
+        app.segmentedControls["marginMode"].buttons["نص"].tap()
+        XCTAssertTrue(app.textViews["splitNotes"].waitForExistence(timeout: 5)); snapshot("Notes-Split")
+        handwriting(app); snapshot("Notes-Split-Ink")
+    }
+    private func photoAudio(dark: Bool, landscape: Bool) {
+        let app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)
+        startProductionRecording(in: app)
+        app.buttons["nextDocumentPage"].tap()
+        XCTAssertEqual(app.textFields["pageNumber"].value as? String, "2")
+        app.buttons["inkTool"].tap(); draw(app, page: 2)
+        snapshot("Recording-Active", movingContent: true)
+        app.buttons["recordingDetails"].tap(); app.buttons["addAudioMarker"].tap()
+        app.buttons["stopLinkedRecording"].tap()
+        XCTAssertTrue(app.buttons["playLinkedRecording"].firstMatch.waitForExistence(timeout: 5)); snapshot("Recording-Markers")
+        app.buttons["playLinkedRecording"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["pauseLinkedRecording"].waitForExistence(timeout: 5)); snapshot("Recording-Playback", movingContent: true)
+        app.buttons["pauseLinkedRecording"].tap()
+        app.buttons["renameLinkedRecording"].firstMatch.tap()
+        XCTAssertTrue(app.textFields["recordingTitle"].waitForExistence(timeout: 5)); snapshot("Recording-Rename", movingContent: true)
+    }
+    private func photoCards(dark: Bool, landscape: Bool) {
+        let app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)
+        action("openFlashcards", in: app)
+        XCTAssertTrue(app.buttons["addFlashcard"].waitForExistence(timeout: 5)); app.buttons["addFlashcard"].tap()
+        XCTAssertTrue(app.textViews["cardQuestion"].waitForExistence(timeout: 5))
+        app.textViews["cardQuestion"].tap(); app.textViews["cardQuestion"].typeText("ما المعادلة المحاسبية الأساسية؟")
+        app.textViews["cardAnswer"].tap(); app.textViews["cardAnswer"].typeText("الأصول = الالتزامات + حقوق الملكية")
+        snapshot("Flashcard-Editor", movingContent: true)
+        app.buttons["saveFlashcard"].tap()
+        let reveal = app.buttons["revealFlashcard-ما المعادلة المحاسبية الأساسية؟"]
+        XCTAssertTrue(reveal.waitForExistence(timeout: 5)); snapshot("Flashcards-Question")
+        reveal.tap(); snapshot("Flashcards-Answer")
+    }
+
+    func testIPadLightPortraitLibrary() { photoLibrary(dark: false, landscape: false) }
+    func testIPadLightPortraitDocument() { photoDocument(dark: false, landscape: false) }
+    func testIPadLightPortraitNotes() { photoNotes(dark: false, landscape: false) }
+    func testIPadLightPortraitAudio() { photoAudio(dark: false, landscape: false) }
+    func testIPadLightPortraitCards() { photoCards(dark: false, landscape: false) }
+    func testIPadLightLandscapeLibrary() { photoLibrary(dark: false, landscape: true) }
+    func testIPadLightLandscapeDocument() { photoDocument(dark: false, landscape: true) }
+    func testIPadLightLandscapeNotes() { photoNotes(dark: false, landscape: true) }
+    func testIPadLightLandscapeAudio() { photoAudio(dark: false, landscape: true) }
+    func testIPadLightLandscapeCards() { photoCards(dark: false, landscape: true) }
+    func testIPadDarkPortraitLibrary() { photoLibrary(dark: true, landscape: false) }
+    func testIPadDarkPortraitDocument() { photoDocument(dark: true, landscape: false) }
+    func testIPadDarkPortraitNotes() { photoNotes(dark: true, landscape: false) }
+    func testIPadDarkPortraitAudio() { photoAudio(dark: true, landscape: false) }
+    func testIPadDarkPortraitCards() { photoCards(dark: true, landscape: false) }
+    func testIPadDarkLandscapeLibrary() { photoLibrary(dark: true, landscape: true) }
+    func testIPadDarkLandscapeDocument() { photoDocument(dark: true, landscape: true) }
+    func testIPadDarkLandscapeNotes() { photoNotes(dark: true, landscape: true) }
+    func testIPadDarkLandscapeAudio() { photoAudio(dark: true, landscape: true) }
+    func testIPadDarkLandscapeCards() { photoCards(dark: true, landscape: true) }
+
     private func waitForRenderedSidebarPreviews(_ app: XCUIApplication) {
         let sidebar = app.descendants(matching: .any)["documentPageSidebar"].firstMatch
         guard sidebar.exists else { return }

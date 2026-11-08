@@ -37,6 +37,7 @@ jobs:
           with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SIMULATOR_ID='+device['udid']+'\n')
           with open('ipad-device.json','w') as f:json.dump({'device':device,'runtime':runtime,'application_source':'d45457bdd216265b11d58ba844fcda22fb6297d9','app_tree':subprocess.check_output(['git','rev-parse','HEAD:App'],text=True).strip()},f,indent=2)
           PY
+          export SIMULATOR_ID="$(python3 -c 'import json;print(json.load(open("ipad-device.json"))["device"]["udid"])')"
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100

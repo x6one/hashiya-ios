@@ -433,7 +433,11 @@ final class StudioProductionCaptureTests: XCTestCase {
         waitForNativeDismissal(of: app.textFields["notebookTitle"])
         app.buttons["openNotebook-عرض تقديمي للتجربة"].tap()
         XCTAssertTrue(app.buttons["officeMedia"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.navigationBars["عرض تقديمي للتجربة"].exists); snapshot("Office-Preview")
+        XCTAssertTrue(app.navigationBars["عرض تقديمي للتجربة"].exists)
+        XCTAssertTrue(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 10))
+        // Native Quick Look / translucent system surfaces can animate pixels.
+        // Prove their real content and window geometry instead of frozen pixels.
+        snapshot("Office-Preview", movingContent: true)
     }
     private func photoDocument(dark: Bool, landscape: Bool) {
         let app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)
@@ -455,7 +459,12 @@ final class StudioProductionCaptureTests: XCTestCase {
         submitPageJump(to: 1, in: app)
         thumbnails(app)
         focus(app); snapshot("Focus"); revealTools(app)
-        app.buttons["workspaceActions"].tap(); snapshot("Document-Actions")
+        app.buttons["workspaceActions"].tap()
+        let paper = app.buttons["addWritingPaper"]
+        XCTAssertTrue(paper.waitForExistence(timeout: 5))
+        XCTAssertTrue(paper.isEnabled)
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(paper.frame))
+        snapshot("Document-Actions", movingContent: true)
         tapCompletedNativeMenuItem(app.buttons["addWritingPaper"])
         XCTAssertTrue(app.navigationBars["إضافة ورقة للكتابة"].waitForExistence(timeout: 5)); snapshot("Paper-Templates")
     }
@@ -485,7 +494,12 @@ final class StudioProductionCaptureTests: XCTestCase {
         XCTAssertTrue(app.buttons["playLinkedRecording"].firstMatch.waitForExistence(timeout: 5)); snapshot("Recording-Markers")
         app.buttons["playLinkedRecording"].firstMatch.tap()
         XCTAssertTrue(app.buttons["pauseLinkedRecording"].waitForExistence(timeout: 5)); snapshot("Recording-Playback", movingContent: true)
-        app.buttons["pauseLinkedRecording"].tap()
+        let pause = app.collectionViews.buttons["pauseLinkedRecording"]
+        XCTAssertEqual(app.collectionViews.buttons.matching(identifier: "pauseLinkedRecording").count, 1, "Scope playback to the real recordings list, outside the retained recording strip")
+        XCTAssertTrue(pause.isHittable); pause.tap()
+        let paused = app.buttons.matching(identifier: "playLinkedRecording")
+            .matching(NSPredicate(format: "value == %@", "paused")).firstMatch
+        XCTAssertTrue(paused.waitForExistence(timeout: 5), "Prove that the actual audio state paused")
         app.buttons["renameLinkedRecording"].firstMatch.tap()
         XCTAssertTrue(app.textFields["recordingTitle"].waitForExistence(timeout: 5)); snapshot("Recording-Rename", movingContent: true)
     }
@@ -523,6 +537,40 @@ final class StudioProductionCaptureTests: XCTestCase {
     func testIPadDarkLandscapeNotes() { photoNotes(dark: true, landscape: true) }
     func testIPadDarkLandscapeAudio() { photoAudio(dark: true, landscape: true) }
     func testIPadDarkLandscapeCards() { photoCards(dark: true, landscape: true) }
+
+    private func waitForNativeShare(_ app: XCUIApplication) {
+        let save = app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ OR label == %@", "Save to Files", "حفظ في الملفات")).firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 30), "Wait for the actual system sharing actions")
+    }
+    private func photoFiles(dark: Bool, landscape: Bool) {
+        var app = iPadPhotoApp(dark: dark, landscape: landscape)
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("الأصول")
+        let hit = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Tayya Study", "الأصول")).firstMatch
+        XCTAssertTrue(hit.waitForExistence(timeout: 15)); snapshot("Library-Search", movingContent: true)
+        app = iPadPhotoApp(dark: dark, landscape: landscape)
+        app.buttons["importDocument"].tap()
+        let browse = app.buttons["Browse"].firstMatch
+        let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
+        let loaded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (browse.exists && browse.isHittable) || (location.exists && location.isHittable)
+        }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [loaded], timeout: 60), .completed)
+        if browse.exists && browse.isHittable { browse.tap() }
+        XCTAssertTrue(location.waitForExistence(timeout: 15)); snapshot("Import-Files")
+        app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)
+        app.buttons["exportDocument"].tap(); waitForNativeShare(app); snapshot("Export-PDF")
+        app = iPadPhotoApp(dark: dark, landscape: landscape)
+        app.buttons["librarySettings"].tap(); app.buttons["libraryBackup"].tap()
+        let export = app.buttons["تصدير نسخة احتياطية"]
+        XCTAssertTrue(export.waitForExistence(timeout: 5)); export.tap()
+        waitForNativeShare(app); snapshot("Backup-Share")
+    }
+    func testIPadLightPortraitFiles() { photoFiles(dark: false, landscape: false) }
+    func testIPadLightLandscapeFiles() { photoFiles(dark: false, landscape: true) }
+    func testIPadDarkPortraitFiles() { photoFiles(dark: true, landscape: false) }
+    func testIPadDarkLandscapeFiles() { photoFiles(dark: true, landscape: true) }
 
     private func waitForRenderedSidebarPreviews(_ app: XCUIApplication) {
         let sidebar = app.descendants(matching: .any)["documentPageSidebar"].firstMatch

@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   capture:
+    if: ${{ !contains(github.event.head_commit.message, '[ipad:files]') }}
     name: Native iPad (${{ matrix.appearance }})
     runs-on: macos-15
     timeout-minutes: 45
@@ -100,7 +101,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" > photo-jobs.json
-          python3 -m Tools.build_ipad_feature_gallery --captures NativePhotos --jobs photo-jobs.json --source "$GITHUB_SHA" --run "$GITHUB_RUN_ID" --output Tayya-iPad-Feature-Photos
+          python3 -m Tools.build_ipad_feature_gallery --captures NativePhotos --jobs photo-jobs.json --source "$GITHUB_SHA" --run "$GITHUB_RUN_ID" --output Tayya-iPad-Feature-Photos --core-only
           sha256sum Tayya-iPad-Feature-Photos.zip > Tayya-iPad-Feature-Photos.zip.sha256
       - uses: actions/upload-artifact@v4
         with:

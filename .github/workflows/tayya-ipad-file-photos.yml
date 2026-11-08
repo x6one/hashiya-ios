@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   capture:
-    if: ${{ contains(github.event.head_commit.message, '[ipad:files]') }}
+    if: ${{ contains(github.event.head_commit.message, '[ipad:files]') && !contains(github.event.head_commit.message, '[ipad:gallery]') }}
     name: Native iPad files (${{ matrix.appearance }})
     runs-on: macos-15
     timeout-minutes: 45
@@ -124,6 +124,54 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" > photo-jobs.json
           python3 -m Tools.build_ipad_feature_gallery --captures NativePhotos --jobs photo-jobs.json --source "$GITHUB_SHA" --run "$GITHUB_RUN_ID" --output Tayya-iPad-Feature-Photos --baseline-raw BaselineRaw --baseline-jobs baseline-jobs.json --baseline-source 15fcc5834dd20e272f8772b8617fdd9c04c2c3e8 --baseline-run 42431833347
+          sha256sum Tayya-iPad-Feature-Photos.zip > Tayya-iPad-Feature-Photos.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-iPad-All-Features-Complete
+          path: |
+            Tayya-iPad-Feature-Photos/
+            Tayya-iPad-Feature-Photos.zip
+            Tayya-iPad-Feature-Photos.zip.sha256
+          retention-days: 30
+
+  repackage:
+    if: ${{ contains(github.event.head_commit.message, '[ipad:gallery]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the preserved complete photography before renderer-only changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git rev-parse HEAD:App)" = 2eb2a2ac53b5678768ed9d9cf6926295163d0acd
+          python3 -m unittest Tools.test_ipad_feature_gallery
+          gh api repos/x6one/hashiya-ios/actions/runs/42442922493 > photo-run.json
+          gh api 'repos/x6one/hashiya-ios/actions/runs/42442922493/jobs?per_page=100' > photo-jobs.json
+          gh api repos/x6one/hashiya-ios/actions/runs/42431833347 > baseline-run.json
+          gh api 'repos/x6one/hashiya-ios/actions/runs/42431833347/jobs?per_page=100' > baseline-jobs.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('photo-run.json'))
+          assert r['conclusion']=='success' and r['head_sha']=='2ad3c12a22474c714426b22b13592e4272c47ff7'
+          r=json.load(open('baseline-run.json'))
+          assert r['conclusion']=='failure' and r['head_sha']=='15fcc5834dd20e272f8772b8617fdd9c04c2c3e8'
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ipad-files-*
+          run-id: '42442922493'
+          github-token: ${{ github.token }}
+          path: NativePhotos
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ipad-feature-failure-*
+          run-id: '42431833347'
+          github-token: ${{ github.token }}
+          path: BaselineRaw
+      - name: Render corrected HTML and preserve every original PNG
+        run: |
+          python3 -m Tools.build_ipad_feature_gallery --captures NativePhotos --jobs photo-jobs.json --source 2ad3c12a22474c714426b22b13592e4272c47ff7 --run 42442922493 --output Tayya-iPad-Feature-Photos --baseline-raw BaselineRaw --baseline-jobs baseline-jobs.json --baseline-source 15fcc5834dd20e272f8772b8617fdd9c04c2c3e8 --baseline-run 42431833347
           sha256sum Tayya-iPad-Feature-Photos.zip > Tayya-iPad-Feature-Photos.zip.sha256
       - uses: actions/upload-artifact@v4
         with:

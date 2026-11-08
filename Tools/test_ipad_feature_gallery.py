@@ -1,4 +1,5 @@
 """Test-only generated PNGs never become real Tayya capture evidence."""
+from html.parser import HTMLParser
 import hashlib
 import json
 from pathlib import Path
@@ -40,6 +41,18 @@ class IPadPhotographyTests(unittest.TestCase):
                 self.assertEqual((root / 'result' / row['file']).read_bytes(), original.read_bytes())
                 self.assertEqual(row['sha256'], hashlib.sha256(original.read_bytes()).hexdigest())
             self.assertIn('النسخ الاحتياطي والاستعادة', (root / 'result/index.html').read_text())
+            class Options(HTMLParser):
+                def __init__(self):
+                    super().__init__(); self.select = None; self.values = {}
+                def handle_starttag(self, tag, attrs):
+                    values = dict(attrs)
+                    if tag == 'select': self.select = values['id']; self.values[self.select] = []
+                    if tag == 'option': self.values[self.select].append(values.get('value'))
+                def handle_endtag(self, tag):
+                    if tag == 'select': self.select = None
+            options = Options(); options.feed((root / 'result/index.html').read_text())
+            self.assertEqual(options.values['m'], ['', 'light', 'dark'])
+            self.assertEqual(options.values['d'], ['', 'portrait', 'landscape'])
             self.assertEqual(len(json.loads((root / 'result/features.json').read_text())), 144)
 
     def test_missing_dark_landscape_feature_cannot_be_called_complete(self):

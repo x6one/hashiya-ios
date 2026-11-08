@@ -3,6 +3,7 @@ import argparse
 import hashlib
 from html import escape
 import json
+import os
 from pathlib import Path
 import shutil
 import struct
@@ -13,7 +14,7 @@ APP_SOURCE = 'd45457bdd216265b11d58ba844fcda22fb6297d9'
 SCENES = {
     'Library': 'المكتبة', 'Sections': 'الأقسام', 'Library-Review': 'المراجعة في المكتبة',
     'Settings': 'الإعدادات', 'Backup-Restore': 'النسخ الاحتياطي والاستعادة',
-    'Library-Trash': 'المحذوفات', 'New-Notebook': 'إنشاء دفتر وقوالب الورق', 'Office-Preview': 'معاينة مستند Office',
+    'Library-Trash': 'المحذوفات', 'New-Notebook': 'إنشاء دفتر وقوالب الورق', 'Office-Preview': 'واجهة Office — قيود معاينة المحاكي',
     'Editor': 'محرر PDF', 'Pen-Tools': 'القلم والرسم المحفوظ', 'Favorite-Pens': 'الأقلام المفضلة',
     'Text-Editor': 'إضافة النص وتنسيقه', 'Selection': 'أدوات التحديد', 'PDF-Table': 'صفحة جدول',
     'PDF-Illustration-Ink': 'صفحة صورة وتعليقات بالقلم', 'PDF-Blank': 'صفحة فارغة للكتابة',
@@ -144,11 +145,13 @@ def build(root, rows, output, scenes=None):
         cards.append(f'<article data-mode="{row["color_mode"]}" data-direction="{row["orientation"]}" data-title="{escape(title)}"><h2>{escape(title)}</h2><p>{mode} · {direction} · {escape(row["device"])}</p><a href="{relative.as_posix()}"><img loading="lazy" src="{relative.as_posix()}" alt="{escape(title)}"></a><p>{row["display_pixel_width"]} × {row["display_pixel_height"]} · PNG أصلي</p><a href="{escape(row["test_url"])}">اختبار التصوير</a><details><summary>المصدر والبصمة</summary><code>{escape(row["source"])}</code><br><code>{row["sha256"]}</code></details></article>')
     style = 'body{margin:0;background:#F8F7F3;color:#282C2B;font:16px system-ui}header{padding:24px;background:#244C43;color:white}nav{position:sticky;top:0;background:#fff;padding:12px;display:flex;gap:8px;flex-wrap:wrap;z-index:2}select,input{padding:12px;border:1px solid #c4cfc8;border-radius:8px;font:inherit;max-width:90%}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px;padding:16px}article{padding:16px;background:white;border-radius:12px;min-width:0}img{display:block;width:100%;height:auto}h2{font-size:20px}p{line-height:1.6}code{font-size:11px;overflow-wrap:anywhere}a{color:#244C43}[hidden]{display:none!important}'
     script = "function filter(){for(const c of document.querySelectorAll('article'))c.hidden=(m.value&&c.dataset.mode!==m.value)||(d.value&&c.dataset.direction!==d.value)||!c.dataset.title.includes(q.value)}for(const e of [m,d,q])e.addEventListener('input',filter)"
-    page = '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>طَيّة — صور iPad الأصلية</title><style>' + style + '</style><header><h1>طَيّة — صور الميزات على iPad</h1><p>' + str(len(records)) + ' صورة حقيقية · ' + str(len(scenes)) + ' شاشة × الفاتح والداكن × الطولي والعرضي. افتح أي صورة لحفظ PNG الأصلي كاملًا.</p><p>المصدر البرمجي: ' + APP_SOURCE + '</p></header><nav><select id="m"><option value="">كل الألوان</option value="light">فاتح</option><option value="dark">داكن</option></select><select id="d"><option value="">كل الاتجاهات</option><option value="portrait">طولي</option><option value="landscape">عرضي</option></select><input id="q" placeholder="اسم الميزة" aria-label="البحث عن ميزة"></nav><main>' + ''.join(cards) + '</main><script>' + script + '</script></html>'
+    page = '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>طَيّة — صور iPad الأصلية</title><style>' + style + '</style><header><h1>طَيّة — صور الميزات على iPad</h1><p>' + str(len(records)) + ' صورة حقيقية · ' + str(len(scenes)) + ' شاشة × الفاتح والداكن × الطولي والعرضي. افتح أي صورة لحفظ PNG الأصلي كاملًا.</p><p>المصدر البرمجي: ' + APP_SOURCE + '</p></header><nav><select id="m"><option value="">كل الألوان</option><option value="light">فاتح</option><option value="dark">داكن</option></select><select id="d"><option value="">كل الاتجاهات</option><option value="portrait">طولي</option><option value="landscape">عرضي</option></select><input id="q" placeholder="اسم الميزة" aria-label="البحث عن ميزة"></nav><main>' + ''.join(cards) + '</main><script>' + script + '</script></html>'
     (output / 'index.html').write_text(page, encoding='utf-8')
     (output / 'features.json').write_text(json.dumps(records, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     (output / 'SHA256SUMS').write_text(''.join(r['sha256'] + '  ' + r['file'] + '\n' for r in records))
     (output / 'README.txt').write_text('صور حقيقية من تطبيق طَيّة الإنتاجي في وضع Debug على محاكي iPad Pro13، ببيانات عرض معزولة. لم تستخدم واجهات DesignStudio.\nافتح index.html للمعاينة أو Originals لملفات PNG الأصلية بلا إطارات أو قص أو تدوير أو إعادة تحجيم. قد يحتفظ PNG بوسم اتجاه EXIF أصلي؛ استخدم عارضًا يدعمه.\nالتسجيل يستخدم AVFoundation في المحاكي؛ الصور لا تثبت جودة الميكروفون على جهاز حقيقي. معاينة Office مصورة، ولا تدّعي اختبار تحويل Office على جهاز فعلي.\nلم يتغير كود التطبيق أو بيانات المستخدم أو Build15 المرفوع. التصوير منفصل عن اعتماد إصدار جديد.\n', encoding='utf-8')
+    with (output / 'README.txt').open('a', encoding='utf-8') as note:
+        note.write('تنبيه خاص بلقطات Office: معاينة محتوى المستند لم تكتمل في محاكي Quick Look؛ تظهر بعض الأصول حالة تحميل أو مساحة معاينة فارغة. هذه صور أصلية لحالة المحاكي، وليست إثباتًا لعرض أو تحويل Office كاملًا.\n')
     return records
 
 
@@ -208,7 +211,7 @@ def main():
         reused_passed_original_cases=14 if args.baseline_jobs else None,
         superseded_failed_original_cases=6 if args.baseline_jobs else None,
         original_failed_reports_preserved=bool(args.baseline_jobs),
-        original_png_bytes_modified=False, native_release_gate_rerun=False), indent=2)+'\n')
+        original_png_bytes_modified=False, native_release_gate_rerun=False, renderer_source=os.environ.get('GITHUB_SHA')), indent=2)+'\n')
     archive = shutil.make_archive(str(args.output), 'zip', args.output.parent, args.output.name)
     print(json.dumps(dict(original_pngs=len(records), archive=archive, application_source=APP_SOURCE)))
 

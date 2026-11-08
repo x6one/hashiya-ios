@@ -8,7 +8,7 @@ permissions:
   actions: read
 concurrency:
   group: tayya-ipad-photography
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   capture:
     name: Native iPad (${{ matrix.appearance }})

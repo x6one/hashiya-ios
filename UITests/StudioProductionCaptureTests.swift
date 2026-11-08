@@ -432,7 +432,8 @@ final class StudioProductionCaptureTests: XCTestCase {
         app.buttons["إلغاء"].firstMatch.tap()
         waitForNativeDismissal(of: app.textFields["notebookTitle"])
         app.buttons["openNotebook-عرض تقديمي للتجربة"].tap()
-        XCTAssertTrue(app.buttons["convertOfficePDF"].waitForExistence(timeout: 10)); snapshot("Office-Preview")
+        XCTAssertTrue(app.buttons["officeMedia"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["عرض تقديمي للتجربة"].exists); snapshot("Office-Preview")
     }
     private func photoDocument(dark: Bool, landscape: Bool) {
         let app = iPadPhotoApp(dark: dark, landscape: landscape); openDocument(app)

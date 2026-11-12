@@ -29,6 +29,14 @@ jobs:
             report.application={id:app.id,name:app.attributes.name,bundle_id:app.attributes.bundleId};
             const versions=(await get('apps/6818288428/appStoreVersions?filter[platform]=IOS&limit=200')).data;
             report.versions=versions.map(v=>({id:v.id,version:v.attributes.versionString,state:v.attributes.appStoreState,release_type:v.attributes.releaseType}));
+            const infos=await get('apps/6818288428/appInfos?limit=200');
+            if(infos.links?.next)throw new Error('Unexpected application-info pagination');
+            report.app_infos=[];
+            for(const info of infos.data) {
+              const localizations=await get('appInfos/'+info.id+'/appInfoLocalizations?limit=200');
+              if(localizations.links?.next)throw new Error('Unexpected localization pagination');
+              report.app_infos.push({id:info.id,state:info.attributes.state||info.attributes.appStoreState,localizations:localizations.data.map(row=>({locale:row.attributes.locale,name:row.attributes.name,subtitle:row.attributes.subtitle,privacy_policy_url:row.attributes.privacyPolicyUrl}))});
+            }
             let next='builds?filter[app]=6818288428&include=preReleaseVersion&sort=-uploadedDate&limit=200';
             report.builds=[];
             for(let page=0;next && page<10;page++) {

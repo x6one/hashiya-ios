@@ -50,8 +50,11 @@ final class PrecisionInkUITests: XCTestCase {
         let canvas = app.otherElements["pdfCanvas"], frame = canvas.frame
         reveal("inkRuler", in: app).tap()
         XCTAssertEqual(app.buttons["inkRuler"].value as? String, "on")
-        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.25)).press(forDuration: 0.1,
-            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.25)))
+        capture("Precision-PDF-NativeRuler-Ready")
+        // The saved failure video proves the old (.3,.25) start hit the ruler
+        // body and moved it. Draw on clear paper above it; keep exact ink/Undo assertions.
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.10)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: 0.10)))
         waitCount(count, initial + 1)
         capture("Precision-PDF-NativeRuler")
         reveal("inkUndo", in: app).tap(); waitCount(count, initial)

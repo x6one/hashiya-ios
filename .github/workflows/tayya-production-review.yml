@@ -19,13 +19,29 @@ jobs:
         with:
           pattern: production-captures-*
           path: NativeCaptures
-      - name: Download the approved design once
-        uses: actions/download-artifact@v4
-        with:
-          name: Tayya-Studio-2-Final-Visual-Approval
-          run-id: '39495383721'
-          github-token: ${{ github.token }}
-          path: ApprovedDesign
+      - name: Recover the preserved byte-exact approved design originals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY_APPROVED'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          from Tools.restore_approved_design import restore
+          endpoint='repos/x6one/hashiya-ios/actions/artifacts/13037308637'
+          metadata=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          expected='4a821d675259fd89cac2988963c5c9bf6110631245e2f8769539450a090e37a1'
+          assert metadata['name']=='Tayya-Production-Review' and metadata['expired'] is False
+          assert metadata['workflow_run']['id']==41181915781
+          assert metadata['workflow_run']['head_sha']=='d45457bdd216265b11d58ba844fcda22fb6297d9'
+          assert metadata['size_in_bytes']==55554062 and metadata['digest']=='sha256:'+expected
+          archive=Path('preserved-approved-review.zip')
+          with archive.open('xb') as output:subprocess.run(['gh','api',endpoint+'/zip'],stdout=output,check=True)
+          assert archive.stat().st_size==55554062
+          with archive.open('rb') as file:assert hashlib.file_digest(file,'sha256').hexdigest()==expected
+          count=restore(archive,Path('ApprovedDesign/Tayya-Studio-2-Review'))
+          assert count==37, 'Every preserved approved reference must be recovered, never substituted'
+          Path('ApprovedDesign/recovery-receipt.json').write_text(json.dumps({'approved_source':'e94c2cbb6f6914e0ebb21ded090beaa54013e4df','preserved_artifact':metadata['id'],'preserved_artifact_sha256':expected,'preserved_run':41181915781,'recovered_pngs':count,'original_png_bytes_verified':True,'current_application_source':os.environ['GITHUB_SHA']},indent=2)+'\n')
+          PY_APPROVED
       - name: Resolve actual native test jobs and build the byte-exact comparison
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,4 +58,5 @@ jobs:
             Tayya-Production-Review/
             Tayya-Production-Review.zip
             Tayya-Production-Review.zip.sha256
+            ApprovedDesign/recovery-receipt.json
           retention-days: 14

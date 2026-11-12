@@ -2,6 +2,11 @@ name: Local Office engine feasibility
 on:
   workflow_dispatch:
     inputs:
+      expected_source:
+        description: 'Optional immutable app SHA; reject a changed branch before any build or signing'
+        type: string
+        required: false
+        default: ''
       sign_archive:
         description: 'Verify an App Store signed IPA without uploading it'
         type: boolean
@@ -25,6 +30,17 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 240
     steps:
+      - name: Require the explicitly pinned application source
+        env:
+          EXPECTED_APP_SOURCE: ${{ inputs.expected_source }}
+        run: |
+          python3 - <<'PY_SOURCE_PIN'
+          import os,re
+          expected=os.environ.get('EXPECTED_APP_SOURCE','')
+          if expected:
+              assert re.fullmatch('[a-f0-9]{40}',expected), 'Invalid immutable source pin'
+              assert expected==os.environ['GITHUB_SHA'], 'The branch changed; do not build, sign or upload another source'
+          PY_SOURCE_PIN
       - name: Check out pinned official Collabora sources
         uses: actions/checkout@v4
         with:

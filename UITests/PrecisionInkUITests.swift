@@ -40,7 +40,7 @@ final class PrecisionInkUITests: XCTestCase {
         let action = app.buttons[identifier]
         XCTAssertTrue(action.waitForExistence(timeout: 10))
         XCTAssertTrue(action.isHittable)
-        action.tap()
+        tapCompletedNativeMenuItem(action)
     }
     func testPDFPrecisionHighlighterSelectionAndHistoryUseRealControls() {
         let app = openDocument(); app.buttons["inkTool"].tap()

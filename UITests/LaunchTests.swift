@@ -459,7 +459,17 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(filename.isHittable, "The selected filename must be visible in Files")
         let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
-        filename.tap()
+        if appOwned {
+            // The saved Phone and Pad images show the enabled filename at
+            // this frame, but the remote AX element's synthesized tap leaves
+            // Files unchanged. Test its visible center through the same
+            // screen-coordinate route that successfully opens the container.
+            let frame = filename.frame
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
+        } else {
+            filename.tap()
+        }
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts.matching(NSPredicate(format:
             "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",

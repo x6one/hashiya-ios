@@ -89,6 +89,7 @@ jobs:
               'document-undo-route-phone': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit'],
               'release-boundaries': ['HashiyaUITests/StudioAudioUITests/testFirstMicrophoneGrantStartsAndSavesAnActualClip', 'HashiyaUITests/StudioEditorToolsTests/testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch', 'HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testRealRecordingAndPageMarkers', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
               'notes-precision-boundary': ['HashiyaTests/PrecisionInkStyleTests', 'HashiyaUITests/PrecisionInkUITests/testNotesLineRulerAndUndoDoNotChangeDocumentPage'],
+              'notes-precision-menu': ['HashiyaUITests/PrecisionInkUITests/testNotesLineRulerAndUndoDoNotChangeDocumentPage'],
               'owned-picker': ['HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
               'picker-boundary': ['HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint', 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
               'menu-dismissal': ['HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
@@ -138,6 +139,10 @@ jobs:
           }
           selected = []
           for requested_suite in suites:
+              # The corrected ruler journey already passed on Pad; only the
+              # Phone's saved native-menu activation failure needs this rerun.
+              if requested_suite == 'notes-precision-menu' and family == 'iPad':
+                  continue
               # One diagnosis batch, different evidence on each device; never
               # duplicate a phone capture run on iPad or its native Undo probe.
               if 'notes-bounds-red' in suites and 'notes-redo-diagnosis' in suites:

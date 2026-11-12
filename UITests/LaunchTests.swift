@@ -415,8 +415,10 @@ final class LaunchTests: XCTestCase {
             let locationFrame = location.frame
             app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
             if appOwned {
-                let folder = app.cells.matching(NSPredicate(format:
-                    "label CONTAINS %@ OR label CONTAINS %@", "طَيّة", "Hashiya")).firstMatch
+                // Files uses the installed CFBundleDisplayName, not the
+                // in-app wordmark. Both saved failure trees expose this exact
+                // provider container identifier for the current application.
+                let folder = app.cells[app.label + ", Container"]
                 guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return }
                 let frame = folder.frame
                 app.coordinate(withNormalizedOffset: .zero)

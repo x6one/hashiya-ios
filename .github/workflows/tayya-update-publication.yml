@@ -205,3 +205,48 @@ jobs:
           path: tayya-qualified-dispatch.json
           if-no-files-found: warn
           retention-days: 30
+
+  recover-ipad-evidence:
+    if: contains(github.event.head_commit.message, '[store:recover-evidence]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Extract original failed-case evidence without running the app
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY_RECOVER'
+          import subprocess,json,hashlib,zipfile
+          from pathlib import Path
+          endpoint='repos/x6one/hashiya-ios/actions/artifacts/13966220400'
+          m=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          expected='aa92a3e22c5d622a32fa1d830a175bbf15e16fca19b3e1191288aed51d18816d'
+          assert m['size_in_bytes']==607600474 and m['digest']=='sha256:'+expected and not m['expired']
+          assert m['workflow_run']['id']==43244481457 and m['workflow_run']['head_sha']=='79741a12ce42da707273246d51efa675f40d6212'
+          archive=Path('original-ipad.zip')
+          with archive.open('wb') as f:subprocess.run(['gh','api',endpoint+'/zip'],stdout=f,check=True)
+          with archive.open('rb') as f:assert hashlib.file_digest(f,'sha256').hexdigest()==expected
+          root=Path('Recovered-iPad');root.mkdir();receipt=[]
+          with zipfile.ZipFile(archive) as z:
+              rows=json.loads(z.read('Screenshots/manifest.json'));chosen={'Screenshots/manifest.json'}
+              names=['testDrawingToolDoesNotTurnPagesInDocumentOrSplit','testIndividualInkTargetsAtAccessibilityTextSize','testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages','testActualDocumentPickerImportsPowerPoint']
+              for r in rows:
+                  if any(t in r.get('testIdentifier','') for t in names):chosen.update('Screenshots/'+a['exportedFileName'] for a in r.get('attachments',[]))
+              chosen.update(n for n in z.namelist() if (n.startswith('NativeFailure/saved-drawings/') or n.endswith('summary.json')) and not n.endswith('/'))
+              for n in sorted(chosen):
+                  if n not in z.namelist():continue
+                  p=Path(n);assert not p.is_absolute() and '..' not in p.parts
+                  dest=root/p;dest.parent.mkdir(parents=True,exist_ok=True);raw=z.read(n);dest.write_bytes(raw)
+                  receipt.append({'file':n,'sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw)})
+          (root/'recovery-receipt.json').write_text(json.dumps({'original_run':43244481457,'original_source':'79741a12ce42da707273246d51efa675f40d6212','original_artifact':13966220400,'original_artifact_sha256':expected,'new_tests_run':False,'files':receipt},indent=2)+'\n')
+          print('Recovered original evidence only:',len(receipt),'files; no app or test execution')
+          PY_RECOVER
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Recovered-iPad-Failures-79741a12
+          path: Recovered-iPad/
+          if-no-files-found: error
+          retention-days: 14

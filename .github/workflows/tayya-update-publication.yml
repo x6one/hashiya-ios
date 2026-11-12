@@ -61,3 +61,50 @@ jobs:
           path: tayya-update-readiness.json
           if-no-files-found: error
           retention-days: 30
+  prepare-update-draft:
+    if: contains(github.event.head_commit.message, '[store:prepare-version]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare only the authorized editable update; preserve the published app
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs';
+          import {createAppleClient} from './Tools/app_store_readiness.mjs';
+          const report={app_id:'6818288428',bundle_id:'com.ahmadalawi.hashiya',version:'0.6.2',draft_only:true,binary_uploaded:false,submitted_for_review:false};
+          try {
+            const api=createAppleClient();
+            const app=(await api.get('apps/6818288428')).data;
+            if(app.attributes.bundleId!==report.bundle_id)throw new Error('Unexpected app identity');
+            const response=await api.get('apps/6818288428/appStoreVersions?filter[platform]=IOS&limit=200');
+            if(response.links?.next)throw new Error('Unexpected version pagination');
+            let version=response.data.find(row=>row.attributes.versionString==='0.6.2');
+            const live=response.data.find(row=>row.attributes.versionString==='0.6.1');
+            if(!live||!['READY_FOR_SALE','READY_FOR_DISTRIBUTION'].includes(live.attributes.appVersionState||live.attributes.appStoreState))throw new Error('Published source version differs; preserve Apple state');
+            report.published_version_preserved='0.6.1';
+            if(!version) {
+              version=(await api.post('appStoreVersions',{data:{type:'appStoreVersions',attributes:{platform:'IOS',versionString:'0.6.2',releaseType:'AFTER_APPROVAL',copyright:live.attributes.copyright||'2026 Ahmad Alawi'},relationships:{app:{data:{type:'apps',id:'6818288428'}}}}})).data;
+              report.created=true;
+            }
+            report.app_store_version_id=version.id;
+            report.version_state=version.attributes.appVersionState||version.attributes.appStoreState;
+            report.release_type=version.attributes.releaseType;
+          }catch(error) {
+            report.error=error.status?'Apple API HTTP '+error.status:'Update draft preparation failed';
+            report.operation=error.operation;
+            report.apple_errors=error.apple_errors;
+            process.exitCode=1;
+          }finally{writeFileSync('tayya-update-draft.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tayya-update-draft-authority
+          path: tayya-update-draft.json
+          if-no-files-found: error
+          retention-days: 30

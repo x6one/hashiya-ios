@@ -1,6 +1,6 @@
 // Read-only Apple readiness probe. Never persist or print private keys or JWTs.
 import {sign} from 'node:crypto';
-import {writeFileSync} from 'node:fs';
+import {readFileSync, writeFileSync} from 'node:fs';
 
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -30,11 +30,49 @@ export function createAppleClient(environment = process.env) {
       const error = new Error('Apple API HTTP ' + response.status + ': '
         + (body.errors || []).map(e => e.code || e.status || 'UNKNOWN').join(','));
       error.status = response.status;
+      error.operation = method + ' ' + url.pathname;
+      // Preserve Apple's explanation, never credentials/headers or arbitrary response fields.
+      const secrets = [token, environment.ASC_PRIVATE_KEY_BASE64,
+        Buffer.from(environment.ASC_PRIVATE_KEY_BASE64, 'base64').toString(),
+        environment.ASC_KEY_ID, environment.ASC_ISSUER_ID].filter(Boolean);
+      const redact = value => secrets.reduce((text, secret) => text.split(secret).join('[REDACTED]'), value)
+        .replace(/-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g, '[REDACTED]');
+      error.apple_errors = (body.errors || []).slice(0, 20).map(row => {
+        const safe = {};
+        for (const field of ['id', 'status', 'code', 'title', 'detail']) {
+          if (typeof row[field] === 'string') safe[field] = redact(row[field]).slice(0, 8000);
+        }
+        if (row.source && typeof row.source === 'object') {
+          safe.source = Object.fromEntries(['pointer', 'parameter'].filter(k => typeof row.source[k] === 'string')
+            .map(k => [k, redact(row.source[k]).slice(0, 1000)]));
+        }
+        return safe;
+      });
       throw error;
     }
     return body;
   }
-  return {get: path => request('GET', path), post: (path, body) => request('POST', path, body)};
+  return {get: path => request('GET', path), post: (path, body) => request('POST', path, body),
+    patch: (path, body) => request('PATCH', path, body)};
+}
+
+export function requestedStoreBuild(config) {
+  const build = String(config.build);
+  if (config.app_id !== '6818288428' || config.bundle_id !== 'com.ahmadalawi.hashiya'
+    || config.version !== '0.6.2' || !/^[1-9]\d{1,3}$/.test(build) || Number(build) < 17)
+    throw new Error('Only the authorized Tayya0.6.2 build17 or higher may be inspected');
+  return build;
+}
+
+export function buildReadiness(response, build) {
+  if (response.links?.next) throw new Error('Apple API exact build listing requires pagination');
+  const trains = new Map((response.included || []).filter(v => v.type === 'preReleaseVersions')
+    .map(v => [v.id, v.attributes.version]));
+  const rows = response.data.map(b => ({id: b.id, build: b.attributes.version,
+    version: trains.get(b.relationships?.preReleaseVersion?.data?.id) || null,
+    processing: b.attributes.processingState}));
+  return {target_build: build, builds: rows,
+    version_0_6_build_exists: rows.some(b => b.build === build && b.version === '0.6.2')};
 }
 
 async function main() {
@@ -46,6 +84,7 @@ async function main() {
   const save = () => writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 
   try {
+    const target = requestedStoreBuild(JSON.parse(readFileSync('Store/publication.json', 'utf8')));
     const missing = names.filter(n => !process.env[n]);
     if (missing.length) {
       report.missing = missing; save();
@@ -60,12 +99,8 @@ async function main() {
     report.versions = versions.data.map(v => ({id: v.id, version: v.attributes.versionString,
       state: v.attributes.appStoreState, release_type: v.attributes.releaseType}));
     // Filtering/inclusion belongs to the build collection, not app's relationship endpoint.
-    const builds = await get('builds?filter[app]=' + app.id + '&filter[version]=13&include=preReleaseVersion&limit=20');
-    const trains = new Map((builds.included || []).map(v => [v.id, v.attributes.version]));
-    report.build13 = builds.data.map(b => ({id: b.id, build: b.attributes.version,
-      version: trains.get(b.relationships?.preReleaseVersion?.data?.id) || null,
-      processing: b.attributes.processingState}));
-    report.version_0_6_build_13_exists = report.build13.some(b => b.version === '0.6.0');
+    const builds = await get('builds?filter[app]=' + app.id + '&filter[version]=' + target + '&include=preReleaseVersion&limit=20');
+    Object.assign(report, buildReadiness(builds, target));
     report.ready_for_distribution_authentication = true;
     save(); console.log(JSON.stringify(report));
   } catch (error) {

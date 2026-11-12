@@ -257,3 +257,27 @@
 "توسيط" = "Center";
 "إعادة التشغيل" = "Replay";
 "انتهى التسجيل" = "Recording finished";
+
+"طريقة الرسم" = "Drawing mode";
+"رسم حر" = "Freehand";
+"خط مستقيم" = "Straight line";
+"تظليل مستقيم" = "Straight highlighter";
+"المسطرة" = "Ruler";
+"حرّك المسطرة بإصبعين، ثم ارسم بالقلم بمحاذاتها." = "Move the ruler with two fingers, then draw along it.";
+"استقامة الخط" = "Straighten stroke";
+"تعديل الخط" = "Edit stroke";
+"لون الخط" = "Stroke color";
+"سماكة الخط" = "Stroke width";
+"حدّد الخط باللمس أو أحط الكتابة، ثم اضغط لاستقامتها. تبقى الأطراف في مكانها." = "Tap a stroke or circle the writing, then straighten it. Its endpoints stay in place.";
+"لون مخصص" = "Custom color";
+"سماكة %d" = "Width %d";
+"موضع الخط وحجمه" = "Stroke position and size";
+"إطالة الخط" = "Lengthen line";
+"تقصير الخط" = "Shorten line";
+"إجراءات التحديد" = "Selection actions";
+"تطبيق" = "Apply";
+"أحمر" = "Red";
+"أزرق" = "Blue";
+"أخضر" = "Green";
+"أسود" = "Black";
+"أصفر" = "Yellow";

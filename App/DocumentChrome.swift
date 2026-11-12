@@ -9,7 +9,7 @@ struct DocumentChrome: View {
     @ObservedObject var workspace: PDFWorkspace
     @ObservedObject var margins: MarginPages
     @ObservedObject var editor: MarginEditorState
-    let notesControl: MarginCanvasControl
+    @ObservedObject var notesControl: MarginCanvasControl
     @Binding var target: TayyaEditingTarget
     let notesVisible: Bool
     let notesExpanded: Bool
@@ -113,10 +113,10 @@ struct DocumentChrome: View {
         case .ink:
             if editsNotes {
                 InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width,
-                           allowsWidthFit: true, compact: true, action: notesControl.action)
+                           geometry: $editor.inkGeometry, ruler: $editor.inkRuler, allowsWidthFit: true, compact: true, action: notesControl.action)
             } else {
                 InkToolbar(brush: $workspace.brush, color: $workspace.inkColor, width: $workspace.inkWidth,
-                           compact: true) { action in
+                           geometry: $workspace.inkGeometry, ruler: $workspace.inkRuler, compact: true) { action in
                     if action == "fit" { workspace.fit() } else { workspace.inkAction?(action) }
                 }
             }
@@ -133,12 +133,10 @@ struct DocumentChrome: View {
                 }
             }
         case .lasso:
-            TayyaToolbar {
-                if editsNotes {
-                    WorkspaceToolHint(text: "حدّد الكتابة بالقلم لتحريكها أو نسخها.")
-                    TayyaIconButton(title: "تراجع", symbol: "arrow.uturn.backward") { notesControl.action("undo") }
-                    TayyaIconButton(title: "إعادة", symbol: "arrow.uturn.forward") { notesControl.action("redo") }
-                } else {
+            if editsNotes {
+                SelectedInkTools(count: notesControl.selectedInkCount, allowsGeometry: notesControl.selectionAllowsGeometry, action: notesControl.action)
+            } else {
+                HStack(spacing: 0) {
                     Menu {
                         Button("تحديد نص الصفحة") {
                             workspace.tool = .read; selectingPDFText = true
@@ -150,13 +148,12 @@ struct DocumentChrome: View {
                     } label: { Image(systemName: "selection.pin.in.out").frame(width: 44, height: 44) }
                         .accessibilityLabel("نوع التحديد").accessibilityIdentifier("selectText")
                     if selectingPDFText {
-                        TayyaIconButton(title: "نسخ", symbol: "doc.on.doc") { UIPasteboard.general.string = workspace.view?.currentSelection?.string }
-                        TayyaIconButton(title: "إلغاء التحديد", symbol: "xmark") { workspace.view?.currentSelection = nil }
-                    } else {
-                        ForEach([("يسار", "left", "arrow.left"), ("يمين", "right", "arrow.right"), ("أعلى", "up", "arrow.up"), ("أسفل", "down", "arrow.down"), ("تكبير", "grow", "arrow.up.left.and.arrow.down.right"), ("تصغير", "shrink", "arrow.down.right.and.arrow.up.left"), ("نسخ", "copy", "doc.on.doc"), ("لصق", "paste", "doc.on.clipboard")], id: \.1) { title, action, symbol in
-                            TayyaIconButton(title: title, symbol: symbol) { workspace.inkAction?(action) }
-                                .accessibilityIdentifier("selectionAction-" + action)
+                        TayyaToolbar {
+                            TayyaIconButton(title: "نسخ", symbol: "doc.on.doc") { UIPasteboard.general.string = workspace.view?.currentSelection?.string }
+                            TayyaIconButton(title: "إلغاء التحديد", symbol: "xmark") { workspace.view?.currentSelection = nil }
                         }
+                    } else {
+                        SelectedInkTools(count: workspace.selectedInkCount, allowsGeometry: workspace.selectionAllowsGeometry) { workspace.inkAction?($0) }
                     }
                 }
             }

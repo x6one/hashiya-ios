@@ -75,6 +75,39 @@ final class PrecisionInkControllerTests: XCTestCase {
         // Gesture points in the scroll view's bounds already contain its contentOffset.
         XCTAssertEqual(PrecisionInkController.drawingPoint(CGPoint(x: 120, y: 80), in: canvas), CGPoint(x: 240, y: 160))
     }
+    @MainActor func testNativeStrokeDefersChangedToolAndRulerUntilItsCommitEnds() {
+        let canvas = MarginCanvas(frame: .zero)
+        // Retain the actual owner throughout the active native interval.
+        let owner = PrecisionInkController(canvas: canvas)
+        owner.configure(mode: .freehand, selection: false, ruler: false, brush: .pen, color: .red, width: 3, enabled: true)
+        owner.nativeToolBegan()
+        owner.configure(mode: .freehand, selection: false, ruler: true, brush: .pencil, color: .blue, width: 5, enabled: true)
+        XCTAssertEqual((canvas.tool as? PKInkingTool)?.inkType, .pen)
+        XCTAssertFalse(canvas.isRulerActive)
+        owner.nativeToolEnded()
+        XCTAssertEqual((canvas.tool as? PKInkingTool)?.inkType, .pencil)
+        XCTAssertTrue(canvas.isRulerActive)
+    }
+    @MainActor func testPrecisionUndoStillWorksAfterReturningToReadMode() throws {
+        let canvas = LassoCanvas(frame: .zero); canvas.drawing = drawing(40)
+        let manager = try XCTUnwrap(canvas.undoManager); manager.groupsByEvent = false; manager.removeAllActions()
+        let controller = PrecisionInkController(canvas: canvas)
+        controller.configure(mode: .freehand, selection: false, ruler: false, brush: .pen, color: .red, width: 3, enabled: true)
+        XCTAssertTrue(controller.replaceDrawing(drawing(80), reason: .edit, actionName: "Edit"))
+        controller.configure(mode: .freehand, selection: false, ruler: false, brush: .pen, color: .red, width: 3, enabled: false)
+        manager.undo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 40)
+        manager.redo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80)
+        manager.removeAllActions()
+    }
+    @MainActor func testUnwritableSurfaceCannotBeEditedOrReceiveNewLines() {
+        let canvas = LassoCanvas(frame: .zero); canvas.drawing = drawing(40)
+        let controller = PrecisionInkController(canvas: canvas), original = canvas.drawing.dataRepresentation()
+        controller.configure(mode: .line, selection: false, ruler: false, brush: .pen, color: .blue, width: 3, enabled: true, writable: false)
+        XCTAssertFalse(controller.replaceDrawing(drawing(80), reason: .edit, actionName: "Edit"))
+        controller.beginLine(at: CGPoint(x: 20, y: 40))
+        XCTAssertFalse(controller.finishLine(at: CGPoint(x: 120, y: 40)))
+        XCTAssertEqual(canvas.drawing.dataRepresentation(), original)
+    }
     @MainActor func testCancelledOrReloadedDirectLineDoesNotCommitPreview() throws {
         let canvas = LassoCanvas(frame: CGRect(x: 0, y: 0, width: 500, height: 700)); canvas.drawing = drawing(40)
         let manager = try XCTUnwrap(canvas.undoManager); manager.groupsByEvent = false; manager.removeAllActions()

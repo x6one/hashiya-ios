@@ -33,6 +33,9 @@ struct PageText: Codable, Identifiable {
     @Published var brush: InkBrush = .pen
     @Published var inkColor = TayyaTheme.brandInk
     @Published var inkWidth = 3.0
+    @Published var inkGeometry: InkGeometryMode = .freehand
+    @Published var inkRuler = false
+    @Published var selectionAllowsGeometry = false
     @Published var page = 1
     @Published var inkStrokeCount = 0
     @Published var editing: PageText?
@@ -1317,7 +1320,9 @@ struct NativePDF: UIViewRepresentable {
             #endif
             for canvas in canvases.values {
                 canvas.enableLasso(workspace.tool == .lasso)
-                if toolChanged { canvas.tool = workspace.brush.tool(color: UIColor(workspace.inkColor), width: workspace.inkWidth) }
+                canvas.precisionInk.configure(mode: workspace.inkGeometry, selection: workspace.tool == .lasso,
+                    ruler: workspace.inkRuler, brush: workspace.brush, color: UIColor(workspace.inkColor), width: workspace.inkWidth,
+                    enabled: value, writable: workspace.canWriteInk(on: canvas.tag))
             }
             appliedBrush = workspace.brush; appliedColor = workspace.inkColor; appliedWidth = workspace.inkWidth
             guard enabled != value else { return }
@@ -1367,7 +1372,20 @@ struct NativePDF: UIViewRepresentable {
             canvas.delegate = self
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             canvas.enableLasso(workspace.tool == .lasso)
-            canvas.selectionChanged = { [weak workspace] count in workspace?.selectedInkCount = count }
+            canvas.selectionChanged = { [weak workspace, weak canvas] _ in
+                DispatchQueue.main.async {
+                    guard let workspace, let canvas, canvas.tag == workspace.page - 1 else { return }
+                    workspace.selectedInkCount = canvas.precisionInk.selectedIndices.count
+                    workspace.selectionAllowsGeometry = canvas.precisionInk.selectionAllowsGeometry
+                }
+            }
+            canvas.precisionInk.didCommit = { [weak self, weak canvas] _, reason in
+                guard let self, let canvas else { return }
+                self.persistInk(canvas, allowsWritingMarker: reason == .newStroke)
+            }
+            canvas.precisionInk.configure(mode: workspace.inkGeometry, selection: workspace.tool == .lasso,
+                ruler: workspace.inkRuler, brush: workspace.brush, color: UIColor(workspace.inkColor), width: workspace.inkWidth,
+                enabled: enabled, writable: workspace.canWriteInk(on: index))
             lastStrokeCounts[index] = canvas.drawing.strokes.count
             canvases[index] = canvas
             return canvas
@@ -1388,29 +1406,18 @@ struct NativePDF: UIViewRepresentable {
             if action == "undo" { canvas.undoManager?.undo(); return }
             if action == "redo" { canvas.undoManager?.redo(); return }
             if action == "copy" {
-                guard !canvas.selected.isEmpty else { return }
-                copiedInk = PKDrawing(strokes: canvas.selected.map { canvas.drawing.strokes[$0] }); return
+                let indices = canvas.precisionInk.selectedIndices
+                guard !indices.isEmpty, indices.allSatisfy({ canvas.drawing.strokes.indices.contains($0) }) else { return }
+                copiedInk = PKDrawing(strokes: indices.map { canvas.drawing.strokes[$0] }); return
             }
-            guard action == "paste" ? copiedInk != nil : !canvas.selected.isEmpty else { return }
-            let previous = canvas.drawing
-            canvas.undoManager?.registerUndo(withTarget: canvas) { target in target.drawing = previous }
-            if action == "paste" { if let copiedInk { canvas.drawing = PKDrawing(strokes: canvas.drawing.strokes + copiedInk.strokes) }; return }
-            let bounds = PKDrawing(strokes: canvas.selected.map { canvas.drawing.strokes[$0] }).bounds
-            var transform = CGAffineTransform.identity
-            switch action {
-            case "left": transform = CGAffineTransform(translationX: -10, y: 0)
-            case "right": transform = CGAffineTransform(translationX: 10, y: 0)
-            case "up": transform = CGAffineTransform(translationX: 0, y: -10)
-            case "down": transform = CGAffineTransform(translationX: 0, y: 10)
-            case "grow", "shrink":
-                let factor: CGFloat = action == "grow" ? 1.1 : 0.9
-                transform = CGAffineTransform(translationX: -bounds.midX, y: -bounds.midY).concatenating(CGAffineTransform(scaleX: factor, y: factor)).concatenating(CGAffineTransform(translationX: bounds.midX, y: bounds.midY))
-            default: return
+            if action == "paste", let copiedInk {
+                canvas.precisionInk.replaceDrawing(PKDrawing(strokes: canvas.drawing.strokes + copiedInk.strokes), reason: .newStroke, actionName: TayyaLocalized("لصق"))
+                return
             }
-            canvas.drawing = InkSelection.transform(canvas.drawing, indices: canvas.selected, by: transform)
-            canvas.points = canvas.points.map { $0.applying(transform) }; canvas.setNeedsDisplay()
+            canvas.precisionInk.perform(action)
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
+            if (canvas as? LassoCanvas)?.precisionInk.nativeDrawingChanged() == true { return }
             let count = String(canvas.drawing.strokes.count)
             if canvas.accessibilityValue != count { canvas.accessibilityValue = count }
             if activeInk.contains(ObjectIdentifier(canvas)) {
@@ -1418,12 +1425,14 @@ struct NativePDF: UIViewRepresentable {
             } else { persistInk(canvas) } // Undo, erasing and lasso edits.
         }
         func canvasViewDidBeginUsingTool(_ canvas: PKCanvasView) {
+            (canvas as? LassoCanvas)?.precisionInk.nativeToolBegan()
             activeInk.insert(ObjectIdentifier(canvas))
         }
         func canvasViewDidEndUsingTool(_ canvas: PKCanvasView) {
             activeInk.remove(ObjectIdentifier(canvas))
             pendingInk.remove(ObjectIdentifier(canvas))
             persistInk(canvas)
+            (canvas as? LassoCanvas)?.precisionInk.nativeToolEnded()
         }
         func resetInkTracking() {
             activeInk.removeAll(); pendingInk.removeAll(); lastSavedInk.removeAll()
@@ -1434,7 +1443,7 @@ struct NativePDF: UIViewRepresentable {
             }
             activeInk.removeAll(); pendingInk.removeAll()
         }
-        private func persistInk(_ canvas: PKCanvasView) {
+        private func persistInk(_ canvas: PKCanvasView, allowsWritingMarker: Bool = true) {
             do {
                 try workspace.requireWritableInk(on: canvas.tag)
                 let data = canvas.drawing.dataRepresentation()
@@ -1446,7 +1455,7 @@ struct NativePDF: UIViewRepresentable {
                 lastSavedInk[canvas.tag] = data
                 if workspace.canUndoPageDeletion { workspace.canUndoPageDeletion = false }
                 let count = canvas.drawing.strokes.count
-                if count > (lastStrokeCounts[canvas.tag] ?? 0) { workspace.onInkSaved?(canvas.tag, count) }
+                if allowsWritingMarker && count > (lastStrokeCounts[canvas.tag] ?? 0) { workspace.onInkSaved?(canvas.tag, count) }
                 lastStrokeCounts[canvas.tag] = count
                 if canvas.tag == workspace.page - 1, workspace.inkStrokeCount != count { workspace.inkStrokeCount = count }
             }

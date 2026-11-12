@@ -1,7 +1,7 @@
 import UIKit
 import PencilKit
 
-enum InkGeometryMode: String, CaseIterable {
+enum InkGeometryMode: String, CaseIterable, Hashable {
     case freehand, line, highlighter
 }
 enum InkEditOperation {
@@ -19,8 +19,18 @@ enum InkStrokeEditing {
         for index in Set(indices) {
             var stroke = strokes[index]
             switch edit {
-            case .endpoints:
-                return nil // RED contract: implement only after endpoint regression fails.
+            case .endpoints(let start, let end):
+                guard Set(indices).count == 1, stroke.mask == nil,
+                    start.x.isFinite, start.y.isFinite, end.x.isFinite, end.y.isFinite,
+                    distance(start, end) > 0.01, let oldStart = stroke.path.first?.location,
+                    let oldEnd = stroke.path.last?.location else { return nil }
+                let dx = oldEnd.x - oldStart.x, dy = oldEnd.y - oldStart.y
+                let lengthSquared = dx * dx + dy * dy
+                guard lengthSquared > 0.0001 else { return nil }
+                stroke.path = remapping(stroke.path) { point in
+                    let t = min(1, max(0, ((point.location.x - oldStart.x) * dx + (point.location.y - oldStart.y) * dy) / lengthSquared))
+                    return copy(point, location: CGPoint(x: start.x + t * (end.x - start.x), y: start.y + t * (end.y - start.y)))
+                }
             case .recolor(let color):
                 stroke.ink = PKInk(stroke.ink.inkType, color: color.withAlphaComponent(stroke.ink.color.cgColor.alpha))
             case .width(let width):

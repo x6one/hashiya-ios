@@ -16,7 +16,7 @@ function png(w,h,alpha=false) {
 }
 function fixture() {
   const root=mkdtempSync(join(tmpdir(),'tayya-store-contract-'));
-  const config={app_id:'6818288428',bundle_id:'com.ahmadalawi.hashiya',version:'0.6.0',build:'13',artwork_source:'a'.repeat(40),artwork_run:'42'};
+  const config={app_id:'6818288428',bundle_id:'com.ahmadalawi.hashiya',version:'0.6.2',build:'17',artwork_source:'a'.repeat(40),artwork_run:'42'};
   const images=[];
   for(const [family,w,h] of [['iPhone',1206,2622],['iPad',2064,2752]]) {
     mkdirSync(join(root,family,'originals'),{recursive:true});const bytes=png(w,h);
@@ -32,12 +32,12 @@ function fixture() {
 test('accepts the12 genuine-sized RGB files and their intact originals',()=>{const f=fixture();try{assert.equal(validateArtwork(f.root,f.config).length,12);}finally{f.close();}});
 test('uses the authorized increasing release build without changing artwork provenance',()=>{
   const f=fixture();try{
-    assert.equal(validateArtwork(f.root,{...f.config,build:'15'}).length,12);
-    for(const build of ['12','013','14.0','10000',true])
+    assert.equal(validateArtwork(f.root,{...f.config,build:'18'}).length,12);
+    for(const build of ['16','017','17.0','10000',true])
       assert.throws(()=>validateArtwork(f.root,{...f.config,build}),/authorized/i);
   }finally{f.close();}
 });
-test('rejects accidentally targeting the published older version',()=>{const f=fixture();try{assert.throws(()=>validateArtwork(f.root,{...f.config,version:'0.4.2'}),/authorized/i);}finally{f.close();}});
+test('rejects accidentally targeting the published older version',()=>{const f=fixture();try{for(const version of ['0.4.2','0.6.0','0.6.1'])assert.throws(()=>validateArtwork(f.root,{...f.config,version}),/authorized/i);}finally{f.close();}});
 test('rejects a path outside the verified artwork root',()=>{const f=fixture();try{f.images[0].file='../outside.png';f.save();assert.throws(()=>validateArtwork(f.root,f.config),/path/i);}finally{f.close();}});
 test('rejects PNG alpha even when its file checksum is valid',()=>{const f=fixture();try{const row=f.images[0],b=png(row.width,row.height,true);writeFileSync(join(f.root,row.file),b);row.sha256=sha(b);f.save();assert.throws(()=>validateArtwork(f.root,f.config),/RGB|alpha/i);}finally{f.close();}});
 test('rejects a modified screenshot or mismatched source revision',()=>{const f=fixture();try{const row=f.images[0];writeFileSync(join(f.root,row.file),Buffer.from('modified'));assert.throws(()=>validateArtwork(f.root,f.config),/hash|PNG/i);writeFileSync(join(f.root,row.file),readFileSync(join(f.root,row.family,row.original_file)));row.source_capture.source='b'.repeat(40);f.save();assert.throws(()=>validateArtwork(f.root,f.config),/source/i);}finally{f.close();}});

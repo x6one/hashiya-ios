@@ -1,12 +1,12 @@
 {
-  "status": "0.6.0_13_store_preparation_pending_same_source_gate",
+  "status": "precision_ink_update_in_development_not_uploaded",
   "bundle_id": "com.ahmadalawi.hashiya",
   "sku": "tayya-ios",
   "platforms": [
     "IOS"
   ],
-  "version": "0.6.0",
-  "build": "13",
+  "version": "0.6.2",
+  "build": "17",
   "primary_locale": "ar-SA",
   "suggested_primary_category": "EDUCATION",
   "suggested_secondary_category": "PRODUCTIVITY",
@@ -18,7 +18,7 @@
       "promotional_text": "صفحاتك بطريقتك: اقرأ ملفاتك، اكتب عليها، واحفظ ملاحظاتك في مكتبة واحدة على الآيفون والآيباد.",
       "description": "طَيّة مساحة للقراءة والكتابة وتنظيم الدراسة على الآيفون والآيباد، بواجهة عربية هادئة ودعم الإنجليزية. لا تحتاج إلى حساب أو اشتراك.\n\nاجمع ملفاتك في مكتبة واحدة، ونظّمها بالأقسام والمفضلة والبحث. تابع مستندك من آخر صفحة، واستعد الملفات من المحذوفات، وصدّر نسخة احتياطية لمكتبتك.\n\nاقرأ ملفات PDF واكتب عليها بالقلم أو اللمس، وأضف نصوصًا قابلة للتحرير. استخدم التظليل والممحاة والتحديد والتراجع والإعادة، واحفظ ثلاثة أقلام مفضلة. تنقّل بمصغرات الصفحات أو رقم الصفحة، وأضف أوراقًا فارغة أو مسطرة أو مربعات أو نقاطًا. يمنحك وضع التركيز مساحة أكبر للقراءة.\n\nللملاحظات صفحات مستقلة للنص وخط اليد. افتحها بجانب المستند، أو وسّعها للكتابة، مع الحفاظ على محتواها عند تغيير التقسيم والدوران وإعادة الفتح.\n\nسجّل الصوت بعد السماح بالميكروفون، واربطه بصفحات المستند وعلامات الكتابة. يستمر التسجيل عند الانتقال بين الصفحات. ارجع إلى العلامة لتفتح الصفحة وتستمع من وقتها، وأعد تسمية تسجيلاتك أو شارك ملفات M4A.\n\nأنشئ بطاقات تعليمية مرتبطة بالمصدر وراجعها، وابحث في نصوص الملفات والملاحظات. يعتمد التعرف على النصوص داخل الصور على اللغات المتاحة في نظام جهازك.\n\nاستورد ملفات PDF ومستندات Office المدعومة من تطبيق الملفات. يمكن تحويل Office محليًا إلى PDF للكتابة عليه، مع الاحتفاظ بالأصل داخل المكتبة. قد يختلف التنسيق والخطوط؛ لا تنتقل حركات PowerPoint أو الفيديو إلى PDF. صدّر مستندك مع الرسومات والنصوص أو شاركه بالطريقة التي تختارها.\n\nالوضع الداكن، واتجاه القراءة من اليمين إلى اليسار، والخط المكبر، وتقليل الحركة. تُحفظ ملفاتك وملاحظاتك وتسجيلاتك على جهازك؛ لا يرفعها التطبيق إلى خوادم المطوّر.",
       "keywords": "PDF,ملاحظات,قلم,دراسة,دفتر,تعليقات,قراءة,تسجيل,بطاقات,طية",
-      "whats_new": "Tayya Studio 2.0: مكتبة ببطاقات جديدة وواجهة ورقية هادئة. أدوات واضحة للقلم والنص والتحديد والملاحظات والصفحات، مع شريط سياقي ووضع تركيز. ملاحظات مستقلة وتقسيم متكيف، وأقلام مفضلة محفوظة. تسجيل حقيقي بعلامات مرتبطة بالصفحات والكتابة، ومصغرات PDF فعلية. تحسين العربية والإنجليزية والوضع الداكن والخط المكبر، مع الحفاظ على ملفاتك وتسجيلاتك القديمة.",
+      "whats_new": "• تسطير مستقيم وتظليل منتظم على المستندات والملاحظات.\n• مسطرة للكتابة بالقلم.\n• استقامة الخط المحدد وتعديل لونه وسماكته وطرفيه، مع دعم التراجع والإعادة.\n• الحفاظ على ملفاتك وملاحظاتك وأقلامك المفضلة.",
       "beta_test_description": "تحقق من أدوات المحرر الخمس، وحفظ القلم والنص والملاحظات بعد الدوران والتقسيم وإعادة الفتح. سجّل وانتقل بين الصفحات ثم افتح علامة صوتية. اختبر المفضلة والبحث والبطاقات والاستيراد والتصدير واستعادة النسخ الاحتياطية، بالعربية والإنجليزية وعلى الآيفون والآيباد."
     },
     "en-US": {
@@ -27,7 +27,7 @@
       "promotional_text": "Keep your reading, handwritten notes and study files together on iPhone and iPad.",
       "description": "Tayya brings reading, writing and study files together on iPhone and iPad, with Arabic and English interfaces. No account or subscription is required.\n\nOrganize your library with sections, favorites and search. Resume your last page, restore deleted documents and export or restore a library backup.\n\nRead PDFs, draw with a stylus or touch, highlight, erase and select handwriting, or add editable text. Undo and redo your edits and save three favorite pen settings. Navigate with real page thumbnails or a page number. Add blank, ruled, grid or dotted paper. Focus mode gives the document more space.\n\nNotes have independent pages for typed text and handwriting. Keep them beside the document or expand the writing area. Your notes remain saved through split resizing, rotation and reopening.\n\nAfter granting microphone access, record audio linked to document pages and writing markers. The same recording continues as you turn pages. Tap a marker to open its page and play from that moment. Rename recordings or share their M4A files.\n\nCreate and review flashcards linked to their source. Search document text and typed notes. On-device image text recognition depends on the languages supported by your OS.\n\nImport PDFs and supported Office files from the Files app. Convert supported Office documents locally into static PDFs for annotation, while retaining the Office original inside the library. Some formatting and fonts may differ; PowerPoint animations and videos are not preserved in a PDF. Export PDFs with your drawings and text, or share files through your chosen destination.\n\nDark appearance, right-to-left reading, larger text and Reduce Motion support. Your documents, notes and recordings are stored on your device; the app does not upload them to developer servers.",
       "keywords": "PDF,notes,study,annotation,handwriting,notebook,documents,Arabic,Tayya",
-      "whats_new": "Tayya Studio 2.0 introduces a calm paper-and-ink interface, new library cards and five clear editor tools: Pen, Text, Select, Notes and Pages. Contextual controls, Focus mode, saved favorite pens, adaptive split notes and real PDF thumbnails. Real audio recording links pages and writing markers. Improved Arabic, English, dark appearance and larger text, while preserving existing documents and recordings.",
+      "whats_new": "• Draw straight underlines and uniform highlights in documents and Notes.\n• Use the ruler with handwriting tools.\n• Straighten a selected stroke and adjust its color, width and endpoints, with Undo and Redo.\n• Keep your existing documents, notes and favorite pens.",
       "beta_test_description": "Check the five editor tools, retained ink/text/notes after rotation, split resizing and relaunch, continuous recording across pages and marker navigation, favorites, flashcards, import/export and backup restoration on both device families."
     }
   },
@@ -42,7 +42,7 @@
   "support_url": "https://x6one.github.io/hashiya-ios/support.html",
   "encryption_declaration": "Standard third-party encryption in addition to Apple OS encryption; unchanged OpenSSL engine. Standard-encryption questionnaire completed on 2026-10-08; France excluded.",
   "privacy_manifest": "App-owned UserDefaults reason CA92.1 added for actual local preferences; existing file metadata and elapsed timers declarations retained. No tracking or collected-data categories introduced. See Store/release-audit-2026-10-25.md.",
-  "apple_session": "Read-only API verified 2026-10-25: live App Store version0.4.2 READY_FOR_SALE; new0.6.0(13) absent. Publication and new-source qualification remain pending.",
+  "apple_session": "Authenticated read 2026-11-12, Actions43206683107:0.6.1 READY_FOR_SALE,build16 VALID;0.6.2 draft absent,build17 unused. This update is not yet qualified or uploaded.",
   "app_store_app_id": "6818288428",
   "testflight_uploaded": false,
   "app_store_submitted": false,

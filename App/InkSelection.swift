@@ -21,7 +21,15 @@ enum InkSelection {
     }
 }
 final class LassoCanvas: PKCanvasView {
-    lazy var precisionInk = PrecisionInkController(canvas: self)
+    lazy var precisionInk: PrecisionInkController = {
+        let controller = PrecisionInkController(canvas: self)
+        controller.selectionDidChange = { [weak self] count in
+            guard let self else { return }
+            if count == 0 { self.points = [] }
+            self.selectionChanged?(count)
+        }
+        return controller
+    }()
     // History belongs to this page's drawing, not a responder ancestor shared
     // with the independently loaded Notes canvas or a text editor.
     private let drawingUndoManager = UndoManager()
@@ -35,22 +43,21 @@ final class LassoCanvas: PKCanvasView {
     var lassoMode = false { didSet { updateOutline() } }
     var points: [CGPoint] = [] { didSet { updateOutline() } }
     let outline = CAShapeLayer()
-    var selected: [Int] = []
+    var selected: [Int] { get { precisionInk.selectedIndices } set { precisionInk.select(newValue) } }
     var selectionChanged: ((Int) -> Void)?
     lazy var lasso = UIPanGestureRecognizer(target: self, action: #selector(selectInk(_:)))
-    override init(frame: CGRect) { super.init(frame: frame); addGestureRecognizer(lasso); lasso.isEnabled = false; outline.strokeColor = UIColor.systemBlue.cgColor; outline.fillColor = UIColor.clear.cgColor; outline.lineWidth = 2; outline.zPosition = 100; outline.lineDashPattern = [5, 4]; layer.addSublayer(outline) }
+    override init(frame: CGRect) { super.init(frame: frame); addGestureRecognizer(lasso); lasso.require(toFail: precisionInk.endpointGesture); lasso.isEnabled = false; outline.strokeColor = UIColor.systemBlue.cgColor; outline.fillColor = UIColor.clear.cgColor; outline.lineWidth = 2; outline.zPosition = 100; outline.lineDashPattern = [5, 4]; layer.addSublayer(outline) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func enableLasso(_ value: Bool) {
         guard lassoMode != value else { return }
         lassoMode = value; lasso.isEnabled = value; drawingGestureRecognizer.isEnabled = !value
-        if !value { points = []; selected = []; selectionChanged?(0) }
+        if !value { points = []; selected = [] }
     }
     @objc private func selectInk(_ gesture: UIPanGestureRecognizer) {
         if gesture.state == .began { points = []; selected = [] }
         points.append(gesture.location(in: self)); setNeedsDisplay()
         if gesture.state == .ended {
             selected = InkSelection.indices(in: drawing, polygon: points)
-            selectionChanged?(selected.count)
         }
     }
     private func updateOutline() {

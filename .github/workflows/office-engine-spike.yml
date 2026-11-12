@@ -39,12 +39,74 @@ jobs:
           ref: ${{ github.sha }}
           path: hashiya-tools
           persist-credentials: false
+      - name: Reuse the immutable qualified engine when its source is unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY_REUSE'
+          import hashlib,json,os,shutil,subprocess,tarfile,zipfile
+          from pathlib import Path,PurePosixPath
+          baseline='d45457bdd216265b11d58ba844fcda22fb6297d9'
+          subprocess.run(['git','-C','hashiya-tools','fetch','--no-tags','--depth=1','origin',baseline],check=True)
+          unchanged=subprocess.run(['git','-C','hashiya-tools','diff','--quiet',baseline,'HEAD','--','NativeOffice','EngineBridge','Tools/link_office_engine.py','Tools/package_office_engine.py','Tools/prepare_native_office_app.py'])
+          if unchanged.returncode==1:
+              print('Engine inputs changed; preserve the original source-build path instead of reusing old archives')
+              raise SystemExit(0)
+          unchanged.check_returncode()
+          endpoint='repos/x6one/hashiya-ios/actions/artifacts/13080813474'
+          meta=json.loads(subprocess.check_output(['gh','api',endpoint],text=True))
+          expected='42f462205aed991a63e1cab4e128906191d8f81482ac09c0c32c77fddf87eef1'
+          if meta['expired'] is True:
+              print('Preserved artifact expired; use the original checkpoint/source-build path')
+              raise SystemExit(0)
+          assert meta['expired'] is False
+          assert meta['name']=='office-engine-arm64-linking-candidate'
+          assert meta['workflow_run']['id']==41181915781 and meta['workflow_run']['head_sha']==baseline
+          assert meta['size_in_bytes']==265995124 and meta['digest']=='sha256:'+expected
+          archive=Path('qualified-engine.zip')
+          with archive.open('xb') as out:subprocess.run(['gh','api',endpoint+'/zip'],stdout=out,check=True)
+          assert archive.stat().st_size==265995124
+          with archive.open('rb') as file:assert hashlib.file_digest(file,'sha256').hexdigest()==expected
+          packed=Path('OfficeEngineCandidate.tar.gz')
+          with zipfile.ZipFile(archive) as zipped:
+              assert zipped.namelist()==['OfficeEngineCandidate.tar.gz'] and zipped.testzip() is None
+              assert zipped.infolist()[0].file_size<2*1024**3
+              with zipped.open(zipped.namelist()[0]) as source,packed.open('xb') as out:shutil.copyfileobj(source,out)
+          with tarfile.open(packed,'r:gz') as tar:
+              members=tar.getmembers()
+              assert len(members)<100000 and sum(m.size for m in members)<16*1024**3
+              names=set()
+              for member in members:
+                  path=PurePosixPath(member.name)
+                  assert not path.is_absolute() and '..' not in path.parts and '\\' not in member.name
+                  assert path.parts[0]=='OfficeEngineCandidate' and (member.isfile() or member.isdir())
+                  assert path.as_posix() not in names
+                  names.add(path.as_posix())
+              manifest=json.load(tar.extractfile('OfficeEngineCandidate/manifest.json'))
+              assert manifest['source']=='124ecf55b0f0969b7859d2f803f0bc3a0049a4dc'
+              assert manifest['platform']=='iphoneos' and manifest['architecture']=='arm64'
+              for member in members:
+                  target=Path(member.name)
+                  if member.isdir():target.mkdir(parents=True,exist_ok=True)
+                  else:
+                      target.parent.mkdir(parents=True,exist_ok=True)
+                      with tar.extractfile(member) as source,target.open('xb') as out:shutil.copyfileobj(source,out)
+                      target.chmod(member.mode & 0o755)
+          Path('diagnostics').mkdir(exist_ok=True)
+          Path('diagnostics/engine-reuse-proof.json').write_text(json.dumps({'artifact':meta['id'],'sha256':expected,'qualified_run':41181915781,'qualified_source':baseline,'candidate':os.environ['GITHUB_SHA'],'native_source_unchanged':True,'source':manifest['source'],'reused_without_recompilation':True},indent=2)+'\n')
+          with open(os.environ['GITHUB_ENV'],'a') as file:file.write('ENGINE_CANDIDATE_REUSED=true\n')
+          PY_REUSE
       - name: Install build prerequisites
         run: |
-          brew install autoconf automake libtool pkg-config bison gperf nasm make llvm xcodegen
-          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
-          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
-          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+          if [ "$ENGINE_CANDIDATE_REUSED" = "true" ]; then
+            command -v xcodegen >/dev/null || brew install xcodegen
+            test -x "$(brew --prefix openssl@3)/bin/openssl" || brew install openssl@3
+          else
+            brew install autoconf automake libtool pkg-config bison gperf nasm make llvm xcodegen
+            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+            echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+            echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+          fi
           python3 -m venv "$RUNNER_TEMP/office-python"
           "$RUNNER_TEMP/office-python/bin/pip" install polib lxml pyyaml
           echo "$RUNNER_TEMP/office-python/bin" >> "$GITHUB_PATH"
@@ -56,23 +118,26 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-version > diagnostics/sdk.txt
           df -h > diagnostics/disk.txt
       - name: Choose checkpoint key
+        if: env.ENGINE_CANDIDATE_REUSED != 'true'
         id: checkpoint-key
         run: |
           SDK_ID=$(xcodebuild -version | shasum -a 256 | cut -c1-12)
           echo "prefix=native-ios-124ecf55b0f0969b-v2-$SDK_ID-" >> "$GITHUB_OUTPUT"
       - name: Restore engine build checkpoint
+        if: env.ENGINE_CANDIDATE_REUSED != 'true'
         uses: actions/cache/restore@v4
         with:
           path: engine
           key: ${{ steps.checkpoint-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: ${{ steps.checkpoint-key.outputs.prefix }}
       - name: Configure the native iOS engine
-        if: ${{ hashFiles('engine/config_host.mk') == '' }}
+        if: ${{ env.ENGINE_CANDIDATE_REUSED != 'true' && hashFiles('engine/config_host.mk') == '' }}
         working-directory: engine
         run: |
           set -o pipefail
           ./autogen.sh --with-distro=CPiOS --with-lang=en-US --without-java --without-help --without-myspell-dicts --disable-symbols --with-parallelism=4 2>&1 | tee ../diagnostics/configure.log
       - name: Build arm64 engine archives
+        if: env.ENGINE_CANDIDATE_REUSED != 'true'
         timeout-minutes: 210
         working-directory: engine
         run: |
@@ -85,7 +150,9 @@ jobs:
           find instdir workdir -name '*.a' -exec ls -lh {} + > ../diagnostics/archives.txt
       - name: Retain arm64 engine linking candidate
         run: |
-          python3 hashiya-tools/Tools/package_office_engine.py engine OfficeEngineCandidate
+          if [ "$ENGINE_CANDIDATE_REUSED" != "true" ]; then
+            python3 hashiya-tools/Tools/package_office_engine.py engine OfficeEngineCandidate
+          fi
           # Bound artifact storage; never upload the whole multi-gigabyte build.
           stat -f%z OfficeEngineCandidate.tar.gz > diagnostics/candidate-size-bytes.txt
           test "$(stat -f%z OfficeEngineCandidate.tar.gz)" -lt 2147483648
@@ -153,9 +220,9 @@ jobs:
           PUBLISH_TO_APPLE: ${{ inputs.publish_to_apple }}
         run: |
           if [ "$PUBLISH_TO_APPLE" = "true" ]; then
-            python3 Tools/distribute_native_app.py
+            python3 Tools/distribute_native_app.py --preserve-archive
           else
-            python3 Tools/distribute_native_app.py --archive-only
+            python3 Tools/distribute_native_app.py --archive-only --preserve-archive
           fi
       - name: Retain signed IPA and upload evidence
         if: ${{ always() && github.event_name == 'workflow_dispatch' && contains(github.workflow_ref, '/.github/workflows/office-engine-spike.yml@') && (inputs.sign_archive || inputs.publish_to_apple) }}
@@ -165,6 +232,7 @@ jobs:
           path: |
             AppleDistribution/Export/*.ipa
             AppleDistribution/distribution-report.json
+            AppleDistribution/Tayya.xcarchive
           if-no-files-found: ignore
           retention-days: 7
       - name: Measure build checkpoint

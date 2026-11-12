@@ -70,7 +70,7 @@ jobs:
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
               'precision-ink-red': ['HashiyaTests/PrecisionInkTests'],
-              'precision-ink': ['HashiyaTests/PrecisionInkTests', 'HashiyaTests/PrecisionInkControllerTests', 'HashiyaTests/PrecisionInkPersistenceTests', 'HashiyaUITests/PrecisionInkUITests'],
+              'precision-ink': ['HashiyaTests/PrecisionInkTests', 'HashiyaTests/PrecisionInkControllerTests', 'HashiyaTests/PrecisionInkPersistenceTests', 'HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/StudioInkSafetyTests', 'HashiyaTests/StudioPenPresetTests', 'HashiyaTests/StudyUpdateTests', 'HashiyaUITests/PrecisionInkUITests'],
               'canvas-undo-isolation': ['HashiyaTests/StudioUndoIsolationTests'],
               'split-undo-regression': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit'],
               'page-transition': ['HashiyaUITests/StudioProductionCaptureTests/testArabicLightProductionStudyScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNextPageReadinessRejectsAnUnchangedDocument'],

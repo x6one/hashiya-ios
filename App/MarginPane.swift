@@ -119,7 +119,9 @@ private struct MarginPaneContent: View {
                         }
                     }
                     MarginNotebook(page: page, drawing: editor.drawing, brush: editor.brush, color: editor.color, width: editor.width, control: canvasControl,
-                                   saved: commitInk, failed: { store.error = $0 }, savedDuringViewUpdate: commitInk)
+                                   saved: commitInk, failed: { store.error = $0 }, savedDuringViewUpdate: commitInk,
+                                   inkGeometry: editor.inkGeometry, inkRuler: editor.inkRuler,
+                                   savedEdit: { ink in _ = store.saveInkDuringViewUpdate(ink, page: page.id) })
                 } else {
                     #if DEBUG
                     let _ = traceMarginRender("text branch page=\(page.id) live=\(editor.handwriting)")
@@ -168,7 +170,7 @@ private struct MarginPaneContent: View {
         }
     }
     private var inkControls: some View {
-        InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, allowsWidthFit: true, action: canvasControl.action)
+        InkToolbar(brush: $editor.brush, color: $editor.color, width: $editor.width, geometry: $editor.inkGeometry, ruler: $editor.inkRuler, allowsWidthFit: true, action: canvasControl.action)
             .frame(minHeight: 44)
     }
     private func header(compactChrome: Bool) -> some View {

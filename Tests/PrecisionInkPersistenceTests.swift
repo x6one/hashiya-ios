@@ -23,6 +23,10 @@ final class PrecisionInkPersistenceTests: XCTestCase {
         coordinator.canvasViewDidBeginUsingTool(canvas); canvas.drawing = original
         coordinator.canvasViewDrawingDidChange(canvas); coordinator.canvasViewDidEndUsingTool(canvas)
         XCTAssertEqual(markers, 1)
+        workspace.export()
+        let beforeURL = try XCTUnwrap(workspace.exported)
+        defer { try? FileManager.default.removeItem(at: beforeURL) }
+        let beforeImage = try XCTUnwrap(PDFDocument(url: beforeURL)?.page(at: 0)?.thumbnail(of: CGSize(width: 650, height: 900), for: .mediaBox).pngData())
         workspace.tool = .lasso; coordinator.setDrawing(true); canvas.selected = [0]
         coordinator.applyInkAction("straighten")
         let url = workspace.storage.appendingPathComponent("0.drawing")
@@ -34,6 +38,11 @@ final class PrecisionInkPersistenceTests: XCTestCase {
         coordinator.applyInkAction("redo")
         XCTAssertEqual(try PKDrawing(data: Data(contentsOf: url)).strokes[0].path[1].location.y, 80, accuracy: 0.001)
         XCTAssertEqual(markers, 1, "An edit or its history cannot manufacture new writing timestamps")
+        workspace.export()
+        let afterURL = try XCTUnwrap(workspace.exported)
+        defer { try? FileManager.default.removeItem(at: afterURL) }
+        let afterImage = try XCTUnwrap(PDFDocument(url: afterURL)?.page(at: 0)?.thumbnail(of: CGSize(width: 650, height: 900), for: .mediaBox).pngData())
+        XCTAssertNotEqual(beforeImage, afterImage, "The actual exported PDF must visibly contain the edited geometry")
         let reopened = PDFWorkspace(note: note, root: root)
         XCTAssertEqual(try reopened.loadDrawing(on: 0).dataRepresentation(), saved.dataRepresentation())
         XCTAssertEqual(reopened.page, 1)
@@ -77,5 +86,16 @@ final class PrecisionInkPersistenceTests: XCTestCase {
         let reopened = MarginPages(root: root, notebook: notebookID)
         XCTAssertEqual(reopened.currentID, pageID)
         XCTAssertEqual(reopened.current?.ink, notes.current?.ink)
+        let committed = canvas.drawing.dataRepresentation()
+        notes.editor.inkGeometry = .line
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in canvas.precisionInk.lineGesture.isEnabled }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 3), .completed)
+        canvas.precisionInk.beginLine(at: CGPoint(x: 20, y: 100))
+        XCTAssertTrue(notes.add(linkedTo: 2))
+        let switched = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in coordinator.pageID == notes.currentID && coordinator.pageID != pageID }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [switched], timeout: 3), .completed)
+        XCTAssertFalse(canvas.precisionInk.finishLine(at: CGPoint(x: 120, y: 100)))
+        XCTAssertTrue(canvas.drawing.strokes.isEmpty, "A preview begun on the previous Notes page cannot land on the new one")
+        XCTAssertEqual(notes.pages.first(where: { $0.id == pageID })?.ink, committed)
     }
 }

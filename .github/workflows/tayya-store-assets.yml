@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [integration/tayya-app-store]
+    branches: [integration/tayya-app-store, integration/tayya-precision-ink]
     paths:
       - '.github/workflows/tayya-store-assets.yml'
       - 'Tools/app_store_readiness.mjs'
@@ -136,7 +136,7 @@ jobs:
           project=Path('project.yml').read_text()
           expected_build=re.search(r"^    CURRENT_PROJECT_VERSION: '([1-9]\d*)'$",project,re.MULTILINE)
           assert expected_build and info['CFBundleVersion']==expected_build.group(1), info
-          assert info['CFBundleIdentifier']=='com.ahmadalawi.hashiya' and info['CFBundleShortVersionString']=='0.6.0', info
+          assert info['CFBundleIdentifier']=='com.ahmadalawi.hashiya' and info['CFBundleShortVersionString']=='0.6.2', info
           device_path=Path('StoreEvidence/store-device.json');device=json.loads(device_path.read_text())
           device.update(installed_bundle_id=info['CFBundleIdentifier'],installed_version=info['CFBundleShortVersionString'],installed_build=info['CFBundleVersion'])
           device_path.write_text(json.dumps(device,indent=2)+'\n')
@@ -219,7 +219,7 @@ jobs:
           from pathlib import Path
           match=re.search(r"^    CURRENT_PROJECT_VERSION: '([1-9]\d*)'$",Path('project.yml').read_text(),re.MULTILINE)
           assert match, 'Capture source must declare its actual build'
-          Path('store-artwork-validation.json').write_text(json.dumps({'app_id':'6818288428','bundle_id':'com.ahmadalawi.hashiya','version':'0.6.0','build':match.group(1),'artwork_source':os.environ['GITHUB_SHA'],'artwork_run':os.environ['GITHUB_RUN_ID']}))
+          Path('store-artwork-validation.json').write_text(json.dumps({'app_id':'6818288428','bundle_id':'com.ahmadalawi.hashiya','version':'0.6.2','build':match.group(1),'artwork_source':os.environ['GITHUB_SHA'],'artwork_run':os.environ['GITHUB_RUN_ID']}))
           PY
           node Tools/publish_store_listing.mjs --config store-artwork-validation.json --artwork Tayya-App-Store-Visuals --validate-only
       - uses: actions/upload-artifact@v4

@@ -188,9 +188,13 @@ final class MarginCanvas: PKCanvasView {
     @Published var brush: InkBrush = .pen
     @Published var color = TayyaTheme.brandInk
     @Published var width = 3.0
+    @Published var inkGeometry: InkGeometryMode = .freehand
+    @Published var inkRuler = false
 }
 @MainActor final class MarginCanvasControl: ObservableObject {
     weak var canvas: MarginCanvas?
+    @Published var selectedInkCount = 0
+    @Published var selectionAllowsGeometry = false
     func action(_ name: String) {
         #if DEBUG
         NotesDockInputTrace.inkAction(name, destination: 1)
@@ -204,7 +208,7 @@ final class MarginCanvas: PKCanvasView {
         case "fitWidth": canvas?.fitWidth()
         case "undo": canvas?.undoManager?.undo()
         case "redo": canvas?.undoManager?.redo()
-        default: break
+        default: canvas?.precisionInk.perform(name)
         }
     }
 }
@@ -229,6 +233,8 @@ struct InkToolbar: View {
     @Binding var brush: InkBrush
     @Binding var color: Color
     @Binding var width: Double
+    var geometry: Binding<InkGeometryMode> = .constant(.freehand)
+    var ruler: Binding<Bool> = .constant(false)
     @State private var showingColorPicker = false
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -238,10 +244,11 @@ struct InkToolbar: View {
     var body: some View {
         InkToolbarScrollView {
             HStack(spacing: 6) {
-                FavoritePenMenu(brush: $brush, color: $color, width: $width)
+                FavoritePenMenu(brush: Binding(get: { brush }, set: { brush = $0; geometry.wrappedValue = .freehand; ruler.wrappedValue = false }), color: $color, width: $width)
                 Menu {
                     ForEach(InkBrush.allCases.filter { $0 != .selection }) { item in
                         Button(TayyaLocalized(item.rawValue), systemImage: item.symbol) {
+                            geometry.wrappedValue = .freehand; ruler.wrappedValue = false
                             brush = item
                             NativeToolActionTrace.record("brush=\(brush.rawValue); width=\(width)")
                         }.accessibilityIdentifier("inkBrushOption-\(item.symbol)")
@@ -287,6 +294,7 @@ struct InkToolbar: View {
                     action("redo")
                 } label: { inkTarget("إعادة", symbol: "arrow.uturn.forward") }
                     .accessibilityIdentifier("inkRedo")
+                InkGeometryControls(mode: geometry, ruler: ruler, brush: $brush)
                 Button { action("fit") } label: { inkTarget("إظهار الورقة كاملة", symbol: "arrow.up.left.and.arrow.down.right") }
                     .accessibilityIdentifier("fitMargin")
                 if allowsWidthFit {
@@ -396,6 +404,9 @@ struct MarginNotebook: UIViewRepresentable {
     let saved: (PKDrawing) -> Void
     let failed: (String) -> Void
     let savedDuringViewUpdate: (PKDrawing) -> Void
+    var inkGeometry: InkGeometryMode = .freehand
+    var inkRuler = false
+    var savedEdit: ((PKDrawing) -> Void)?
     func makeCoordinator() -> Coordinator { Coordinator(saved: saved, failed: failed, savedDuringViewUpdate: savedDuringViewUpdate) }
     func makeUIView(context: Context) -> MarginCanvas {
         #if DEBUG
@@ -440,7 +451,9 @@ struct MarginNotebook: UIViewRepresentable {
         #if DEBUG
         MarginRenderDiagnostics.recordCanvas("dismantleUIView page=\(coordinator.pageID?.uuidString ?? "missing")", canvas: canvas)
         #endif
+        canvas.precisionInk.cancelInteraction()
         coordinator.flushPendingInk(canvas)
+        canvas.precisionInk.didCommit = nil
         canvas.delegate = nil
     }
     private func configure(_ canvas: MarginCanvas, context: Context) {
@@ -448,8 +461,12 @@ struct MarginNotebook: UIViewRepresentable {
         #if DEBUG
         coordinator.traceCommitPhase(7)
         #endif
-        if coordinator.pageID != nil && coordinator.pageID != page.id { coordinator.flushPendingInk(canvas) }
+        if coordinator.pageID != nil && coordinator.pageID != page.id {
+            canvas.precisionInk.cancelInteraction()
+            coordinator.flushPendingInk(canvas)
+        }
         coordinator.saved = saved; coordinator.failed = failed
+        coordinator.savedEdit = savedEdit
         coordinator.savedDuringViewUpdate = savedDuringViewUpdate; control.canvas = canvas
         // Keep PencilKit's live strokes authoritative until the active gesture ends.
         // A SwiftUI re-render must not reload stale bytes over an in-flight stroke.
@@ -461,13 +478,15 @@ struct MarginNotebook: UIViewRepresentable {
             coordinator.loading = true
             do {
                 let ink = page.ink.isEmpty ? PKDrawing() : try PKDrawing(data: page.ink)
+                canvas.precisionInk.resetForLoadedPage()
+                coordinator.inkReadable = true
                 canvas.drawing = ink
                 canvas.undoManager?.removeAllActions()
                 canvas.setSheetSize(CGSize(width: page.width, height: page.height))
                 canvas.contentSize = CGSize(width: canvas.sheetSize.width * canvas.zoomScale, height: canvas.sheetSize.height * canvas.zoomScale)
                 canvas.fitWidth(); coordinator.pageID = page.id; coordinator.lastInk = page.ink
                 canvas.accessibilityValue = String(ink.strokes.count)
-            } catch { failed(error.localizedDescription) }
+            } catch { coordinator.inkReadable = false; failed(error.localizedDescription) }
             coordinator.loading = false
             #if DEBUG
             MarginUndoDiagnostics.record("reload after", canvas: canvas, onlyAfterAction: true)
@@ -477,19 +496,29 @@ struct MarginNotebook: UIViewRepresentable {
         if canvas.sheetSize != size {
             canvas.setSheetSize(size)
         }
-        if canvas.drawingGestureRecognizer.isEnabled != drawing {
-            canvas.drawingGestureRecognizer.isEnabled = drawing
-        }
         let panTouches = drawing ? 2 : 1
         if canvas.panGestureRecognizer.minimumNumberOfTouches != panTouches {
             canvas.panGestureRecognizer.minimumNumberOfTouches = panTouches
         }
-        coordinator.applyTool(to: canvas, brush: brush, color: color, width: width)
+        canvas.precisionInk.didCommit = { [weak coordinator, weak canvas] _, reason in
+            guard let coordinator, let canvas, !coordinator.loading else { return }
+            coordinator.persist(canvas, notifiesWriting: reason == .newStroke)
+        }
+        canvas.precisionInk.selectionDidChange = { [weak control, weak canvas] _ in
+            // Native callbacks must not publish SwiftUI state inline.
+            DispatchQueue.main.async {
+                guard let control, let canvas, control.canvas === canvas else { return }
+                control.selectedInkCount = canvas.precisionInk.selectedIndices.count
+                control.selectionAllowsGeometry = canvas.precisionInk.selectionAllowsGeometry
+            }
+        }
+        coordinator.applyTool(to: canvas, brush: brush, color: color, width: width, mode: inkGeometry, ruler: inkRuler, enabled: drawing)
     }
     @MainActor final class Coordinator: NSObject, PKCanvasViewDelegate {
         var pageID: UUID?
         var lastInk: Data?
         var loading = false
+        var inkReadable = true
         var isStroking = false
         private var hasUncommittedStroke = false
         private var appliedBrush: InkBrush?
@@ -516,12 +545,19 @@ struct MarginNotebook: UIViewRepresentable {
         #endif
         var saved: (PKDrawing) -> Void
         var savedDuringViewUpdate: (PKDrawing) -> Void
+        var savedEdit: ((PKDrawing) -> Void)?
         var failed: (String) -> Void
         init(saved: @escaping (PKDrawing) -> Void, failed: @escaping (String) -> Void,
              savedDuringViewUpdate: ((PKDrawing) -> Void)? = nil) {
             self.saved = saved; self.failed = failed; self.savedDuringViewUpdate = savedDuringViewUpdate ?? saved
         }
-        func applyTool(to canvas: PKCanvasView, brush: InkBrush, color: Color, width: Double) {
+        func applyTool(to canvas: PKCanvasView, brush: InkBrush, color: Color, width: Double,
+                       mode: InkGeometryMode = .freehand, ruler: Bool = false, enabled: Bool = true) {
+            if let canvas = canvas as? MarginCanvas {
+                canvas.precisionInk.configure(mode: mode, selection: brush == .selection, ruler: ruler,
+                    brush: brush, color: UIColor(color), width: width, enabled: enabled, writable: inkReadable)
+                return
+            }
             // Saving a stroke publishes a new page and updates this representable.
             // Do not replace PencilKit's tool while that same stroke is committing.
             guard appliedBrush != brush || appliedColor != color || appliedWidth != width else { return }
@@ -531,7 +567,7 @@ struct MarginNotebook: UIViewRepresentable {
             canvas.tool = brush.tool(color: UIColor(color), width: width)
             appliedBrush = brush; appliedColor = color; appliedWidth = width
         }
-        private func persist(_ canvas: PKCanvasView, duringViewUpdate: Bool = false) {
+        fileprivate func persist(_ canvas: PKCanvasView, duringViewUpdate: Bool = false, notifiesWriting: Bool = true) {
             let data = canvas.drawing.dataRepresentation()
             #if DEBUG
             traceCommitPhase(4)
@@ -549,7 +585,9 @@ struct MarginNotebook: UIViewRepresentable {
             #if DEBUG
             NativeInkOwnershipTrace.record(4)
             #endif
-            if duringViewUpdate { savedDuringViewUpdate(canvas.drawing) } else { saved(canvas.drawing) }
+            if !notifiesWriting, let savedEdit { savedEdit(canvas.drawing) }
+            else if duringViewUpdate { savedDuringViewUpdate(canvas.drawing) }
+            else { saved(canvas.drawing) }
             #if DEBUG
             NativeInkOwnershipTrace.record(5)
             #endif
@@ -563,6 +601,7 @@ struct MarginNotebook: UIViewRepresentable {
             hasUncommittedStroke = false
             persist(canvas, duringViewUpdate: true)
             (canvas as? MarginCanvas)?.finishedUsingTool()
+            (canvas as? MarginCanvas)?.precisionInk.nativeToolEnded()
         }
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
             #if DEBUG
@@ -570,6 +609,7 @@ struct MarginNotebook: UIViewRepresentable {
             NativeInkOwnershipTrace.record(3)
             #endif
             guard !loading else { return }
+            if (canvas as? MarginCanvas)?.precisionInk.nativeDrawingChanged() == true { return }
             canvas.accessibilityValue = String(canvas.drawing.strokes.count)
             if isStroking {
                 // Do not serialize and synchronously write every PencilKit frame.
@@ -583,6 +623,7 @@ struct MarginNotebook: UIViewRepresentable {
             traceCommitPhase(1)
             NativeInkOwnershipTrace.record(1)
             #endif
+            (canvasView as? MarginCanvas)?.precisionInk.nativeToolBegan()
             isStroking = true
             (canvasView as? MarginCanvas)?.usingTool = true
         }
@@ -597,6 +638,7 @@ struct MarginNotebook: UIViewRepresentable {
                 persist(canvasView)
             }
             (canvasView as? MarginCanvas)?.finishedUsingTool()
+            (canvasView as? MarginCanvas)?.precisionInk.nativeToolEnded()
         }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.beganUserZooming() }
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }

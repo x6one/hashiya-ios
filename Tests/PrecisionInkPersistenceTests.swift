@@ -87,6 +87,7 @@ final class PrecisionInkPersistenceTests: XCTestCase {
         XCTAssertEqual(reopened.currentID, pageID)
         XCTAssertEqual(reopened.current?.ink, notes.current?.ink)
         let committed = canvas.drawing.dataRepresentation()
+        notes.editor.brush = .pen
         notes.editor.inkGeometry = .line
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in canvas.precisionInk.lineGesture.isEnabled }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 3), .completed)

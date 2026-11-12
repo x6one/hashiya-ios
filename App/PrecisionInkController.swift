@@ -312,13 +312,20 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         let scale = CGAffineTransform(scaleX: canvas.zoomScale, y: canvas.zoomScale)
         return (start.applying(stroke.transform).applying(scale), end.applying(stroke.transform).applying(scale))
     }
+    func endpointIndex(near point: CGPoint) -> Int? {
+        guard let ends = visibleEndpoints() else { return nil }
+        let startDistance = hypot(point.x - ends.0.x, point.y - ends.0.y)
+        let endDistance = hypot(point.x - ends.1.x, point.y - ends.1.y)
+        guard min(startDistance, endDistance) <= 22 else { return nil }
+        return startDistance <= 22 ? 0 : 1
+    }
     @objc private func adjustEndpoint(_ gesture: UIPanGestureRecognizer) {
         guard let canvas else { return }
         let point = gesture.location(in: canvas)
         switch gesture.state {
         case .began:
-            guard let ends = visibleEndpoints() else { return }
-            endpointIndex = hypot(point.x - ends.0.x, point.y - ends.0.y) <= 22 ? 0 : 1
+            guard let index = endpointIndex(near: point) else { return }
+            endpointIndex = index
             endpointBase = canvas.drawing
             let stroke = canvas.drawing.strokes[selectedIndices[0]]
             endpointLocations = (stroke.path[0].location, stroke.path[stroke.path.count - 1].location)

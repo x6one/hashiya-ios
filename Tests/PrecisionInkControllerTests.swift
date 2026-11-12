@@ -108,6 +108,67 @@ final class PrecisionInkControllerTests: XCTestCase {
         XCTAssertFalse(controller.finishLine(at: CGPoint(x: 120, y: 40)))
         XCTAssertEqual(canvas.drawing.dataRepresentation(), original)
     }
+    @MainActor func testUndoDuringNativeInputDoesNotConsumeThePrecisionHistoryEntry() throws {
+        let canvas = LassoCanvas(frame: .zero); canvas.drawing = drawing(40)
+        let manager = try XCTUnwrap(canvas.undoManager); manager.groupsByEvent = false; manager.removeAllActions()
+        let controller = canvas.precisionInk
+        XCTAssertTrue(controller.replaceDrawing(drawing(80), reason: .edit, actionName: "Edit"))
+        controller.nativeToolBegan(); manager.undo(); controller.nativeToolEnded()
+        XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80, "An unfinished native stroke blocks history execution before it consumes an action")
+        XCTAssertTrue(manager.canUndo, "The blocked request must retain the original history entry")
+        manager.undo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 40)
+        manager.redo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80)
+        manager.removeAllActions()
+    }
+    @MainActor func testNewModeSupersedesQueuedWidthAcrossLineCancellationAndLaterCommits() throws {
+        let canvas = MarginCanvas(frame: CGRect(x: 0, y: 0, width: 500, height: 700))
+        let owner = canvas.precisionInk
+        owner.configure(mode: .line, selection: false, ruler: false, brush: .pen, color: .red, width: 3, enabled: true)
+        owner.beginLine(at: CGPoint(x: 20, y: 40))
+        owner.configure(mode: .line, selection: false, ruler: false, brush: .pen, color: .red, width: 5, enabled: true)
+        owner.configure(mode: .highlighter, selection: false, ruler: false, brush: .pen, color: .yellow, width: 7, enabled: true)
+        for y: CGFloat in [80, 120] {
+            owner.beginLine(at: CGPoint(x: 20, y: y))
+            XCTAssertTrue(owner.finishLine(at: CGPoint(x: 160, y: y)))
+            let stroke = try XCTUnwrap(canvas.drawing.strokes.last)
+            XCTAssertEqual(stroke.ink.inkType, .marker)
+            XCTAssertEqual(stroke.path[0].size.width, 28, accuracy: 0.001)
+        }
+        XCTAssertEqual(canvas.drawing.strokes.count, 2, "The cancelled first preview must never become stored ink")
+    }
+    @MainActor func testNotesSelectionHandlesFollowTheActualZoomDelegate() throws {
+        let canvas = MarginCanvas(frame: CGRect(x: 0, y: 0, width: 500, height: 700))
+        canvas.minimumZoomScale = 0.1; canvas.maximumZoomScale = 4; canvas.contentSize = CGSize(width: 1200, height: 1600)
+        canvas.drawing = PKDrawing(strokes: [try XCTUnwrap(InkStrokeEditing.line(from: CGPoint(x: 20, y: 40), to: CGPoint(x: 160, y: 40), ink: PKInk(.pen, color: .red), width: 4, creationDate: Date()))])
+        let coordinator = MarginNotebook.Coordinator(saved: { _ in }, failed: { XCTFail($0) })
+        canvas.delegate = coordinator
+        canvas.precisionInk.select([0])
+        let handles = try XCTUnwrap(canvas.layer.sublayers?.compactMap { $0 as? CAShapeLayer }.first { $0.zPosition == 103 })
+        XCTAssertEqual(try XCTUnwrap(handles.path).boundingBoxOfPath.midY, 40, accuracy: 0.001)
+        canvas.zoomScale = 0.5
+        let delegate: UIScrollViewDelegate = coordinator
+        delegate.scrollViewDidZoom?(canvas)
+        let actual = try XCTUnwrap(handles.path).boundingBoxOfPath
+        XCTAssertEqual(actual.midY, 20, accuracy: 0.001)
+        XCTAssertEqual(actual.maxX, 86, accuracy: 0.001)
+    }
+    @MainActor func testDeselectionRemovesBothOutlineAndEndpointHandles() throws {
+        let canvas = MarginCanvas(frame: .zero)
+        canvas.drawing = PKDrawing(strokes: [try XCTUnwrap(InkStrokeEditing.line(from: CGPoint(x: 20, y: 40), to: CGPoint(x: 160, y: 40), ink: PKInk(.pen, color: .red), width: 4, creationDate: Date()))])
+        let controller = canvas.precisionInk
+        controller.select([0])
+        let handles = try XCTUnwrap(canvas.layer.sublayers?.compactMap { $0 as? CAShapeLayer }.first { $0.zPosition == 103 })
+        XCTAssertNotNil(handles.path)
+        controller.select([]); XCTAssertNil(handles.path, "A blank tap/undo cannot leave ghost handles")
+    }
+    @MainActor func testShortLineChoosesTheNearestEndpointInsideOverlappingHitTargets() throws {
+        let canvas = MarginCanvas(frame: .zero)
+        canvas.drawing = PKDrawing(strokes: [try XCTUnwrap(InkStrokeEditing.line(from: CGPoint(x: 20, y: 40), to: CGPoint(x: 30, y: 40), ink: PKInk(.pen, color: .red), width: 4, creationDate: Date()))])
+        let controller = canvas.precisionInk; controller.select([0])
+        XCTAssertEqual(controller.endpointIndex(near: CGPoint(x: 20, y: 40)), 0)
+        XCTAssertEqual(controller.endpointIndex(near: CGPoint(x: 30, y: 40)), 1)
+        XCTAssertNil(controller.endpointIndex(near: CGPoint(x: 80, y: 40)))
+    }
     @MainActor func testCancelledOrReloadedDirectLineDoesNotCommitPreview() throws {
         let canvas = LassoCanvas(frame: CGRect(x: 0, y: 0, width: 500, height: 700)); canvas.drawing = drawing(40)
         let manager = try XCTUnwrap(canvas.undoManager); manager.groupsByEvent = false; manager.removeAllActions()

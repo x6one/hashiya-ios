@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 /// On iPad the Welcome sheet has its own scroll viewport. An AX element may
 /// exist below that viewport at large text sizes while its center cannot tap.
@@ -102,4 +103,34 @@ func startProductionRecording(in app: XCUIApplication, file: StaticString = #fil
     let started = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "جارٍ التسجيل"), object: record)
     XCTAssertEqual(XCTWaiter.wait(for: [started], timeout: 15), .completed,
                    "The actual recorder must start after microphone authorization", file: file, line: line)
+}
+
+// Shared native pixel check; the original orientation/control-exclusion test remains unchanged.
+func nativeGreenInkPixels(in screenshot: UIImage, frame canvasFrame: CGRect) -> Int {
+    // CGImage pixels do not apply UIImage's orientation metadata. Normalize
+    // before comparing the screen pixels with XCTest's oriented element frame.
+    let format = UIGraphicsImageRendererFormat(); format.scale = screenshot.scale
+    let upright = UIGraphicsImageRenderer(size: screenshot.size, format: format).image { _ in
+        screenshot.draw(in: CGRect(origin: .zero, size: screenshot.size))
+    }
+    guard let image = upright.cgImage else { return 0 }
+    let scale = CGFloat(image.width) / screenshot.size.width
+    // A fit-to-sheet canvas can be only 110 pt high; retain ink near its edges.
+    let frame = canvasFrame.insetBy(dx: 2, dy: 2)
+    let crop = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale)
+    guard let ink = image.cropping(to: crop), ink.width > 0, ink.height > 0 else { return 0 }
+    var pixels = [UInt8](repeating: 0, count: ink.width * ink.height * 4)
+    return pixels.withUnsafeMutableBytes { bytes in
+        guard let context = CGContext(data: bytes.baseAddress, width: ink.width, height: ink.height, bitsPerComponent: 8,
+                                      bytesPerRow: ink.width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return 0 }
+        context.draw(ink, in: CGRect(x: 0, y: 0, width: ink.width, height: ink.height))
+        var count = 0
+        for index in stride(from: 0, to: bytes.count, by: 4) {
+            let red = Int(bytes[index]), green = Int(bytes[index + 1]), blue = Int(bytes[index + 2])
+            // Include antialiased green edges at small fit scales; blank cream/gray pixels do not qualify.
+            if red < 235 && green > red + 3 && green > blue + 3 { count += 1 }
+        }
+        return count
+    }
 }

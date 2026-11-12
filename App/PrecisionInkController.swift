@@ -20,9 +20,9 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
     private var lineStyle: (PKInk, CGFloat)?
     private let preview = CAShapeLayer()
     private let selectionOutline = CAShapeLayer()
-    let lineGesture = UIPanGestureRecognizer()
+    let lineGesture = InkPanGestureRecognizer()
     private let tapGesture = UITapGestureRecognizer()
-    let endpointGesture = UIPanGestureRecognizer()
+    let endpointGesture = InkPanGestureRecognizer()
     private let notesLasso = UIPanGestureRecognizer()
     private let handles = CAShapeLayer()
     private var copiedInk: PKDrawing?
@@ -201,6 +201,11 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         configuration = value
         if value.selection != old?.selection || !value.enabled { clearSelection() }
         let direct = value.enabled && value.writable && !value.selection && value.mode != .freehand && value.brush != .eraser
+        if old?.mode != value.mode || old?.selection != value.selection || old?.enabled != value.enabled || old?.writable != value.writable {
+            // A pending first contact belongs to the old tool, even if its pan
+            // has not crossed the recognition threshold yet.
+            lineGesture.isEnabled = false; endpointGesture.isEnabled = false
+        }
         let native = value.enabled && value.writable && !value.selection && !direct
         if canvas.drawingGestureRecognizer.isEnabled != native { canvas.drawingGestureRecognizer.isEnabled = native }
         lineGesture.isEnabled = direct
@@ -250,6 +255,11 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
     }
     func resetForLoadedPage() {
         pendingConfiguration = nil; cancelInteraction(); clearSelection(); nativeActive = false; assignedBytes = nil
+        let recognizers: [UIGestureRecognizer] = [lineGesture, endpointGesture, tapGesture, notesLasso]
+        for recognizer in recognizers {
+            let enabled = recognizer.isEnabled
+            recognizer.isEnabled = false; recognizer.isEnabled = enabled
+        }
         updateHistoryAvailability()
     }
 
@@ -294,6 +304,9 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         }
     }
     static func initialPoint(of gesture: UIPanGestureRecognizer, in canvas: PKCanvasView) -> CGPoint {
+        if let contact = (gesture as? InkPanGestureRecognizer)?.firstContact {
+            return gesture.view === canvas ? contact : canvas.convert(contact, from: gesture.view)
+        }
         let point = gesture.location(in: canvas), movement = gesture.translation(in: canvas)
         return CGPoint(x: point.x - movement.x, y: point.y - movement.y)
     }

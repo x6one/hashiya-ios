@@ -72,6 +72,7 @@ jobs:
               'precision-ink-red': ['HashiyaTests/PrecisionInkTests'],
               'precision-ink-review': ['HashiyaTests/PrecisionInkControllerTests'],
               'precision-pdf-ruler': ['HashiyaUITests/PrecisionInkUITests/testPDFPrecisionHighlighterSelectionAndHistoryUseRealControls'],
+              'precision-contact': ['HashiyaTests/PrecisionInkControllerTests', 'HashiyaTests/PrecisionInkPersistenceTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/PrecisionInkUITests', 'HashiyaUITests/LaunchTests/testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls'],
               'precision-ink': ['HashiyaTests/PrecisionInkTests', 'HashiyaTests/PrecisionInkControllerTests', 'HashiyaTests/PrecisionInkPersistenceTests', 'HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/DocumentInkCommitTests', 'HashiyaTests/StudioInkSafetyTests', 'HashiyaTests/StudioPenPresetTests', 'HashiyaTests/StudyUpdateTests', 'HashiyaUITests/PrecisionInkUITests'],
               'canvas-undo-isolation': ['HashiyaTests/StudioUndoIsolationTests'],
               'split-undo-regression': ['HashiyaTests/StudioUndoIsolationTests/testSwitchingNotesPagePreservesDocumentUndoInActualSplit'],

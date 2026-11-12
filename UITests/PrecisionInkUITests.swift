@@ -97,9 +97,16 @@ final class PrecisionInkUITests: XCTestCase {
         reveal("inkUndo", in: app).tap(); waitCount(canvas, initial)
         chooseMode("line", in: app)
         XCTAssertEqual(app.buttons["inkRuler"].value as? String, "off")
+        let frame = canvas.frame
+        let earlyLine = CGRect(x: frame.minX + frame.width * 0.25, y: frame.minY + frame.height * 0.4 - 6,
+                               width: frame.width * 0.15, height: 12)
+        let beforePixels = nativeGreenInkPixels(in: XCUIScreen.main.screenshot().image, frame: earlyLine)
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.4)).press(forDuration: 0.1,
             thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.4)))
         waitCount(canvas, initial + 1)
+        capture("Precision-Notes-WholeLine-BeforeHistory")
+        let afterPixels = nativeGreenInkPixels(in: XCUIScreen.main.screenshot().image, frame: earlyLine)
+        XCTAssertGreaterThan(afterPixels - beforePixels, 20, "The beginning of the real dragged line must be visible, not only its final quarter")
         reveal("inkUndo", in: app).tap(); waitCount(canvas, initial)
         reveal("inkRedo", in: app).tap(); waitCount(canvas, initial + 1)
         XCTAssertEqual(app.textFields["pageNumber"].value as? String, page)

@@ -1,6 +1,13 @@
 name: iPhone and iPad preflight
 on:
   workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: 'Focused diagnosis only; none runs the complete release gate'
+        type: choice
+        options: [none, maestro, margin, color]
+        default: none
+        required: true
   push:
     branches: [main, 'work/**']
   pull_request:
@@ -10,9 +17,26 @@ concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  test:
+  tools:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify fixture contracts and Python syntax
+        run: |
+          python3 -m unittest discover -s Tools -p 'test_*.py'
+          python3 -m compileall -q Tools
+          curl --fail --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/ios-check.yml .github/workflows/office-engine-spike.yml
+  regression:
+    needs: tools
+    # Skip duplicate PR jobs only for branches covered by the push trigger.
+    # Forks and other internal branches still require PR verification.
+    if: (github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'none') && !contains(github.event.head_commit.message, '[diagnostic:maestro]') && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/')))
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -42,13 +66,105 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
           PY
-      - name: Build and test
+      - name: Mark native diagnostic session
+        run: touch "$RUNNER_TEMP/tayya-native-start"
+      - name: Verify original ink and navigation regressions
         run: |
           set -o pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           python3 Tools/seed_files_fixtures.py
-          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240 -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsInDocumentAndCompactSplit -only-testing:HashiyaUITests/LaunchTests/testWorkspaceNavigationKeepsBackEdgeAndRepeatedOpening -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath RegressionResults.xcresult CODE_SIGNING_ALLOWED=NO | tee regression-build.log
+      - name: Export regression screenshots and summary
+        if: always()
+        run: |
+          if [ -d RegressionResults.xcresult ]; then
+            mkdir -p NativeResults RegressionScreenshots
+            status=0
+            xcrun xcresulttool get test-results summary --path RegressionResults.xcresult > NativeResults/RegressionResults-summary.json || status=1
+            xcrun xcresulttool export attachments --path RegressionResults.xcresult --output-path RegressionScreenshots || status=1
+            ditto -c -k --keepParent RegressionResults.xcresult NativeResults/RegressionResults.xcresult.zip || status=1
+            shasum -a 256 NativeResults/RegressionResults.xcresult.zip > NativeResults/RegressionResults.xcresult.sha256 || status=1
+            exit "$status"
+          fi
+      - name: Retain targeted regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regressions-${{ matrix.family }}
+          path: |
+            regression-build.log
+            RegressionScreenshots/
+            NativeResults/
+          retention-days: 7
+  test:
+    needs: regression
+    # Skip duplicate PR jobs only for branches covered by the push trigger.
+    # Forks and other internal branches still require PR verification.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.head.ref != 'main' && !startsWith(github.event.pull_request.head.ref, 'work/'))
+    runs-on: macos-15
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [iPhone, iPad]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select current app toolchain
+        run: python3 Tools/select_app_xcode.py
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Select available simulator
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          subprocess.run(["xcodebuild", "-version"], check=True)
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          # Prefer the large current iPhone and iPad for real Store captures.
+          matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
+          if not matching:
+              raise SystemExit('Required simulator family is unavailable')
+          print('Simulator:', matching[0][1], matching[0][2]['name'])
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
+          PY
+      - name: Mark native diagnostic session
+        run: touch "$RUNNER_TEMP/tayya-native-start"
+      - name: Prepare independent complete-suite simulator
+        run: |
+          # This job uses a separate hosted runner; no B process or app state is reused.
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          python3 Tools/seed_files_fixtures.py
+      - name: Verify complete unit and UI suites
+        run: |
+          set -o pipefail
+          # All unique unit/UI cases run in the complete scheme, after regressions pass.
+          # Native document export occurs only in this complete suite.
+          # Keep ordinary cases at240s; only the two multi-surface journeys
+          # explicitly request360s. Their functional5/10s waiters are unchanged.
+          xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -derivedDataPath NativeBuild -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO | tee build.log
+      - name: Preserve actual saved drawings after a native failure
+        if: failure()
+        run: |
+          python3 - <<'PY_DRAWINGS'
+          import json, os, subprocess
+          from Tools.collect_review_drawings import collect
+          root = subprocess.check_output(['xcrun', 'simctl', 'get_app_container',
+              os.environ['SIMULATOR_ID'], 'com.ahmadalawi.hashiya', 'data'], text=True).strip()
+          report = collect(root, 'NativeFailure/saved-drawings')
+          print(json.dumps(report, indent=2))
+          if not report['drawings']:
+              raise SystemExit('No saved review drawings available; failure evidence is incomplete')
+          PY_DRAWINGS
+      - name: Verify externally exported fixture bytes
+        if: always()
+        run: python3 Tools/seed_files_fixtures.py --verify
       - name: Set up Java for Maestro
         uses: actions/setup-java@v4
         with:
@@ -66,6 +182,9 @@ jobs:
           "$HOME/.maestro/bin/maestro" --version
       - name: Exercise feature lifecycles with Maestro
         env:
+          # Cold HTTP driver readiness took142s in39321182827; flow assertions
+          # retain their own limits. The same bound passed the focused iPad gate.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
           MAESTRO_CLI_NO_ANALYTICS: 'true'
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
@@ -73,25 +192,156 @@ jobs:
           python3 - <<'PY'
           import os, subprocess
           from pathlib import Path
-          apps = list(Path.home().glob('Library/Developer/Xcode/DerivedData/Hashiya-*/Build/Products/Debug-iphonesimulator/Hashiya.app'))
+          apps = list(Path('NativeBuild/Build/Products/Debug-iphonesimulator').glob('Hashiya.app'))
           if len(apps) != 1:
               raise SystemExit('Expected exactly one app built by this preflight job')
           subprocess.run(['xcrun', 'simctl', 'install', os.environ['SIMULATOR_ID'], str(apps[0])], check=True)
           PY
           maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
-      - name: Verify externally exported fixture bytes
-        if: always()
-        run: python3 Tools/seed_files_fixtures.py --verify
+      - name: Capture actual first-launch entrance and Reduce Motion
+        run: |
+          python3 - <<'PY_CAPTURE'
+          import json, os, selectors, signal, subprocess, time
+          from pathlib import Path
+
+          simulator = os.environ['SIMULATOR_ID']
+          bundle = 'com.ahmadalawi.hashiya'
+          output = Path('EntranceCaptures')
+          output.mkdir(exist_ok=True)
+          report = {'commit': os.environ['GITHUB_SHA'], 'family': '${{ matrix.family }}',
+                    'simulator': simulator, 'captures': []}
+          try:
+              for name, motion in [('normal', '--test-motion-enabled'), ('reduce-motion', '--test-reduce-motion')]:
+                  # Maestro already finished. Each DEBUG launch creates its own
+                  # review root and resets flags without changing the animation.
+                  subprocess.run(['xcrun', 'simctl', 'terminate', simulator, bundle], capture_output=True, timeout=10)
+                  movie = output / (name + '.mov')
+                  entry = {'name': name, 'movie': str(movie), 'status': 'pending',
+                           'arguments': ['--test-review-entry', '--test-reset-entrance', motion]}
+                  report['captures'].append(entry)
+                  recorder = None
+                  with (output / (name + '.log')).open('wb') as log:
+                      try:
+                          recorder = subprocess.Popen(['xcrun', 'simctl', 'io', simulator,
+                              'recordVideo', '--codec', 'h264', str(movie)], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+                          # Wait for the actual recorder readiness message before
+                          # launch so its setup cannot miss the subsecond entrance.
+                          pending = b''
+                          with selectors.DefaultSelector() as selector:
+                              selector.register(recorder.stdout, selectors.EVENT_READ)
+                              deadline = time.monotonic() + 15
+                              while b'Recording started' not in pending:
+                                  if time.monotonic() >= deadline or recorder.poll() is not None:
+                                      raise RuntimeError('Simulator recorder did not report readiness')
+                                  for key, _ in selector.select(timeout=0.5):
+                                      chunk = os.read(key.fileobj.fileno(), 4096)
+                                      log.write(chunk); log.flush()
+                                      pending += chunk
+                                      if not chunk:
+                                          raise RuntimeError('Simulator recorder closed before readiness')
+                          launch = subprocess.run(['xcrun', 'simctl', 'launch', simulator, bundle]
+                              + entry['arguments'], capture_output=True, check=True, timeout=30)
+                          log.write(launch.stdout + launch.stderr); log.flush()
+                          # Record the real entrance and subsequent welcome; this
+                          # does not extend/freeze production or wait on XCTest idle.
+                          time.sleep(3)
+                          recorder.send_signal(signal.SIGINT)
+                          remaining, _ = recorder.communicate(timeout=20)
+                          log.write(remaining); log.flush()
+                          entry['recorder_exit'] = recorder.returncode
+                          if recorder.returncode != 0:
+                              raise RuntimeError('Simulator recorder failed to finalize the movie')
+                          if not movie.is_file() or movie.stat().st_size == 0:
+                              raise RuntimeError('Simulator recorder produced no movie bytes')
+                          entry.update(status='recorded-pending-visual-review', bytes=movie.stat().st_size)
+                          print('Actual simulator capture:', name, movie.stat().st_size, 'bytes; visual review pending')
+                      except Exception as error:
+                          entry.update(status='failed', error=str(error))
+                          log.write(('Capture failed: ' + str(error) + '\n').encode()); log.flush()
+                          raise
+                      finally:
+                          if recorder is not None and recorder.poll() is None:
+                              recorder.send_signal(signal.SIGINT)
+                              try:
+                                  remaining, _ = recorder.communicate(timeout=20)
+                              except subprocess.TimeoutExpired:
+                                  recorder.kill()
+                                  remaining, _ = recorder.communicate()
+                              log.write(remaining)
+                          subprocess.run(['xcrun', 'simctl', 'terminate', simulator, bundle], capture_output=True, timeout=10)
+          finally:
+              (output / 'capture-report.json').write_text(json.dumps(report, indent=2) + '\n')
+          PY_CAPTURE
       - name: Export UI screenshots
         if: always()
         run: |
-          if [ -d TestResults.xcresult ]; then
-            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path Screenshots
-          fi
+          status=0
+          for bundle in RegressionResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              output=Screenshots
+              if [ "$bundle" = RegressionResults ]; then output=RegressionScreenshots; fi
+              xcrun xcresulttool export attachments --path "$bundle.xcresult" --output-path "$output" || status=1
+            fi
+          done
+          exit "$status"
+      - name: Retain complete native test result
+        if: always()
+        run: |
+          mkdir -p NativeResults
+          status=0
+          for bundle in RegressionResults TestResults; do
+            if [ -d "$bundle.xcresult" ]; then
+              xcrun xcresulttool get test-results summary --path "$bundle.xcresult" > "NativeResults/$bundle-summary.json" || status=1
+              ditto -c -k --keepParent "$bundle.xcresult" "NativeResults/$bundle.xcresult.zip" || status=1
+              shasum -a 256 "NativeResults/$bundle.xcresult.zip" > "NativeResults/$bundle.xcresult.sha256" || status=1
+            fi
+          done
+          exit "$status"
       - name: Retain simulator document provider diagnostics
         if: failure()
         run: |
           xcrun simctl spawn "$SIMULATOR_ID" log show --last 15m --style compact --info --debug --predicate 'process == "Hashiya" OR subsystem BEGINSWITH "com.apple.FileProvider" OR process CONTAINS "DocumentManager" OR process CONTAINS "fileprovider"' > file-provider.log 2>&1 || true
+      - name: Retain native crash reports
+        if: failure()
+        run: |
+          python3 - <<'PY_CRASH'
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          out = Path('NativeFailure'); out.mkdir(exist_ok=True)
+          started = Path(os.environ['RUNNER_TEMP']) / 'tayya-native-start'
+          since = started.stat().st_mtime if started.exists() else 0
+          roots = [Path.home() / 'Library/Logs/DiagnosticReports',
+                   Path.home() / 'Library/Developer/CoreSimulator/Devices' / os.environ['SIMULATOR_ID'] / 'data/Library/Logs/CrashReporter']
+          reports = []
+          for index, root in enumerate(roots):
+              if not root.exists():
+                  continue
+              for source in root.rglob('*'):
+                  if not source.is_file() or source.stat().st_mtime < since:
+                      continue
+                  if source.suffix not in ('.ips', '.crash', '.diag', '.hang', '.spin'):
+                      continue
+                  target = out / 'reports' / str(index) / source.relative_to(root)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+                  reports.append(str(target))
+          result = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+              'reports': reports, 'note': 'An empty report list does not rule out a watchdog, jetsam, or crash.'}
+          predicate = 'process == "Hashiya" OR process == "ReportCrash" OR process == "runningboardd" OR process == "SpringBoard" OR process == "kernel" OR subsystem BEGINSWITH "com.apple.pencilkit" OR subsystem BEGINSWITH "com.apple.PDFKit"'
+          try:
+              with (out / 'native-system.log').open('wb') as log:
+                  subprocess.run(['xcrun', 'simctl', 'spawn', os.environ['SIMULATOR_ID'], 'log',
+                      'show', '--last', '60m', '--style', 'compact', '--info', '--debug',
+                      '--predicate', predicate], stdout=log, stderr=subprocess.STDOUT, timeout=120, check=True)
+              result['system_log_status'] = 'collected'
+          except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+              result['system_log_status'] = 'failed'
+              result['system_log_error'] = str(error)
+              print('Native unified log collection failed:', error)
+          finally:
+              (out / 'collection.json').write_text(json.dumps(result, indent=2) + '\n')
+          PY_CRASH
       - name: Save diagnostics and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -99,64 +349,159 @@ jobs:
           name: diagnostics-${{ matrix.family }}
           path: |
             build.log
+            regression-build.log
+            RegressionScreenshots/
+            NativeResults/
             file-provider.log
+            NativeFailure/
             Screenshots/
             MaestroResults/
+            EntranceCaptures/
           retention-days: 7
 
   device-package:
-    # A device package is a candidate only after both simulator suites pass.
-    needs: test
+    # Only the exact-head push can satisfy the native Office preflight guard.
+    # This reusable job starts after XCTest, XCUITest, Maestro and exports pass.
+    if: github.event_name != 'pull_request'
+    needs: [regression, test]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/office-engine-spike.yml
+
+  focused-diagnostic:
+    name: Focused ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }} (${{ matrix.family }})
+    if: (github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'none') || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[diagnostic:maestro]') || contains(github.event.head_commit.message, '[diagnostic:margin]') || contains(github.event.head_commit.message, '[diagnostic:color]')))
+    needs: tools
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        family: ${{ fromJSON((inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]') || contains(github.event.head_commit.message, '[device:iPad]')) && '["iPad"]' || contains(github.event.head_commit.message, '[device:iPhone]') && '["iPhone"]' || '["iPhone", "iPad"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select current app toolchain
         run: python3 Tools/select_app_xcode.py
-      - name: Generate project
+      - name: Generate Xcode project
         run: |
           brew install xcodegen
           xcodegen generate
-      - name: Build unsigned device app
+      - name: Select available simulator
+        env:
+          DEVICE_FAMILY: ${{ matrix.family }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          subprocess.run(["xcodebuild", "-version"], check=True)
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))['devices']
+          matching = [(tuple(map(int, re.findall(r'\d+', runtime))), runtime, d) for runtime, rows in devices.items() if 'iOS' in runtime for d in rows if d['name'].startswith(os.environ['DEVICE_FAMILY'])]
+          # Prefer the large current iPhone and iPad for real Store captures.
+          matching.sort(key=lambda row: (row[0], 'Pro Max' in row[2]['name'] if os.environ['DEVICE_FAMILY'] == 'iPhone' else ('Pro' in row[2]['name'] and '13' in row[2]['name'])), reverse=True)
+          if not matching:
+              raise SystemExit('Required simulator family is unavailable')
+          print('Simulator:', matching[0][1], matching[0][2]['name'])
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('SIMULATOR_ID=' + matching[0][2]['udid'] + '\n')
+          PY
+      - name: Boot focused simulator to reported readiness
+        run: |
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+      - name: Initialize the same Files provider as the prerequisite gate
+        if: inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]')
+        run: python3 Tools/seed_files_fixtures.py
+      - name: Build or reproduce the selected native scope
+        env:
+          DIAGNOSTIC: ${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}
+          TRACE_COLOR_LAUNCH: ${{ contains(github.event.head_commit.message, '[trace:launch]') && 'true' || 'false' }}
         run: |
           set -o pipefail
-          xcodebuild -project Hashiya.xcodeproj -scheme Hashiya -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath DeviceBuild CODE_SIGNING_ALLOWED=NO build | tee device-build.log
-      - name: Package for external signing
+          if [ "$DIAGNOSTIC" = margin ]; then
+            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testNewMarginStrokesWorkAfterSplitResizeRotationAndExpansion -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+          elif [ "$DIAGNOSTIC" = color ]; then
+            if [ "$TRACE_COLOR_LAUNCH" = true ]; then
+              python3 Tools/trace_color_bootstrap.py --build-log focused-build.log --output FocusedEvidence/launch-trace &
+              TRACE_PID=$!
+              trap 'kill "$TRACE_PID" 2>/dev/null || true; wait "$TRACE_PID" 2>/dev/null || true' EXIT
+            fi
+            xcodebuild test -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild -only-testing:HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 360 -resultBundlePath FocusedResults.xcresult CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+          else
+            xcodebuild build-for-testing -project Hashiya.xcodeproj -scheme Hashiya -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath NativeBuild CODE_SIGNING_ALLOWED=NO | tee focused-build.log
+            xcrun simctl install "$SIMULATOR_ID" NativeBuild/Build/Products/Debug-iphonesimulator/Hashiya.app
+          fi
+      - name: Set up Java for Maestro
+        if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Maestro CLI
+        if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
+        env:
+          MAESTRO_VERSION: 2.11.0
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
         run: |
-          mkdir -p Payload
-          cp -R DeviceBuild/Build/Products/Release-iphoneos/Hashiya.app Payload/
-          zip -qry Hashiya-unsigned.ipa Payload
-          shasum -a 256 Hashiya-unsigned.ipa > Hashiya-unsigned.sha256
-          python3 - <<'PY'
-          import json, os, plistlib, subprocess
+          curl --fail --location --retry 3 https://get.maestro.mobile.dev -o "$RUNNER_TEMP/install-maestro.sh"
+          bash "$RUNNER_TEMP/install-maestro.sh"
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+      - name: Verify all three Maestro lifecycles
+        if: inputs.diagnostic != 'margin' && inputs.diagnostic != 'color' && !contains(github.event.head_commit.message, '[diagnostic:margin]') && !contains(github.event.head_commit.message, '[diagnostic:color]')
+        env:
+          # Cold XCTest server reached readiness after142s in39321182827.
+          # Bound infrastructure startup only; flow/assertion waiters are unchanged.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
+          MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
+        run: maestro --device "$SIMULATOR_ID" --platform ios test --format JUNIT --output MaestroResults/report.xml --debug-output MaestroResults/debug --test-output-dir MaestroResults .maestro/
+      - name: Preserve margin storage boundaries
+        if: always() && (inputs.diagnostic == 'margin' || contains(github.event.head_commit.message, '[diagnostic:margin]'))
+        run: |
+          python3 - <<'PY_STORAGE'
+          import hashlib, json, os, subprocess
           from pathlib import Path
-          app = Path('Payload/Hashiya.app')
-          info = plistlib.loads((app / 'Info.plist').read_bytes())
-          executable = app / info['CFBundleExecutable']
-          subprocess.run(['xcrun', 'lipo', str(executable), '-verify_arch', 'arm64'], check=True)
-          result = subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], capture_output=True, text=True)
-          report = {
-              'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
-              'version': info['CFBundleShortVersionString'], 'build': info['CFBundleVersion'],
-              'bundle_identifier': info['CFBundleIdentifier'], 'device_families': info['UIDeviceFamily'],
-              'architecture': 'arm64', 'code_signing_allowed': False,
-              'contains_provisioning_profile': (app / 'embedded.mobileprovision').exists(),
-              'codesign_verify_exit': result.returncode,
-              'codesign_diagnostic': (result.stdout + result.stderr).strip(),
-              'installation': 'Requires external signing with a valid certificate and provisioning profile. Not directly installable.'
-          }
-          Path('Hashiya-signing.json').write_text(json.dumps(report, indent=2) + '\n')
-          PY
-      - uses: actions/upload-artifact@v4
+          from Tools.collect_review_drawings import collect
+          root = Path(subprocess.check_output(['xcrun', 'simctl', 'get_app_container',
+              os.environ['SIMULATOR_ID'], 'com.ahmadalawi.hashiya', 'data'], text=True).strip())
+          output = Path('FocusedEvidence/storage'); output.mkdir(parents=True, exist_ok=True)
+          records = []
+          for name in ['library.json', 'sections.json']:
+              path = root / 'Documents' / name
+              if not path.exists():
+                  records.append({'name': name, 'exists': False}); continue
+              if path.stat().st_size > 2_000_000:
+                  raise RuntimeError('Storage evidence exceeds bound')
+              data = path.read_bytes(); (output / name).write_bytes(data)
+              records.append({'name': name, 'exists': True, 'sha256': hashlib.sha256(data).hexdigest()})
+          collect(root, output / 'saved-drawings')
+          (output / 'provenance.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'],
+              'run': os.environ['GITHUB_RUN_ID'], 'records': records, 'source_mutated': False}, indent=2))
+          PY_STORAGE
+      - name: Preserve live color service logs
+        if: always() && (inputs.diagnostic == 'color' || contains(github.event.head_commit.message, '[diagnostic:color]'))
+        run: |
+          mkdir -p FocusedEvidence
+          xcrun simctl spawn "$SIMULATOR_ID" log show --style compact --info --debug --last 20m --predicate 'process CONTAINS[c] "ColorPicker" OR process CONTAINS[c] "MTLCompiler" OR (process == "Hashiya" AND (eventMessage CONTAINS[c] "service" OR eventMessage CONTAINS[c] "color")) OR ((process == "runningboardd" OR process == "launchd" OR process == "SpringBoard") AND eventMessage CONTAINS[c] "ColorPicker")' > FocusedEvidence/current-color-service.log
+      - name: Preserve focused native evidence
+        if: always()
+        run: |
+          mkdir -p FocusedEvidence
+          xcrun simctl io "$SIMULATOR_ID" screenshot FocusedEvidence/final-screen.png || true
+          if [ -d FocusedResults.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path FocusedResults.xcresult > FocusedEvidence/summary.json
+            xcrun xcresulttool export attachments --path FocusedResults.xcresult --output-path FocusedEvidence/attachments
+            ditto -c -k --keepParent FocusedResults.xcresult FocusedEvidence/FocusedResults.xcresult.zip
+          fi
+      - name: Retain focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: Hashiya-device-unsigned
+          name: focused-${{ inputs.diagnostic || (contains(github.event.head_commit.message, '[diagnostic:color]') && 'color' || contains(github.event.head_commit.message, '[diagnostic:margin]') && 'margin' || 'maestro') }}-${{ matrix.family }}
           path: |
-            Hashiya-unsigned.ipa
-            Hashiya-unsigned.sha256
-            Hashiya-signing.json
-          retention-days: 14
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: device-build-log
-          path: device-build.log
+            focused-build.log
+            MaestroResults/
+            FocusedEvidence/
+          retention-days: 7

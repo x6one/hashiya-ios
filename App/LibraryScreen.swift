@@ -2,6 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct LibraryScreen: View {
+    var allowsInitialWelcome: Bool = true
     @EnvironmentObject private var store: LibraryStore
     @State private var importing = false
     @State private var creating = false
@@ -14,11 +15,14 @@ struct LibraryScreen: View {
     @State private var showNotebookRename = false
     @State private var deleting: Notebook?
     @State private var confirmNotebookDeletion = false
-    @State private var managing = false
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.tayyaReduceMotion) private var reduceMotion
     @State private var favorites = false
     @State private var backup = false
-    @State private var reviewing = false
+    @State private var destination: LibraryDestination = .library
+    @State private var sectionName = ""
+    @AppStorage("tayya.library.lastOpenedNotebook") private var lastOpenedNotebook = ""
     @State private var hits: [SearchHit] = []
     @State private var searching = false
     @State private var route: SearchHit?
@@ -27,6 +31,8 @@ struct LibraryScreen: View {
     @State private var demonstration: Notebook?
     @AppStorage("tayya.welcomeSeen") private var welcomeSeen = false
     @State private var welcome = false
+    // Session-only UI gating keeps external intake/status ahead of onboarding.
+    @State private var receivedExternalFile = false
     private var filtered: [Notebook] {
         store.visibleNotebooks(section: section, trash: showTrash, favorites: favorites)
     }
@@ -44,7 +50,10 @@ struct LibraryScreen: View {
     }
     private var libraryPresentation: some View {
         libraryNavigation
-            .onAppear { if !welcomeSeen && store.notebooks.isEmpty { welcome = true } }
+            .onAppear { presentInitialWelcomeIfNeeded() }
+            .onChange(of: allowsInitialWelcome) { _, allowed in
+                if allowed { presentInitialWelcomeIfNeeded() }
+            }
             .sheet(isPresented: $welcome) {
                 WelcomeScreen(start: { welcomeSeen = true; welcome = false }, demonstrate: {
                     do { demonstration = try store.installDemonstration(); welcomeSeen = true; welcome = false }
@@ -57,15 +66,19 @@ struct LibraryScreen: View {
                         .background(.regularMaterial).accessibilityIdentifier("importStatus")
                 }
             }
-            .onOpenURL { url in importing = false; finishPicking([url]) }
+            .onOpenURL { url in
+                receivedExternalFile = true
+                welcome = false
+                importing = false
+                finishPicking([url])
+            }
             .onChange(of: store.sections) { _, sections in
                 if let section, !sections.contains(section) { self.section = "مكتبتي" }
             }
             .sheet(isPresented: $creating) { CreateNotebookScreen(store: store, section: section) }
-            .sheet(isPresented: $reviewing) { LibraryCardsScreen(library: store) }
             .sheet(isPresented: $backup) { BackupScreen(store: store) }
             .navigationDestination(item: $route) { hit in NotebookScreen(id: hit.notebook, store: store, initialPage: hit.page) }
-            .navigationDestination(item: $demonstration) { note in NotebookScreen(id: note.id, store: store) }
+            .navigationDestination(item: $demonstration) { note in NotebookScreen(id: note.id, store: store).onAppear { lastOpenedNotebook = note.id.uuidString } }
             .task(id: query) {
                 guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { hits = []; searching = false; return }
                 searching = true
@@ -89,141 +102,344 @@ struct LibraryScreen: View {
             .sheet(item: $moving) { note in
                 NavigationStack { List(store.sections, id: \.self) { name in Button(name) { store.change(note.id) { $0.section = name }; moving = nil } }.navigationTitle("نقل إلى قسم").toolbar { Button("إلغاء") { moving = nil } } }.environment(\.layoutDirection, .rightToLeft)
             }
-            .sheet(isPresented: $managing) { SectionsScreen(select: { name in section = name; showTrash = false; favorites = false }).environmentObject(store) }
             .alert("تعذّر إكمال العملية", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("حسناً") { store.error = nil } } message: { Text(store.error ?? "") }
+    }
+    private func presentInitialWelcomeIfNeeded() {
+        guard allowsInitialWelcome, !receivedExternalFile, !welcomeSeen, store.notebooks.isEmpty,
+              !importing, !importingFile else { return }
+        welcome = true
     }
     private var libraryNavigation: some View {
         HStack(spacing: 0) {
-            if sizeClass == .regular { librarySidebar.frame(width: 220); Divider() }
-            libraryContent
+            if sizeClass == .regular {
+                librarySidebar.frame(width: dynamicTypeSize.isAccessibilitySize ? 280 : 220)
+                Rectangle().fill(TayyaTheme.separator).frame(width: 1)
+            }
+            Group {
+                switch destination {
+                case .library: libraryContent
+                case .sections: sectionsContent
+                case .review: LibraryReviewDestination(library: store)
+                case .settings: settingsContent
+                }
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(TayyaTheme.paper)
-            .navigationTitle("طَيّة").searchable(text: $query, prompt: "ابحث في دفاترك")
-            .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Button("استيراد", systemImage: "square.and.arrow.down") { importing = true }
-                        .accessibilityIdentifier("importDocument").disabled(importingFile)
-                    Button("دفتر جديد", systemImage: "plus") { title = "دفتر جديد"; creating = true }
-                        .accessibilityIdentifier("createNotebook")
-
-
-
+        .foregroundStyle(TayyaTheme.text)
+        .navigationTitle(destination == .library ? libraryTitle : destination.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(TayyaTheme.paper, for: .navigationBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if sizeClass != .regular { destinationBar }
+        }
+        .toolbar {
+            if destination == .sections {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("تم") { selectDestination(.library) }
                 }
             }
+        }
+    }
+    private var libraryTitle: String {
+        showTrash ? "المحذوفات" : favorites ? "المفضلة" : section == "مكتبتي" ? "مكتبتك" : section ?? "كل الملفات"
+    }
+    private var recentNotebook: Notebook? {
+        filtered.first { $0.id.uuidString == lastOpenedNotebook }
+    }
+    private func selectDestination(_ value: LibraryDestination) {
+        destination = value
+        query = ""
+        if value == .library { showTrash = false }
+    }
+    private var destinationBar: some View {
+        HStack(spacing: 0) {
+            ForEach(LibraryDestination.allCases) { item in
+                Button { selectDestination(item) } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
+                        Text(item.title).font(.caption.weight(destination == item ? .semibold : .regular))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .foregroundStyle(destination == item ? TayyaTheme.ink : TayyaTheme.detail)
+                    .background(destination == item ? TayyaTheme.selection : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: destination == item)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(item.accessibilityID)
+                .accessibilityAddTraits(destination == item ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(TayyaTheme.surface)
+        .overlay(alignment: .top) { Rectangle().fill(TayyaTheme.separator).frame(height: 0.5) }
     }
     private var libraryContent: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(showTrash ? "المحذوفات" : favorites ? "المفضلة" : section == "مكتبتي" ? "مكتبتك" : section ?? "كل الملفات").font(.title.weight(.semibold)).foregroundStyle(TayyaTheme.ink)
-                    Text(showTrash ? "استعد ملفاتك أو احذفها نهائيًا." : "اقرأ، دوّن، واترك أثر فكرتك.").foregroundStyle(.secondary)
-                }.padding(.vertical, 18)
+            VStack(alignment: .leading, spacing: 20) {
+                libraryHeading
                 if !showTrash {
-                    Button {
-                        do { demonstration = try store.installDemonstration() }
-                        catch { store.error = error.localizedDescription }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "play.rectangle").font(.title2)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("جرّب طَيّة بملفات جاهزة").font(.headline)
-                                Text("دليل PDF ودفتر وحواشٍ وعرض تقديمي — دون حساب").font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.left")
-                        }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
-                            .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 14))
-                    }.buttonStyle(.plain).foregroundStyle(TayyaTheme.ink).accessibilityIdentifier("openDemonstration")
-                }
-                if sizeClass != .regular {
-                    HStack {
-                        Button("الأقسام", systemImage: "folder") { managing = true }.accessibilityIdentifier("librarySections")
-                        Spacer()
-                        Button(showTrash ? "المكتبة" : "المحذوفات", systemImage: showTrash ? "books.vertical" : "trash") { showTrash.toggle(); favorites = false }
-                            .accessibilityIdentifier("libraryTrash")
-                    }.buttonStyle(.bordered).frame(minHeight: 44)
-                    HStack {
-                        Button("بطاقات المراجعة", systemImage: "rectangle.stack") { reviewing = true }
-                        Spacer()
-                        Button("نسخ احتياطي", systemImage: "externaldrive") { backup = true }
-                    }.font(.subheadline).frame(minHeight: 44)
-                }
-                if !showTrash {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            Button("المكتبة", systemImage: "books.vertical") { showTrash = false; section = "مكتبتي"; favorites = false }.buttonStyle(.bordered).tint(section == "مكتبتي" && !favorites ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55)).accessibilityIdentifier("libraryRoot")
-                            Button("كل الملفات", systemImage: "square.grid.2x2") { section = nil; favorites = false }.buttonStyle(.bordered)
-                            Button("المفضلة", systemImage: "star") { favorites.toggle(); section = nil }.buttonStyle(.bordered)
-                            ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in
-                                Button(name) { section = name; favorites = false }.buttonStyle(.bordered).tint(section == name ? TayyaTheme.ink : TayyaTheme.ink.opacity(0.55))
-                            }
-                        }
+                    libraryActions
+                    if let note = recentNotebook, query.isEmpty {
+                        NavigationLink {
+                            NotebookScreen(id: note.id, store: store).onAppear { lastOpenedNotebook = note.id.uuidString }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "book.closed").font(.title3)
+                                    .frame(width: 44, height: 44)
+                                    .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 10))
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("تابع القراءة").font(.caption).foregroundStyle(TayyaTheme.detail)
+                                    Text(note.title).font(.subheadline.weight(.semibold))
+                                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.left").font(.caption)
+                            }.padding(12).background(TayyaTheme.selection, in: RoundedRectangle(cornerRadius: 14))
+                        }.buttonStyle(LibraryPressStyle()).accessibilityIdentifier("continueNotebook")
                     }
+                    libraryFilters
+                }
+                HStack {
+                    Text(showTrash ? "يمكنك استعادة الملفات المحذوفة." : "\(filtered.count) ملف").font(.caption).foregroundStyle(TayyaTheme.detail)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Button(showTrash ? "المكتبة" : "المحذوفات", systemImage: showTrash ? "books.vertical" : "trash") {
+                        showTrash.toggle(); favorites = false
+                    }.font(.caption).frame(minHeight: 44).accessibilityIdentifier("libraryTrash")
                 }
                 if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     if searching { ProgressView("جارٍ البحث في الملفات…") }
                     else if hits.isEmpty { ContentUnavailableView.search(text: query) }
                     ForEach(hits) { hit in
-                        Button { route = hit } label: {
+                        Button { route = hit; lastOpenedNotebook = hit.notebook.uuidString } label: {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(hit.title).font(.headline)
-                                if let page = hit.page { Text("صفحة \(page)").font(.caption) }
-                                Text(hit.snippet).font(.subheadline).lineLimit(3)
+                                Text(hit.title).font(.headline).foregroundStyle(TayyaTheme.text)
+                                if let page = hit.page { Text("صفحة \(page)").font(.caption).foregroundStyle(TayyaTheme.copper) }
+                                Text(hit.snippet).font(.subheadline).foregroundStyle(TayyaTheme.detail)
+                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                             }.frame(maxWidth: .infinity, alignment: .leading).padding().background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-                        }
+                        }.buttonStyle(LibraryPressStyle())
                     }
                 } else {
-                if filtered.isEmpty { ContentUnavailableView("لا توجد ملفات هنا", systemImage: "books.vertical", description: Text("استورد ملفًا أو أنشئ دفترًا جديدًا.")) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 18)], spacing: 18) {
-                    ForEach(filtered) { note in
-                        notebookCard(note)
+                    if filtered.isEmpty {
+                        ContentUnavailableView(showTrash ? "لا توجد ملفات محذوفة" : "لا توجد ملفات هنا", systemImage: showTrash ? "trash" : "books.vertical", description: Text(showTrash ? "ستظهر هنا الملفات التي تنقلها للمحذوفات." : "استورد ملفًا أو أنشئ دفترًا جديدًا."))
+                    }
+                    LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 16) {
+                        ForEach(filtered) { note in notebookCard(note) }
                     }
                 }
+            }.padding(sizeClass == .regular ? 24 : 16)
+        }.searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "ابحث في دفاترك")
+    }
+    private var gridColumns: [GridItem] {
+        if dynamicTypeSize.isAccessibilitySize { return [GridItem(.flexible())] }
+        return sizeClass == .regular ? [GridItem(.adaptive(minimum: 180, maximum: 250), spacing: 16)] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    }
+    private var libraryHeading: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(libraryTitle).font(.largeTitle.weight(.bold)).foregroundStyle(TayyaTheme.text)
+                .fixedSize(horizontal: false, vertical: true)
+            if !showTrash {
+                Text("مساحة للقراءة والكتابة").font(.subheadline).foregroundStyle(TayyaTheme.detail)
+            }
+        }.accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
+    }
+    private var libraryActions: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+            Button { creating = true } label: {
+                Label("دفتر جديد", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(TayyaTheme.paper)
+            }.buttonStyle(.borderedProminent).accessibilityIdentifier("createNotebook")
+            Button { importing = true } label: {
+                Label("استيراد ملف", systemImage: "square.and.arrow.down").frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.buttonStyle(.bordered).accessibilityIdentifier("importDocument").disabled(importingFile)
+        }.font(.subheadline.weight(.semibold))
+    }
+    private var libraryFilters: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterButton("المكتبة", selected: section == "مكتبتي" && !favorites) { section = "مكتبتي"; favorites = false }
+                    .accessibilityIdentifier("libraryRoot")
+                filterButton("كل الملفات", selected: section == nil && !favorites) { section = nil; favorites = false }
+                filterButton("المفضلة", selected: favorites) { favorites = true; section = nil }
+                ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in
+                    filterButton(name, selected: section == name && !favorites) { section = name; favorites = false }
                 }
-                Text("By Ahmad Al-awi").font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 24)
-            }.padding(24)
+            }
         }
+    }
+    private func filterButton(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(title, action: action).font(.subheadline.weight(selected ? .semibold : .regular))
+            .padding(.horizontal, 14).frame(minHeight: 44)
+            .background(selected ? TayyaTheme.selection : TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+            .buttonStyle(.plain).foregroundStyle(selected ? TayyaTheme.ink : TayyaTheme.detail)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: selected)
+            .accessibilityAddTraits(selected ? .isSelected : [])
     }
     private var librarySidebar: some View {
         List {
-            Button("المكتبة", systemImage: "books.vertical") { showTrash = false; favorites = false; section = "مكتبتي" }.accessibilityIdentifier("libraryRoot")
-            Button("كل الملفات", systemImage: "books.vertical") { showTrash = false; favorites = false; section = nil }
-            Button("المفضلة", systemImage: "star") { showTrash = false; favorites = true; section = nil }
-            Section("الأقسام") {
-                ForEach(store.sections, id: \.self) { name in Button(name, systemImage: "folder") { showTrash = false; favorites = false; section = name } }
-                Button("إدارة الأقسام", systemImage: "folder.badge.gearshape") { managing = true }.accessibilityIdentifier("librarySections")
+            Section("طَيّة") {
+                ForEach(LibraryDestination.allCases) { item in
+                    Button { selectDestination(item) } label: {
+                        Label(item.title, systemImage: item.symbol)
+                            .font(.body.weight(destination == item ? .semibold : .regular))
+                            .frame(minHeight: 44, alignment: .leading)
+                            .foregroundStyle(destination == item ? TayyaTheme.ink : TayyaTheme.detail)
+                    }
+                        .accessibilityIdentifier(item.accessibilityID)
+                        .listRowBackground(destination == item ? TayyaTheme.selection : Color.clear)
+                        .accessibilityAddTraits(destination == item ? .isSelected : [])
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: destination == item)
+                }
             }
-            Button("المحذوفات", systemImage: "trash") { showTrash = true; favorites = false; section = nil }.accessibilityIdentifier("libraryTrash")
-            Button("بطاقات المراجعة", systemImage: "rectangle.stack") { reviewing = true }
-            Button("النسخ الاحتياطي", systemImage: "externaldrive") { backup = true }
-        }.listStyle(.sidebar)
+            Section("ملفاتك") {
+                Button("المكتبة", systemImage: "books.vertical") { selectDestination(.library); section = "مكتبتي"; favorites = false }.accessibilityIdentifier("libraryRootSidebar")
+                Button("كل الملفات", systemImage: "square.grid.2x2") { selectDestination(.library); section = nil; favorites = false }
+                Button("المفضلة", systemImage: "star") { selectDestination(.library); favorites = true; section = nil }
+                ForEach(store.sections.filter { $0 != "مكتبتي" }, id: \.self) { name in
+                    Button(name, systemImage: "folder") { selectDestination(.library); favorites = false; section = name }
+                }
+            }
+            Section {
+                Button("المحذوفات", systemImage: "trash") { destination = .library; showTrash = true; favorites = false; query = "" }.accessibilityIdentifier("sidebarTrash")
+                Button("النسخ الاحتياطي", systemImage: "externaldrive") { backup = true }
+            }
+        }.listStyle(.sidebar).scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 44)
+            .background(TayyaTheme.mutedSurface.opacity(0.5))
+    }
+    private var sectionsContent: some View {
+        List {
+            Section("قسم جديد") {
+                HStack {
+                    TextField("اسم القسم", text: $sectionName).accessibilityIdentifier("sectionName")
+                    Button("إضافة") { store.addSection(sectionName); sectionName = "" }
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityIdentifier("addSection").disabled(sectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            Section {
+                ForEach(store.sections, id: \.self) { name in
+                    HStack {
+                        Button { selectDestination(.library); section = name; favorites = false } label: {
+                            HStack {
+                                Label(name, systemImage: "folder")
+                                Spacer()
+                                Text("\(store.notebooks.filter { !$0.trashed && $0.section == name }.count)").foregroundStyle(.secondary)
+                            }.frame(minHeight: 44)
+                        }.buttonStyle(.borderless).accessibilityIdentifier("chooseSection-" + name)
+                        if name != "مكتبتي" {
+                            Button("حذف", role: .destructive) { store.deleteSection(name) }
+                                .frame(minWidth: 44, minHeight: 44)
+                                .buttonStyle(.borderless).accessibilityIdentifier("deleteSection-" + name)
+                        }
+                    }
+                }
+            } footer: { Text("حذف القسم ينقل ملفاته إلى مكتبتي.") }
+        }.scrollContentBackground(.hidden).environment(\.defaultMinListRowHeight, 44)
+    }
+    private var settingsContent: some View {
+        List {
+            Section("ملفاتك") {
+                Button("النسخ الاحتياطي والاستعادة", systemImage: "externaldrive") { backup = true }.accessibilityIdentifier("libraryBackup")
+                Button("المحذوفات", systemImage: "trash") { destination = .library; showTrash = true; favorites = false; query = "" }.accessibilityIdentifier("settingsTrash")
+            }
+            Section("ابدأ مع طَيّة") {
+                Button("جرّب ملفات جاهزة", systemImage: "play.rectangle") {
+                    do { demonstration = try store.installDemonstration() }
+                    catch { store.error = error.localizedDescription }
+                }.accessibilityIdentifier("openDemonstration")
+                Button("دليل البداية", systemImage: "questionmark.circle") { welcome = true }
+            }
+            Section("عن طَيّة") {
+                Text("ملفاتك وكتابتك وتسجيلاتك محفوظة على جهازك.").font(.subheadline).foregroundStyle(TayyaTheme.detail)
+                Text("By Ahmad Al-awi").font(.footnote).foregroundStyle(TayyaTheme.detail)
+            }
+        }.scrollContentBackground(.hidden).environment(\.defaultMinListRowHeight, 44)
     }
     private func notebookCard(_ note: Notebook) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             NavigationLink {
-                NotebookScreen(id: note.id, store: store)
+                NotebookScreen(id: note.id, store: store).onAppear { lastOpenedNotebook = note.id.uuidString }
             } label: {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack { Image(systemName: note.file.lowercased().hasSuffix(".pdf") ? "doc.richtext" : "doc.text").font(.system(size: 30, weight: .light)); Spacer(); if note.favorite { Image(systemName: "star.fill").foregroundStyle(TayyaTheme.fold).font(.caption) } }.padding(.bottom, 10)
-                    Text(note.title).font(.title3.weight(.medium)).lineLimit(2)
-                    Text(note.section + " · " + (note.file as NSString).pathExtension.uppercased()).font(.caption).foregroundStyle(.secondary)
-                }.frame(maxWidth: .infinity, minHeight: 140, alignment: .leading).padding(22)
-            }.disabled(showTrash).accessibilityIdentifier("openNotebook-" + note.title)
-            Divider()
-            HStack {
-                if showTrash {
-                    Button("استعادة") { store.change(note.id) { $0.trashed = false } }.accessibilityIdentifier("restoreNotebook-" + note.title)
-                    Spacer()
-                    Button("حذف نهائي", role: .destructive) { deleting = note; confirmNotebookDeletion = true }.accessibilityIdentifier("eraseNotebook-" + note.title)
-                } else {
-                    Button("نقل", systemImage: "folder") { moving = note }.accessibilityIdentifier("moveNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                    Spacer()
-                    Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note; showNotebookRename = true }.accessibilityIdentifier("renameNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                    Button(note.favorite ? "إلغاء المفضلة" : "للمفضلة", systemImage: note.favorite ? "star.fill" : "star") { store.change(note.id) { $0.favorite.toggle() } }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                    Button("نقل للمحذوفات", systemImage: "trash", role: .destructive) { store.change(note.id) { $0.trashed = true } }.accessibilityIdentifier("trashNotebook-" + note.title).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                VStack(alignment: .leading, spacing: 12) {
+                    notebookCover(note)
+                    VStack(alignment: .leading, spacing: 8) {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            Text(note.title).font(.subheadline.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text(note.title).font(.subheadline.weight(.semibold))
+                                .lineLimit(2, reservesSpace: true)
+                        }
+                        notebookMetadata(note)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(12).contentShape(Rectangle())
+            }.buttonStyle(LibraryPressStyle()).foregroundStyle(TayyaTheme.text).disabled(showTrash).accessibilityIdentifier("openNotebook-" + note.title)
+            Rectangle().fill(TayyaTheme.separator).frame(height: 0.5)
+            if showTrash {
+                VStack(spacing: 0) {
+                    Button("استعادة") { store.change(note.id) { $0.trashed = false } }
+                        .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("restoreNotebook-" + note.title)
+                    Button("حذف نهائي", role: .destructive) { deleting = note; confirmNotebookDeletion = true }
+                        .frame(maxWidth: .infinity, minHeight: 44).accessibilityIdentifier("eraseNotebook-" + note.title)
+                }.font(.caption.weight(.medium)).buttonStyle(.borderless)
+            } else {
+                Menu {
+                    Button("تسمية", systemImage: "pencil") { title = note.title; renaming = note; showNotebookRename = true }.accessibilityIdentifier("renameNotebook-" + note.title)
+                    Button("نقل إلى قسم", systemImage: "folder") { moving = note }.accessibilityIdentifier("moveNotebook-" + note.title)
+                    Button(note.favorite ? "إلغاء المفضلة" : "إضافة للمفضلة", systemImage: note.favorite ? "star.slash" : "star") { store.change(note.id) { $0.favorite.toggle() } }
+                    Button("نقل للمحذوفات", systemImage: "trash", role: .destructive) { store.change(note.id) { $0.trashed = true } }.accessibilityIdentifier("trashNotebook-" + note.title)
+                } label: {
+                    Label("تنظيم الملف", systemImage: "folder.badge.gearshape").font(.caption.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.horizontal, 8)
+                        .fixedSize(horizontal: false, vertical: true)
+                }.accessibilityIdentifier("notebookActions-" + note.title)
+            }
+        }
+        .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(TayyaTheme.separator, lineWidth: 0.5) }
+    }
+    private func notebookCover(_ note: Notebook) -> some View {
+        let color = NotebookCoverStyle.color(for: note.id)
+        return LibraryThumbnail(url: store.root.appendingPathComponent(note.file))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 3))
+            .padding(.leading, 18).padding(.trailing, 12).padding(.vertical, 12)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 180 : 148)
+            .background(color, in: RoundedRectangle(cornerRadius: 9))
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1).fill(Color.black.opacity(0.18))
+                    .frame(width: 3).padding(.vertical, 8).padding(.leading, 6)
+                    .accessibilityHidden(true).allowsHitTesting(false)
+            }
+            .overlay(alignment: .topTrailing) {
+                FoldedPageCorner(size: 18, color: TayyaTheme.copper)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .accessibilityHidden(true)
+    }
+    private func notebookMetadata(_ note: Notebook) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 5)) : AnyLayout(HStackLayout(spacing: 5))
+        return layout {
+            HStack(spacing: 4) {
+                Text((note.file as NSString).pathExtension.uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(TayyaTheme.mutedSurface, in: RoundedRectangle(cornerRadius: 4))
+                    .fixedSize()
+                if note.favorite {
+                    Image(systemName: "star.fill").foregroundStyle(TayyaTheme.copper)
+                        .accessibilityLabel("المفضلة")
                 }
-            }.font(.subheadline).padding(.horizontal, 20).padding(.vertical, 10)
-        }.background(TayyaTheme.surface, in: RoundedRectangle(cornerRadius: 18)).overlay { RoundedRectangle(cornerRadius: 18).strokeBorder(TayyaTheme.ink.opacity(0.08)) }
+            }
+            Text(note.section).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.font(.caption).foregroundStyle(TayyaTheme.detail)
     }
     private func finishPicking(_ urls: [URL]) {
         guard !importingFile, !urls.isEmpty else { return }
@@ -233,16 +449,16 @@ struct LibraryScreen: View {
             defer { importingFile = false }
             var imported = 0
             var failures: [String] = []
-            let destination = section
+            let importSection = section
             for url in urls {
                 do {
-                    try await store.importDocumentAsync(url, section: destination)
+                    try await store.importDocumentAsync(url, section: importSection)
                     DocumentPicker.discardIncomingCopy(url)
                     imported += 1
                 }
                 catch { failures.append(url.lastPathComponent + ": " + error.localizedDescription) }
             }
-            if imported > 0 { showTrash = false; query = "" }
+            if imported > 0 { destination = .library; showTrash = false; favorites = false; query = "" }
             if failures.isEmpty {
                 importMessage = urls.count == 1 ? "تم استيراد " + urls[0].deletingPathExtension().lastPathComponent : "تم استيراد \(imported) ملفات"
             } else {
@@ -253,21 +469,14 @@ struct LibraryScreen: View {
     }
 
 }
-struct SectionsScreen: View {
-    @EnvironmentObject private var store: LibraryStore
-    @Environment(\.dismiss) private var dismiss
-    let select: (String) -> Void
-    @State private var name = ""
-    var body: some View {
-        NavigationStack {
-            List {
-                Section { HStack { TextField("اسم القسم", text: $name).accessibilityIdentifier("sectionName"); Button("إضافة") { store.addSection(name); name = "" }.accessibilityIdentifier("addSection").disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) } }
-                Section("حذف القسم ينقل ملفاته إلى مكتبتي") {
-                    ForEach(store.sections, id: \.self) { section in
-                        HStack { Button(section, systemImage: "folder") { select(section); dismiss() }.buttonStyle(.borderless).accessibilityIdentifier("chooseSection-" + section); Spacer(); if section != "مكتبتي" { Button("حذف", role: .destructive) { store.deleteSection(section) }.accessibilityIdentifier("deleteSection-" + section) } }
-                    }
-                }
-            }.navigationTitle("الأقسام").toolbar { Button("تم") { dismiss() } }
-        }.environment(\.layoutDirection, .rightToLeft)
+
+/// Feedback belongs to library chrome; it never animates reader or ink geometry.
+private struct LibraryPressStyle: ButtonStyle {
+    @Environment(\.tayyaReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

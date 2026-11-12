@@ -1,0 +1,65 @@
+PR iPad light visual count observation — source 3e56636c1483d0fee0bbd912b2cf148bfeb17f50
+Read-only evidence review, 2026-10-18 UTC. No app or test changes in this review.
+
+Inputs
+- Artifact: /tmp/tayya-3e-prpad.zip
+- Independently supplied verified outer SHA256: f7d4cfe4fc6f0e3e4b2cfb8e821dc090049b0150cdb4495063a516f7af233eb0
+- SHA256 computed here for uncompressed file-provider.log:
+  1acd827d505f716b5d824d13e8900e39a1ed93cecdc64ee9c7c1cc30c8ec4ab3
+- NativeFailure/native-system.log ends 01:51:50.433 and cannot establish this case's later events.
+- Relevant native events instead come from file-provider.log, PID4273.
+- build.log: testPaperStudioLightVisualCaptureJourney, failure LaunchTests.swift:791.
+- Screenshots/3325B762-9ABA-4FA1-8EF9-0E6269BC1514.txt (manifest timestamp01:57:56.452).
+- Screenshots/CC01690F-9FA3-48BB-AF8A-F53BE08CDFAC.txt (01:57:57.407).
+
+Source contract
+Before gesture, before=Int(margin.value as? String ?? "") ?? 0.
+The saved expectation closure captures margin and before, ignores both NSPredicate block arguments,
+and requires Int(margin.value as? String ?? "") > before; expectation object is margin.
+The functional waiter is10 seconds. Subsequent visible-pixel checks remain separate.
+
+Timeline (UTC; file-provider.log source line numbers)
+01:57:45.620 [802883] PencilKit began drawing, recognizer0x108436220 / PKTiledGestureView0x10841af70.
+01:57:46.368 [803062] Same recognizer ended drawing.
+01:57:47.611 [803098] First postgesture predicate snapshot requested for ScrollView query.
+01:57:49.221 [811509] Snapshot captured in1.61s.
+01:57:49.298 [811665] PencilKit supplies snapshot of drawing B835990F-A86A-43A9-827F-C5D069BC89C5 with2 visible strokes.
+01:57:49.567 [812275] AX query's already captured margin snapshot reports value1.
+01:57:49.634 [812850] Debug-description work fetches AXValue for App, then many descendants.
+01:57:50.367 [815673] Recognition reports total strokes2 for same drawing.
+01:57:55.898–55.935 [838740–838920] Further AXValue fetches during description collection.
+01:57:56.452 [attachment] Completed description contains frozen initial attributes/subtree value1,
+  but its subsequently resolved query-chain outputs identify marginInkCanvas value2.
+01:57:56.594 [838964] Next predicate starts another ScrollView query snapshot.
+01:57:58.794 [847368] That snapshot returns after2.20s.
+
+build.log relative timing
+- Gesture endpoint resolution is expensive before actual touch delivery: gesture starts t42.57,
+  synthesis t44.36, more endpoint finds46.89/52.54/53.92/55.32, idle wait t57.75.
+- First predicate poll t58.77; Capturing element debug description t60.78;
+  snapshot requests t60.97/62.84/64.88.
+- Second predicate poll t67.76; another debug description t68.08; timeout assertion follows.
+- Offset from relative time to native UTC is approximately11.16s (t58.77 maps47.611).
+  The10s waiter therefore expires about01:57:56.6; second snapshot completes after that deadline.
+- Later actual screenshot reports5751 visible ink pixels; subsequent count reads2.
+
+Interpretation and limits
+The native drawing has2 strokes within the original10s budget. The first AX snapshot can honestly
+contain1 because it was taken before the drawing's2-stroke update. The debug description resolves
+more than one snapshot over several seconds; its mixed1/2 output does NOT prove a permanently
+cached XCUIElement.value or a product count bug. No exact drawing-commit timestamp is logged;
+the2-stroke PencilKit report establishes availability by49.298, not an exact earlier commit time.
+
+The log proves description work consumed most of the remaining observation budget after a false
+first poll. It does not alone prove XCTest's private reason for requesting every description.
+Removing the unused expectation object is a bounded harness hypothesis: keep the captured live
+margin.value condition, threshold, wait10, gesture and all assertions; pass object:nil so XCTest
+need not describe an XCUIElement as the predicate object. Native replay must show fewer description
+requests and a fresh qualifying count result before the unchanged deadline. Do not call it green
+from this report; do not replace count with pixels or permit a later count to satisfy the waiter.
+
+Public API check
+Apple documents init(predicate: NSPredicate, object: Any?), with object optional:
+https://developer.apple.com/documentation/xctest/xctnspredicateexpectation/init(predicate:object:)
+For an NSPredicate block that ignores its evaluatedObject argument, object:nil preserves the
+Boolean contract; this does not apply to format predicates using SELF or closures using the argument.

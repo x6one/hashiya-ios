@@ -4,15 +4,61 @@ import plistlib
 import subprocess
 import tempfile
 import unittest
+from contextlib import chdir
 from pathlib import Path
 from unittest.mock import patch
 
 import yaml
 from distribute_native_app import run_apple, validate_release_version
 from prepare_native_office_app import prepare
+from package_native_app import package
 
 
 class ReleaseToolsTests(unittest.TestCase):
+    def test_unsigned_package_rejects_stale_version_build_or_other_bundle(self):
+        spec = yaml.safe_load(Path("project.yml").read_text())
+        settings = spec["settings"]["base"]
+        valid = {"CFBundleShortVersionString": str(settings["MARKETING_VERSION"]),
+                 "CFBundleVersion": str(settings["CURRENT_PROJECT_VERSION"]),
+                 "CFBundleIdentifier": "com.ahmadalawi.hashiya",
+                 "CFBundleExecutable": "Hashiya", "UIDeviceFamily": [1, 2]}
+        for key, wrong in [("CFBundleShortVersionString", "0.5.0"),
+                           ("CFBundleVersion", "12"),
+                           ("CFBundleIdentifier", "com.example.other")]:
+            with self.subTest(field=key), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                app = root / "Hashiya.app"
+                app.mkdir()
+                (app / "Info.plist").write_bytes(plistlib.dumps({**valid, key: wrong}))
+                with patch("package_native_app.subprocess.run") as native, \
+                     patch("package_native_app.subprocess.check_output", return_value="platform IOS\n"):
+                    with self.assertRaisesRegex(RuntimeError, key):
+                        package(app, root / "output")
+                    native.assert_not_called()
+                self.assertFalse((root / "output").exists())
+
+    def test_unsigned_package_uses_own_checkout_from_engine_working_folder(self):
+        spec = yaml.safe_load(Path("project.yml").read_text())
+        settings = spec["settings"]["base"]
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app = root / "Hashiya.app"
+            app.mkdir()
+            (app / "Info.plist").write_bytes(plistlib.dumps({
+                "CFBundleShortVersionString": str(settings["MARKETING_VERSION"]),
+                "CFBundleVersion": str(settings["CURRENT_PROJECT_VERSION"]),
+                "CFBundleIdentifier": "com.ahmadalawi.hashiya",
+                "CFBundleExecutable": "Hashiya", "UIDeviceFamily": [1, 2]}))
+            # The engine checkout must not decide the application release.
+            (root / "project.yml").write_text("settings: {base: {MARKETING_VERSION: '9.0', CURRENT_PROJECT_VERSION: '99'}}")
+            with chdir(root), patch("package_native_app.subprocess.run",
+                                    side_effect=RuntimeError("native validation reached")) as native:
+                with self.assertRaisesRegex(RuntimeError, "native validation reached"):
+                    package(app, root / "output")
+                self.assertEqual(native.call_args.args[0][:2], ["xcrun", "lipo"])
+                native.assert_called_once()
+            self.assertFalse((root / "output").exists())
+
     def test_engine_preparation_preserves_canonical_version(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

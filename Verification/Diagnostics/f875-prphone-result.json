@@ -1,0 +1,31 @@
+{
+  "head_source": "f8751c831eccd3948c9c93dc6502ce15eb2e53b7",
+  "run": 39071295697,
+  "job": 117509297256,
+  "artifact": 12116670499,
+  "artifact_sha256": "4427dac5912f9e1928fb703eed02e1f621e54368f70ba5e1bf01188c4eb4a76f",
+  "independently_hashed": true,
+  "xcresult_zip_sha256": "d7e0a129ae7ebceb16cf6680f188b169f3158a72bb2002cc0d4da55200ef7b2c",
+  "ui_cases": 31,
+  "ui_passed": 30,
+  "ui_failed": 1,
+  "aggregates": [
+    "\t Executed 67 tests, with 0 failures (0 unexpected) in 10.806 (11.518) seconds",
+    "\t Executed 67 tests, with 0 failures (0 unexpected) in 10.806 (11.521) seconds",
+    "\t Executed 31 tests, with 1 failure (0 unexpected) in 1540.570 (1540.602) seconds",
+    "\t Executed 31 tests, with 1 failure (0 unexpected) in 1540.570 (1540.603) seconds",
+    "\t Executed 31 tests, with 1 failure (0 unexpected) in 1540.570 (1540.606) seconds"
+  ],
+  "errors": [
+    "/Users/runner/work/hashiya-ios/hashiya-ios/UITests/LaunchTests.swift:966: error: -[HashiyaUITests.LaunchTests testIndividualInkTargetsInDocumentAndCompactSplit] : failed - Ink toolbar drag must actually scroll fitMargin; before=(57.666666666666664, 294.0, 44.00000000000001, 44.0), after=(57.666666666666664, 294.0, 44.00000000000001, 44.0), viewport=(62.0, 292.0, 367.3333333333333, 48.0)"
+  ],
+  "collection": {
+    "commit": "c3fa5c6d13ec2e35e5469f5a9ffb892ac88b9a13",
+    "run": "39071295697",
+    "reports": [],
+    "note": "An empty report list does not rule out a watchdog, jetsam, or crash.",
+    "system_log_status": "failed",
+    "system_log_error": "Command '['xcrun', 'simctl', 'spawn', '4C675116-265D-488F-BFFA-836A4545674C', 'log', 'show', '--last', '60m', '--style', 'compact', '--info', '--debug', '--predicate', 'process == \"Hashiya\" OR process == \"ReportCrash\" OR process == \"runningboardd\" OR process == \"SpringBoard\" OR process == \"kernel\" OR subsystem BEGINSWITH \"com.apple.pencilkit\" OR subsystem BEGINSWITH \"com.apple.PDFKit\"']' timed out after 120 seconds"
+  },
+  "acceptance": false
+}

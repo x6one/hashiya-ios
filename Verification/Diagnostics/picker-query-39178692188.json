@@ -1,0 +1,67 @@
+{
+  "source": "d3db4b063fa4664f0580f5d2d5f621deb37c890d",
+  "run": 39178692188,
+  "decision": "Not accepted: original phone accessibility rail assertion fails; all eight reached picker-dismissal guards pass, insufficient for stability",
+  "stage_A": {
+    "passed_tools": 14,
+    "actionlint": "1.7.7 passed",
+    "python_syntax": "passed",
+    "read_only_saved_drawing_smoke": "passed"
+  },
+  "stage_B": {
+    "status": "failed",
+    "per_family": {
+      "iPhone": {
+        "passed": 1,
+        "total": 2,
+        "accessibility_failure": {
+          "line": 966,
+          "expected": "Fit Width moves into the visible rail",
+          "actual": "target x431.3333 unchanged after -58pt measured center drag",
+          "native_scroll_offset_before_after": [
+            -62,
+            -62
+          ]
+        },
+        "standard": "passed 133.895s"
+      },
+      "iPad": {
+        "passed": 2,
+        "total": 2,
+        "accessibility": "passed 212.184s",
+        "standard": "passed 182.575s"
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "family": "iPhone",
+      "id": 12155597870,
+      "bytes": 147547102,
+      "sha256": "e804787ddd7178ba61d31c740a8b2de0f6ed5d840c15cb0118683a7cfadff8d2",
+      "reader_run": 39180035780
+    },
+    {
+      "family": "iPad",
+      "id": 12156116109,
+      "bytes": 16540225,
+      "sha256": "201e50dd9fc9eb3516f88046bc1cd19d7282e084b4211d69d1f9e7cb998a3e3a",
+      "reader_run": 39180623301
+    }
+  ],
+  "next_diagnosis": {
+    "source": "cdb7f8afc471dc5a7eb0a0d655744a1b0adc073d",
+    "branch": "diag/tayya-rail-input",
+    "status": "Tools gate and bounded phone native run queued",
+    "failure_cause": "unproven; unchanged native scroll offset confirms failure but not its owning recognizer",
+    "observation_defect": "Weak gesture dictionary retained dead ObjectIdentifier keys; reused addresses could skip a new observer. No evidence yet that address reuse occurred in the captured failure.",
+    "changes": "DEBUG only: live identity dedup, existing hit-path recognizer passive targets, explicit cap counters, monotonic app/test drag times; no recognizer/delegate/failure-policy changes",
+    "checks": {
+      "release_projection_identical": true,
+      "all_assertion_lines_identical": true
+    },
+    "scope": "iPhone original Accessibility until first failure/max3, then original Standard once; preserve all attempted results; no full C or IPA",
+    "independent_review": "No blocking source/API/workflow issue; native compilation pending"
+  },
+  "release_qualified": false
+}

@@ -10,11 +10,19 @@ import plistlib
 import shutil
 import subprocess
 from pathlib import Path
+import yaml
+
+from distribute_native_app import BUNDLE, validate_release_version
 
 
 def package(app: Path, output: Path) -> None:
     app = app.resolve(strict=True)
     info = plistlib.loads((app / "Info.plist").read_bytes())
+    # Resolve against this checkout, not the engine workflow's working folder.
+    spec = yaml.safe_load((Path(__file__).resolve().parents[1] / "project.yml").read_text())
+    validate_release_version(info, spec)
+    if info["CFBundleIdentifier"] != BUNDLE:
+        raise RuntimeError("Exported CFBundleIdentifier differs from the Tayya identity")
     if sorted(info["UIDeviceFamily"]) != [1, 2]:
         raise ValueError("The candidate must support iPhone and iPad")
     if (app / "embedded.mobileprovision").exists():

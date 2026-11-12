@@ -1,0 +1,59 @@
+{
+  "source": "79200f06ac7438dfcb6aa75b4db5e27ed96b1282",
+  "branch": "diag/tayya-ink-route",
+  "run": 39127359591,
+  "job": 117675188379,
+  "artifact": 12136664530,
+  "outer_sha256": "a66d24944292eab56893048d5fc697cb2d1a5b8cd776b66f7082c6d7e6263879",
+  "xcresult_sha256": "826944692d2480ca53de0daa79c0ebd9deb7243e16ef9cdb049b4061e4b571d2",
+  "independently_verified": true,
+  "units_passed": 67,
+  "ui_prefix_passed": 10,
+  "original_ui_test_blob": "29e68ad07b1e16ad3085c1711cfba22214c2d1cd",
+  "prefix_order_matches_failed_full_suite": true,
+  "target": {
+    "name": "testIndividualInkTargetsAtAccessibilityTextSize",
+    "result": "failed",
+    "seconds": 208.044,
+    "failure": "No inkToolbar snapshot after native Fit Width pan, LaunchTests.swift:960"
+  },
+  "external_export_bytes": "passed",
+  "native_log": "collected",
+  "collected_crash_reports": [],
+  "finding": {
+    "connected_public_recognizer": "UINavigationController.interactiveContentPopGestureRecognizer",
+    "native_name": "UINavigationController.contentSwipe",
+    "identity": "0x1014a6b10",
+    "began_utc": "2026-10-18T12:45:15.093Z",
+    "began_location": [
+      210.66666666666666,
+      353.6666666666667
+    ],
+    "navigation_stack_on_begin": 1,
+    "states": [
+      "began",
+      "changed",
+      "ended"
+    ],
+    "rail_pan_callbacks": 0,
+    "conclusion": "The connected whole-content navigation pop takes the valid rail drag and removes the document. The existing static failure dependency does not prevent this."
+  },
+  "isolated_comparison": {
+    "run": 39126228020,
+    "seconds": 242.439,
+    "result": "passed",
+    "same_pan": true,
+    "scroll_states": [
+      "began",
+      "changed",
+      "ended"
+    ],
+    "navigation_stack": 2
+  },
+  "limits": [
+    "Diagnostic subset, not release preflight.",
+    "No collected report does not exclude every crash/watchdog/jetsam.",
+    "Public recognizer description strings truncate in unified logs; actual short state callbacks and matching public property identity identify the winner."
+  ],
+  "candidate": "Replace failed per-rail dependency with one public whole-content-pop boundary owned by DocumentScreen. Back button/edge/reopening require native regression verification."
+}

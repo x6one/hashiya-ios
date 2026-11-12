@@ -3,6 +3,15 @@ name: Library create move rename trash restore and delete
 ---
 - runFlow: helpers/new-notebook.yaml
 - tapOn:
+    id: openNotebook-QA Notebook
+- assertVisible:
+    id: inkTool
+- launchApp:
+    arguments:
+      maestroTesting: true
+- assertVisible:
+    id: continueNotebook
+- tapOn:
     id: librarySections
     index: 0
 - tapOn:
@@ -13,10 +22,14 @@ name: Library create move rename trash restore and delete
 - assertVisible: QA Section
 - tapOn: تم
 - tapOn:
+    id: notebookActions-QA Notebook
+- tapOn:
     id: moveNotebook-QA Notebook
 - tapOn: QA Section
 - assertNotVisible:
     id: openNotebook-QA Notebook
+- assertNotVisible:
+    id: continueNotebook
 - tapOn:
     id: librarySections
     index: 0
@@ -47,6 +60,8 @@ name: Library create move rename trash restore and delete
 - assertVisible:
     id: openNotebook-QA Notebook
 - tapOn:
+    id: notebookActions-QA Notebook
+- tapOn:
     id: renameNotebook-QA Notebook
 - tapOn:
     text: QA Notebook
@@ -55,6 +70,8 @@ name: Library create move rename trash restore and delete
 - tapOn: حفظ
 - assertVisible:
     id: openNotebook-QA Renamed
+- tapOn:
+    id: notebookActions-QA Renamed
 - tapOn:
     id: trashNotebook-QA Renamed
 - assertNotVisible:
@@ -71,6 +88,8 @@ name: Library create move rename trash restore and delete
 - runFlow: helpers/library-root.yaml
 - assertVisible:
     id: openNotebook-QA Renamed
+- tapOn:
+    id: notebookActions-QA Renamed
 - tapOn:
     id: trashNotebook-QA Renamed
 - tapOn:

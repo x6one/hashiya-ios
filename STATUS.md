@@ -1,252 +1,53 @@
-## 0.4.2 (10) — 2026-10-09، قيد الاختبار
+# Tayya 0.6.0 (13) — rescue checkpoint, 2026-10-19 UTC
 
-فُحص الرفض الجديد لـ0.4.1 (9): Apple تطلب الوصول لكل الوظائف وفق 2.1(a) دون تحديد وظيفة. أُضيف اختيار بداية واضح لملفات تجريبية حقيقية دون حساب، وشريط أدوات ظاهر بأسماء وأيقونات. حذف صفحات PDF يحدّث مراجع الكتابة والحواشي والصوت والبطاقات وOCR بمعاملة قابلة للاستعادة بعد الانقطاع؛ التراجع متاح قبل أي تعديل جديد. حذف الحواشي قابل للاستعادة. نقل الملفات إلى الأقسام يخرجها من عرض المكتبة الأساسي. الاختبارات والبناء والرفع لم تكتمل بعد.
+Release remains blocked pending final-source gates. No accepted IPA, PR merge or Apple upload. Bundle ID: `com.ahmadalawi.hashiya`.
 
-## إصلاح الحاشية 0.4.1 (9) — 2026-10-08 (مرفوع ومرسل للمراجعة)
+## Current rescue qualification — 2026-10-19 UTC
 
-صفحات حاشية مستقلة للنص وخط اليد، ترحيل الحاشية القديمة دون حذفها، تنقّل دائم خارج لوحة الرسم، أدوات قلم مضمنة، تقسيم متكيّف وقابل للسحب، وحاشية بالحجم الكامل تستخدم نفس المحرر. إحداثيات الورقة ثابتة وعرض الكتابة مناسب للمساحة، مع عرض الورقة كاملة والتحريك. قائمة صفحات وعناوين ومعاينات وربط بصفحة المستند؛ إضافة أوراق في نهاية PDF لحماية مراجع الصفحات الحالية؛ البحث والنسخ الاحتياطي وتصدير الحواشي الطويلة يشمل البيانات الجديدة.
+Latest original full baseline is `df4ab1ddb7d5110eebf32a41ba00798098fda080`, [run39286829941](https://github.com/x6one/hashiya-ios/actions/runs/39286829941): both families68 XCTest pass; phone32 UI pass; iPad31 UI pass/1 case fail. Phone Maestro3 failed. No accepted IPA.
 
-المصدر النهائي `e3e0f4da30656265ef9c1d617a9af0ba85c9b73c` اجتاز 34 اختبار منطق و11 اختبار واجهة على كل من الآيفون والآيباد (90 اختبارًا)، مع تغليف الجهاز. نجح البناء الموقّع والتحقق والرفع في التشغيل `37690165583`. دُمج طلب التغيير #3 في `90dff347b0c460faafd77a31605e7502a7ffb40f`.
+The original Maestro recording screenshot and both later Welcome screenshots show the same unanswered system microphone prompt. Explicit microphone permission in the shared test launch preserves every original assertion and the denial journey. Targeted [iPhone39321182827](https://github.com/x6one/hashiya-ios/actions/runs/39321182827), source `a0d6f35e44618eb3b3482a314a922b480d5fddac`:3/3 pass. [iPad39323494599](https://github.com/x6one/hashiya-ios/actions/runs/39323494599), source `21983ff8a8e9e806a1d313af3a07a7cf4c2bd431`:3/3 pass. Actual JUnit reports have zero failures/skips; archive SHA256/CRC and all three completion images per family reviewed.
 
-فُحص رفض Apple السابق للنسخة 0.3.0 (7): طلب المراجع محتوى جاهزًا للتجربة وفق 2.1(a). أُضيف زر «جرّب طَيّة بملفات جاهزة» في إصدار Release، مع دليل PDF ودفتر وعرض تقديمي وحواشٍ جاهزة قابلة للتعديل، دون حساب. حُفظت تعليمات فتحها في ملاحظات مراجعة المتجر وTestFlight.
+The first cold iPad Maestro driver failed before any flow: server readiness appeared142s after start, after the client's deadline. The focused harness bounds that infrastructure readiness at180s; the same measured bound now applies to the full Maestro step; application assertions and native case limits are unchanged. The subsequent iPad pass is not independent proof it would itself exceed the earlier deadline.
 
-في 2026-10-08 اكتمل تصنيف التشفير القياسي الإضافي، وفرنسا مستثناة. أُضيف البناء 9 إلى Tayya Beta وTayya Internal، وأُرسل TestFlight؛ الحالة المثبتة **Waiting for Review**. رُبط البناء نفسه بالإصدار 0.4.1 وأُعيد إرسال طلب App Store؛ الحالة المثبتة **Waiting for Review**، بتاريخ 8 أكتوبر الساعة 3:05 مساءً بتوقيت قطر. لا تعني هذه الحالات موافقة Apple أو إتاحة الإصدار الجديد للجمهور بعد. الرابط العام: https://testflight.apple.com/join/bBwnghMX . التفاصيل في Store/release-audit-2026-10-07.md.
+Original failed iPad creation stored `Handwriting stages2445814` while the test searched `Handwriting stages24458143`; actual AX and video show the created card. Test submission now waits for the exact full text-field value. [Targeted39326353988](https://github.com/x6one/hashiya-ios/actions/runs/39326353988), source `533b63391be4f96839f2d55cc11552e9005307b7`:1/1 pass82.140s. Full input and persisted `library.json` agree on `Handwriting stages DCBC847E`; native counts1→2→3→4 and visible ink pass split, resize, rotation and expansion. All four actual screenshots and the saved3650-byte drawing reviewed. This is input/submission readiness evidence, not deterministic isolation of the native typing internals.
 
-## تحديث الدراسة 0.4.0 — 2026-10-04 (مرفوع وينتظر مراجعة TestFlight)
+The first full candidate `b31d34472cbe17c0c13a97e6d2726bb41c816d7a`, [run39327688794](https://github.com/x6one/hashiya-ios/actions/runs/39327688794), stopped twice at the phone color prerequisite. Saved UI/video and OS logs prove a real blank native sheet: the OS color service finished bootstrap43.360s and20.665s after its request, after the original content guard had failed. Files setup and three-case selection also passed controlled probes; neither alone is a sufficient cause. The test now observes OS process startup with a measured60s bound, then applies the original5s content checks. It never launches or prewarms that service. [Target39340814240](https://github.com/x6one/hashiya-ios/actions/runs/39340814240), source `add7a22e739a0709cbbf4ec945fe4520c7c76527`:1/1 pass152.265s, zero failures/skips. Both actual picker images and archive SHA256/CRC reviewed. The process API reported runningForeground in both contexts; slow startup did not recur on this repair host. No claim that OS launch performance was repaired.
 
-دُمج طلب التغيير #2 بعد نجاح الاختبارات. مصدر الحزمة المرفوعة `d35d22771a4729b6e2c15900088c679ddf0b64b4`؛ دمج المصدر `f28f49f7229da243a02e7e662de59d8488c865a8`. تنظيم ظاهر للأقسام والمحذوفات وشريط جانبي متكيّف، حفظ أصل Office، نسخة احتياطية كاملة واستعادة دون استبدال صامت، خمسة قوالب ورق، تحديد كتابة ونقل/تحجيم/نسخ بين الصفحات، بحث PDF/OpenXML/تعليقات وOCR محلي بفحص دعم اللغة، حاشية مقسومة بالنص وخط اليد، ربط الصوت بالكتابة، وبطاقات مراجعة حسب القسم.
+No production source was changed in this rescue qualification; the verified ink rail repair remains intact. All32 original UI case names and drawing assertions remain. [Concise evidence ledger](Verification/Diagnostics/lifecycle-rescue-2026-10-19.json).
 
-- نجح تشغيل PR [37203531316](https://github.com/x6one/hashiya-ios/actions/runs/37203531316): 25 اختبار منطق و9 واجهة لكل من الآيفون والآيباد، وبناء الجهاز. نجحت بوابة تشغيل push `37203528908` للعائلتين أيضًا بعد إعادة اختبار إعداد Files على الآيفون. روجعت صور المكتبة والحاشية على العائلتين؛ تجربة الصوت وOCR على جهاز فعلي تبقى ضمن اختبار النسخة التجريبية.
-- نجح تشغيل التوزيع [37203677730](https://github.com/x6one/hashiya-ios/actions/runs/37203677730)، المحاولة 2: الأرشفة الموقعة والتصدير والتحقق لدى Apple والرفع. أكدت Apple معالجة **0.4.0 (8)** بحالة Complete. أُكملت إجابات التشفير القياسي مع استبعاد فرنسا، وحُفظت تعليمات التجربة وملاحظات المراجع.
-- أُضيف البناء 8 إلى Tayya Beta وأُرسل للمراجعة التجريبية؛ الحالة الفعلية **Waiting for Review** مع إشعار المجربين تلقائيًا بعد الموافقة. الرابط العام القائم: https://testflight.apple.com/join/bBwnghMX . البناء 7 ما زال Testing.
-- إصدار App Store السابق **0.3.0 (7)** ما زال Waiting for Review. تمنع Apple إضافة بناء بديل إلى هذا الطلب دون سحبه؛ حُفظ الطلب الحالي، ويُقدّم تحديث المتجر 0.4 بعد انتهاء مراجعته. لا يعني الرفع أو الإرسال موافقة Apple.
-- أُصلح تجاوز إصدار المشروع بقيم 0.3/7 الثابتة، وأصبحت أداة التوزيع ترفض أخطاء altool حتى عند exit 0 وتتطلب نتيجة XML ناجحة صريحة. تشغيل `37200251554` السابق أعطى نتيجة CI مضللة بسبب خطأ رقم بناء مكرر ولم يرفع حزمة؛ التشغيل المصحح أعلاه موثّق. نجحت 5 اختبارات محلية لأدوات الإصدار.
-- سجل الأدلة: [Verification/0.4.0-8.json](Verification/0.4.0-8.json). الأقسام التالية سجل تاريخي يصف حالة المحاولات وقت إنشائها.
+After the targeted readiness pass, one complete gate is required on the final candidate SHA: original ink/navigation regressions, then68 XCTest/32 XCUITest, exported bytes, Maestro3 and real captures per family, followed by the existing native Office iphoneos build/package. Distinct targeted SHAs do not qualify the release. No merge or Apple upload. Physical-device Word/Excel conversion remains unverified. An unsigned IPA needs valid signing.
 
-## نشر Apple — السجل أُنشئ، البناء لم يُرفع
+## Verified targeted repair
 
-- أجاز المستخدم نشر TestFlight وApp Store. نجحت الجلسة بعد استئناف تسجيله اليدوي؛ سُجّل معرّف com.ahmadalawi.hashiya للفريق ZUB6SJFQA3 وأُنشئ سجل طَيّة **6818288428**.
-- حُفظت النصوص العربية والنسخة 0.3.0 والعنوان الفرعي وتصنيفا Education وProductivity والتصنيف العمري 4+. حالة Apple: Prepare for Submission.
-- شهادة Distribution موجودة وتنتهي 2027/09/21، لكن المفتاح الخاص غير متاح هنا. لم يُنشأ اعتماد جديد ولم تُرفع IPA أو تُقدّم مراجعة.
-- أُعد مسار أرشفة وتوقيع ورفع اختياري مع بوابتي الخصوصية والتشفير المعطلتين حتى اكتمال التدقيق؛ الافتراضي لا ينشر. لا يعوّض تسجيل دخول المتصفح شهادات التوقيع أو اعتمادات CI.
-- نصوص وصور حقيقية وأصلها وحالة المتطلبات في Store/. يبقى بيان الخصوصية والتشفير وروابط الدعم والخصوصية وبيانات المراجع ولقطات الشاشة المطلوبة والتوقيع قبل التقديم.
+[Run39189664681](https://github.com/x6one/hashiya-ios/actions/runs/39189664681), source `756ddd773c9881319adbf22eba664e64650b4b6d`: Tools14 pass; iPhone Accessibility3/3, Standard ink and navigation pass; iPad Accessibility, Standard ink and navigation pass. Eight native executions, zero failures. All original assertions/input/case deadlines retained.
 
-# طَيّة 0.3.0 (7) — حزمة التجربة متحقق منها
+Actual callback records match the tested phone rail and occur inside two captured drags: inherited cancellation0 → owned cancellation1 while the tool button tracks; native offset0→50. This verifies the intervention. The original inherited-policy handoff race is strongly supported; original callback invocation and all hosting-layout effects were not independently isolated. [Evidence and limitations](Verification/Diagnostics/rail-cancellation-39189664681.json).
 
-- مصدر التطبيق والحزمة: `d18cc32d4e96e19acd2534992c2557938d910654`. توثيق التسليم اللاحق لا يغير مصدر الحزمة.
-- تشغيل الاختبارات [36895436984](https://github.com/x6one/hashiya-ios/actions/runs/36895436984): نجحت 24 من 24 على iPhone 17 Pro و24 من 24 على iPad Pro 13-inch (M5)، كلاهما iOS 26.2 / Xcode 26.2؛ 16 منطق و8 واجهة لكل عائلة، دون فشل.
-- نجح اختيار PDF وPowerPoint الخارجيين وPDF من مجلد التطبيق عبر Files الحقيقي، مع رسالة نجاح الاستيراد وفتح المحرر. حُفظ المصدران الخارجيان بزر Save الأصلي في جذر On My device، ثم تحقق CI من SHA256 لبايتاتهما على الجهازين. نجحت كذلك اختبارات القلم وحفظه بعد إعادة التشغيل، والنص والتصدير والتنقل والمكتبة والوسائط.
-- تشغيل المحرك [36895436900](https://github.com/x6one/hashiya-ios/actions/runs/36895436900) نجح في بناء تطبيق الجهاز بالمحرك المحلي، ثم اجتاز بوابة نجاح العائلتين للمصدر نفسه قبل التغليف. artifact `11180730113`: `Tayya-native-office-unsigned.ipa`، 132191318 بايت، SHA256 `b8229232b61ef3c03c3c166e229eb0c3e7e01052e2c46f0360f3c9ce7115bd0e`.
-- فحص مستقل بعد التنزيل: ZIP سليم، تطبيق arm64 لمنصة iOS device، الاسم طَيّة، الإصدار 0.3.0 (7)، العائلتان 1 و2، موارد المحرك و184 خطًا وإشعارات المصدر موجودة. لا أعلام تجهيز اختبارات DEBUG في ملف Release التنفيذي.
-- التوقيع: `CODE_SIGNING_ALLOWED=NO`، نتيجة codesign تؤكد أنه غير موقّع، ولا provisioning profile ولا توقيع في Mach-O. يلزم إعادة توقيع بشهادة وملف provisioning صالحين؛ الحزمة ليست قابلة للتثبيت مباشرة. لم تُنشر في TestFlight أو App Store.
-- حذف بطاقة وخيار تجربة Office، وإضافة هوية طَيّة وشعارها وافتتاحيتها. زر «تحويل إلى PDF والكتابة» يستبدل الملف داخل البطاقة نفسها بعد حفظ PDF، ويحفظ بياناته؛ عند الفشل يبقى Office، ولا يُحذف الأصل الخارجي من Files. اختبارات الاستبدال والتراجع وحماية ملفات المستخدم ناجحة.
-- روجعت صور المنتقي والمكتبة ورسالة تحويل Office والقلم على العائلتين. صور OfficePreview التقطت Quick Look أثناء Loading؛ اختبار التنقل والوسائط لا يثبت اكتمال عرض Quick Look. تشغيل محرك التحويل نفسه وإصلاح اختيار Files على جهاز المستخدم في هذه النسخة يحتاجان تجربة فعلية؛ ملاحظته السابقة عن نجاح تحويل 0.2.4 لا تثبت جميع ملفات Office.
-- سجل قابل للقراءة آليًا: [Verification/0.3.0-7.json](Verification/0.3.0-7.json). يحتفظ السجل بالتشغيل والبصمة وحدود التحقق. الأقسام التالية تاريخ المحاولات السابقة؛ عبارات «قيد التحقق» فيها تصف وقتها ولا تعني أن الحزمة الحالية لم تجتز الاختبارات.
+Only the InkToolbar scroll holder changes. Its HStack/actions/picker/style are retained. Navigation policy, normal touch delivery, PencilKit and storage are unchanged. Effective compact width/content width match baseline. Natural Accessibility intrinsic height49.667 vs48 is documented; actual screenshots show usable targets and visible ink. No speculative height clamp is added.
 
-## حفظ مصادر الاختبار مباشرة في Files — قيد التحقق
-- المصدر 90824ca، تشغيل 36886149723: نجحت 22 من 24 على كل جهاز، بما فيها المنطق الـ16 وPDF من مجلد التطبيق والقلم والحفظ والنص والتنقل وOffice. لم تنتج IPA؛ بناء الجهاز بالمحرك المحلي نجح ومنعته بوابة الاختبارات.
-- تسجيل الآيفون يبين أن Cancel في أعلى المحتوى مصنف Other، فلا يجده استعلام Button. تسجيل الآيباد يبقي نافذة الحفظ وحقل التسمية بعد الضغط على Cancel. زر Save متاح في جذر On My device على العائلتين.
-- يحفظ إعداد الاختبار الآن المصدرين مباشرة في ذلك الجذر عبر UIDocumentPicker وزر Save الأصلي؛ لا إنشاء مجلد ولا تسمية ولا إلغاء وإعادة عرض. يتحقق CI من SHA256 للمصدرين في التخزين الخارجي نفسه، ويختارهما اختبار الاستيراد من Files الحقيقي. لا إنشاء host ولا استيراد خفي ولا استبعاد اختبار.
-- على الآيباد أثبت سجل 90824ca وهرمية الفشل أن Picker-office استورد بالفعل، رغم انتهاء مهلة قراءة importStatus. ينتظر الاختبار الآن وجود حالة المكتبة عبر waitForExistence بحد 120 ثانية، ثم يتطلب رسالة نجاح وفتح المستند. يبقى الحد الكلي 240 ثانية وبوابة الجهازين كاملة.
-- أزيل زر إعادة تصدير مصادر DEBUG لعدم الحاجة إليه. كود استيراد الإنتاج ثابت في هذه الخطوة، وتجربة المستخدم للنسخة الجديدة على جهازه تبقى مطلوبة.
+The rejected delayed-touch-delivery experiment remains reverted. [Its report](Verification/Diagnostics/rail-delivery-39186654628.json). [Original failure capture](Verification/Diagnostics/rail-tracking-39187892547.json).
 
-## فصل إنشاء مجلد المصدر عن تصدير الملفين — قيد التحقق
-- مصدر 9635aa3، تشغيل 36883921246: السجل الحي للآيباد أظهر نجاح اختبارات المنطق الـ16، ثم إخفاق أول PDF أثناء إنهاء اسم المجلد أيضًا، رغم الضغط على المساحة الفارغة. نجح إعداد التصدير لاحقًا عند عرض نافذة جديدة وجدت المجلد المحفوظ. لا نعتمد هذا المصدر لإخراج IPA.
-- أصبح إعداد المصدر مرحلتين صريحتين عبر Files: إنشاء المجلد وتسميته ثم Cancel، والتحقق من callback الإلغاء؛ بعدها فتح تصدير جديد والتحقق من وجود المجلد وحفظ الملفين. إذا لم يحتفظ Files بالمجلد يفشل الإعداد مباشرة. هذا انتقال محدد لإعداد المصدر، ولا يعيد محاولة استيراد الملفات أو يكتب فهرس المكتبة.
-- زر إعادة التصدير وشاشة إعداد المصدر كلاهما داخل DEBUG، فلا يظهران في IPA. تُحفظ بيانات طلب التصدير معًا في sheet(item:)، مع فحص وجود ملفين حقيقيين.
-- يمتد حد الاختبار الواحد إلى 240 ثانية لاستيعاب عرضي إعداد المصدر ثم الاختيار الفعلي. يبقى نجاح الجهازين وفحص SHA256 للملفين الخارجيين شرطًا للتغليف. مسارات الإنتاج لم تتغير في هذه الخطوة.
+## Earlier integration result
 
-## إنهاء التسمية وقراءة نتيجة الاستيراد — قيد التحقق
-- مصدر 3f2a143، تشغيل 36880481747: نجحت 22 من 24 على كل جهاز، بما فيها اختبارات المنطق الـ16 وPDF من مجلد التطبيق والقلم وحفظه والنص والتنقل والمكتبة ومعاينة Office. لم تُنتج IPA.
-- فشل اختبارا الآيفون الخارجيان عند إنهاء تسمية مجلد المصدر. على الآيباد فشل PDF بالسبب نفسه: بقي DOC.inlineRenameField بقيمة Tayya-test-files ولوحة المفاتيح ظاهرة بعد الضغط على Done. إحداثيات الحدث المصدّر تطابق مركز الزر المرصود، لذلك لا ننسب الفشل إلى إحداثيات خاطئة.
-- ينهي إعداد الاختبار الآن التسمية بالضغط على المساحة الفارغة داخل منطقة الملفات بجوار الحقل، ثم ينتظر اختفاء حقل التسمية قبل فتح المجلد والحفظ الأصلي. لا تُنشأ الملفات أو مجلد المصدر من host.
-- على الآيباد وصل اختيار PowerPoint إلى المندوب عند 15:12:24. سجل الخدمة وهرمية الفشل يثبتان تم استيراد Picker-office ووجود البطاقة، رغم انتهاء مهلة block predicate في الاختبار. استُبدل بمسند حالة أصلي واحد، ومهلة 60 ثانية؛ ما زال الاختبار يتطلب نجاح الاستيراد وفتح محرر Office.
-- عرض السجل الحي على GitHub أظهر جزءًا قديمًا عند جلب ZIPFoundation؛ السجل الكامل يثبت اكتمال البناء وتشغيل الاختبارات. لم يُثبت تعطل جلب المكتبة.
+Source `f2c376b7651c5d62bd92b49dc0cbdd3168a93910`, [run39277996098](https://github.com/x6one/hashiya-ios/actions/runs/39277996098): Stage A14 Tools/syntax/lint pass. Phone B4/5: both ink cases, document post-reopen Undo/Redo and navigation pass; the added margin fresh-stroke check fails321. Phone full C is not reached. iPad B5 and fresh-simulator C100/100 pass: 68 XCTest and32 XCUITest, zero failures/skips. Exported PDF/PPTX bytes pass. Maestro recording flow passes2m23; job reaches60min budget during a later flow, leaving final Maestro/capture gates incomplete. Actual two Accessibility ink screenshots reviewed. [Exact gate evidence](Verification/Diagnostics/full-pad-39277996098.json).
 
-## تصحيح إعداد مجلد Files على iOS 26.2 — قيد التحقق
-- آخر مصدر محفوظ قبل التصحيح a6ad23e، تشغيل 36854608461: نجحت اختبارات المنطق الـ16 و5 اختبارات UI على كل من الآيفون والآيباد. فشلت اختبارات Files الثلاثة؛ لم تُنتج IPA من هذا التشغيل.
-- على الآيفون أصبح زر Save مفعّلًا بعد إصلاح تمرير URLs، لكن الاختبار بحث عن TextField بينما أظهر سجل الفشل حقل TextView بالمعرّف DOC.inlineRenameField. على الآيباد ضغط إعداد المجلد قائمة More الخاصة بالشريط الجانبي، فظهرت Edit Sidebar بدل New Folder.
-- يختار إعداد الاختبار الآن قائمة شريط المحتوى، ويسمّي المجلد عبر الحقل المرصود ثم ينتظر انتهاء تحرير الاسم. تبقى اختبارات الاختيار الفعلي والتحقق من الحفظ وفتح المحرر كاملة، وكذلك فحص SHA256 للملفين الخارجيين.
-- هذا التصحيح لإعداد اختبار DEBUG فقط؛ استيراد الإنتاج لم يتغير. اعتماد Files وإخراج IPA ينتظران نجاح الاختبارات على الجهازين للمصدر نفسه، ثم تجربة المستخدم على جهازه الفعلي.
+The added test input is invalid on the phone's fitted page: actual synthesized startx132 is outside paperx178.713–261.287. Old ink/count1 remain visible. [Exact screenshot/event evidence](Verification/Diagnostics/reopen-geometry-39277996098.json). This is a test-calibration error, not proven drawing loss. All original assertions/case deadlines remain.
 
-## تمرير بيانات إعداد التصدير قبل عرض نافذة Files — قيد التحقق
-- مصدر 214b3d3، تشغيل 36852473096: نجحت اختبارات المنطق الـ16 وبقية UI على الآيفون؛ فشل إعداد الملفين الخارجيين قبل الاستيراد لأن Save بقي معطّلًا، وشاشة إعداد التصدير لم تتلق callback. التسجيل B0BA2A0E-ED2C-4F19-989B-2787E8E9F742.mp4 والهرمية يثبتان حالة الزر.
-- تُمرر URLs الآن كطلب Identifiable إلى sheet(item:) بدل تحديث مصفوفة وBoolean في العرض نفسه. يفحص منشئ UIKit وجود ملفين فعليين قبل العرض؛ ينتظر XCTest كون Save مفعّلًا قبل ضغطه، ثم callback نجاح الحفظ. لا يُعتبر مجرد عرض النافذة نجاحًا.
-- على الآيباد في 36852473096 فشل إعداد التصدير بالحالة نفسها، وفشل أيضًا اختيار PDF من مجلد التطبيق قبل callback؛ نجحت 21 من 24. لم نعد نعتبر النتيجة الجزئية نجاحًا كاملًا لاختيار Files.
-- يُنشأ مجلد الوجهة أيضًا بزر New Folder الأصلي داخل Files؛ لا ينشئ host أي مجلد أو ملف داخل مزوّد Files. هذا يجعل إعداد المصدر كله عملية يستخدمها المزوّد نفسه، مع SHA256 مستقل بعد الاختبارات.
-- إعداد التصدير هذا خاص بـDEBUG؛ مسار إنتاج التطبيق لم يتغير في هذه الخطوة. IPA ينتظر بوابة نجاح الجهازين، ولا تُسلّم حزمة من التشغيل الفاشل.
+Isolated correction `4c599d16dc8fc4b668f2a9154c8d1ef6548285bd`, [run39281549900](https://github.com/x6one/hashiya-ios/actions/runs/39281549900), tests the same existing phone margin case once with a centered vertical stroke inside the fitted paper. Production code and document gesture are unchanged. The native case passes200.905s with count2 after Undo/Redo and visible additional stroke. Overall diagnostic job fails only in post-test collection: persistent margins live under Documents, while the collector searched only tmp/ReviewEntry. The read-only collector now covers both locations; local regression tests demonstrate RED1/2 → GREEN2/2, including unchanged source bytes and outside-root symlink rejection. No native repeat was used to validate this postprocessing change.
 
-## إعداد مصدر الاختبار عبر الحفظ الأصلي في Files — قيد التحقق
-- مصدر 2ec9368، تشغيل 36851175003: أداة Foundation داخل المحاكي أنشأت الملفات وقرأتها بالتنسيق بنجاح. رغم ذلك فشل اختيار PDF وPowerPoint الخارجيين على الآيباد، ونجحت بقية اختبارات الآيباد الـ22. لذلك لا نعتمد التنسيق البرمجي وحده لإنشاء مصادر مزوّد Files في هذا المحاكي.
-- لم تُعدّل مسارات استيراد الإنتاج أو تستبعد اختبارات Files. أُزيلت أداة إنشاء الملفات البرمجية؛ يُجهّز CI مجلدًا خارجيًا فارغًا فقط، ثم يحفظ XCTest ملفَي التجربة عبر UIDocumentPicker الأصلي في وضع التصدير وزر Save الحقيقي. يتبع ذلك إطلاق جديد للتطبيق واختيار كل ملف عبر منتقي الاستيراد والتحقق من حفظه وفتح محرره.
-- شاشة إعداد الملفات محاطة بـDEBUG ولا تُضمّ إلى IPA. لا تستورد ملفات التجربة الخارجية أو تكتب فهرس المكتبة. يتحقق CI بعد الاختبارات من تطابق SHA256 للملفَي المصدر الخارجيين مع موارد التجربة.
-- يمتد حد الاختبار الواحد إلى 180 ثانية ليشمل مرحلتي الحفظ والإدخال الحقيقيتين. تبقى المجموعة كاملة وبوابة نجاح الجهازين للمصدر نفسه.
-- هذا يغطي أول استيراد داخل التطبيق من مصدر أنشأه Files نفسه، بعد إعداد المزوّد بالتصدير. لا يثبت تشغيل مزوّد Files فارغ لأول مرة على جهاز فعلي؛ تجربة النسخة الجديدة على الجهاز ما زالت مطلوبة.
+## Retained final-gate design
 
-## إنشاء ملفات Files داخل المحاكي — قيد التحقق
-- مصدر 009e3ce، تشغيل 36848715668: نجحت اختبارات الآيفون الـ24. على الآيباد نجحت 23 من 24، بما فيها PowerPoint وPDF من مجلد التطبيق والمنطق والقلم والحفظ والنص والتنقل.
-- فشل أول PDF خارجي بعد الضغط: سجل مزوّد Files يثبت وصول TAP عند 10:34:40، ثم Cannot get URL for item ID localstorage/did=4، وبعده nil url returned from fetchURL. لم يصل URL إلى مندوب التطبيق؛ لذلك لم تُصدر حزمة من هذا التشغيل.
-- انتظار عناصر Files أصلح حالة النافذة البيضاء، لكنه لم يضمن صلاحية معرّف الملف الخارجي المصنوع بواسطة rsync من macOS. يُختبر الآن إنشاء المصدر وقراءته بـNSFileCoordinator داخل نظام المحاكي نفسه، عبر أداة Foundation مستقلة لا تُضمّ إلى التطبيق.
-- الأداة تكتب ملفَي التجربة فقط في Tayya-test-files، وتتحقق من تطابق البايتات. لا تكتب فهرس المكتبة ولا تستورد الملفات خفية ولا تضغطها قبل الاختبار. جميع اختبارات اختيار Files والقلم باقية، وبوابة IPA ما زالت تتطلب نجاح الجهازين من المصدر نفسه.
-- لا يُعد هذا إثباتًا لإصلاح الجهاز الفعلي قبل تجربة المستخدم للنسخة الجديدة.
+The integration contains the bounded rail repair, public font resources for newly generated guide PDFs, Files fixture foreground cleanup, and equivalent single-query picker dismissal. A deliberate85% Back input replaces the previously cancelled65% test input; this is test calibration, not a claimed navigation production repair.
 
-## نتيجة المنتقي المنسوخ وانتظار واجهة Files
-- مصدر 39202e8، تشغيل 36844805749: نجحت اختبارات الآيفون الـ24 كلها (16 منطق و8 UI)، بما فيها PDF وPowerPoint الخارجيان وPDF من مجلد التطبيق والقلم والحفظ والنص والتنقل.
-- على الآيباد نجح أول PDF الخارجي وPDF من مجلد التطبيق وجميع اختبارات المنطق والقلم والنص والمكتبة والوسائط. فشل PowerPoint قبل اختيار الملف، أثناء انتظار On My iPad؛ لم يفشل استيراد PowerPoint نفسه في هذه الحالة.
-- التسجيل 527ACA26-B224-4DD9-BDDB-3ABE6AE30955.mp4 يظهر نافذة Files بيضاء. سجل الخدمة يبين إنشاء DOCRemoteViewController عند 09:56:12 وready view controller عند 09:56:15، بعد نحو 30 ثانية من فتح المنتقي وقرب انتهاء انتظار الاختبار. لم تكن عناصر Files جاهزة وقت التنقل.
-- ينتظر الاختبار الآن ظهور عناصر Files الحقيقية القابلة للضغط (حتى 60 ثانية) قبل التصفح؛ لا يعيد إطلاق التطبيق أو يستورد الملف خفية أو يتجاوز فحص الحفظ وفتح المحرر. كود التطبيق نفسه لم يتغير بعد المصدر 39202e8.
-- IPA ما زال ينتظر نجاح الجهازين من المصدر الأحدث.
+All32 original UI cases and224 original assertion lines remain. Two existing document/margin relaunch cases add a fresh stroke→Undo→Redo check. This does not assert persistence of prior-session undo history. Final verification removes the read-only CF/nav capture instrumentation by retaining the original PDFWorkspace source.
 
-## منتقي الملفات المنسوخة على SDK 26 — قيد التحقق
-- مصدر 59b6505 في 36836979893: نجحت اختيارات PDF وPowerPoint الخارجيين وPDF من مجلد التطبيق على الآيفون. على الآيباد نجح PowerPoint وPDF من مجلد التطبيق، وفشل أول PDF خارجي؛ سجل التطبيق Failed to create a url from bookmarkableString وNSFileProviderErrorDomain -1005 / did=4 قبل completion في fileImporter.
-- نستخدم الآن UIDocumentPickerViewController بوضع asCopy=true وملف واحد على SDK 26.2، داخل sheet واحدة وخارج فرض اتجاه محتوى المكتبة. callback مباشر ثم snapshot منسق وفحص وحفظ، دون تحويل bookmarkableString بواسطة SwiftUI.
-- بعد نجاح حفظ المكتبة فقط، تُنظف نسخة Documents/Inbox الواردة التابعة للتطبيق. اختبار مستقل يحمي الملف الخارجي حتى لو كان مجلده اسمه Inbox.
-- على الآيفون، فشل اختباري النص والقلم قبل فتح المستند لأن كثرة البطاقات جعلت بطاقة التجربة تحت viewport. أضيف تمرير حقيقي محدود للوصول إليها، بما فيه إعادة الفتح بعد relaunch. اختبارات الملفات والنص والقلم لم تُحذف.
-- مسار تغليف نسخة المحرك يتابع تغييرات الاختبارات وإعدادها أيضًا. IPA ينتظر نجاح المجموعة الكاملة على الآيفون والآيباد من المصدر نفسه، ولا يُسلّم من تشغيل فاشل.
+The pipeline runs Tools/lint, then the three original ink/navigation regressions in a separate matrix job. Only after both families pass, independent hosted runners execute full68 XCTest (all67 originals plus font regression)/32 XCUITest, exported bytes, three Maestro flows and real captures per family. Both document/margin post-reopen checks remain in full32. Separating phases prevents the observed aggregate60min budget exhaustion; case240/360 and job60 limits are unchanged. The extra compilation is an explicit cost of isolating state and giving the complete gate its existing full job budget. Native Office build/package follows successful family jobs. Every final gate must reference the same source SHA. These final-source results are pending.
 
-## إعداد ملفات اختبار Files الخارجي — قيد التحقق
-- تشغيل 36835068307 من bafe853 فشل في أول اختيار PDF على الآيفون والآيباد، ونجح اختيار PowerPoint والاختبارات الأخرى. fileImporter بملف واحد لم يكفِ لإصلاح اختبار الملف الموجود داخل مجلد التطبيق.
-- السجل يبيّن LocalStorage did=6 غير موجود قبل تسليم URL؛ الملف التجريبي كان يُنشأ عند تشغيل التطبيق في مجلده المنشور عبر File Sharing.
-- جهزنا ملفات الإدخال الخارجية في مجلد Tayya-test-files التابع لتطبيق Files على المحاكي قبل اختبارات التطبيق، باستدعاء simctl وrsync، مع تحقق SHA256 للملفات. لا يكتب الإعداد داخل المكتبة أو فهرسها. الاختبار يفتح Files ويضغط الملف ويؤكد رسالة الاستيراد وفتح محرره.
-- احتفظنا باختبار مستقل لاختيار PDF من مجلد التطبيق باسم Owned-fixture، إلى جانب PDF وPowerPoint الخارجيين. لم تُحذف الاختبارات السابقة أو تُتجاوز بوابة IPA.
-- فرضية العمل: تهيئة/فهرسة مزود الملفات لملف منشأ للتو داخل مجلد التطبيق تؤثر في أول اختيار؛ نجاح التشغيل القادم أو فشله سيحدد ما أمكن التحقق منه. لا يوجد اعتماد لجهاز فعلي لهذه النسخة بعد.
+Full native Office build is not runtime conversion proof: the current hosted path builds an unsigned iphoneos binary and has no configured provisioned physical-device destination for Word/Excel conversion. Record this as unverified; do not substitute simulator/host checks.
 
-## تحقق طَيّة على iOS 26.2 — 1 أكتوبر 2026
-- مصدر 7da4314 تجاوز خطأ type-check في Xcode 26 بعد تقسيم شاشة المكتبة؛ بناء الجهاز مع محرك Office نجح في 36833234702، ولم يُغلّف IPA لأن بوابة الاختبارات بقيت مغلقة.
-- تشغيل 36833234766 على الآيفون والآيباد: 15 اختبار منطق ناجحة و6 من 7 اختبارات UI ناجحة. اختيار PowerPoint نجح، واختيار PDF بقي في Files بعد اختيار الصف وضغط Open. لم نعتمد اختيار PDF.
-- سجل مزود الملفات أظهر فشل فتح URL وتوقف indexOneBatchInDomain في LocalStorage؛ ضبط إصدار Xcode وحده لم يصلح الاختيار.
-- الاستيراد الآن بملف واحد عبر fileImporter، لتسليم الملف مباشرة عند الضغط عليه دون خطوة تأكيد متعددة الاختيار. الاختبار يضغط الملف الحقيقي وينتظر الاستيراد وفتح المحرر؛ لا استيراد مخفي أو تجاوز للبوابة.
+An unsigned IPA needs valid signing. No merge into main or Apple upload is authorized by this checkpoint.
 
-# حالة طَيّة — 2026-10-01
+## Preserved history
 
-## متابعة طَيّة 0.3.0 (7) — قيد التحقق
-- اختار المستخدم الاسم «طَيّة — Tayya»، وأبلغ أن تحويل Office إلى PDF نجح على جهازه في 0.2.4 (6)، مع عودة تعذّر اختيار الملف بالنقر داخل Files. نجاح المحاكيات السابق لا يثبت إصلاح جهازه.
-- تغيير Files الحالي: fileImporter الأصلي في SwiftUI، أنواع الامتدادات المحددة نفسها، واستيراد ملف واحد مباشرة عند الضغط عليه. يجري التحقق عبر واجهة Files الحقيقية.
-- إزالة خيار وبطاقة تجربة Office؛ الترحيل يزيل فقط العنصر المطابق لعنوان التجربة وbytes الملف المضمّن، ولا يمس ملف المستخدم المشابه بالاسم. بيانات المستخدم ومعرّف الحزمة محفوظة.
-- زر واضح «تحويل إلى PDF والكتابة». الاستبدال يبقي UUID والعنوان والقسم والمفضلة وموقع البطاقة؛ يتحقق من PDF ويحفظ الفهرس قبل حذف نسخة Office المملوكة للتطبيق. فشل الحفظ أو PDF تالف يبقي الأصل. المصدر خارج التطبيق لا يُحذف.
-- هوية ورقة مطوية: حبر أخضر، ورق دافئ، طيّة نحاسية، شعار جديد وافتتاحية قصيرة، ووضع داكن يتبع النظام وReduce Motion دون انتظار الحركة.
-- الاختبارات الجديدة تغطي الاستبدال الواحد وحفظ البيانات والتراجع عند فشل الفهرس ورفض PDF تالف والترحيل الآمن للتجربة. تنتظر النسخة نتائج CI قبل تسليم IPA، ولا نشر في المتجر أو TestFlight.
-
-### تشخيص 4538d20 / تشغيل 36827765471
-- على iOS 26.2، نجح 15 اختبار منطق لكل جهاز، بما فيها الاستبدال والتراجع والترحيل؛ نجحت خمس تجارب الواجهة السابقة واستيراد PowerPoint على الجهازين. فشل اختيار PDF ومنعت بوابة الاختبارات IPA.
-- فحص تسجيل الآيفون والحدث أكد اختيار PDF والنقر على Open في موضعه الصحيح. مزود LocalStorage أخفق قبل callback: NSFileProviderErrorDomain -1005، NonExistentItemIdentifier=did=5؛ لا مشكلة استيراد داخل LibraryStore في هذه المحاولة.
-- بدل مسار directoryURL للاختبار، تُنشأ الملفات مبكرًا بكتابة منسّقة ويختارها الاختبار بتصفح Files الحقيقي. يستعمل التطبيق fileImporter الأصلي بدل UIKit representable. لا يُعد الإصلاح معتمدًا قبل إعادة التحقق.
-- نجح بناء تطبيق الجهاز المحلي عند 4538d20، لكن التغليف مُنع بسبب إخفاق الاختبارات. تصحيح تباين زر التحويل في الوضع الداكن ورسائل إذن الميكروفون واسم ملف التصدير ضمن المتابعة.
-
-### تشخيص 3f2e2da / تشغيل 36829670931
-- نجح 15 اختبار منطق وخمس تجارب واجهة سابقة واستيراد PowerPoint على الجهازين. إخفاق PDF بقي قبل التسليم: LocalStorage did=6 وNSFileProviderErrorDomain -1005، رغم التصفح الحقيقي والكتابة المنسّقة للملفات التجريبية. native fileImporter وحده ليس إصلاحًا معتمدًا.
-- كشف السجل أن البناء بـXcode 16.4 بينما المحاكي iOS 26.2؛ يجري توحيد أداة بناء التطبيق والاختبارات إلى Xcode 26.2. محرك Office يحتفظ بأداة تجميع أرشيفاته وcache القديم، ثم يُربط التطبيق بالـSDK الأحدث. لا يُنسب النجاح لهذا التعديل قبل نتيجته.
-
-## اعتماد الاختبارات السابقة عند a5a36a3
-- تشغيل 36822168445: نجحت المجموعة كاملة على iPhone 16 Pro ومحاكي iPad: 11 اختبار منطق و7 اختبارات واجهة لكل جهاز، دون إخفاقات.
-- اختيرا PDF وPowerPoint عبر Files الحقيقي، وسُلّما للتطبيق، وحُفظا في المكتبة ثم فُتح محررهما/معاينتهما. لا استيراد خفي في الاختبار. طلب أنواع النظام للامتدادات نفسها مع asCopy=false اجتاز الاختيارين؛ لا يُنسب النجاح إلى تجربة asCopy=true السابقة التي فشلت.
-- نجح رسم القلم باللمس وحفظه بعد relaunch، والتنقل أثناء الرسم، والنص وحفظه وتصديره، والمكتبة والأقسام والحذف، ومعاينة Office واستخراج وتشغيل الوسائط.
-- تشغيل Office 36822168606: نجح المحرك والربط وبناء تطبيق الجهاز وموارده، واجتازت بوابة الاختبارات للـcommit نفسه. اكتمل تغليف IPA وفحصه النهائي: ZIP سليم، Mach-O arm64 لمنصة iOS device وعائلتي الجهاز [1,2]، وموارد المحرك و176 خطًا موجودة.
-- التحويل المحلي داخل نسخة الجهاز 0.2.4 (6) تجريبي؛ نجاح البناء والربط لا يثبت تحويل DOCX/PPTX/XLSX فعليًا. يحتاج هذا اختبار جهاز بعد توقيع صالح. نسخة المشروع العادي 0.2.3 (5) تبقى Quick Look.
-- لا نشر في TestFlight أو App Store، ولا شهادة أو provisioning profile في البناء. IPA الناتج غير موقّع تمامًا (codesign verify exit 1: code object is not signed at all)، ودون embedded.mobileprovision؛ يحتاج شهادة وprovisioning profile صالحين قبل التثبيت.
-
-### ملف التجربة 0.2.4 (6)
-- `Hashiya-native-office-unsigned.ipa`، الحجم 130395636 bytes.
-- SHA256: `a67663e4ca85c8993f5aaea04b9847cfe68d2159c201802f114476a9dcb69ffe`.
-- [تنزيل artifact من تشغيل Office الناجح](https://github.com/x6one/hashiya-ios/actions/runs/36822168606/artifacts/11144170939)، محفوظ 14 يومًا من 2026-10-01. يضم IPA وSHA256 وتقرير التوقيع.
-- سجل التحقق المختصر في `Verification/0.2.4-6.json`. كود IPA عند a5a36a3484d99e6a52b070089f8e30e174e4d701؛ تحديث التوثيق اللاحق لا يغيّر الكود المختبر.
-- نجح أيضًا بناء IPA العادي في device-package من 36822168445. المطلوب تجربة المحرك المحلي في IPA 0.2.4 (6) بعد التوقيع، لا اعتبار نجاح المحاكيات إثباتًا لتحويل Office على الجهاز.
-
-## سجل المحاولات السابقة (النتيجة المعتمدة أعلاه)
-
-## تشخيص Files بعد وضع النسخ
-- تشغيل 36820733356 عند e8ac241: نجحت 11 وحدة وخمس تجارب UI السابقة على الجهازين؛ فشل اختيار PDF وPowerPoint مع asCopy=true. هذا التغيير ليس إصلاحًا معتمدًا؛ أُعيد asCopy=false.
-- حُدّد طلب المنتقي بأنواع النظام للامتدادات السبعة نفسها، بدل مرشحات content/data العامة. الصور تظهر ملفات Office متاحة وتستجيب للمس، لكن ذلك وحده لا يثبت مطابقة النوع الذي يستعمله مزود Files عند فتحها.
-- يرفق CI سجل عملية التطبيق ومزود الملفات وDocumentManager عند الفشل، إلى جانب الحدث والصور والتسجيل، لتحديد فشل التسليم قبل callback.
-- بناء Office في 36820733271 نجح؛ بوابة الاختبارات منعت IPA. يراقب workflow الآن تغييرات App وproject.yml أيضًا حتى لا يبقى بناء المحرك منفصلًا عن كود التطبيق الذي ينتظر اختباره.
-
-## متابعة الاستيراد والتحويل المحلي
-- تشغيل 36817888565 و36818017624: نجحت 11 وحدة واختبارات PDF والقلم والحفظ والنص والتنقل ومعاينة Office والوسائط على الجهازين. فشل اختيار PowerPoint وحده؛ منع ذلك IPA العادي والمحلي.
-- فُحص تسجيل الآيفون وSynthesized Event: اللمس عند (44, 532) يطابق صورة PowerPoint، ويظلّل صفه فعلًا؛ Files لا تنهي اختيار الملف. لذلك ليس هذا الفشل خطأ موضع ضغط.
-- يعاد التحقق الآن بمنتقي الاستيراد asCopy=true في sheet واحدة، بدل فتح المصدر في موضعه. يحتفظ LibraryStore بنسخته الخاصة بعد الفحص والحفظ كما سبق. لا يدّعي هذا التعديل نجاح الاستيراد قبل نتيجة CI.
-- دمج مصدر التحويل التجريبي من work/native-link-probe؛ يظل مشروع المحاكيات العادي Quick Look. مشروع الجهاز المولد يفعّل HASHIYA_NATIVE_OFFICE ويقدم زر إنشاء PDF مستقل للقلم والنص، دون تعديل الأصل.
-- نجح الربط وبناء تطبيق الجهاز مع المحرك والموارد في 36817106087 و36818017626. التحويل الفعلي DOCX/PPTX/XLSX يحتاج جهازًا بعد التوقيع؛ بناء التطبيق لا يثبت تشغيل التحويل.
-- التحويل يستعمل snapshot خاصًا وqueue واحدة؛ Batch يمنع حوار تحميل غير مراقب، والماكرو معطّل. يجمع الناتج PDF مستقلًا، يفحصه ويستورده في قسم الأصل ثم يفتح أدوات PDF.
-- IPA المحلي المتوقع 0.2.4 (6)، مع manifest المصدر وإشعارات upstream وSHA256 وتقرير التوقيع. تغليفه مشروط بنجاح اختبارات الآيفون والآيباد للـcommit نفسه. لا شهادة أو provisioning profile؛ يحتاج توقيعًا خارجيًا صالحًا ولا يمكن تثبيته مباشرة. لا نشر في TestFlight أو المتجر.
-
-## متابعة 2026-10-01 — نتائج مثبتة وبوابات متبقية
-- commit a6e7386 يوسع قبول أنواع Files إلى PDF وcontent وdata، ويضيف فحص أنواع الامتدادات السبعة. نجح الفحص على الآيفون والآيباد؛ تغيير الضغط إلى صورة المستند سبّب فشل PDF أيضًا، فأعيد ضغط الخلية في 98dae32.
-- تشغيل 36815853793 على الآيفون: 11 اختبار منطق ناجح، واستيراد PDF فعلي ناجح، وبقية تجارب القلم والحفظ والنص والتنقل وOffice/الوسائط ناجحة؛ اختيار PowerPoint ما زال يفشل داخل Files. لا تسلّم IPA اعتمادًا على هذا التشغيل.
-- commit 2ba06fc يختار وضع القائمة الأصلي داخل Files في اختبار الاختيار، ثم يضغط صف المستند الحقيقي. لم يُعتمد الاختبار حتى تكتمل نتيجة التشغيل.
-- Office: اكتمل التجميع في المحاولة الثانية من 36723900717. فشل التغليف بسبب ترتيب معاملات lipo؛ أصلح في a6e7386، بما فيه فحص معمارية IPA.
-- تشغيل 36814993039 نجح واحتفظ بمرشح arm64: artifact 11141296342، 266011214 bytes. فُحصت SHA256 لكل مكتبة/كائن من 368 input؛ المصدر 124ecf55b0f0969b7859d2f803f0bc3a0049a4dc. وجود المكتبات وحده لم يثبت الربط.
-- فرع work/native-link-probe: فشل الربط الأول في 36815526018 بسبب عشرة رموز NSS/OpenSSL متعارضة. أصلح 40f4b09 بعزل تعريفات ومراجع NSS باستخدام llvm-objcopy دون تجاهل linker errors. نجح الربط arm64/iphoneos في خطوة Link COKit من 36816343696.
-- أضيفت رؤوس feature configuration وcomponent mapping وإشعارات upstream إلى الحزمة، حتى تكون قابلة للاستهلاك خارج شجرة المصدر.
-- commit 1227987 على الفرع الهندسي يجهز التحويل التجريبي داخل التطبيق: محرك واحد على queue متسلسلة، snapshot مؤقت للمصدر، PDF مستقل، فحصه ثم استيراده وحفظه في المكتبة، وفتح أدوات PDF. مشروع الجهاز المولد يربط المحرك وموارده. لم يُعتمد بناء التطبيق أو تشغيل التحويل بعد.
-- لم ينتج IPA جديد معتمد بعد. ما زال التوقيع الخارجي بشهادة وprovisioning profile صالحين مطلوبًا؛ لا نشر في TestFlight أو App Store.
-
-## متابعة 0.2.3 (5) — غير معتمدة حتى اكتمال الاختبارات
-- بدأنا من ac3678f2576f1221f2cbd9cb9f4215a58d59f0ec، وراجعنا README وSTATUS وآخر commits وتسجيلات الفشل على الآيفون والآيباد.
-- تشغيل 36751414255: اختيار PDF وPowerPoint فشل؛ التسجيلات تظهر بقاء Files مفتوحة، ولا importStatus. اختبارات القلم والحفظ والنص والتنقل ومعاينة Office والوسائط نجحت. انتهى التشغيل cancelled عند بدء التعديل التالي بعد حفظ تشخيص الجهازين؛ نتائج الاختبارات نفسها متاحة في diagnostics.
-- commit 96d7682adda867ad682fb1590d503cd51cebf334 جرّب asCopy=false وحده. تشغيل 36753270819 لم يصلح اختياري Files؛ لا تعتبر فتح المصدر وحده حلاً.
-- commit 0fa8a31290aafa6782127d459a9680ee6c3a0727 يعيد المنتقي المباشر في sheet واحدة وضغط خلية المستند كما في المسار الذي نجح سابقًا، مع احتفاظ المكتبة بالنسخة الخاصة.
-- DocumentImport ينسّق قراءة مزود الملفات بـNSFileCoordinator، ويأخذ snapshot محليًا ويفحصه خارج main actor. لا تضاف بطاقة للمكتبة قبل حفظ فهرسها؛ فشل حفظ الفهرس يحذف النسخة الخاصة ويبقي الأصل. أضيفت ثلاثة اختبارات لاستيراد async وحفظ الأصل والتراجع عند فشل الحفظ ورفض المصادر المفقودة أو التالفة.
-- تشغيل التحقق الحالي: 36754883405. لم يعتمد اختيار Files ولم يُسلّم IPA جديد بعد. أبقينا اختبارات القلم وكل الاختبارات السابقة وبوابة بناء IPA بعد نجاح الجهازين.
-- بناء الجهاز يرفق Hashiya-signing.json وHashiya-unsigned.sha256، والإصدار مميز بـ0.2.3 (5). لا توجد شهادة أو provisioning profile؛ IPA الناتج مخصص للتوقيع الخارجي وليس للتثبيت المباشر.
-
-### استئناف Office
-- محاولة 1 من 36723900717 انتهت failure لأن خطوة التجميع تجاوزت 210 دقائق؛ آخر الملفات كانت sw/source/uibase، ولم يظهر compiler error في السجل. لم ينتج مرشح ربط مكتمل، لذلك لم يدمج المحرك في التطبيق.
-- نجح حفظ checkpoint: native-ios-124ecf55b0f0969b-v2-a8be4f9af0a2-36723900717-1 (2146366207 bytes compressed).
-- أعدنا job الفاشل لاستكمال البناء من checkpoint في محاولة 2؛ يجب التحقق من رسالة Cache restored والتجميع والـmanifest والموارد قبل الدمج.
-- تشخيص المحاولة الأولى: artifact 11115283522. ما زال Office في التطبيق Quick Look فقط، دون كتابة فوقه أو تحويل محلي إلى PDF.
-
-## النسخة المرشحة 0.2.2 (4)
-المستودع أصبح عامًا بموافقة المستخدم. رسالة GitHub أكدت أن فشل بدء المشغّلات السابق مرتبط بالدفع/حد الإنفاق. بعد تغيير الرؤية بدأت المشغّلات فعليًا، فلا تعِد تشخيص العائق السابق.
-
-### إصلاح الاستيراد والتحقق
-- استيراد الملف يبدأ من callback اختيار UIDocumentPicker مباشرة، بدل انتظار onDismiss مع URL مؤجل.
-- الاختبار يفتح منتقي Files الحقيقي ويضغط ملف PDF، ثم يتحقق من رسالة النجاح وفتح محرر المستند؛ لا يوجد استيراد خفي.
-- تشغيل 36717218785 أثبت نجاح الاستيراد على محاكي الآيفون والآيباد. نجحت أيضًا اختبارات المكتبة والنص والتنقل ومعاينة Office والوسائط، وجميع اختبارات المنطق السبعة.
-- فشل تشغيل 36717218785 كله بسبب اختبار القلم الجديد: PDFKit لا يكشف overlay Canvas في شجرة Accessibility، فتوقف قبل تنفيذ السحب. هذا لا يثبت نجاح أو فشل القلم.
-
-### القلم
-- تفعيل PDFView.isInMarkupMode وتنشيط Canvas للصفحة الحالية، مع drawingPolicy = anyInput ودون تمرير داخلي للقماش.
-- يعرض زر القلم عدد الخطوط المحفوظة كقيمة Accessibility.
-- الاختبار المعدل يسحب على PDF الظاهر، يتحقق من زيادة العدد بعد الكتابة الفعلية، ثم يعيد فتح التطبيق للتحقق من الحفظ.
-- تشغيل 36719468440 فشل بعد السحب الفعلي: عدد الخطوط بقي صفرًا على الآيفون. لا تدّع إصلاح القلم بعد.
-- إصلاح ترتيب ربط overlay provider قبل تحميل المستند أثبت نجاح رسم القلم باللمس وحفظه بعد relaunch على الآيفون والآيباد في 36720401781، commit 8f8402c5823d67ef6a4ce83cfb481fa3df31fd3c.
-- نجحت مجموعة اختبارات الآيباد كاملة. على الآيفون نجح التصدير والقلم، وفشل اختبار اختيار PDF لأن نافذة Files بقيت مفتوحة؛ لا callback ولا رسالة importStatus.
-- صفحة GitHub عرضت سجلًا متأخرًا أو ناقصًا أثناء التشغيل. السجل المكتمل أكد أن التصدير نجح ولم يتوقف؛ لا تشخّص تعطل التنفيذ من آخر سطر مرئي وحده.
-- تشغيل 36726085368: اختبارات المنطق السبعة وخمس تجارب UI (المكتبة، الإنشاء، النص/التنقل، القلم/الحفظ، Office/الفيديو) نجحت على الآيفون والآيباد. اختبارا اختيار PDF وPowerPoint فشلا على العائلتين؛ لا تعتمد الاستيراد بعد.
-- شريط التنقل يظهر أعلى الصفحة عند تفعيل القلم حتى لا يغطيه PKToolPicker؛ اختبار الوصول للأزرار أثناء الرسم نجح على العائلتين.
-- تغيير ignoresSafeArea صحح إحداثيات Files في شجرة الوصول لكنه لم يحل اختيار الملفات.
-- commit c700a5643186a1dc17b1c900669afa09ba1b0b2b يستبدل تضمين UIDocumentPicker بعرض UIKit modal كامل من Presenter في viewDidAppear؛ تشغيل 36750139680 فشل في اختبارَي Files على العائلتين، وباقي الاختبارات نجحت؛ تغيير عرض النافذة وحده لم يحل المشكلة.
-- commit 957233dce948441d121de1b66efb8a2c51cd0542 يضغط اسم الملف عبر عنصر Accessibility بدل إحداثيات الصورة، مع الاحتفاظ بتسجيلات mp4 في التشخيص. تشغيل 36751414255 جارٍ؛ افحص النتيجة والتسجيل إن فشل قبل تعديل الاستيراد مجددًا.
-- جهزت fixture PowerPoint واختبار Files فعليًا، ثم جعلت منتقي الملفات fullScreenCover مع منع السحب لإغلاقه، والاختبار يلمس صورة المستند بدل مركز الخلية. يلزم نتيجة CI للتغييرات الأحدث قبل تسليم IPA.
-- أضيف انتظار bootstatus ومهلة 120 ثانية لكل اختبار؛ لم يُحذف أي اختبار.
-- بناء IPA مرتبط بنجاح الاختبارات على العائلتين، ويُمنع تلقائيًا عند فشل أي اختبار.
-
-## Office: العائق الأساسي لم ينتهِ
-حاليًا العرض عبر Quick Look فقط. لا يوجد تحرير قلم أو نص على Office، ولا تحويل Office إلى PDF في التطبيق. احتفاظ الأصل واستخراج الفيديو إلى مشغّل مستقل موجودان ومختبران بملفات تجريبية.
-
-- تشغيل المحرك الأول 36717328797 انتهى cancelled بعد مهلة البناء. تشغيل 36723900717 (job 109931090383) يستخدم workflow الأحدث ويحفظ المكتبات والموارد ونقطة استئناف عند توفرها. في آخر فحص كان لا يزال يبني C++؛ لم يُنتج مرشح دمج معتمد بعد.
-- المصدر الرسمي مثبت عند 124ecf55b0f0969b7859d2f803f0bc3a0049a4dc. الواجهة الجديدة COKit وليست LibreOfficeKit.
-- عُدّلت workflow للبناء القادم: GNU Make، أربعة عمال، تعطيل الرموز، حد أطول، واستعادة وحفظ checkpoint محدد بالمصدر وXcode (حتى 8 GiB). لا يغير هذا تشغيل البناء الجاري.
-- workflow تجربة هندسية يدوية؛ لا تولد IPA ولا تعني دمج المحرك في التطبيق. النسخة الأحدث تحتفظ أيضًا بمكتبات arm64 والموارد وmanifest كمرشح ربط محدود بـ256 MiB مضغوطًا، لتجربة دمج لاحقة. يلزم التحقق من المنصة والربط والتشغيل قبل الاعتماد.
-- المطلوب بعد نجاح التجميع: الموارد وتهيئة COKit، ربط مكتبات arm64، ثم تجربة تحميل DOCX/PPTX/XLSX وتصدير PDF داخل التطبيق على جهاز فعلي. لا تختصر هذا إلى إضافة مكتبة غير مختبرة.
-- المحاكيات لا تكفي للتحقق من محرك arm64 للجهاز؛ حافظ على اختبارات PDF والمحاكيات أيضًا.
-- التحويل لصفحات ثابتة لا يحتفظ بحركات PowerPoint أو الفيديو داخل PDF. احتفظ بالأصل والوسائط منفصلة، ولا تعد بمطابقة كل الخطوط أو الملفات.
-
-## قيود التسليم
-- IPA غير الموقّع يحتاج توقيعًا صالحًا قبل التثبيت. لا تستخرج شهادات أو أسرار مشاريع أخرى.
-- المستخدم يريد تجربة IPA قبل TestFlight؛ لم يؤذن بالنشر الآن.
-- اختبار جهاز فعلي لا يزال مطلوبًا للأقلام والتسجيل والاتجاهات والتكبير.
-- تحويل خط اليد إلى نص والتبويبات المتعددة والأشكال الهندسية غير مكتملة.
-- لا تتعامل مع IPA 0.2.1 القديم كأنه يتضمن إصلاحات 0.2.2.
-
-## 2026-10-01 — Signing setup and upload blocker
-
-- Apple record: **طَيّة — Tayya**, Apple ID **6818288428**, bundle com.ahmadalawi.hashiya, team ZUB6SJFQA3. Arabic metadata, categories and 4+ questionnaire saved. Prepare for Submission; TestFlight has no builds.
-- New approved Apple Distribution certificate and Tayya App Store profile created. Certificate/private-key match, identity, expiry and App Store entitlements verified offline. Three signing secrets confirmed in GitHub Actions. No private signing material is committed or included in artifacts.
-- One-time downloads for Tayya Upload and its same-permission replacement Tayya Upload CI returned no file/event. Private keys are unavailable. Stop generating additional keys; owner assistance is required to recover an upload credential. Unrelated app credentials were not reused. See Store/signing-status.json.
-- Added privacy manifest for verified file metadata and elapsed-timer reasons. Store/privacy-audit.md and Store/encryption-audit.md retain findings and open questions; both publication gates remain false.
-- Workflow supports sign_archive=true, publish_to_apple=false using only three signing secrets. This generates an App Store signed inspection IPA without uploading. Publishing still requires all six secrets and completed audits. No signed archive has passed macOS verification yet.
-- Simulator selection prefers current iPhone Pro Max / iPad Pro 13 for real Store captures. Prior 48 tests passed at d18cc32; the changed source needs a new run.
-- App Store signed IPAs require Apple processing and TestFlight/App Store distribution, and are not directly installable. No review submission or publication is claimed.
-
-Checkpoint saved remotely at 004e93129402707adf4a358cb34c5ea5d55b0346. Fresh preflight: 36924021211. Manual signing-only build: 36924238214 (publish_to_apple=false). The redundant unsigned push run 36924021370 was requested to cancel. Results are pending; no Apple upload is claimed.
+[Previous checkpoint](docs/history/STATUS-before-rail-cancellation-2026-10-19.md), [original status](docs/history/STATUS-before-rescue-2026-10-19.md), and [original verification](Verification/Diagnostics/0.6.0-13-before-rescue-2026-10-19.json) remain unchanged. Earlier partial diagnostics do not qualify the release.

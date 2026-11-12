@@ -1,0 +1,57 @@
+{
+  "source": "f87bbd3a93a3ad244627985f6999344cd7cb580f",
+  "push_run": 39091395832,
+  "pr_run": 39091398933,
+  "units_passed_each_job": 67,
+  "jobs": [
+    {
+      "id": 117569487717,
+      "passed": 30,
+      "failed": [
+        "testIndividualInkTargetsAtAccessibilityTextSize"
+      ],
+      "caps": []
+    },
+    {
+      "id": 117569487910,
+      "passed": 30,
+      "failed": [],
+      "caps": [
+        "testIndividualInkTargetsAtAccessibilityTextSize"
+      ]
+    },
+    {
+      "id": 117569415617,
+      "passed": 29,
+      "failed": [
+        "testIndividualInkTargetsAtAccessibilityTextSize"
+      ],
+      "caps": [
+        "testIndividualInkTargetsInDocumentAndCompactSplit"
+      ]
+    },
+    {
+      "id": 117569415744,
+      "passed": 30,
+      "failed": [
+        "testIndividualInkTargetsAtAccessibilityTextSize"
+      ],
+      "caps": []
+    }
+  ],
+  "maestro": "skipped after failed UI gate",
+  "device_package": "skipped",
+  "accepted_ipa": false,
+  "phone_artifact": {
+    "id": 12123652944,
+    "sha256": "dfea4a6548a16eaf4d58cfa9e57ab5a21db782290ea1506721862b4df8783d3a",
+    "independently_verified": true
+  },
+  "diagnostic_probe": {
+    "commit": "1e8a448be41865c22bbcc4812cc757df8c1b5b18",
+    "branch": "diag/tayya-ink-route",
+    "run": 39126228020,
+    "purpose": "one unchanged original iPhone Accessibility ink test; not release preflight",
+    "result": "pending"
+  }
+}

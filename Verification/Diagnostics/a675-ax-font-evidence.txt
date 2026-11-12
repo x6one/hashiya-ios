@@ -1,0 +1,71 @@
+Archive: /tmp/tayya-a675-prpad.zip
+SHA256 (independently verified upstream): 1909862d8a780c428961c917a7c9ea4f8927482a130e74f34f59e235c9a0b906
+Entry: NativeFailure/native-system.log; process Hashiya PID 37299; UTC 2026-10-17 17:12:50..17:13:10
+Font warning count: 34986; threads: {'1a3ba': 34986}
+Complete explicitly logged captures (other AX label fetches are outside these capture brackets):
+{'start': '17:12:52.933', 'line': 655142, 'warnings': 0, 'includes_label': False, 'end': '17:12:52.990', 'duration': '0.06s'}
+{'start': '17:12:54.792', 'line': 656136, 'warnings': 4998, 'includes_label': True, 'end': '17:12:55.573', 'duration': '0.78s'}
+{'start': '17:12:57.906', 'line': 664594, 'warnings': 4998, 'includes_label': True, 'end': '17:12:58.724', 'duration': '0.82s'}
+{'start': '17:12:58.791', 'line': 670744, 'warnings': 0, 'includes_label': False, 'end': '17:12:58.848', 'duration': '0.06s'}
+{'start': '17:12:59.087', 'line': 672815, 'warnings': 0, 'includes_label': False, 'end': '17:12:59.130', 'duration': '0.04s'}
+Warnings outside capture brackets: 24990
+
+Font-burst starts and immediately preceding non-CoreText records:
+
+Line 656156, UTC 17:12:54.831
+2026-10-17 17:12:54.792 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Got main window <AXUIElementRef 0x600000de45d0> {pid=37299} {uid=[ID:4 hash:0x1016849a0]}
+2026-10-17 17:12:54.792 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Capturing hierarchy with attributes XC_kAXXCAttributeElementBaseType, XC_kAXXCAttributeIdentifier, XC_kAXXCAttributeElementType, XC_kAXXCAttributeAutomationType, XC_kAXXCAttributeLabel, XC_kAXXCAttributeTraits, XC_kAXXCAttributeTruncatedValue, XC_kAXXCAttributeParent, XC_kAXXCAttributePlaceholderValue
+2026-10-17 17:12:54.792 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Capturing hierarchy with parameters {
+2026-10-17 17:12:54.793 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Snapshot attributes 5004, 5019, 5003, 5058, 2001, 2004, 2158, 5002, 5043
+
+Line 664615, UTC 17:12:57.938
+2026-10-17 17:12:57.906 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Got main window <AXUIElementRef 0x600000df8000> {pid=37299} {uid=[ID:4 hash:0x1016849a0]}
+2026-10-17 17:12:57.906 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Capturing hierarchy with attributes XC_kAXXCAttributeElementBaseType, XC_kAXXCAttributeIdentifier, XC_kAXXCAttributeElementType, XC_kAXXCAttributeAutomationType, XC_kAXXCAttributeLabel, XC_kAXXCAttributeTraits, XC_kAXXCAttributeTruncatedValue, XC_kAXXCAttributeParent, XC_kAXXCAttributePlaceholderValue
+2026-10-17 17:12:57.906 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Capturing hierarchy with parameters {
+2026-10-17 17:12:57.906 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Snapshot attributes 5004, 5019, 5003, 5058, 2001, 2004, 2158, 5002, 5043
+
+Line 677890, UTC 17:13:01.148
+2026-10-17 17:13:01.148 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] AX element pid: 37299, elementOrHash.elementID: 105553169877184.268 (AX element pid: 37299, elementOrHash.elementID: 105553169877184.268) faulted in {
+2026-10-17 17:13:01.148 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Computed elementType Other.
+2026-10-17 17:13:01.148 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] iteration with input Other and transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-17 17:13:01.148 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeLabel for AX element pid: 37299, elementOrHash.elementID: 105553169877184.268
+
+Line 685889, UTC 17:13:01.957
+2026-10-17 17:13:01.956 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] AX element pid: 37299, elementOrHash.elementID: 105553169877184.268 (AX element pid: 37299, elementOrHash.elementID: 105553169877184.268) faulted in {
+2026-10-17 17:13:01.957 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Computed elementType Other.
+2026-10-17 17:13:01.957 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] iteration with input Other and transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-17 17:13:01.957 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeLabel for AX element pid: 37299, elementOrHash.elementID: 105553169877184.268
+
+Line 693888, UTC 17:13:03.030
+2026-10-17 17:13:03.029 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] AX element pid: 37299, elementOrHash.elementID: 105553169877184.268 (AX element pid: 37299, elementOrHash.elementID: 105553169877184.268) faulted in {
+2026-10-17 17:13:03.030 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Computed elementType Other.
+2026-10-17 17:13:03.030 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] iteration with input Other and transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-17 17:13:03.030 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeLabel for AX element pid: 37299, elementOrHash.elementID: 105553169877184.268
+
+Line 701887, UTC 17:13:03.954
+2026-10-17 17:13:03.953 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] AX element pid: 37299, elementOrHash.elementID: 105553169877184.268 (AX element pid: 37299, elementOrHash.elementID: 105553169877184.268) faulted in {
+2026-10-17 17:13:03.953 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Computed elementType Other.
+2026-10-17 17:13:03.953 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] iteration with input Other and transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-17 17:13:03.953 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeLabel for AX element pid: 37299, elementOrHash.elementID: 105553169877184.268
+
+Line 709886, UTC 17:13:04.967
+2026-10-17 17:13:04.966 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] AX element pid: 37299, elementOrHash.elementID: 105553169877184.268 (AX element pid: 37299, elementOrHash.elementID: 105553169877184.268) faulted in {
+2026-10-17 17:13:04.966 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Computed elementType Other.
+2026-10-17 17:13:04.966 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] iteration with input Other and transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-17 17:13:04.967 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeLabel for AX element pid: 37299, elementOrHash.elementID: 105553169877184.268
+
+Line 717885, UTC 17:13:05.535
+2026-10-17 17:13:05.534 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] AX element pid: 37299, elementOrHash.elementID: 105553169877184.268 (AX element pid: 37299, elementOrHash.elementID: 105553169877184.268) faulted in {
+2026-10-17 17:13:05.534 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Computed elementType Other.
+2026-10-17 17:13:05.534 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] iteration with input Other and transformer `Elements matching predicate '"nativeInkColorPicker" IN identifiers'`
+2026-10-17 17:13:05.534 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeLabel for AX element pid: 37299, elementOrHash.elementID: 105553169877184.268
+
+Line 733287, UTC 17:13:07.436
+2026-10-17 17:13:05.864 Df Hashiya[37299:1a3ba] [com.apple.dt.xctest:Default] [First Match] unioned related elements {(
+2026-10-17 17:13:05.867 Df Hashiya[37299:1aa5c] [com.apple.dt.xctest:Default] Current tree:
+2026-10-17 17:13:05.871 Df Hashiya[37299:1aa5c] [com.apple.dt.xctest:Default] Query ↪︎ Descendants matching type Other
+2026-10-17 17:13:05.871 Df Hashiya[37299:1aa5c] [com.apple.dt.xctest:Default] Replying to query ↪︎ Descendants matching type Other
+
+Interpretation: label-bearing captures and direct PDF-text label reads coincide with font-resolution warnings. This demonstrates repeated AX/PDF work; it does not prove remote-service launch delay is caused by the warnings.
+The Other element 105553169877184.268 returns a malformed-Arabic version of the demonstration heading. It is encountered while nativeInkColorPicker identifier matching walks the PDF text hierarchy.
+Source candidate: App/DemoLibrary.swift demonstrationGuide() uses UIFont.systemFont sizes30(headline),21(initial body),14(footer). Private names include .SFArabic...opsz1E0000 (30), opsz150000 (21). Source-to-embedded-font linkage is an inference until inspecting generated PDF font resources or a native font-resolution stack.

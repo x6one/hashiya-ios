@@ -72,20 +72,27 @@ extension LibraryStore {
         let lessons = [
             ("أهلًا بك في طَيّة", "هذه مكتبة تجريبية محلية، ولا تحتاج إلى حساب أو اتصال بالإنترنت.\n\nهذا الدليل ملف PDF من ثلاث صفحات يمكنك القراءة والكتابة عليه. بجانبه دفتر جاهز وعرض تقديمي لتجربة ملفات Office. كل الملفات التجريبية قابلة للتعديل والنقل للمحذوفات.\n\nاستخدم الأسهم أعلى المستند للانتقال إلى الصفحة التالية، أو أدخل رقم الصفحة. اختر القلم لتكتب فوق الصفحة، وزر نص لإضافة نص. يمكنك تصدير المستند مع تعليقاتك من شريط ملفات."),
             ("صفحات الحاشية وخط اليد", "افتح الحاشية من شريط كتابة. توجد ملاحظتان جاهزتان؛ اختر نص أو خط اليد للتجربة.\n\nأسهم الحاشية تنقل بين ملاحظاتك، وعلامة + تضيف صفحة مستقلة. أسهم المستند تتصفح PDF دون تغيير صفحة الحاشية.\n\nاسحب الفاصل لتغيير حجم مساحة الكتابة، أو وسّع الحاشية إلى ملء الشاشة. كتابتك تبقى محفوظة عند تدوير الجهاز أو تغيير المساحة.\n\nفي وضع الكتابة، حرّك الورقة بإصبعين؛ وفي وضع التحريك استخدم إصبعًا واحدًا. أزرار ملاءمة العرض والصفحة تعيد إظهار الورقة كاملة أو بحجم مريح."),
-            ("جرّب بقية الأدوات", "ارجع إلى المكتبة واختر دفتر جديد لإنشاء أوراق مسطّرة أو منقّطة أو قالب محاضرة.\n\nزر استيراد يفتح تطبيق الملفات: اختر PDF أو مستند Office من جهازك. جرّب العرض التقديمي الجاهز من المكتبة، ثم تحويله إلى PDF للكتابة عليه. قد يختلف تنسيق الخطوط، ولا تنتقل حركة الشرائح أو الفيديو إلى PDF.\n\nيمكنك البحث في النصوص والحواشي، وتنظيم الأقسام والمفضلة، وإنشاء بطاقات مراجعة. التسجيل الصوتي اختياري ويطلب إذن الميكروفون عند تشغيله فقط.\n\nالنسخ الاحتياطي والتصدير متاحان من المكتبة. لا تحتوي ملفات التجربة على بيانات شخصية.")
+            ("جرّب بقية الأدوات", "ارجع إلى المكتبة واختر دفتر جديد لإنشاء أوراق مسطّرة أو منقّطة أو قالب محاضرة.\n\nزر استيراد يفتح تطبيق الملفات: اختر PDF أو مستند Office من جهازك. جرّب العرض التقديمي الجاهز من المكتبة، ثم تحويله إلى PDF للكتابة عليه. قد يختلف تنسيق الخطوط، ولا تنتقل حركة الشرائح أو الفيديو إلى PDF.\n\nيمكنك البحث في النصوص والحواشي، وتنظيم الأقسام والمفضلة، وإنشاء بطاقات مراجعة. التسجيل الصوتي اختياري ويطلب إذن الميكروفون عند تشغيله فقط، ولا يغيّر مساحة المستند أو يفتح الحاشية.\n\nالنسخ الاحتياطي متاح من الإعدادات، وتصدير المستند من شريط ملفات. لا تحتوي ملفات التجربة على بيانات شخصية.")
         ]
+        // PDFKit reopens exported font names during text/accessibility extraction.
+        // Private SF variable-face names in this generated document repeatedly
+        // fall back through CoreText. Use public document PostScript names.
+        func documentFont(_ size: CGFloat, bold: Bool = false) -> UIFont {
+            UIFont(name: bold ? "Arial-BoldMT" : "ArialMT", size: size)
+                ?? .systemFont(ofSize: size, weight: bold ? .bold : .regular)
+        }
         return UIGraphicsPDFRenderer(bounds: bounds).pdfData { context in
             for (index, lesson) in lessons.enumerated() {
                 context.beginPage(); PaperColor.cream.uiColor.setFill(); context.cgContext.fill(bounds)
                 let style = NSMutableParagraphStyle(); style.alignment = .right; style.baseWritingDirection = .rightToLeft; style.lineSpacing = 10
-                (lesson.0 as NSString).draw(in: CGRect(x: 45, y: 55, width: 560, height: 65), withAttributes: [.font: UIFont.systemFont(ofSize: 30, weight: .semibold), .foregroundColor: UIColor(TayyaTheme.brandInk), .paragraphStyle: style])
+                (lesson.0 as NSString).draw(in: CGRect(x: 45, y: 55, width: 560, height: 65), withAttributes: [.font: documentFont(30, bold: true), .foregroundColor: UIColor(TayyaTheme.brandInk), .paragraphStyle: style])
                 // Lay out every glyph, reducing the font only when necessary.
                 // An ASCII end marker also makes PDF text extraction verifiable
                 // without depending on PDFKit's Arabic ligature/RTL ordering.
                 let body = lesson.1 + "\n\nTayya Demo"
                 var fontSize: CGFloat = 21
                 while true {
-                    let storage = NSTextStorage(string: body, attributes: [.font: UIFont.systemFont(ofSize: fontSize), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
+                    let storage = NSTextStorage(string: body, attributes: [.font: documentFont(fontSize), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
                     let layout = NSLayoutManager(); storage.addLayoutManager(layout)
                     let container = NSTextContainer(size: CGSize(width: 560, height: 670)); container.lineFragmentPadding = 0
                     layout.addTextContainer(container)
@@ -96,7 +103,7 @@ extension LibraryStore {
                     }
                     fontSize -= 1
                 }
-                ("\(index + 1) / 3 — مكتبة تجريبية" as NSString).draw(in: CGRect(x: 45, y: 845, width: 560, height: 30), withAttributes: [.font: UIFont.systemFont(ofSize: 14), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
+                ("\(index + 1) / 3 — مكتبة تجريبية" as NSString).draw(in: CGRect(x: 45, y: 845, width: 560, height: 30), withAttributes: [.font: documentFont(14), .foregroundColor: UIColor.darkGray, .paragraphStyle: style])
             }
         }
     }

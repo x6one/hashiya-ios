@@ -15,6 +15,7 @@ import ZIPFoundation
             || ProcessInfo.processInfo.arguments.contains("-maestroTesting")
             || UserDefaults.standard.bool(forKey: "maestroTesting")
         if ProcessInfo.processInfo.arguments.contains("--test-review-entry") { UserDefaults.standard.removeObject(forKey: "tayya.welcomeSeen") }
+        if ProcessInfo.processInfo.arguments.contains("--test-reset-entrance") { UserDefaults.standard.removeObject(forKey: "tayya.openingSeen") }
         let reviewRoot = ProcessInfo.processInfo.arguments.contains("--test-review-entry") ? FileManager.default.temporaryDirectory.appendingPathComponent("ReviewEntry-" + UUID().uuidString) : nil
         let store = LibraryStore(root: reviewRoot, seedDemo: !maestroTesting && !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
         if ProcessInfo.processInfo.arguments.contains("--test-office-preview"),
@@ -43,7 +44,7 @@ import ZIPFoundation
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") {
                 DebugFilesFixtures()
-            } else { AppEntrance().environmentObject(library) }
+            } else { AppEntrance().environmentObject(library).modifier(DebugVisualEnvironment()) }
             #else
             AppEntrance().environmentObject(library)
             #endif

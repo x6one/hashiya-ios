@@ -22,22 +22,22 @@
 - Production export/reopen and original history isolation, not just stroke counts.
 
 ### Task1 — geometry RED/GREEN
-- [ ] Add InkStrokeEditing API with no-op contracts and PrecisionInkTests for selected-middle straightening, preservation, midpoint/transform/overlap hits, color/type/alpha, width and constant-width line.
-- [ ] Commit tests with focused macOS selector [integration:precision-ink-red]. Confirm actual assertion failures, not compile/infrastructure errors.
-- [ ] Implement minimal geometry and run same suite GREEN on both families.
+- [x] Add InkStrokeEditing API with no-op contracts and PrecisionInkTests for selected-middle straightening, preservation, midpoint/transform/overlap hits, color/type/alpha, width and constant-width line.
+- [x] Commit tests with focused macOS selector [integration:precision-ink-red]. Confirm actual assertion failures, not compile/infrastructure errors.
+- [x] Implement minimal geometry and run same suite GREEN on both families (43203556205 RED; 43233260192 paired GREEN).
 
 ### Task2 — transactions and canvas lifecycle
-- [ ] Add controller transaction/history tests first, including both actual canvas managers and no-op/no extra native actions.
-- [ ] Implement shared controller, custom selection in explicit selection mode, exclusive line preview/commit, geometry conversion, ruler configuration deferred while stroking.
-- [ ] Wire production callbacks and commit reasons; preserve Notes synchronous save/deferred publication and audio markers.
-- [ ] Run focused geometry+native owner/persistence/audio and old compatibility regressions.
+- [x] Add controller transaction/history tests first, including both actual canvas managers and no-op/no extra native actions.
+- [x] Implement shared controller, custom selection in explicit selection mode, exclusive line preview/commit, geometry conversion, ruler configuration deferred while stroking.
+- [x] Wire production callbacks and commit reasons; preserve Notes synchronous save/deferred publication and audio markers.
+- [x] Run focused geometry+native owner/persistence/audio and old compatibility regressions (49/49 per device in 43233260192; later first-contact input fix still requires its own paired verification).
 
 ### Task3 — production controls and visual proof
-- [ ] Add UI regression expectations for actual line/selection/straighten/ruler on PDF and Notes; then wire compact contextual controls, AR/EN strings and selected color/width.
+- [x] Add UI regression expectations for actual line/selection/straighten/ruler on PDF and Notes; then wire compact contextual controls, AR/EN strings and selected color/width.
 - [ ] Capture real phone/pad light/dark, portrait/landscape and large type; review output and actual exported rendered marks.
 
 ### Task4 — release qualification and publication
-- [ ] Fresh reviewer of complete code; fix important findings with regression tests.
+- [x] Fresh reviewer of complete code; fix important findings with regression tests (actual reviewer RED43214460285 → paired GREEN43233260192; first-contact input regression also paired GREEN43241234689).
 - [ ] Prepare0.6.2 metadata and bilingual What's New; fresh native store captures if needed. Add source-bound publishing/archive retention fixes before freeze.
 - [ ] Full production gate on one SHA: all original+new native tests, Maestro3, actual exports, gallery, Office arm64 engine and iphoneos packaging.
 - [ ] Signed archive+IPA on same source, signature/contents/hash, official ASC upload, processed build linkage, AR+EN metadata and official App Review submission with automatic release.

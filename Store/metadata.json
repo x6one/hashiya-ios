@@ -70,26 +70,12 @@
     "five large iPhone and five 13-inch iPad screenshots"
   ],
   "current_store_release": {
-    "version": "0.4.2",
+    "version": "0.6.1",
+    "build": "16",
     "status": "READY_FOR_SALE",
-    "app_store_version_id": "042f6036-ab32-44fb-b270-1586f406bc18",
-    "verified": "2026-10-25",
-    "read_only_run": 40190287201,
-    "automatically_release_after_approval": true
-  },
-  "testflight": {
-    "build_id": "9eb1e731-d398-485e-a3a3-50cff8cc3efe",
-    "group": "Tayya Beta",
-    "public_link": "https://testflight.apple.com/join/bBwnghMX",
-    "status": "Waiting for Review",
-    "automatically_notify_testers": true,
-    "verified_date": "2026-10-08",
-    "version": "0.4.1",
-    "build": "9",
-    "groups": [
-      "Tayya Beta",
-      "Tayya Internal"
-    ]
+    "build_processing": "VALID",
+    "verified": "2026-11-12",
+    "read_only_run": 43206683107
   },
   "previous_store_rejection": {
     "version": "0.3.0",
@@ -112,9 +98,10 @@
   },
   "validation": {
     "all_passed": false,
-    "status": "current-store-source-pending; qualified-parent-c07e69e-is-not-evidence-for-new-source",
-    "qualified_parent": "c07e69eb49bea0588efb6c0f8d24c8b8e777c67c",
-    "parent_run": 40175783379
+    "status": "precision-ink-0.6.2-candidate-not-yet-qualified",
+    "native_cases_per_device": 191,
+    "original_native_cases_per_device": 163,
+    "qualification": "One frozen source must pass original and new native tests, Maestro, actual exports, visual review and native Office packaging before signing/upload."
   },
   "latest_store_rejection": {
     "version": "0.4.1",
@@ -124,5 +111,27 @@
     "device": "iPad Air 11-inch (M3)",
     "reason": "Reviewer unable to access all or part of app; requests access to all features for all account types. No specific feature identified.",
     "response": "No account exists. Add explicit first-launch choice for real local demonstration, visible labeled toolbars, exact reviewer paths."
+  },
+  "previous_store_release": {
+    "version": "0.4.2",
+    "status": "READY_FOR_SALE",
+    "app_store_version_id": "042f6036-ab32-44fb-b270-1586f406bc18",
+    "verified": "2026-10-25",
+    "read_only_run": 40190287201,
+    "automatically_release_after_approval": true
+  },
+  "historical_testflight": {
+    "build_id": "9eb1e731-d398-485e-a3a3-50cff8cc3efe",
+    "group": "Tayya Beta",
+    "public_link": "https://testflight.apple.com/join/bBwnghMX",
+    "status": "Waiting for Review",
+    "automatically_notify_testers": true,
+    "verified_date": "2026-10-08",
+    "version": "0.4.1",
+    "build": "9",
+    "groups": [
+      "Tayya Beta",
+      "Tayya Internal"
+    ]
   }
 }

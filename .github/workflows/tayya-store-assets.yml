@@ -3,6 +3,10 @@ run-name: Store originals from ${{ github.sha }} — same-source release evidenc
 on:
   workflow_dispatch:
     inputs:
+      expected_source:
+        description: Optional immutable application SHA; reject a moved branch before capture
+        type: string
+        default: ''
       capture:
         description: Capture the actual medium phone as well as checking Apple access
         type: boolean
@@ -24,6 +28,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Require the explicitly pinned capture source
+        env:
+          EXPECTED_APP_SOURCE: ${{ inputs.expected_source }}
+        run: |
+          python3 - <<'PY_SOURCE_PIN'
+          import os,re
+          expected=os.environ.get('EXPECTED_APP_SOURCE','')
+          if expected:
+              assert re.fullmatch('[a-f0-9]{40}',expected), 'Invalid immutable source pin'
+              assert expected==os.environ['GITHUB_SHA'], 'The branch changed; do not capture or label another source'
+          PY_SOURCE_PIN
       - uses: actions/checkout@v4
       - name: Check signing presence and Apple records without making changes
         env:
@@ -50,6 +65,17 @@ jobs:
       matrix:
         family: ${{ fromJSON((contains(github.event.head_commit.message, '[store:thumbnail-diagnosis]') || contains(github.event.head_commit.message, '[store:navigation]')) && '["iPhone"]' || contains(github.event.head_commit.message, '[store:menu-touch]') && '["iPad"]' || '["iPhone","iPad"]') }}
     steps:
+      - name: Require the explicitly pinned capture source
+        env:
+          EXPECTED_APP_SOURCE: ${{ inputs.expected_source }}
+        run: |
+          python3 - <<'PY_SOURCE_PIN'
+          import os,re
+          expected=os.environ.get('EXPECTED_APP_SOURCE','')
+          if expected:
+              assert re.fullmatch('[a-f0-9]{40}',expected), 'Invalid immutable source pin'
+              assert expected==os.environ['GITHUB_SHA'], 'The branch changed; do not capture or label another source'
+          PY_SOURCE_PIN
       - uses: actions/checkout@v4
       - name: Generate the existing production project
         run: |

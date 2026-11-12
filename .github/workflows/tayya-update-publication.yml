@@ -117,6 +117,10 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+      - name: Verify qualification identities and handoff guards without external writes
+        run: |
+          node Tools/test_store_listing.mjs
+          node Tools/test_qualified_archive_dispatch.mjs
       - name: Wait only for the existing pinned release run; never rerun a test
         env:
           GH_TOKEN: ${{ github.token }}
@@ -162,8 +166,6 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v4
-      - name: Verify archive handoff guards without external writes
-        run: node Tools/test_qualified_archive_dispatch.mjs
       - name: Require every exact-source release gate before the official signed build
         env:
           GH_TOKEN: ${{ github.token }}

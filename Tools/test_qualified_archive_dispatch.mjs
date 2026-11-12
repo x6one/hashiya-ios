@@ -10,9 +10,9 @@ const complete=names=>names.map(name=>({name,status:'completed',conclusion:'succ
 const gates=['tools','regression (iPhone)','regression (iPad)','test (iPhone)','test (iPad)','production-review / gallery','device-package / ios-engine'];
 const baseline=()=>({
   config:{app_id:'6818288428',bundle_id:'com.ahmadalawi.hashiya',version:'0.6.2',build:'17',publish_binary:true,app_ref:'integration/tayya-precision-ink',app_source:source,qualified_run:42,artwork_run:43},
-  release:{event:'push',head_sha:source,name:'iPhone and iPad preflight',conclusion:'success'},
+  release:{event:'push',status:'completed',path:'.github/workflows/ios-check.yml',head_sha:source,name:'iPhone and iPad preflight',conclusion:'success'},
   jobs:{total_count:7,jobs:complete(gates)},
-  artwork:{head_sha:source,name:'Tayya Store readiness and actual medium-phone captures',conclusion:'success'},
+  artwork:{event:'push',status:'completed',path:'.github/workflows/tayya-store-assets.yml',head_sha:source,name:'Tayya Store readiness and actual medium-phone captures',conclusion:'success'},
   artworkJobs:{total_count:3,jobs:complete(['Native store capture (iPhone)','Native store capture (iPad)','artwork'])},
   ref:{object:{sha:source}},project:"MARKETING_VERSION: '0.6.2'\nCURRENT_PROJECT_VERSION: '17'\n",previous:{total_count:0}
 });
@@ -98,3 +98,10 @@ for(const [name,change] of [
 const unfinished=waitFixture();unfinished.release.status='in_progress';unfinished.release.conclusion=null;
 const expired=await evaluateWait(unfinished,{expire:true});assert.match(expired.error?.message||'',/remains incomplete/);assert.equal(expired.waits,0);
 console.log('8 read-only waiting scenarios passed, including pending-to-green, failure, cancellation, wrong source, incomplete evidence and bounded expiry.');
+
+const actualTitledArtwork=baseline();
+actualTitledArtwork.artwork.name='Store originals from '+source+' — same-source release evidence';
+assert.ifError(evaluate(actualTitledArtwork).error,'Actual GitHub run-name must not replace the workflow identity');
+const lookalike=baseline();lookalike.artwork.path='.github/workflows/unrelated.yml';
+assert.ok(evaluate(lookalike).error,'A lookalike title from a different workflow must not qualify');
+console.log('Workflow path identity regressions passed for the real dynamic title and rejected a lookalike workflow.');

@@ -8,8 +8,11 @@ import {execFileSync} from 'node:child_process';
 const hash=(b,algorithm='sha256')=>createHash(algorithm).update(b).digest('hex');
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 export function validateQualification(run,jobs,source,kind) {
-  const name=kind==='release'?'iPhone and iPad preflight':'Tayya Store readiness and actual medium-phone captures';
-  if(run.head_sha!==source||run.name!==name||run.conclusion!=='success')throw new Error('The immutable source run did not qualify');
+  // run-name is presentation text and can include the source SHA. Identify
+  // the trusted workflow by its repository path, never that mutable title.
+  const path={release:'.github/workflows/ios-check.yml',artwork:'.github/workflows/tayya-store-assets.yml'}[kind];
+  if(!path||run.path!==path||run.event!=='push'||run.status!=='completed'||run.head_sha!==source||run.conclusion!=='success')
+    throw new Error('The immutable source workflow did not qualify');
   const required=kind==='release'
     ? ['tools','regression (iPhone)','regression (iPad)','test (iPhone)','test (iPad)','production-review / gallery','device-package / ios-engine']
     : ['Native store capture (iPhone)','Native store capture (iPad)','artwork'];
@@ -23,9 +26,9 @@ export function reusableScreenshot(existing,name,checksum) {
     && !s.attributes.assetDeliveryState?.errors?.length);
 }
 export function validateArtwork(root,config) {
-  if(config.app_id!=='6818288428'||config.bundle_id!=='com.ahmadalawi.hashiya'||config.version!=='0.6.0'
-    ||!(/^[1-9]\d{1,3}$/).test(String(config.build))||Number(config.build)<13)
-    throw new Error('Only the authorized Tayya0.6.0 draft with an integer build13 or higher may be changed');
+  if(config.app_id!=='6818288428'||config.bundle_id!=='com.ahmadalawi.hashiya'||config.version!=='0.6.2'
+    ||!(/^[1-9]\d{1,3}$/).test(String(config.build))||Number(config.build)<17)
+    throw new Error('Only the authorized Tayya0.6.2 draft with an integer build17 or higher may be changed');
   const base=realpathSync(root),manifest=read(resolve(base,'manifest.json'));
   if(!/^[a-f0-9]{40}$/.test(config.artwork_source)||manifest.source!==config.artwork_source)
     throw new Error('Artwork source revision differs from the approved native capture');

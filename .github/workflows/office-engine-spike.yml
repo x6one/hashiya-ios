@@ -220,6 +220,29 @@ jobs:
           PUBLISH_TO_APPLE: ${{ inputs.publish_to_apple }}
         run: |
           if [ "$PUBLISH_TO_APPLE" = "true" ]; then
+            python3 - <<'PY_UPLOAD_TARGET'
+          import json,plistlib
+          from pathlib import Path
+          info=plistlib.loads(Path('NativeDeviceBuild/Build/Products/Release-iphoneos/Hashiya.app/Info.plist').read_bytes())
+          assert info['CFBundleIdentifier']=='com.ahmadalawi.hashiya'
+          Path('upload-target.json').write_text(json.dumps({'bundle_id':info['CFBundleIdentifier'],'version':info['CFBundleShortVersionString'],'build':str(info['CFBundleVersion'])}))
+          PY_UPLOAD_TARGET
+            node --input-type=module <<'JS_UPLOAD_TARGET'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {createAppleClient} from './Tools/app_store_readiness.mjs';
+          const target=JSON.parse(readFileSync('upload-target.json','utf8'));
+          assert.match(target.build,/^[1-9]\d*$/);
+          const api=createAppleClient();
+          const app=(await api.get('apps/6818288428')).data;
+          assert.equal(app.attributes.bundleId,target.bundle_id);
+          const existing=await api.get('builds?filter[app]=6818288428&filter[version]='+encodeURIComponent(target.build)+'&limit=200');
+          assert.ok(!existing.links?.next,'Exact build lookup must be complete');
+          assert.equal(existing.data.length,0,'Build already exists: do not archive/upload it again; inspect the accepted upload instead');
+          console.log('Apple confirms the exact upload build is unused:',target.version,target.build);
+          JS_UPLOAD_TARGET
+          fi
+          if [ "$PUBLISH_TO_APPLE" = "true" ]; then
             python3 Tools/distribute_native_app.py --preserve-archive
           else
             python3 Tools/distribute_native_app.py --archive-only --preserve-archive

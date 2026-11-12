@@ -185,7 +185,7 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         let value = Configuration(mode: mode, selection: selection, ruler: ruler, brush: brush, color: color, width: width, enabled: enabled, writable: writable)
         if nativeActive { pendingConfiguration = value; return }
         if lineStart != nil || endpointIndex != nil {
-            if value.enabled && value.mode == configuration?.mode && value.selection == configuration?.selection {
+            if value.enabled && value.writable && value.mode == configuration?.mode && value.selection == configuration?.selection {
                 pendingConfiguration = value; return
             }
             cancelInteraction()
@@ -193,6 +193,8 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         apply(value)
     }
     private func apply(_ value: Configuration) {
+        // The newest model state supersedes any style queued by an older gesture.
+        pendingConfiguration = nil
         guard let canvas, value != configuration else { return }
         cancelInteraction()
         let old = configuration
@@ -212,7 +214,8 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         }
     }
     func nativeToolBegan() {
-        nativeActive = true; assignedBytes = nil; cancelInteraction(); clearSelection()
+        nativeActive = true; updateHistoryAvailability()
+        assignedBytes = nil; cancelInteraction(); clearSelection()
     }
     /// True means our explicit commit already owns this setter notification.
     @discardableResult func nativeDrawingChanged() -> Bool {
@@ -227,7 +230,7 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         return false
     }
     func nativeToolEnded() {
-        nativeActive = false
+        nativeActive = false; updateHistoryAvailability()
         applyPendingConfiguration()
     }
     private func applyPendingConfiguration() {
@@ -239,10 +242,15 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         lineStart = nil; lineBase = nil; lineStyle = nil; preview.path = nil
         if !polygon.isEmpty { selectionOutline.path = nil }
         endpointIndex = nil; endpointBase = nil; endpointLocations = nil; polygon = []
+        updateHistoryAvailability()
         if hadInteraction { (canvas as? MarginCanvas)?.finishedUsingTool() }
+    }
+    private func updateHistoryAvailability() {
+        (canvas?.undoManager as? CanvasUndoManager)?.interactionActive = nativeActive || lineStart != nil || endpointIndex != nil
     }
     func resetForLoadedPage() {
         pendingConfiguration = nil; cancelInteraction(); clearSelection(); nativeActive = false; assignedBytes = nil
+        updateHistoryAvailability()
     }
 
     func beginLine(at point: CGPoint) {
@@ -250,6 +258,7 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
               value.mode != .freehand, value.brush != .eraser, !nativeActive else { return }
         clearSelection()
         lineStart = Self.drawingPoint(point, in: canvas); lineBase = canvas.drawing
+        updateHistoryAvailability()
         let marker = value.mode == .highlighter || value.brush == .marker
         lineStyle = (PKInk(marker ? .marker : value.brush == .pencil ? .pencil : .pen,
                            color: marker ? value.color.withAlphaComponent(0.4) : value.color), marker ? value.width * 4 : value.width)
@@ -277,12 +286,16 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         guard let canvas else { return }
         let point = gesture.location(in: canvas)
         switch gesture.state {
-        case .began: beginLine(at: point)
+        case .began: beginLine(at: Self.initialPoint(of: gesture, in: canvas))
         case .changed: updateLine(to: point)
         case .ended: finishLine(at: point)
-        case .cancelled, .failed: cancelInteraction()
+        case .cancelled, .failed: cancelInteraction(); applyPendingConfiguration()
         default: break
         }
+    }
+    static func initialPoint(of gesture: UIPanGestureRecognizer, in canvas: PKCanvasView) -> CGPoint {
+        let point = gesture.location(in: canvas), movement = gesture.translation(in: canvas)
+        return CGPoint(x: point.x - movement.x, y: point.y - movement.y)
     }
     @objc private func selectAtTap(_ gesture: UITapGestureRecognizer) {
         guard let canvas, gesture.state == .ended else { return }
@@ -290,8 +303,12 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         let index = InkStrokeEditing.hitIndex(in: canvas.drawing, at: point, tolerance: 12 / max(canvas.zoomScale, 0.001))
         select(index.map { [$0] } ?? [])
     }
+    func viewportDidChange() {
+        guard !nativeActive, lineStart == nil, endpointIndex == nil, polygon.isEmpty, !selectedIndices.isEmpty else { return }
+        updateSelectionOutline()
+    }
     private func updateSelectionOutline() {
-        guard let canvas, !selectedIndices.isEmpty else { selectionOutline.path = nil; return }
+        guard let canvas, !selectedIndices.isEmpty else { selectionOutline.path = nil; handles.path = nil; return }
         let strokes = selectedIndices.map { canvas.drawing.strokes[$0] }
         let bounds = PKDrawing(strokes: strokes).bounds.applying(CGAffineTransform(scaleX: canvas.zoomScale, y: canvas.zoomScale)).insetBy(dx: -5, dy: -5)
         selectionOutline.path = UIBezierPath(roundedRect: bounds, cornerRadius: 4).cgPath
@@ -317,15 +334,16 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         let startDistance = hypot(point.x - ends.0.x, point.y - ends.0.y)
         let endDistance = hypot(point.x - ends.1.x, point.y - ends.1.y)
         guard min(startDistance, endDistance) <= 22 else { return nil }
-        return startDistance <= 22 ? 0 : 1
+        return startDistance <= endDistance ? 0 : 1
     }
     @objc private func adjustEndpoint(_ gesture: UIPanGestureRecognizer) {
         guard let canvas else { return }
         let point = gesture.location(in: canvas)
         switch gesture.state {
         case .began:
-            guard let index = endpointIndex(near: point) else { return }
+            guard let index = endpointIndex(near: Self.initialPoint(of: gesture, in: canvas)) else { return }
             endpointIndex = index
+            updateHistoryAvailability()
             endpointBase = canvas.drawing
             let stroke = canvas.drawing.strokes[selectedIndices[0]]
             endpointLocations = (stroke.path[0].location, stroke.path[stroke.path.count - 1].location)
@@ -365,7 +383,7 @@ enum InkCommitReason: Equatable { case newStroke, edit, history }
         guard let canvas, !nativeActive else { return false }
         if gestureRecognizer === endpointGesture {
             guard configuration?.selection == true, let ends = visibleEndpoints() else { return false }
-            let point = endpointGesture.location(in: canvas)
+            let point = Self.initialPoint(of: endpointGesture, in: canvas)
             return min(hypot(point.x - ends.0.x, point.y - ends.0.y), hypot(point.x - ends.1.x, point.y - ends.1.y)) <= 22
         }
         if gestureRecognizer === lineGesture {

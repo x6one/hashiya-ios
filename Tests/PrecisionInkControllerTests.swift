@@ -109,16 +109,24 @@ final class PrecisionInkControllerTests: XCTestCase {
         XCTAssertEqual(canvas.drawing.dataRepresentation(), original)
     }
     @MainActor func testUndoDuringNativeInputDoesNotConsumeThePrecisionHistoryEntry() throws {
-        let canvas = LassoCanvas(frame: .zero); canvas.drawing = drawing(40)
-        let manager = try XCTUnwrap(canvas.undoManager); manager.groupsByEvent = false; manager.removeAllActions()
-        let controller = canvas.precisionInk
-        XCTAssertTrue(controller.replaceDrawing(drawing(80), reason: .edit, actionName: "Edit"))
-        controller.nativeToolBegan(); manager.undo(); controller.nativeToolEnded()
-        XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80, "An unfinished native stroke blocks history execution before it consumes an action")
-        XCTAssertTrue(manager.canUndo, "The blocked request must retain the original history entry")
-        manager.undo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 40)
-        manager.redo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80)
-        manager.removeAllActions()
+        let canvases: [PKCanvasView] = [LassoCanvas(frame: .zero), MarginCanvas(frame: .zero)]
+        for canvas in canvases {
+            canvas.drawing = drawing(40)
+            let manager = try XCTUnwrap(canvas.undoManager); manager.groupsByEvent = false; manager.removeAllActions()
+            let controller: PrecisionInkController
+            if let document = canvas as? LassoCanvas { controller = document.precisionInk }
+            else { controller = try XCTUnwrap(canvas as? MarginCanvas).precisionInk }
+            XCTAssertTrue(controller.replaceDrawing(drawing(80), reason: .edit, actionName: "Edit"))
+            controller.nativeToolBegan(); manager.undo(); controller.nativeToolEnded()
+            XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80, "An unfinished native stroke blocks history execution before it consumes an action")
+            XCTAssertTrue(manager.canUndo, "The blocked request must retain the original history entry")
+            manager.undo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 40)
+            controller.nativeToolBegan(); manager.redo(); controller.nativeToolEnded()
+            XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 40)
+            XCTAssertTrue(manager.canRedo)
+            manager.redo(); XCTAssertEqual(canvas.drawing.strokes[0].path[0].location.y, 80)
+            manager.removeAllActions()
+        }
     }
     @MainActor func testNewModeSupersedesQueuedWidthAcrossLineCancellationAndLaterCommits() throws {
         let canvas = MarginCanvas(frame: CGRect(x: 0, y: 0, width: 500, height: 700))
@@ -142,6 +150,7 @@ final class PrecisionInkControllerTests: XCTestCase {
         canvas.drawing = PKDrawing(strokes: [try XCTUnwrap(InkStrokeEditing.line(from: CGPoint(x: 20, y: 40), to: CGPoint(x: 160, y: 40), ink: PKInk(.pen, color: .red), width: 4, creationDate: Date()))])
         let coordinator = MarginNotebook.Coordinator(saved: { _ in }, failed: { XCTFail($0) })
         canvas.delegate = coordinator
+        canvas.followsFit = false; canvas.zoomScale = 1
         canvas.precisionInk.select([0])
         let handles = try XCTUnwrap(canvas.layer.sublayers?.compactMap { $0 as? CAShapeLayer }.first { $0.zPosition == 103 })
         XCTAssertEqual(try XCTUnwrap(handles.path).boundingBoxOfPath.midY, 40, accuracy: 0.001)

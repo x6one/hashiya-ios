@@ -32,7 +32,7 @@ final class LassoCanvas: PKCanvasView {
     }()
     // History belongs to this page's drawing, not a responder ancestor shared
     // with the independently loaded Notes canvas or a text editor.
-    private let drawingUndoManager = UndoManager()
+    private let drawingUndoManager = CanvasUndoManager()
     override var undoManager: UndoManager? { drawingUndoManager }
 
     // Keep first-responder Undo/PencilKit routing without a text keyboard when

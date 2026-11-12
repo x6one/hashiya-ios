@@ -44,7 +44,7 @@ import PencilKit
 final class MarginCanvas: PKCanvasView {
     lazy var precisionInk = PrecisionInkController(canvas: self)
     // Loading another Notes page clears only this surface's old history.
-    private let drawingUndoManager = UndoManager()
+    private let drawingUndoManager = CanvasUndoManager()
     override var undoManager: UndoManager? { drawingUndoManager }
 
     #if DEBUG
@@ -640,6 +640,7 @@ struct MarginNotebook: UIViewRepresentable {
             (canvasView as? MarginCanvas)?.finishedUsingTool()
             (canvasView as? MarginCanvas)?.precisionInk.nativeToolEnded()
         }
+        func scrollViewDidZoom(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.precisionInk.viewportDidChange() }
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { (scrollView as? MarginCanvas)?.beganUserZooming() }
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { (scrollView as? MarginCanvas)?.followsFit = false }
     }

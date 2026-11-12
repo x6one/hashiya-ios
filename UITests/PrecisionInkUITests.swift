@@ -48,6 +48,13 @@ final class PrecisionInkUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(initial, 0)
         let page = app.textFields["pageNumber"].value as? String
         let canvas = app.otherElements["pdfCanvas"], frame = canvas.frame
+        reveal("inkRuler", in: app).tap()
+        XCTAssertEqual(app.buttons["inkRuler"].value as? String, "on")
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.25)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.25)))
+        waitCount(count, initial + 1)
+        capture("Precision-PDF-NativeRuler")
+        reveal("inkUndo", in: app).tap(); waitCount(count, initial)
         chooseMode("highlighter", in: app)
         let start = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.4))
         let end = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.4))
@@ -80,6 +87,11 @@ final class PrecisionInkUITests: XCTestCase {
         let page = app.textFields["pageNumber"].value as? String
         reveal("inkRuler", in: app).tap()
         XCTAssertEqual(app.buttons["inkRuler"].value as? String, "on")
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.25)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.25)))
+        waitCount(canvas, initial + 1)
+        capture("Precision-Notes-NativeRuler")
+        reveal("inkUndo", in: app).tap(); waitCount(canvas, initial)
         chooseMode("line", in: app)
         XCTAssertEqual(app.buttons["inkRuler"].value as? String, "off")
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.4)).press(forDuration: 0.1,

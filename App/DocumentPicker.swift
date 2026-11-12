@@ -19,7 +19,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) {}
 
     /// Retire only our incoming copy after the library has saved its own copy.
-    static func discardIncomingCopy(_ source: URL) {
+    static func discardIncomingCopy(_ source: URL, wasCopiedByPicker: Bool = true) {
         let inbox = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Inbox", isDirectory: true).standardizedFileURL
         guard source.standardizedFileURL.deletingLastPathComponent() == inbox else { return }

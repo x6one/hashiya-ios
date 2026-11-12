@@ -59,6 +59,25 @@ final class DocumentImportTests: XCTestCase {
         }
         XCTAssertEqual(try fm.contentsOfDirectory(atPath: root.path), ["broken.pdf"])
     }
+    @MainActor func testInPlaceInboxImportRetainsOriginalBytesAfterCleanup() async throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let inbox = fm.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Inbox")
+        try fm.createDirectory(at: inbox, withIntermediateDirectories: true)
+        let source = inbox.appendingPathComponent(UUID().uuidString + ".pdf")
+        defer { try? fm.removeItem(at: root); try? fm.removeItem(at: source) }
+        let fixture = try XCTUnwrap(Bundle(for: LibraryStore.self).url(forResource: "english", withExtension: "pdf"))
+        let original = try Data(contentsOf: fixture)
+        try original.write(to: source)
+        let store = LibraryStore(root: root, seedDemo: false)
+        let imported = try await store.importDocumentAsync(source)
+        DocumentPicker.discardIncomingCopy(source, wasCopiedByPicker: false)
+        XCTAssertTrue(fm.fileExists(atPath: source.path), "An in-place document is the user's source, including inside our Inbox")
+        XCTAssertEqual(try? Data(contentsOf: source), original, "Successful import must retain the original source bytes")
+        XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(imported.file)), original)
+        XCTAssertEqual(LibraryStore(root: root, seedDemo: false).notebooks, [imported])
+    }
+
     @MainActor func testIncomingCleanupNeverDeletesAnExternalInboxFile() throws {
         let fm = FileManager.default
         let external = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("Inbox")

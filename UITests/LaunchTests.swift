@@ -180,13 +180,13 @@ final class LaunchTests: XCTestCase {
             XCTFail("Files must enable saving the staged fixture: " + app.debugDescription); return false
         }
         save.tap()
-        let status = app.staticTexts["fixtureExportStatus"]
-        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format:
-            "exists == true AND label == %@", "Fixtures exported"), object: status)
-        // Files can finish its provider write before delivering the export
-        // callback. Keep waiting for the real completion, rather than failing
-        // just before "Fixtures exported" appears on a cold simulator.
-        guard XCTWaiter.wait(for: [saved], timeout: 60) == .completed else {
+        let status = app.staticTexts.matching(NSPredicate(format:
+            "identifier == %@ AND label == %@", "fixtureExportStatus", "Fixtures exported")).firstMatch
+        // The saved failure shows the exact success text while a predicate's
+        // retrying exists getter blocks for 59 seconds across Files dismissal.
+        // XCTest's native existence waiter uses its non-retrying lookup;
+        // retain the same 60-second deadline and the exact success text.
+        guard status.waitForExistence(timeout: 60) else {
             XCTFail("Files export did not complete: " + app.debugDescription); return false
         }
         app.terminate()
@@ -459,17 +459,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(filename.isHittable, "The selected filename must be visible in Files")
         let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
-        if appOwned {
-            // The saved Phone and Pad images show the enabled filename at
-            // this frame, but the remote AX element's synthesized tap leaves
-            // Files unchanged. Test its visible center through the same
-            // screen-coordinate route that successfully opens the container.
-            let frame = filename.frame
-            app.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
-        } else {
-            filename.tap()
-        }
+        filename.tap()
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts.matching(NSPredicate(format:
             "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",

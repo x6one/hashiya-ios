@@ -2,7 +2,7 @@ name: Tayya update publication
 on:
   push:
     branches: ['release/tayya-0.6.2-controller']
-    paths: ['.github/workflows/tayya-update-publication.yml']
+    paths: ['.github/workflows/tayya-update-publication.yml', 'Store/update-qualified-source.json']
 permissions:
   contents: read
 jobs:
@@ -107,4 +107,54 @@ jobs:
           name: tayya-update-draft-authority
           path: tayya-update-draft.json
           if-no-files-found: error
+          retention-days: 30
+  dispatch-qualified-archive:
+    if: github.repository == 'x6one/hashiya-ios' && contains(github.event.head_commit.message, '[store:dispatch-qualified]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify archive handoff guards without external writes
+        run: node Tools/test_qualified_archive_dispatch.mjs
+      - name: Require every exact-source release gate before the official signed build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS_DISPATCH'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          import assert from 'node:assert/strict';
+          import {validateQualification} from './Tools/publish_store_listing.mjs';
+          const c=JSON.parse(readFileSync('Store/update-qualified-source.json','utf8'));
+          assert.equal(c.app_id,'6818288428');assert.equal(c.bundle_id,'com.ahmadalawi.hashiya');
+          assert.equal(c.version,'0.6.2');assert.equal(String(c.build),'17');
+          assert.equal(c.publish_binary,true);
+          assert.equal(c.app_ref,'integration/tayya-precision-ink');assert.match(c.app_source,/^[a-f0-9]{40}$/);
+          assert.match(String(c.qualified_run),/^\d+$/);assert.match(String(c.artwork_run),/^\d+$/);
+          const get=path=>JSON.parse(execFileSync('gh',['api','repos/x6one/hashiya-ios/'+path],{encoding:'utf8'}));
+          const run=get('actions/runs/'+c.qualified_run),jobs=get('actions/runs/'+c.qualified_run+'/jobs?per_page=100');
+          assert.equal(run.event,'push');
+          if(jobs.total_count>jobs.jobs.length)throw new Error('Qualification job listing must be complete');
+          validateQualification(run,jobs.jobs,c.app_source,'release');
+          const artwork=get('actions/runs/'+c.artwork_run),artworkJobs=get('actions/runs/'+c.artwork_run+'/jobs?per_page=100');
+          if(artworkJobs.total_count>artworkJobs.jobs.length)throw new Error('Artwork job listing must be complete');
+          validateQualification(artwork,artworkJobs.jobs,c.app_source,'artwork');
+          const ref=get('git/ref/heads/'+c.app_ref);assert.equal(ref.object.sha,c.app_source,'The application branch must remain frozen');
+          const spec=get('contents/project.yml?ref='+c.app_source);
+          const project=Buffer.from(spec.content,'base64').toString('utf8');
+          assert.match(project,/MARKETING_VERSION: '0\.6\.2'/);assert.match(project,/CURRENT_PROJECT_VERSION: '17'/);
+          const previous=get('actions/workflows/office-engine-spike.yml/runs?event=workflow_dispatch&head_sha='+c.app_source+'&per_page=100');
+          assert.equal(previous.total_count,0,'A signed dispatch already exists for this source; inspect it instead of dispatching again');
+          execFileSync('gh',['api','--method','POST','repos/x6one/hashiya-ios/actions/workflows/office-engine-spike.yml/dispatches','-f','ref='+c.app_ref,'-f','inputs[expected_source]='+c.app_source,'-f','inputs[publish_to_apple]=true','-f','inputs[sign_archive]=false'],{stdio:'inherit'});
+          writeFileSync('tayya-qualified-dispatch.json',JSON.stringify({source:c.app_source,qualified_run:c.qualified_run,version:c.version,build:c.build,official_workflow:'office-engine-spike.yml',dispatch_accepted:true,upload_confirmed:false},null,2)+'\n');
+          JS_DISPATCH
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tayya-qualified-archive-dispatch
+          path: tayya-qualified-dispatch.json
+          if-no-files-found: warn
           retention-days: 30

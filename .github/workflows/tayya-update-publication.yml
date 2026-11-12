@@ -1,0 +1,55 @@
+name: Tayya update publication
+on:
+  push:
+    branches: ['release/tayya-0.6.2-controller']
+    paths: ['.github/workflows/tayya-update-publication.yml']
+permissions:
+  contents: read
+jobs:
+  readiness:
+    if: contains(github.event.head_commit.message, '[store:readiness]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read existing Apple application, versions and build numbers
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs';
+          import {createAppleClient} from './Tools/app_store_readiness.mjs';
+          const report={app_id:'6818288428',bundle_id:'com.ahmadalawi.hashiya',target_version:'0.6.2',read_only:true,source:process.env.GITHUB_SHA};
+          try {
+            const {get}=createAppleClient();
+            const app=(await get('apps/6818288428')).data;
+            if(app.attributes.bundleId!==report.bundle_id)throw new Error('Unexpected application identity');
+            report.application={id:app.id,name:app.attributes.name,bundle_id:app.attributes.bundleId};
+            const versions=(await get('apps/6818288428/appStoreVersions?filter[platform]=IOS&limit=200')).data;
+            report.versions=versions.map(v=>({id:v.id,version:v.attributes.versionString,state:v.attributes.appStoreState,release_type:v.attributes.releaseType}));
+            let next='builds?filter[app]=6818288428&include=preReleaseVersion&sort=-uploadedDate&limit=200';
+            report.builds=[];
+            for(let page=0;next && page<10;page++) {
+              const response=await get(next);
+              const trains=new Map((response.included||[]).map(v=>[v.id,v.attributes.version]));
+              report.builds.push(...response.data.map(b=>({id:b.id,build:b.attributes.version,version:trains.get(b.relationships?.preReleaseVersion?.data?.id)||null,processing:b.attributes.processingState,expired:b.attributes.expired})));
+              next=response.links?.next;
+            }
+            if(next)throw new Error('Build enumeration exceeded the bounded pagination limit');
+            if(report.builds.some(b=>!/^\d+$/.test(b.build)))throw new Error('A noninteger build requires an explicit version policy');
+            report.next_unused_build=String(Math.max(0,...report.builds.map(b=>Number(b.build)))+1);
+            report.authenticated_read_succeeded=true;
+          }catch(error) {
+            report.error=/^(Apple API |Unexpected application|Build enumeration|A noninteger)/.test(error.message)?error.message:'Apple authentication/read failed; private credential values are not logged';
+            process.exitCode=1;
+          }finally{writeFileSync('tayya-update-readiness.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tayya-update-apple-readiness
+          path: tayya-update-readiness.json
+          if-no-files-found: error
+          retention-days: 30

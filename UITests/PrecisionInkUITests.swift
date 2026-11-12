@@ -90,8 +90,11 @@ final class PrecisionInkUITests: XCTestCase {
         let page = app.textFields["pageNumber"].value as? String
         reveal("inkRuler", in: app).tap()
         XCTAssertEqual(app.buttons["inkRuler"].value as? String, "on")
-        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.25)).press(forDuration: 0.1,
-            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.25)))
+        // Original full-suite video shows the (.2,.25) contact moving the
+        // diagonal native ruler. Draw on clear upper-right paper instead;
+        // retain the exact new-stroke and subsequent Undo/Redo requirements.
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.10)).press(forDuration: 0.1,
+            thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: 0.10)))
         waitCount(canvas, initial + 1)
         capture("Precision-Notes-NativeRuler")
         reveal("inkUndo", in: app).tap(); waitCount(canvas, initial)

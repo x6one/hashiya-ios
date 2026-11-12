@@ -21,6 +21,7 @@ enum InkSelection {
     }
 }
 final class LassoCanvas: PKCanvasView {
+    lazy var precisionInk = PrecisionInkController(canvas: self)
     // History belongs to this page's drawing, not a responder ancestor shared
     // with the independently loaded Notes canvas or a text editor.
     private let drawingUndoManager = UndoManager()

@@ -78,6 +78,28 @@ final class PrecisionInkTests: XCTestCase {
         XCTAssertEqual(line.ink.inkType, .marker)
         for point in line.path { XCTAssertEqual(point.size, CGSize(width: 16, height: 16)); XCTAssertEqual(point.force, 1) }
     }
+    func testEndpointAdjustmentPreservesTransformDateAndUnaffectedStroke() throws {
+        let old = stroke([CGPoint(x: 10, y: 20), CGPoint(x: 60, y: 20), CGPoint(x: 110, y: 20)], transform: CGAffineTransform(translationX: 5, y: 7))
+        let other = stroke([CGPoint(x: 20, y: 150), CGPoint(x: 80, y: 150)])
+        let result = try XCTUnwrap(InkStrokeEditing.applying(.endpoints(start: CGPoint(x: 0, y: 30), end: CGPoint(x: 200, y: 30)), to: PKDrawing(strokes: [old, other]), indices: [0]))
+        XCTAssertEqual(result.strokes[0].path.first?.location, CGPoint(x: 0, y: 30))
+        XCTAssertEqual(result.strokes[0].path.last?.location, CGPoint(x: 200, y: 30))
+        XCTAssertEqual(result.strokes[0].path[1].location, CGPoint(x: 100, y: 30))
+        XCTAssertEqual(result.strokes[0].transform, old.transform)
+        XCTAssertEqual(result.strokes[0].path.creationDate, old.path.creationDate)
+        XCTAssertEqual(result.strokes[0].path[1].force, old.path[1].force)
+        unchanged(result.strokes[1], other)
+    }
+    func testPartialErasureMaskSurvivesColorEditAndCannotBeSilentlyDiscarded() throws {
+        var old = stroke([.zero, CGPoint(x: 100, y: 0)])
+        old.mask = UIBezierPath(rect: CGRect(x: 10, y: -10, width: 60, height: 20))
+        let original = PKDrawing(strokes: [old])
+        let edited = try XCTUnwrap(InkStrokeEditing.applying(.recolor(.blue), to: original, indices: [0]))
+        XCTAssertEqual(edited.strokes[0].mask?.bounds, old.mask?.bounds)
+        XCTAssertNil(InkStrokeEditing.applying(.straighten, to: original, indices: [0]))
+        XCTAssertNil(InkStrokeEditing.hitIndex(in: original, at: CGPoint(x: 90, y: 0), tolerance: 2))
+        XCTAssertEqual(InkStrokeEditing.hitIndex(in: original, at: CGPoint(x: 30, y: 0), tolerance: 2), 0)
+    }
     func testInvalidSelectionAndWidthsNeverChangeDrawing() {
         let drawing = PKDrawing(strokes: [stroke([.zero, CGPoint(x: 100, y: 0)])])
         XCTAssertNil(InkStrokeEditing.applying(.straighten, to: drawing, indices: [0, 8]))

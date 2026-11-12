@@ -6,6 +6,7 @@ enum InkGeometryMode: String, CaseIterable {
 }
 enum InkEditOperation {
     case straighten
+    case endpoints(start: CGPoint, end: CGPoint)
     case recolor(UIColor)
     case width(CGFloat)
 }
@@ -18,6 +19,8 @@ enum InkStrokeEditing {
         for index in Set(indices) {
             var stroke = strokes[index]
             switch edit {
+            case .endpoints:
+                return nil // RED contract: implement only after endpoint regression fails.
             case .recolor(let color):
                 stroke.ink = PKInk(stroke.ink.inkType, color: color.withAlphaComponent(stroke.ink.color.cgColor.alpha))
             case .width(let width):

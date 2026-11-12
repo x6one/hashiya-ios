@@ -42,6 +42,7 @@ import PencilKit
 
 // Sheet coordinates never depend on the size of the split pane.
 final class MarginCanvas: PKCanvasView {
+    lazy var precisionInk = PrecisionInkController(canvas: self)
     // Loading another Notes page clears only this surface's old history.
     private let drawingUndoManager = UndoManager()
     override var undoManager: UndoManager? { drawingUndoManager }

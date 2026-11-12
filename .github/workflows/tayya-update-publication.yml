@@ -108,7 +108,52 @@ jobs:
           path: tayya-update-draft.json
           if-no-files-found: error
           retention-days: 30
+  await-qualified-source:
+    if: github.repository == 'x6one/hashiya-ios' && contains(github.event.head_commit.message, '[store:dispatch-qualified]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait only for the existing pinned release run; never rerun a test
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS_WAIT_GATES'
+          import {readFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          import assert from 'node:assert/strict';
+          import {validateQualification} from './Tools/publish_store_listing.mjs';
+          const c=JSON.parse(readFileSync('Store/update-qualified-source.json','utf8'));
+          assert.match(c.app_source,/^[a-f0-9]{40}$/);
+          assert.match(String(c.qualified_run),/^\d+$/);assert.match(String(c.artwork_run),/^\d+$/);
+          const get=path=>JSON.parse(execFileSync('gh',['api','repos/x6one/hashiya-ios/'+path],{encoding:'utf8'}));
+          const deadline=Date.now()+170*60*1000;let previous='';
+          while(true){
+            let ready=true;const states=[];
+            for(const [id,kind] of [[c.qualified_run,'release'],[c.artwork_run,'artwork']]){
+              const run=get('actions/runs/'+id),jobs=get('actions/runs/'+id+'/jobs?per_page=100');
+              assert.equal(run.head_sha,c.app_source,'Do not wait for another application source');
+              if(jobs.total_count>jobs.jobs.length)throw new Error('Gate job listing is incomplete');
+              const failed=jobs.jobs.filter(j=>j.status==='completed'&&['failure','cancelled','timed_out','action_required','startup_failure'].includes(j.conclusion));
+              if(failed.length)throw new Error('Pinned gate failed; no build/sign/upload: '+failed.map(j=>j.name+':'+j.conclusion).join(','));
+              states.push(kind+':'+run.status+':'+(run.conclusion||'pending')+':'+jobs.jobs.filter(j=>j.conclusion==='success').length+' passed jobs');
+              if(run.status==='completed')validateQualification(run,jobs.jobs,c.app_source,kind);
+              else ready=false;
+            }
+            const status=states.join(' | ');if(status!==previous){console.log(new Date().toISOString(),status);previous=status;}
+            if(ready){console.log('Every pinned native, Maestro/export, gallery, Office and artwork gate passed; signing may now be considered');break;}
+            if(Date.now()>=deadline)throw new Error('Pinned verification remains incomplete; no signing or upload was dispatched');
+            await new Promise(resolve=>setTimeout(resolve,45000));
+          }
+          JS_WAIT_GATES
   dispatch-qualified-archive:
+    needs: await-qualified-source
+    concurrency:
+      group: tayya-update-qualified-signing
+      cancel-in-progress: false
     if: github.repository == 'x6one/hashiya-ios' && contains(github.event.head_commit.message, '[store:dispatch-qualified]')
     runs-on: ubuntu-latest
     timeout-minutes: 10

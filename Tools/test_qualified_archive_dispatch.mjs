@@ -62,3 +62,39 @@ for(const change of [f=>f.artworkJobs.jobs[1].conclusion='skipped',f=>f.previous
   const f=baseline();change(f);assert.equal(evaluate(f,old).calls.length,1,'Previous prepared handoff did not guard this regression');
 }
 console.log('13 conditional-dispatch scenarios passed; prior prepared script replay exposed both missing barriers. No real API write or upload performed.');
+
+const waitScript=workflow.split("<<'JS_WAIT_GATES'\n")[1].split('\n          JS_WAIT_GATES')[0].split('\n').map(line=>line.slice(10)).filter(line=>!line.startsWith('import ')).join('\n');
+async function evaluateWait(fixture,{pendingOnce=false,expire=false}={}){
+  let reads=0,waits=0,clockReads=0,error;
+  const replies=new Map([
+    ['actions/runs/42/jobs?per_page=100',fixture.jobs],['actions/runs/43',fixture.artwork],['actions/runs/43/jobs?per_page=100',fixture.artworkJobs]
+  ]);
+  class Clock extends Date {static now(){return expire?(clockReads++===0?0:171*60*1000):Date.now();}}
+  try{await vm.runInNewContext('(async()=>{'+waitScript+'})()',{
+    assert,validateQualification,Date:Clock,console:{log:()=>{}},
+    readFileSync:()=>JSON.stringify(fixture.config),
+    setTimeout:(resolve,ms)=>{assert.equal(ms,45000);waits++;assert.ok(waits<3,'A mocked wait must not poll indefinitely');resolve();},
+    execFileSync:(exe,args)=>{
+      assert.equal(exe,'gh');assert.ok(!args.includes('POST'),'The wait job must never write to GitHub or Apple');
+      const key=args[1].replace('repos/x6one/hashiya-ios/','');
+      if(key==='actions/runs/42'){
+        reads++;return JSON.stringify(pendingOnce&&reads===1?{...fixture.release,status:'in_progress',conclusion:null}:fixture.release);
+      }
+      assert.ok(replies.has(key),'Unexpected read '+key);return JSON.stringify(replies.get(key));
+    }
+  });}catch(e){error=e;}
+  return {error,waits,reads};
+}
+function waitFixture(){const f=baseline();f.release.status='completed';f.artwork.status='completed';return f;}
+assert.ifError((await evaluateWait(waitFixture())).error);
+const pending=await evaluateWait(waitFixture(),{pendingOnce:true});assert.ifError(pending.error);assert.equal(pending.waits,1);assert.equal(pending.reads,2);
+for(const [name,change] of [
+  ['failed native job',f=>f.jobs.jobs[3].conclusion='failure'],
+  ['cancelled native job',f=>f.jobs.jobs[3].conclusion='cancelled'],
+  ['skipped artwork',f=>f.artworkJobs.jobs[1].conclusion='skipped'],
+  ['other source',f=>f.release.head_sha='b'.repeat(40)],
+  ['incomplete listing',f=>f.jobs.total_count=8]
+]){const f=waitFixture();change(f);assert.ok((await evaluateWait(f)).error,name);}
+const unfinished=waitFixture();unfinished.release.status='in_progress';unfinished.release.conclusion=null;
+const expired=await evaluateWait(unfinished,{expire:true});assert.match(expired.error?.message||'',/remains incomplete/);assert.equal(expired.waits,0);
+console.log('8 read-only waiting scenarios passed, including pending-to-green, failure, cancellation, wrong source, incomplete evidence and bounded expiry.');

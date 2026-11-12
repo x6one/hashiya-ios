@@ -9,9 +9,10 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(finished: finished) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // Deliver a local copy instead of resolving a provider bookmark in
-        // SwiftUI after the remote Files process returns.
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: true)
+        // DocumentImport owns the security-scoped, coordinated snapshot and
+        // validation. Receive the source URL directly instead of waiting for
+        // Files to create a second provider-managed Inbox copy first.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: false)
         picker.allowsMultipleSelection = false
         picker.delegate = context.coordinator
         return picker
@@ -20,6 +21,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
     /// Retire only our incoming copy after the library has saved its own copy.
     static func discardIncomingCopy(_ source: URL, wasCopiedByPicker: Bool = true) {
+        guard wasCopiedByPicker else { return }
         let inbox = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Inbox", isDirectory: true).standardizedFileURL
         guard source.standardizedFileURL.deletingLastPathComponent() == inbox else { return }

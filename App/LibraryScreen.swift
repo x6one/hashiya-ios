@@ -46,7 +46,7 @@ struct LibraryScreen: View {
             .sheet(isPresented: $importing) {
                 DocumentPicker { urls in
                     importing = false
-                    finishPicking(urls)
+                    finishPicking(urls, ownsIncomingCopies: false)
                 }.ignoresSafeArea()
                     .environment(\.locale, Locale.current)
                     .environment(\.layoutDirection, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .rightToLeft : .leftToRight)
@@ -460,7 +460,7 @@ struct LibraryScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }.font(.caption).foregroundStyle(TayyaTheme.detail)
     }
-    private func finishPicking(_ urls: [URL]) {
+    private func finishPicking(_ urls: [URL], ownsIncomingCopies: Bool = true) {
         guard !importingFile, !urls.isEmpty else { return }
         importingFile = true
         importMessage = "جارٍ استيراد الملف…"
@@ -472,7 +472,7 @@ struct LibraryScreen: View {
             for url in urls {
                 do {
                     try await store.importDocumentAsync(url, section: importSection)
-                    DocumentPicker.discardIncomingCopy(url)
+                    DocumentPicker.discardIncomingCopy(url, wasCopiedByPicker: ownsIncomingCopies)
                     imported += 1
                 }
                 catch { failures.append(url.lastPathComponent + ": " + error.localizedDescription) }

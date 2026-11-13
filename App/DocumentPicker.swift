@@ -9,10 +9,9 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(finished: finished) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // DocumentImport owns the security-scoped, coordinated snapshot and
-        // validation. Receive the source URL directly instead of waiting for
-        // Files to create a second provider-managed Inbox copy first.
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: false)
+        // Import through Files' copy-delivery path. DocumentImport still
+        // validates and snapshots that delivered copy before saving it.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.contentTypes, asCopy: true)
         picker.allowsMultipleSelection = false
         picker.delegate = context.coordinator
         return picker

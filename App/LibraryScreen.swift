@@ -46,7 +46,7 @@ struct LibraryScreen: View {
             .sheet(isPresented: $importing) {
                 DocumentPicker { urls in
                     importing = false
-                    finishPicking(urls, ownsIncomingCopies: false)
+                    finishPicking(urls, ownsIncomingCopies: true)
                 }.ignoresSafeArea()
                     .environment(\.locale, Locale.current)
                     .environment(\.layoutDirection, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .rightToLeft : .leftToRight)

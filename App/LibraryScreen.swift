@@ -41,18 +41,13 @@ struct LibraryScreen: View {
     var body: some View {
         NavigationStack { libraryPresentation }
             .tint(TayyaTheme.ink)
-            .background {
-                // SwiftUI owns Files presentation and URL delivery, as in the
-                // existing backup importer. Keep only that presenter in the
-                // system locale; the library retains its selected language.
-                Color.clear.frame(width: 0, height: 0)
-                    .fileImporter(isPresented: $importing, allowedContentTypes: DocumentPicker.contentTypes, allowsMultipleSelection: false) { result in
-                        importing = false
-                        switch result {
-                        case .success(let urls): finishPicking(urls, ownsIncomingCopies: false)
-                        case .failure(let error): importMessage = "لم يتم الاستيراد: " + error.localizedDescription
-                        }
-                    }
+            // Files owns localization. Its host is outside the forced Arabic
+            // content layout, with a single native presentation lifecycle.
+            .sheet(isPresented: $importing) {
+                DocumentPicker { urls in
+                    importing = false
+                    finishPicking(urls, ownsIncomingCopies: true)
+                }.ignoresSafeArea()
                     .environment(\.locale, Locale.current)
                     .environment(\.layoutDirection, UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .rightToLeft : .leftToRight)
             }

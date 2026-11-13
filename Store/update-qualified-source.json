@@ -4,13 +4,13 @@
   "version": "0.6.2",
   "build": "17",
   "app_ref": "integration/tayya-precision-ink",
-  "app_source": "abed3e036829ce6d81a3317f79b4a0d247b28313",
+  "app_source": "5f4f81bf7575cc2ab4407c45f1507a55ddac3ef4",
   "app_tree": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
-  "qualified_run": 43412827655,
-  "artwork_run": 43412827613,
+  "qualified_run": 43454736708,
+  "artwork_run": 43454736647,
   "publish_binary": true,
-  "request_state": "conditional: frozen full gates and canonical artwork pending; dispatch only after strict exact-source verification",
-  "store_artwork_visual_review": "pending: inspect the new exact-source originals and 12 compositions before App Review",
+  "request_state": "conditional: new frozen qualification and native artwork pending; archive dispatch only after all strict7+3 exact-source gates succeed",
+  "store_artwork_visual_review": "pending: inspect exact-source final captures/compositions; previous12 reviewed from identical App tree e0, not a waiver of new source gates",
   "store_submission_blocker": "Apple403 key role; no AppReview/publication is authorized by a gate failure or implied by binary upload",
   "native_intake_proof": {
     "cold_owned_run": 43407676717,
@@ -22,5 +22,21 @@
     "source": "9da500d49a1b495bdb4fc78453b7a769779d8c39",
     "app_tree": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
     "result": "6unit+3native each:9/9,zero fail/skip,source bytes retained"
+  },
+  "focused_proof": {
+    "phone_ink_and_edge": {
+      "run": 43446138578,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "phone_original_saved_preset": {
+      "run": 43451306652,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "application_tree_unchanged": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
+    "scope": "Paged sample reuse proved142.803s/all10stages under unchanged240cap; isolated Width/Favorites successes do not establish the intermittent root cause; no guessed App fix applied."
   }
 }

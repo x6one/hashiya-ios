@@ -62,14 +62,29 @@ final class LaunchTests: XCTestCase {
         }
     }
     private func assertMarginInkVisible(_ canvas: XCUIElement, in app: XCUIApplication, stage: String, file: StaticString = #filePath, line: UInt = #line) {
-        let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.visibleMarginInkPixels(canvas, in: app) > 40 }, object: canvas)
+        typealias Observation = (shot: XCUIScreenshot, frame: CGRect, pixels: Int)
+        func observe() -> Observation {
+            let shot = XCUIScreen.main.screenshot()
+            let frame = canvas.frame
+            return (shot, frame, inkPixels(in: shot.image, frame: frame))
+        }
+        var lastObservation: Observation?
+        let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let sample = observe()
+            lastObservation = sample
+            return sample.pixels > 40
+        }, object: canvas)
         let result = XCTWaiter.wait(for: [visible], timeout: 10)
-        let screen = XCUIScreen.main.screenshot().image
-        print("Margin screenshot " + stage + ": size=\(screen.size) scale=\(screen.scale) orientation=\(screen.imageOrientation.rawValue) frame=\(canvas.frame) pixels=\(visibleMarginInkPixels(canvas, in: app))")
+        // Retain the exact native display which satisfied the pixel assertion.
+        // Recapturing it three times adds remote automation work, and can attach
+        // different pixels from the observation that actually passed.
+        let sample = lastObservation ?? observe()
+        let screen = sample.shot.image
+        print("Margin screenshot " + stage + ": size=\(screen.size) scale=\(screen.scale) orientation=\(screen.imageOrientation.rawValue) frame=\(sample.frame) pixels=\(sample.pixels)")
         print("Margin viewport " + stage + ": " + (canvas.value as? String ?? "") + "; " + canvas.label)
-        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
+        let shot = XCTAttachment(screenshot: sample.shot); shot.name = "MarginInkVisible-" + stage; shot.lifetime = .keepAlways; add(shot)
         let element = XCTAttachment(screenshot: canvas.screenshot()); element.name = "MarginCanvas-" + stage; element.lifetime = .keepAlways; add(element)
-        XCTAssertEqual(result, .completed, "Saved strokes must remain visible in the canvas after " + stage + "; frame: " + String(describing: canvas.frame), file: file, line: line)
+        XCTAssertEqual(result, .completed, "Saved strokes must remain visible in the canvas after " + stage + "; frame: " + String(describing: sample.frame), file: file, line: line)
     }
     func testAReviewEntryProvidesCompleteLocalDemonstrationWithoutLogin() {
         let app = XCUIApplication(); app.launchArguments = ["--test-review-entry"]; app.launch()

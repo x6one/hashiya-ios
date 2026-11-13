@@ -62,6 +62,26 @@ final class StudioEditorToolsTests: XCTestCase {
         pencil.tap()
         XCTAssertEqual(app.buttons["inkBrush"].value as? String, "رصاص")
     }
+    func testFavoritePenMenuOpensFromTheLowerEdgeOfItsTouchTarget() {
+        let app = openDocument()
+        app.buttons["inkTool"].tap()
+        let favorite = app.buttons["favoritePens"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 5))
+        XCTAssertTrue(favorite.isHittable)
+        let frame = favorite.frame
+        XCTAssertGreaterThanOrEqual(frame.width, 44)
+        XCTAssertGreaterThanOrEqual(frame.height, 44)
+        // Exercise the advertised touch area outside the star glyph. One tap
+        // must open the native menu; no repeated activation or extra deadline.
+        favorite.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1))
+            .withOffset(CGVector(dx: 0, dy: -2)).tap()
+        XCTAssertTrue(app.buttons["usePenPreset-0"].waitForExistence(timeout: 5),
+                      "The full 44-point Favorites target must open its native menu")
+        for slot in 0..<3 {
+            XCTAssertTrue(app.buttons["usePenPreset-\(slot)"].exists)
+            XCTAssertTrue(app.buttons["savePenPreset-\(slot)"].exists)
+        }
+    }
     func testFavoritePenUsesNativeBindingsAndSurvivesAppRelaunch() {
         let app = openDocument()
         app.buttons["inkTool"].tap()

@@ -250,3 +250,117 @@ jobs:
           path: Recovered-iPad/
           if-no-files-found: error
           retention-days: 14
+
+  inspect-preserved-file-intake:
+    if: github.repository == 'x6one/hashiya-ios' && contains(github.event.head_commit.message, '[store:inspect-intake]')
+    runs-on: macos-15
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select the existing Apple result reader without building an application
+        run: python3 Tools/select_app_xcode.py
+      - name: Verify and recover the already failed native result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY_INTAKE'
+          import hashlib,io,json,os,subprocess,zipfile
+          from pathlib import Path,PurePosixPath
+          out=Path('FileIntakeEvidence');out.mkdir()
+          expected='faa762567c4f17f6a9eda8c6fd6441e76015c040b384722c5d5396df3e83ecc4'
+          endpoint='repos/x6one/hashiya-ios/actions/artifacts/14014958733'
+          metadata=json.loads(subprocess.check_output(['gh','api',endpoint]))
+          assert metadata['workflow_run']['id']==43375401884
+          assert metadata['workflow_run']['head_sha']=='7a5e29527052ab35a60b5c1a5687ffa301674a1c'
+          assert metadata['name']=='integration-iPhone' and not metadata['expired']
+          assert metadata['size_in_bytes']==104795418 and metadata['digest']=='sha256:'+expected
+          archive=Path('Preserved-intake.zip')
+          with archive.open('wb') as f:subprocess.run(['gh','api',endpoint+'/zip'],stdout=f,check=True)
+          assert archive.stat().st_size==104795418
+          with archive.open('rb') as f:assert hashlib.file_digest(f,'sha256').hexdigest()==expected
+          with zipfile.ZipFile(archive) as z:
+              candidates=[n for n in z.namelist() if n.endswith('/IntegrationResults.xcresult.zip')]
+              assert len(candidates)==1
+              bundle=z.read(candidates[0])
+              summary=json.loads(z.read('IntegrationEvidence/summary.json'))
+              selection=json.loads(z.read('integration-selection.json'))
+          assert selection['sha']=='7a5e29527052ab35a60b5c1a5687ffa301674a1c' and selection['family']=='iPhone'
+          assert summary['passedTests']==0 and summary['failedTests']==1 and summary['skippedTests']==0
+          with zipfile.ZipFile(io.BytesIO(bundle)) as z:
+              for entry in z.infolist():
+                  path=PurePosixPath(entry.filename)
+                  assert not path.is_absolute() and '..' not in path.parts
+                  assert path.parts[0]=='IntegrationResults.xcresult'
+                  assert (entry.external_attr>>16)&0o170000 != 0o120000
+              z.extractall('PreservedIntake')
+          receipt={'original_source':selection['sha'],'original_run':43375401884,'artifact':metadata['id'],
+                   'artifact_sha256':expected,'controller_source':os.environ['GITHUB_SHA'],
+                   'new_tests_run':False,'application_built':False,'original_summary':summary,
+                   'device':selection['device'],'diagnostics_exported':False}
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print('Recovered the exact previously failed result; no app build or test execution')
+          PY_INTAKE
+      - name: Read preserved FileProvider events with Apple's native archive tools
+        env:
+          TZ: UTC
+        run: |
+          xcrun xcresulttool export diagnostics --help > FileIntakeEvidence/export-help.txt
+          xcrun xcresulttool export diagnostics --path PreservedIntake/IntegrationResults.xcresult --output-path PreservedIntake/Diagnostics > FileIntakeEvidence/export-diagnostics.log 2>&1
+          python3 - <<'PY_ARCHIVE'
+          import gzip,hashlib,json,os,re,subprocess
+          from pathlib import Path
+          out=Path('FileIntakeEvidence')
+          receipt=json.loads((out/'receipt.json').read_text())
+          root=Path('PreservedIntake/Diagnostics')
+          members=[{'file':str(p.relative_to(root)),'bytes':p.stat().st_size} for p in root.rglob('*') if p.is_file()]
+          (out/'diagnostic-index.json').write_text(json.dumps(members,indent=2)+'\n')
+          archives=list(root.rglob('*.logarchive'))
+          receipt.update(diagnostics_exported=True,log_archives=[str(p.relative_to(root)) for p in archives])
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          assert archives,'No preserved Apple log archive was exported; do not invent FileProvider evidence'
+          predicate='subsystem CONTAINS[c] "FileProvider" OR subsystem CONTAINS[c] "DocumentManager" OR process == "fileproviderd"'
+          count=0;local=0;failures=[]
+          output=out/'fileprovider-original-case.log.gz'
+          with gzip.open(output,'wt',encoding='utf-8') as merged:
+              for index,archive in enumerate(archives):
+                  raw=Path('PreservedIntake')/('provider-'+str(index)+'.log')
+                  with raw.open('wb') as stdout,(out/'log-errors.txt').open('ab') as stderr:
+                      result=subprocess.run(['/usr/bin/log','show','--archive',str(archive),'--style','compact','--info','--debug','--predicate',predicate],stdout=stdout,stderr=stderr,env={**os.environ,'TZ':'UTC'})
+                  if result.returncode:failures.append({'archive':str(archive),'status':result.returncode});continue
+                  in_case=False
+                  with raw.open(errors='replace') as rows:
+                      for line in rows:
+                          match=re.match(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})',line)
+                          if match:in_case='2026-11-13 06:13:00'<=match.group(1)<='2026-11-13 06:16:30'
+                          if not in_case:continue
+                          line=re.sub(r'(?i)((?:\w*token|authorization|secret|credential)"?\s*[=:]\s*)("[^"]*"|<[^>]*>|[^,\s]+)',r'\1[redacted]',line)
+                          line=re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b','[redacted]',line)
+                          line=re.sub(r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b','[redacted JWT]',line)
+                          line=re.sub(r'\b[a-fA-F0-9]{64,}(?:;[^\s"]+)+','[redacted sandbox grant]',line)
+                          merged.write(line);count+=bool(match);local+=bool(re.search('LocalStorage',line,re.I))
+                  raw.unlink()
+          with output.open('rb') as f:digest=hashlib.file_digest(f,'sha256').hexdigest()
+          receipt.update(fileprovider_records_in_original_case=count,local_storage_mentions=local,
+                         log_sha256=digest,log_errors=failures,log_content='Original archived case, token values redacted; native screenshots and movies untouched')
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          assert not failures,failures
+          assert count>0,'No FileProvider records cover the original failing case; evidence remains incomplete'
+          print('Read preserved FileProvider events:',count,'records; no new app build, simulator boot or tests')
+          PY_ARCHIVE
+      - name: Preserve the small archive-reading receipt and filtered existing events
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tayya-Preserved-File-Intake-Diagnostics-7a5e2952
+          path: |
+            FileIntakeEvidence/receipt.json
+            FileIntakeEvidence/diagnostic-index.json
+            FileIntakeEvidence/export-help.txt
+            FileIntakeEvidence/export-diagnostics.log
+            FileIntakeEvidence/log-errors.txt
+            FileIntakeEvidence/fileprovider-original-case.log.gz
+          if-no-files-found: error
+          retention-days: 14

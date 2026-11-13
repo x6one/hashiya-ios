@@ -1427,6 +1427,7 @@ struct NativePDF: UIViewRepresentable {
         func canvasViewDidBeginUsingTool(_ canvas: PKCanvasView) {
             (canvas as? LassoCanvas)?.precisionInk.nativeToolBegan()
             activeInk.insert(ObjectIdentifier(canvas))
+            if !canvas.isFirstResponder { canvas.becomeFirstResponder() }
         }
         func canvasViewDidEndUsingTool(_ canvas: PKCanvasView) {
             activeInk.remove(ObjectIdentifier(canvas))

@@ -95,6 +95,7 @@ jobs:
               'picker-source-ownership': ['HashiyaTests/DocumentImportTests/testInPlaceInboxImportRetainsOriginalBytesAfterCleanup'],
               'picker-inplace': ['HashiyaTests/DocumentImportTests', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint', 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
               'pdf-provider-boundary': ['HashiyaTests/StudioUndoIsolationTests/testNativeToolHandoffClaimsResponderWithoutChangingPeerInkOrHistory', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF'],
+              'input-ownership': ['HashiyaTests/StudioUndoIsolationTests', 'HashiyaTests/PrecisionInkControllerTests/testUndoDuringNativeInputDoesNotConsumeThePrecisionHistoryEntry', 'HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize', 'HashiyaUITests/LaunchTests/testDrawingToolDoesNotTurnPagesInDocumentOrSplit', 'HashiyaUITests/StudioEditorToolsTests/testPenAndNativeMenuNeverPresentTextKeyboardOrHideBrushActions'],
               'picker-boundary': ['HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPDF', 'HashiyaUITests/LaunchTests/testActualDocumentPickerImportsPowerPoint', 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF'],
               'menu-dismissal': ['HashiyaUITests/StudioProductionCaptureTests/testArabicDarkProductionScreens', 'HashiyaUITests/StudioProductionCaptureTests/testNativeMenuAbsenceRejectsAnUnselectedVisibleAction'],
               'menu-boundary': ['HashiyaUITests/StudioProductionCaptureTests/testLargestEnglishDarkProductionTextInBothOrientations'],
@@ -160,6 +161,8 @@ jobs:
               # RED runs isolate the new failing contracts, not adjacent green suites.
               names = ['HashiyaUITests/StudioProductionCaptureTests/testLargestArabicProductionTextInBothOrientations'] if requested_suite == 'navigation-red' else ['HashiyaUITests/StudioIntegrationTests'] if requested_suite == 'workspace-red' else ['HashiyaTests/StudioAudioIntegrationTests'] if requested_suite == 'audio-red' else selections[suite]
               selected += [name for name in names if name not in selected]
+          if 'input-ownership' in suites and family == 'iPad':
+              selected.append('HashiyaUITests/LaunchTests/testZDemonstrationIsAvailableWithoutLoginAndOpensPopulatedPages')
           if 'ink-atomic-publication' in suites and family == 'iPad':
               selected.append('HashiyaUITests/LaunchTests/testIndividualInkTargetsAtAccessibilityTextSize')
           if not selected:

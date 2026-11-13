@@ -626,6 +626,9 @@ struct MarginNotebook: UIViewRepresentable {
             (canvasView as? MarginCanvas)?.precisionInk.nativeToolBegan()
             isStroking = true
             (canvasView as? MarginCanvas)?.usingTool = true
+            // Reclaim platform editing/Undo after a peer canvas or tool sheet.
+            // Set live-input guards before UIKit can publish focus/layout work.
+            if !canvasView.isFirstResponder { canvasView.becomeFirstResponder() }
         }
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
             #if DEBUG

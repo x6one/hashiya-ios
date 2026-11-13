@@ -145,7 +145,13 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("ملاحظة تجريبية") == true)
         XCTAssertTrue(app.buttons["nextMarginPage"].isEnabled)
         app.buttons["nextMarginPage"].tap()
+        // Observe the completed SwiftUI page transition, not the old editor's
+        // immediate AX value. The exact original text requirement remains.
+        let secondPage = app.textViews.matching(NSPredicate(format:
+            "identifier == %@ AND value CONTAINS %@", "splitNotes", "صفحة مستقلة")).firstMatch
+        XCTAssertTrue(secondPage.waitForExistence(timeout: 5))
         XCTAssertTrue((app.textViews["splitNotes"].value as? String)?.contains("صفحة مستقلة") == true)
+        XCTAssertEqual(app.buttons["marginPages"].value as? String, "2/2")
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "DemonstrationReadyForReview"; shot.lifetime = .keepAlways; add(shot)
     }
@@ -459,16 +465,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(filename.isHittable, "The selected filename must be visible in Files")
         let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
-        let windowFrame = app.windows.firstMatch.frame
-        if !windowFrame.contains(file.frame) {
-            // The saved cold iPad failure exposes a 641pt row extending past
-            // the window, while its filename is fully visible. Touch that
-            // verified visible center instead of the row's AX activation point.
-            XCTAssertTrue(windowFrame.contains(filename.frame), "The complete filename must be inside the actual window")
-            filename.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        } else {
-            filename.tap()
-        }
+        filename.tap()
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts.matching(NSPredicate(format:
             "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",

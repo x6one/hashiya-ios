@@ -466,11 +466,14 @@ final class LaunchTests: XCTestCase {
         let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
         let windowFrame = app.windows.firstMatch.frame
-        if !windowFrame.contains(file.frame) {
-            // Cold Files exposes an oversized row. Its visible filename has
-            // ignored both default and center taps in the saved recordings.
-            // Select the actual row background, outside that name subview.
-            let visible = file.frame.intersection(windowFrame)
+        // Files can clip its row inside the provider's popover even when the
+        // whole row is inside the app window. Use that actual clipping root.
+        let browsingRoot = app.otherElements.matching(NSPredicate(format:
+            "identifier BEGINSWITH %@", "DOC.browsingRoot Source:")).firstMatch
+        let pickerFrame = browsingRoot.exists ? browsingRoot.frame.intersection(windowFrame) : windowFrame
+        if !pickerFrame.contains(file.frame) {
+            // Select the visible row background outside its filename subview.
+            let visible = file.frame.intersection(pickerFrame)
             let point = CGPoint(x: visible.midX, y: visible.midY)
             guard !visible.isNull, !visible.isEmpty, !filename.frame.contains(point) else {
                 XCTFail("Files must expose a visible row background before selecting the document"); return

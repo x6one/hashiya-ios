@@ -465,7 +465,21 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(filename.isHittable, "The selected filename must be visible in Files")
         let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
-        filename.tap()
+        let windowFrame = app.windows.firstMatch.frame
+        if !windowFrame.contains(file.frame) {
+            // Cold Files exposes an oversized row. Its visible filename has
+            // ignored both default and center taps in the saved recordings.
+            // Select the actual row background, outside that name subview.
+            let visible = file.frame.intersection(windowFrame)
+            let point = CGPoint(x: visible.midX, y: visible.midY)
+            guard !visible.isNull, !visible.isEmpty, !filename.frame.contains(point) else {
+                XCTFail("Files must expose a visible row background before selecting the document"); return
+            }
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: point.x, dy: point.y)).tap()
+        } else {
+            filename.tap()
+        }
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts.matching(NSPredicate(format:
             "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",

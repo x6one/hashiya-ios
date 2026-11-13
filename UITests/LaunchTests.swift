@@ -459,7 +459,16 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(filename.isHittable, "The selected filename must be visible in Files")
         let target = XCTAttachment(string: "File frame: \(file.frame); filename frame: \(filename.frame)")
         target.name = "FilesTapGeometry"; target.lifetime = .keepAlways; add(target)
-        filename.tap()
+        let windowFrame = app.windows.firstMatch.frame
+        if !windowFrame.contains(file.frame) {
+            // The saved cold iPad failure exposes a 641pt row extending past
+            // the window, while its filename is fully visible. Touch that
+            // verified visible center instead of the row's AX activation point.
+            XCTAssertTrue(windowFrame.contains(filename.frame), "The complete filename must be inside the actual window")
+            filename.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        } else {
+            filename.tap()
+        }
         // Single selection delivers on the row tap; no second Open action.
         let status = app.staticTexts.matching(NSPredicate(format:
             "identifier == %@ AND (label CONTAINS %@ OR label CONTAINS %@)",

@@ -207,7 +207,10 @@ jobs:
           selection = json.load(open('integration-selection.json'))
           args = ['xcodebuild', 'test', '-project', 'Hashiya.xcodeproj', '-scheme', selection['scheme'], '-configuration', selection['configuration'], '-destination', 'platform=iOS Simulator,id=' + os.environ['SIMULATOR_ID'], '-derivedDataPath', 'IntegrationBuild', '-resultBundlePath', 'IntegrationResults.xcresult', '-test-timeouts-enabled', 'YES', '-default-test-execution-time-allowance', '240', '-maximum-test-execution-time-allowance', '360', 'CODE_SIGNING_ALLOWED=NO']
           args += ['-only-testing:' + name for name in selection['onlyTesting']]
-          raise SystemExit(subprocess.call(args))
+          status = subprocess.call(args)
+          if status == 0 and 'HashiyaUITests/LaunchTests/testAppOwnedDocumentPickerImportsPDF' in selection['onlyTesting']:
+              status = subprocess.call(['python3', 'Tools/seed_files_fixtures.py', '--verify-owned'])
+          raise SystemExit(status)
           PY
       - name: Verify actual simulator microphone authorization after the cold-grant contract
         if: always() && contains(github.event.head_commit.message, '[integration:release-boundaries]')

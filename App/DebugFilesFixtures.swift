@@ -20,9 +20,10 @@ struct DebugFilesFixtures: View {
                     var urls: [URL] = []
                     // Export one document through Files immediately before
                     // its import test, preserving a real provider-owned URL.
+                    let owned = ProcessInfo.processInfo.arguments.contains("--test-export-owned")
                     let fixture = ProcessInfo.processInfo.arguments.contains("--test-export-office")
-                        ? ("office-demo", "pptx", "Picker-office.pptx")
-                        : ("english", "pdf", "Picker-fixture.pdf")
+                        ? ("office-demo", "pptx", owned ? "Owned-office.pptx" : "Picker-office.pptx")
+                        : ("english", "pdf", owned ? "Owned-fixture.pdf" : "Picker-fixture.pdf")
                     for (name, ext, target) in [fixture] {
                         guard let source = Bundle.main.url(forResource: name, withExtension: ext) else {
                             throw CocoaError(.fileNoSuchFile)

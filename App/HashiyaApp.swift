@@ -19,7 +19,9 @@ import ZIPFoundation
         if ProcessInfo.processInfo.arguments.contains("--test-review-entry") { UserDefaults.standard.removeObject(forKey: "tayya.welcomeSeen") }
         if ProcessInfo.processInfo.arguments.contains("--test-reset-entrance") { UserDefaults.standard.removeObject(forKey: "tayya.openingSeen") }
         let reviewRoot = ProcessInfo.processInfo.arguments.contains("--test-review-entry") ? FileManager.default.temporaryDirectory.appendingPathComponent("ReviewEntry-" + UUID().uuidString) : nil
-        let store = LibraryStore(root: reviewRoot, seedDemo: !maestroTesting && !ProcessInfo.processInfo.arguments.contains("--test-export-fixtures") && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
+        let exportingFixtures = ProcessInfo.processInfo.arguments.contains("--test-export-fixtures")
+        let exportingOwned = ProcessInfo.processInfo.arguments.contains("--test-export-owned")
+        let store = LibraryStore(root: reviewRoot, seedDemo: !maestroTesting && (!exportingFixtures || exportingOwned) && !ProcessInfo.processInfo.arguments.contains("--test-review-entry"))
         if reviewRoot != nil, ProcessInfo.processInfo.arguments.contains("--test-production-content") {
             do { try ProductionReviewFixtures.install(in: store) }
             catch { store.error = error.localizedDescription }
@@ -28,17 +30,6 @@ import ZIPFoundation
            !store.notebooks.contains(where: { $0.title == "ملف Office للاختبار" }),
            let source = Bundle.main.url(forResource: "office-demo", withExtension: "pptx") {
             try? store.importDocument(source, title: "ملف Office للاختبار")
-        }
-        if ProcessInfo.processInfo.arguments.contains("--test-app-owned-picker") {
-            for (name, ext, targetName) in [("english", "pdf", "Owned-fixture.pdf"), ("office-demo", "pptx", "Owned-office.pptx")] {
-                guard let source = Bundle.main.url(forResource: name, withExtension: ext) else { continue }
-                let target = store.root.appendingPathComponent(targetName)
-                guard !FileManager.default.fileExists(atPath: target.path) else { continue }
-                var coordinationError: NSError?
-                NSFileCoordinator().coordinate(writingItemAt: target, options: [], error: &coordinationError) { destination in
-                    try? FileManager.default.copyItem(at: source, to: destination)
-                }
-            }
         }
         #else
         let store = LibraryStore(seedDemo: false)

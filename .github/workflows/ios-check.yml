@@ -181,9 +181,11 @@ jobs:
           if not report['drawings']:
               raise SystemExit('No saved review drawings available; failure evidence is incomplete')
           PY_DRAWINGS
-      - name: Verify externally exported fixture bytes
+      - name: Verify native external and app-owned source bytes
         if: always()
-        run: python3 Tools/seed_files_fixtures.py --verify
+        run: |
+          python3 Tools/seed_files_fixtures.py --verify
+          python3 Tools/seed_files_fixtures.py --verify-owned
       - name: Set up Java for Maestro
         uses: actions/setup-java@v4
         with:

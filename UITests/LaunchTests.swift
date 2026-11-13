@@ -161,8 +161,9 @@ final class LaunchTests: XCTestCase {
         exportExternalFixture(in: app, office: name == "Picker-office")
     }
 
-    private func exportExternalFixture(in app: XCUIApplication, office: Bool) -> Bool {
+    private func exportExternalFixture(in app: XCUIApplication, office: Bool, appOwned: Bool = false) -> Bool {
         app.launchArguments = ["--test-export-fixtures"] + (office ? ["--test-export-office"] : [])
+            + (appOwned ? ["--test-export-owned"] : [])
         app.launch()
         let location = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "On My ")).firstMatch
         let browse = app.buttons["Browse"].firstMatch
@@ -176,9 +177,16 @@ final class LaunchTests: XCTestCase {
         guard location.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
         let locationFrame = location.frame
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: locationFrame.midX, dy: locationFrame.midY)).tap()
-        // Save directly in Files' writable On My device root. Creating and
-        // renaming a folder is unrelated to importing documents and stalls
-        // inline editing in the iOS 26 simulator. Files still owns this export.
+        // Let Files create the document identity, including for a source in
+        // Tayya's own Documents folder. A direct host/app copy can appear in
+        // the listing but fail URL lookup with FP -1005 on a cold provider.
+        if appOwned {
+            let folder = app.cells[app.label + ", Container"]
+            guard folder.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
+            let frame = folder.frame
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: frame.midX, dy: frame.midY)).tap()
+        }
         let save = app.buttons["Save"].firstMatch
         guard save.waitForExistence(timeout: 15) else { XCTFail(app.debugDescription); return false }
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: save)
@@ -395,8 +403,10 @@ final class LaunchTests: XCTestCase {
 
     private func verifyPickerImport(name: String, editor: String, appOwned: Bool = false) {
         let app = XCUIApplication()
-        if !appOwned && !prepareExternalFixture(in: app, name: name) { return }
-        app.launchArguments = appOwned ? ["--test-app-owned-picker"] : []
+        if appOwned {
+            guard exportExternalFixture(in: app, office: false, appOwned: true) else { return }
+        } else if !prepareExternalFixture(in: app, name: name) { return }
+        app.launchArguments = []
         app.launch()
         let importButton = app.buttons["importDocument"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))

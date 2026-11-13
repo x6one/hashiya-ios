@@ -11,7 +11,8 @@ import sys
 from pathlib import Path
 
 simulator = os.environ["SIMULATOR_ID"]
-verify = "--verify" in sys.argv
+verify_owned = "--verify-owned" in sys.argv
+verify = "--verify" in sys.argv or verify_owned
 if not verify:
     subprocess.run(["xcrun", "simctl", "launch", simulator, "com.apple.DocumentsApp"], check=True)
 groups = subprocess.check_output(
@@ -42,13 +43,16 @@ else:
     if not app_data or not Path(app_data).is_absolute():
         raise RuntimeError("Installed app data container path was not returned")
     documents = Path(app_data) / "Documents"
-    for name, target in [("english.pdf", "Picker-fixture.pdf"), ("office-demo.pptx", "Picker-office.pptx")]:
+    fixtures = [("english.pdf", "Owned-fixture.pdf")] if verify_owned else [
+        ("english.pdf", "Picker-fixture.pdf"), ("office-demo.pptx", "Picker-office.pptx")]
+    for name, target in fixtures:
         sources = list(Path("App").rglob(name))
         if len(sources) != 1:
             raise RuntimeError(f"Expected one fixture: {name}")
         # Native Save may choose the provider root or Tayya's visible Documents
         # folder. Inspect only these two exact filenames, never UUID/hash matches.
-        destinations = [path for path in (folder / target, documents / target) if path.is_file()]
+        candidates = (documents / target,) if verify_owned else (folder / target, documents / target)
+        destinations = [path for path in candidates if path.is_file()]
         if len(destinations) != 1:
             raise RuntimeError(f"Expected exactly one native export: {target}; found {len(destinations)}")
         destination = destinations[0]

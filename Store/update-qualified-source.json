@@ -9,11 +9,19 @@
   "qualified_run": 43244481457,
   "artwork_run": 43244481216,
   "publish_binary": true,
-  "request_state": "conditional; wait for all actual gate successes before signing/upload",
+  "request_state": "Previous qualified_run failed; new candidate under verification. Read Apple records only; no signing/upload/review dispatch.",
   "targeted_native_visual_review_source": "5e0dfffb4858a8d7730e4b1d4da1e667599f8cda",
   "targeted_native_visual_app_tree": "32b9837facebdede3a6800253dfa3365981de743",
   "store_artwork_artifact": 13959046164,
   "store_artwork_sha256": "27b721406ea3f259fd3e9702e16b3a12d72420815a82c1b45d31ef1e88be8b0d",
   "store_artwork_visual_review": "12/12 actual rendered compositions reviewed; native originals retained",
-  "store_submission_blocker": "Apple403 key role; no AppReview/publication is authorized by a gate failure or implied by binary upload"
+  "store_submission_blocker": "Apple403 key role; no AppReview/publication is authorized by a gate failure or implied by binary upload",
+  "pending_candidate": {
+    "source": "9da500d49a1b495bdb4fc78453b7a769779d8c39",
+    "app_tree": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
+    "cold_owned_run": 43407676717,
+    "cold_owned_result": "1/1 native each family plus exact retained source bytes",
+    "adjacent_import_run": 43409469995,
+    "qualification": "pending; not authorized for dispatch until full frozen gates qualify"
+  }
 }

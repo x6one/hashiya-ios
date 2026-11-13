@@ -4,24 +4,23 @@
   "version": "0.6.2",
   "build": "17",
   "app_ref": "integration/tayya-precision-ink",
-  "app_source": "79741a12ce42da707273246d51efa675f40d6212",
-  "app_tree": "32b9837facebdede3a6800253dfa3365981de743",
-  "qualified_run": 43244481457,
-  "artwork_run": 43244481216,
+  "app_source": "abed3e036829ce6d81a3317f79b4a0d247b28313",
+  "app_tree": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
+  "qualified_run": 43412827655,
+  "artwork_run": 43412827613,
   "publish_binary": true,
-  "request_state": "Previous qualified_run failed; new candidate under verification. Read Apple records only; no signing/upload/review dispatch.",
-  "targeted_native_visual_review_source": "5e0dfffb4858a8d7730e4b1d4da1e667599f8cda",
-  "targeted_native_visual_app_tree": "32b9837facebdede3a6800253dfa3365981de743",
-  "store_artwork_artifact": 13959046164,
-  "store_artwork_sha256": "27b721406ea3f259fd3e9702e16b3a12d72420815a82c1b45d31ef1e88be8b0d",
-  "store_artwork_visual_review": "12/12 actual rendered compositions reviewed; native originals retained",
+  "request_state": "conditional: frozen full gates and canonical artwork pending; dispatch only after strict exact-source verification",
+  "store_artwork_visual_review": "pending: inspect the new exact-source originals and 12 compositions before App Review",
   "store_submission_blocker": "Apple403 key role; no AppReview/publication is authorized by a gate failure or implied by binary upload",
-  "pending_candidate": {
+  "native_intake_proof": {
+    "cold_owned_run": 43407676717,
+    "source": "09faf1b165070b1e8218ac3089786d7d7bf8307f",
+    "result": "1/1 each plus original3063bytes retained"
+  },
+  "adjacent_intake_proof": {
+    "run": 43409469995,
     "source": "9da500d49a1b495bdb4fc78453b7a769779d8c39",
     "app_tree": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
-    "cold_owned_run": 43407676717,
-    "cold_owned_result": "1/1 native each family plus exact retained source bytes",
-    "adjacent_import_run": 43409469995,
-    "qualification": "pending; not authorized for dispatch until full frozen gates qualify"
+    "result": "6unit+3native each:9/9,zero fail/skip,source bytes retained"
   }
 }

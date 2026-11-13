@@ -16,6 +16,7 @@ on:
     paths:
       - '.github/workflows/tayya-store-assets.yml'
       - 'Tools/app_store_readiness.mjs'
+      - 'Store/metadata.json'
 permissions:
   contents: read
   actions: read

@@ -70,7 +70,7 @@ jobs:
           suites = [requested] if requested else re.findall(r'\[integration:([a-z-]+)\]', os.environ.get('COMMIT_MESSAGE', ''))
           selections = {
               'precision-ink-red': ['HashiyaTests/PrecisionInkTests'],
-              'touch-target-red': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenMenuOpensFromTheLowerEdgeOfItsTouchTarget', 'HashiyaUITests/LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch', 'HashiyaUITests/LaunchTests/testNotesPencilRemainsVisibleAfterRepeatedNativePaletteDismissals'],
+              'touch-target': ['HashiyaUITests/StudioEditorToolsTests/testFavoritePenMenuOpensFromTheLowerEdgeOfItsTouchTarget', 'HashiyaUITests/LaunchTests/testPagedMarginsKeepInkTextAndNavigationAfterResizeRotationAndRelaunch', 'HashiyaUITests/LaunchTests/testNotesPencilRemainsVisibleAfterRepeatedNativePaletteDismissals'],
               'precision-ink-review': ['HashiyaTests/PrecisionInkControllerTests'],
               'precision-pdf-ruler': ['HashiyaUITests/PrecisionInkUITests/testPDFPrecisionHighlighterSelectionAndHistoryUseRealControls'],
               'precision-contact': ['HashiyaTests/PrecisionInkControllerTests', 'HashiyaTests/PrecisionInkPersistenceTests', 'HashiyaTests/MarginInkLifecycleTests', 'HashiyaTests/StudioUndoIsolationTests', 'HashiyaUITests/PrecisionInkUITests', 'HashiyaUITests/LaunchTests/testInkPixelMeasurementRespectsScreenshotOrientationAndExcludesControls'],

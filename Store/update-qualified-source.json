@@ -8,10 +8,10 @@
   "app_tree": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
   "qualified_run": 43454736708,
   "artwork_run": 43454736647,
-  "publish_binary": true,
-  "request_state": "conditional: new frozen qualification and native artwork pending; archive dispatch only after all strict7+3 exact-source gates succeed",
-  "store_artwork_visual_review": "pending: inspect exact-source final captures/compositions; previous12 reviewed from identical App tree e0, not a waiver of new source gates",
-  "store_submission_blocker": "Apple403 key role; no AppReview/publication is authorized by a gate failure or implied by binary upload",
+  "publish_binary": false,
+  "request_state": "Owner changed scope: prepare downloadable signed IPA only. Do not dispatch any Apple upload, TestFlight, App Review or publication. Existing signed artifact can be reused without rebuilding.",
+  "store_artwork_visual_review": "Completed12/12 exact-source compositions and native hashes; source5f4f81bf7575cc2ab4407c45f1507a55ddac3ef4, artifact14054527854 sha256bf1c70bfff294fcd0956308430afb839513d08903b8540dbe9cd51fe1d594e4a",
+  "store_submission_blocker": "Not applicable: owner will upload manually; ASC credentials are not required for delivery.",
   "native_intake_proof": {
     "cold_owned_run": 43407676717,
     "source": "09faf1b165070b1e8218ac3089786d7d7bf8307f",
@@ -38,5 +38,11 @@
     },
     "application_tree_unchanged": "e0ee17f9705b1c20f51e846d3ae591ecba325c54",
     "scope": "Paged sample reuse proved142.803s/all10stages under unchanged240cap; isolated Width/Favorites successes do not establish the intermittent root cause; no guessed App fix applied."
-  }
+  },
+  "submit_for_review": false,
+  "release_after_approval": false,
+  "upload_qualified_binary": false,
+  "delivery_only": true,
+  "signed_artifact_run": 43554584789,
+  "signed_artifact_id": 14097494033
 }
